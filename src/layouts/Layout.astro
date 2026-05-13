@@ -42,9 +42,7 @@ import {
   <title>{SITE_TITLE}</title>
 
   <!--
-    ═══════════════════════════════════════════════════════
     META PIXEL — descomentar y reemplazar PIXEL_ID cuando esté disponible
-    ═══════════════════════════════════════════════════════
     <script>
       !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
       n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
@@ -56,18 +54,16 @@ import {
     </script>
     <noscript><img height="1" width="1" style="display:none"
       src="https://www.facebook.com/tr?id=PIXEL_ID&ev=PageView&noscript=1"/></noscript>
-
-    ═══════════════════════════════════════════════════════
-    GOOGLE ANALYTICS 4 — descomentar y reemplazar G-XXXXXXXXXX
-    ═══════════════════════════════════════════════════════
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXXXX');
-    </script>
   -->
+
+  <!-- GOOGLE ANALYTICS 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQ5K6KFXT3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-SQ5K6KFXT3');
+  </script>
 </head>
 <body>
   <slot />
