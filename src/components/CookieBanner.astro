@@ -1,0 +1,63 @@
+---
+---
+
+<!-- Cookie banner (US-021) — oculto por defecto, JS lo muestra si no hay consentimiento -->
+<div id="cookie-banner" class="cookie-banner" style="display: none;" role="alertdialog" aria-label="Aviso de cookies">
+  <p class="cookie-banner__text">
+    Usamos cookies de analítica (Google Analytics) y publicidad (Meta Pixel) para medir el rendimiento de esta página.
+    Consulta nuestra <a href="/politica-de-privacidad" class="cookie-banner__link">política de privacidad</a>.
+  </p>
+  <button id="cookie-accept" class="btn-primary cookie-banner__btn" aria-label="Aceptar cookies">
+    Aceptar
+  </button>
+</div>
+
+<style>
+.cookie-banner {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 1.5rem;
+  right: 6rem;
+  max-width: 560px;
+  background: var(--black);
+  color: var(--white);
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  z-index: 999;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.cookie-banner__text {
+  font-size: 0.82rem;
+  color: #aaaaaa;
+  line-height: 1.55;
+  flex: 1;
+}
+
+.cookie-banner__link {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cookie-banner__btn {
+  font-size: 0.85rem;
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .cookie-banner {
+    left: 1rem;
+    right: 1rem;
+    bottom: 7rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>

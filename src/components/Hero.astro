@@ -1,0 +1,76 @@
+---
+import { WA_FALLBACK_URL } from '../config.js';
+---
+
+<section id="section-hero" class="hero">
+  <div class="container hero__inner">
+    <p class="label">AJL Nutrición · Lima, Perú</p>
+    <h1 class="hero__title">
+      No es tu disciplina.<br />
+      <span class="hero__accent">Es que nadie te dio un plan para tu vida real.</span>
+    </h1>
+    <p class="hero__sub">
+      Cambios reales en composición corporal a través de planificación práctica,
+      gestión de porciones y acompañamiento cercano — integrados a tu vida,
+      sin restricción de alimentos.
+    </p>
+    <div class="hero__cta-group">
+      <a
+        href="#section-packages"
+        class="btn-primary"
+        aria-label="Ver los paquetes disponibles"
+      >
+        Quiero empezar →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+.hero {
+  background: var(--black);
+  color: var(--white);
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  padding-block: clamp(5rem, 10vw, 8rem);
+}
+
+.hero__inner {
+  max-width: 760px;
+}
+
+.hero__title {
+  font-size: clamp(2.5rem, 7.5vw, 4.75rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin-block: 1.25rem 1.75rem;
+}
+
+.hero__accent {
+  color: var(--gold);
+  display: block;
+}
+
+.hero__sub {
+  font-size: clamp(1rem, 2.5vw, 1.2rem);
+  color: #cccccc;
+  line-height: 1.75;
+  max-width: 560px;
+  margin-bottom: 2.5rem;
+}
+
+.hero__cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.hero__note {
+  font-size: 0.8rem;
+  color: #777777;
+  letter-spacing: 0.3px;
+}
+</style>

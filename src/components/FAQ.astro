@@ -1,0 +1,108 @@
+---
+const faqs = [
+  {
+    q: '¿La consulta es presencial o virtual?',
+    a: 'Ofrecemos ambas modalidades. La evaluación inicial puede hacerse de forma virtual por videollamada o presencial en Lima. Los paquetes incluyen sesiones según la modalidad que prefieras.',
+  },
+  {
+    q: '¿Qué pasa exactamente después de la Evaluación de S/80?',
+    a: 'Recibes un diagnóstico completo de tu situación actual y una dirección clara de acción. Desde ahí, decides si contratas algún paquete y cuál se ajusta mejor a tu caso.',
+  },
+  {
+    q: '¿Por qué los S/80 no son gratis si igual voy a contratar un paquete?',
+    a: 'La evaluación es una consulta real con diagnóstico completo, no una reunión de venta. Tiene valor independiente. Además, los S/80 se descuentan del primer mes si decides continuar con un paquete.',
+  },
+  {
+    q: '¿En qué se diferencia cada paquete?',
+    a: 'La diferencia principal es la frecuencia de seguimiento y el nivel de acompañamiento. Desde 1 consulta mensual en Orientación hasta acceso continuo en Premium. La Evaluación te ayuda a identificar qué nivel necesitas.',
+  },
+  {
+    q: '¿Cuánto tiempo lleva ver resultados reales?',
+    a: 'Depende de cada persona, su punto de partida y constancia. La mayoría nota cambios concretos en el primer mes. Los cambios sostenibles —los que no rebotan— generalmente se consolidan entre los 3 y 6 meses.',
+  },
+  {
+    q: '¿Puedo seguir comiendo en restaurantes y pidiendo delivery?',
+    a: 'Sí, ese es exactamente el punto del método. El plan se construye para tu vida real, incluyendo restaurantes, delivery, cenas sociales y viajes. Si no funciona en tu contexto, no funciona.',
+  },
+];
+---
+
+<section id="section-faq" class="section bg-gray">
+  <div class="container">
+    <p class="label">Preguntas frecuentes</p>
+    <h2 class="title" style="margin-bottom: 3rem;">
+      Lo que más nos preguntan,<br />respondido sin rodeos.
+    </h2>
+
+    <div class="faq-list" role="list">
+      {faqs.map((faq, i) => (
+        <details class="faq-item" role="listitem">
+          <summary class="faq-question">
+            <span>{faq.q}</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>{faq.a}</p>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-gray { background: var(--gray-light); }
+
+.faq-list {
+  max-width: 800px;
+  margin-inline: auto;
+  border-top: 1px solid #e0e0e0;
+}
+
+.faq-item {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.4rem 0;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--black);
+  list-style: none;
+  user-select: none;
+  transition: color var(--transition);
+}
+
+.faq-question::-webkit-details-marker { display: none; }
+.faq-question::marker              { display: none; }
+
+.faq-item[open] .faq-question { color: var(--gold); }
+
+.faq-icon {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--gold);
+  flex-shrink: 0;
+  transition: transform 220ms ease;
+  line-height: 1;
+}
+
+.faq-item[open] .faq-icon { transform: rotate(45deg); }
+
+.faq-answer {
+  padding-bottom: 1.4rem;
+  padding-right: 2.5rem;
+}
+
+.faq-answer p {
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.75;
+}
+</style>

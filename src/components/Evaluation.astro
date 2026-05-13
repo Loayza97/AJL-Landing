@@ -1,0 +1,166 @@
+---
+import { WA_FALLBACK_URL } from '../config.js';
+
+const includes = [
+  'Consulta personalizada de 20 a 30 minutos',
+  'Diagnóstico completo de hábitos y composición corporal',
+  'Dirección clara de acción: qué, cómo y cuánto cambiar',
+  'Análisis de tu historial con métodos anteriores',
+  'Definición del paquete más adecuado para tu caso',
+];
+---
+
+<section id="section-evaluation" class="section bg-white">
+  <div class="container eval-layout">
+    <div class="eval-content">
+      <p class="label">¿Todavía no te decides?</p>
+      <h2 class="title" style="margin-bottom: 1rem;">
+        Evaluación Nutricional Personal
+      </h2>
+      <p class="subtitle" style="margin-bottom: 2rem;">
+        Si revisaste los paquetes y aún no sabes cuál encaja con tu caso,
+        la Evaluación de S/80 es el paso previo. Una consulta real con diagnóstico
+        completo para que llegues a la decisión con claridad, no a ciegas.
+      </p>
+
+      <ul class="eval-includes">
+        {includes.map(item => (
+          <li class="eval-item">
+            <span class="eval-check" aria-hidden="true">✓</span>
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <div class="eval-discount">
+        <strong>Los S/80 se descuentan del primer mes</strong> si decides
+        continuar con algún paquete después de la evaluación.
+      </div>
+    </div>
+
+    <div class="eval-card">
+      <p class="eval-card__label">Inversión inicial</p>
+      <p class="eval-card__price">S/80</p>
+      <p class="eval-card__duration">20 – 30 min · Diagnóstico + dirección</p>
+
+      <a
+        href={WA_FALLBACK_URL}
+        class="btn-primary eval-card__cta"
+        data-wa-section="evaluacion"
+        data-wa-pkg="Evaluación S/80"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Primero quiero la Evaluación →
+      </a>
+
+      <p class="eval-card__slots">
+        <span aria-hidden="true">⚠</span> Cupos limitados por semana
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-white { background: var(--white); }
+
+.eval-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 4rem;
+  align-items: start;
+}
+
+/* Includes list */
+.eval-includes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin-bottom: 2rem;
+}
+
+.eval-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--gray-dark);
+}
+
+.eval-check {
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.05em;
+}
+
+.eval-discount {
+  background: var(--gold-pale);
+  border-left: 4px solid var(--gold);
+  padding: 1rem 1.25rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: var(--gray-dark);
+  line-height: 1.6;
+}
+
+/* Card */
+.eval-card {
+  background: var(--black);
+  color: var(--white);
+  border-radius: 12px;
+  padding: 2.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  position: sticky;
+  top: 2rem;
+}
+
+.eval-card__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.eval-card__price {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: -3px;
+  line-height: 1;
+  margin-block: 0.25rem 0.125rem;
+}
+
+.eval-card__duration {
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 1rem;
+}
+
+.eval-card__cta {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.eval-card__slots {
+  font-size: 0.75rem;
+  color: #888;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+  .eval-layout {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .eval-card { position: static; }
+}
+</style>
