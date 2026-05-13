@@ -1,6 +1,6 @@
-# CLAUDE.md — AJL Nutrición Landing Page
+# CLAUDE.md — Contexto del proyecto AJL Nutrición Landing
 
-> Estado: **implementado y funcionando**. Servidor: `npm run dev` → http://localhost:4321/
+> Este archivo da contexto a Claude Code para retomar trabajo en este proyecto sin necesidad de re-explicar.
 > Léeme primero antes de cualquier sesión nueva.
 
 ## Qué es este proyecto
@@ -68,78 +68,82 @@ Antes de implementar, hay que cerrar estos puntos. No los inventes: pregúntale 
 - Resultados garantizados.
 - Demonización de alimentos ("el azúcar es veneno").
 
-## Estructura del repo
+## Cómo está organizado el repo
 
 ```
-ajl-nutricion-/
+ajl-nutricion-landing/
 ├── CLAUDE.md                          ← este archivo
-├── PRD-AJL-Nutricion-v1.md            ← PRD completo (fuente de verdad de requisitos)
-├── docs/
-│   └── CONTEXTO-ASESOR-LANDING.md     ← contexto de marca, método, copy, identidad visual
-├── src/
-│   ├── config.js                      ← número WA, SITE_TITLE, SITE_DESCRIPTION, OG_IMAGE
-│   ├── pages/
-│   │   └── index.astro                ← única página — monta todos los componentes
-│   ├── layouts/
-│   │   └── Layout.astro               ← head, OG tags, fuentes, Meta Pixel (comentado), GA4 (comentado),
-│   │                                     JS client-side: UTM capture, WhatsApp links, scroll tracking, cookie banner
-│   ├── components/
-│   │   ├── Hero.astro                 ← titular + CTA → #section-packages (scrolls a paquetes, no a WA directo)
-│   │   ├── WhyFailed.astro            ← tabla "lo que el cliente dice" vs "problema real"
-│   │   ├── Method.astro               ← 6 pasos del método
-│   │   ├── Packages.astro             ← 5 paquetes con precios y CTA WA por paquete
-│   │   ├── PlanDetails.astro          ← detalle de la Evaluación Nutricional S/80
-│   │   ├── Testimonials.astro         ← testimonios (contenido placeholder)
-│   │   ├── ForWho.astro               ← "Para quién sí / Para quién no" (filtro pasivo central)
-│   │   ├── Evaluation.astro           ← CTA final hacia WA
-│   │   ├── FAQ.astro                  ← acordeón de preguntas frecuentes
-│   │   ├── Footer.astro               ← links de redes, WA, aviso legal
-│   │   ├── FloatingWhatsApp.astro     ← botón flotante esquina inferior derecha
-│   │   └── CookieBanner.astro         ← banner de cookies (se cierra con localStorage)
-│   └── styles/
-│       └── global.css                 ← variables CSS (--gold, --black, --white), reset, btn-primary, tipografía
-├── public/
-│   └── favicon.svg
-├── astro.config.mjs                   ← site: 'https://ajlnutricion.com' (TODO: actualizar con dominio real)
-└── netlify.toml                       ← deploy config para Netlify
+├── PRD-AJL-Nutricion-v1.md            ← PRD completo
+└── docs/
+    └── CONTEXTO-ASESOR-LANDING.md     ← contexto de marca y método
 ```
 
-## Estado de implementación
-
-| Fase | Estado |
-|------|--------|
-| Setup Astro + estructura | ✅ Completo |
-| Hero, WhyFailed, Method, ForWho, FAQ, Footer | ✅ Implementados |
-| Packages (5 paquetes con CTA WA por paquete) | ✅ Implementado |
-| PlanDetails (Evaluación S/80) | ✅ Implementado |
-| Botón flotante WA | ✅ Implementado |
-| UTM capture + mensaje pre-llenado | ✅ Implementado (client-side en Layout.astro) |
-| Scroll tracking por sección | ✅ Implementado (IntersectionObserver) |
-| Cookie banner | ✅ Implementado |
-| Open Graph tags | ✅ Implementado (falta og-image real) |
-| Testimonials | ⚠️ Placeholder — contenido real pendiente |
-| Meta Pixel | ⏳ Comentado — falta PIXEL_ID del negocio |
-| GA4 / analytics | ⏳ Comentado — decisión de herramienta pendiente |
-| og-image | ⏳ Falta `/public/og-image.jpg` real |
-| Dominio personalizado | ⏳ Hoy `ajlnutricion.com` en config — no verificado |
-
-## Pendientes antes del deploy
-
-1. **`/public/og-image.jpg`** — foto de Alejandro o consulta real (no stock). Formato recomendado: 1200×630px.
-2. **Meta Pixel ID** — descomentar bloque en `Layout.astro` y reemplazar `PIXEL_ID`.
-3. **Analytics** — decidir GA4 vs Plausible/Umami; descomentar bloque correspondiente en `Layout.astro`.
-4. **Testimonios** — reemplazar contenido placeholder en `Testimonials.astro` con casos reales.
-5. **Convención UTM por canal** — validar valores exactos con el equipo (ej. `utm_source=ig`, `utm_source=tt`, etc.).
-6. **Dominio** — actualizar `site` en `astro.config.mjs` y `og:url` en `Layout.astro` con el dominio real confirmado.
-7. **Licencia Gilroy** — si hay licencia web, reemplazar Montserrat por Gilroy en `global.css`. Si no, dejar Montserrat.
+A medida que avance el proyecto, espera estructura tipo Astro:
+```
+ajl-nutricion-landing/
+├── src/
+│   ├── pages/
+│   ├── components/
+│   ├── layouts/
+│   └── styles/
+├── public/
+├── astro.config.mjs
+└── package.json
+```
 
 ## Cómo retomar trabajo en una sesión nueva
 
-> "Lee CLAUDE.md y dime qué falta antes del deploy."
+Cuando abras Claude Code en este proyecto, di algo como:
+
+> "Lee CLAUDE.md y el PRD, y dime en qué fase estamos. Quiero avanzar con [X]."
 
 O directamente:
 
-> "Quiero trabajar en [testimonios / og-image / Meta Pixel / copy de X sección]."
+> "Vamos a empezar la Fase 1 del PRD. Necesito ayuda con el copy final del hero."
+
+## Próximos pasos sugeridos
+
+Según el PRD, el orden recomendado es:
+
+**Fase 1 (Definición y diseño) — 1 semana:**
+1. Cerrar copy final por sección (hero, método, evaluación, paquetes, FAQ, "para quién sí/no").
+2. Definir convención UTM por canal.
+3. Seleccionar testimonios.
+4. Diseñar en Figma todas las secciones (mobile + desktop).
+5. Aprobación de stakeholders.
+
+**Fase 2 (Implementación) — 1–1.5 semanas:**
+6. Setup proyecto Astro.
+7. Implementar todas las secciones estáticas.
+8. Implementar CTA WhatsApp con construcción de mensaje pre-llenado vía UTM (client-side).
+9. Integrar Meta Pixel y analytics (decidir GA4/Plausible/Umami).
+10. Configurar eventos custom de tracking.
+11. Optimización de performance (WebP, lazy loading, Lighthouse >85 mobile).
+12. Open Graph tags.
+
+**Fase 3 (Testing y deploy) — 0.5 semana:**
+13. Testing manual en dispositivos reales.
+14. Validar mensaje pre-llenado en todos los UTMs.
+15. Deploy a producción.
+16. Capacitar a Rodrigo.
+
+**Fase 4 (Medición) — 60 días post-launch:**
+17. Monitorear métricas del PRD sección 7.
+18. Reportar resultados al cierre de los 60 días.
+19. Decidir: continuar, pivotar o iterar a v1.1.
+
+## Tareas concretas con las que Claude Code puede ayudar
+
+- Generar copy de cada sección siguiendo las reglas innegociables.
+- Bootstrappear el proyecto Astro con la estructura sugerida.
+- Implementar componentes (Hero, Método, Evaluación, Paquetes, ParaQuien, FAQ, Footer).
+- Construir el helper `buildWhatsAppLink(utmParams)` que arma el `wa.me` con mensaje pre-llenado.
+- Integrar Meta Pixel y el analytics elegido.
+- Configurar eventos custom (`scroll_para_quien`, `whatsapp_click` con `section_origin`, etc.).
+- Optimización de imágenes a WebP/AVIF y lazy loading.
+- Configuración de Open Graph y meta tags.
+- Setup de despliegue en Vercel / Netlify / Cloudflare Pages.
+- Auditoría Lighthouse y ajustes para hit >85 mobile.
 
 ## Conexión con WhatsApp (referencia técnica rápida)
 

@@ -1,13 +1,9 @@
 ---
-import { WA_NUMBER } from '../config.js';
-
-function waUrl(text: string) {
-  return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
-}
+import { WA_FALLBACK_URL } from '../config.js';
 
 const packages = [
   {
-    name: 'Orientación',
+    name: 'Básico',
     tagline: 'Claridad en una sesión',
     price: '250',
     freq: 'Única',
@@ -28,7 +24,6 @@ const packages = [
     ],
     programs: null,
     programsNote: 'Solo disponible mensual',
-    waText: 'Hola, me interesa el Plan Orientación de S/250. ¿Cómo empezamos?',
   },
   {
     name: 'Acompañamiento',
@@ -54,7 +49,6 @@ const packages = [
       { label: '3 meses', total: 'S/900', perMes: 'S/300/mes' },
     ],
     programsNote: null,
-    waText: 'Hola, me interesa el Plan Acompañamiento de S/320. ¿Cómo empezamos?',
   },
   {
     name: 'Constancia',
@@ -81,7 +75,6 @@ const packages = [
       { label: '6 meses', total: 'S/2,400', perMes: 'S/400/mes' },
     ],
     programsNote: null,
-    waText: 'Hola, me interesa el Plan Constancia de S/440. ¿Cómo empezamos?',
   },
   {
     name: 'Transformación',
@@ -108,7 +101,6 @@ const packages = [
       { label: '6 meses', total: 'S/3,200', perMes: 'S/533/mes' },
     ],
     programsNote: null,
-    waText: 'Hola, me interesa el Plan Transformación de S/600. ¿Cómo empezamos?',
   },
 ];
 ---
@@ -118,7 +110,8 @@ const packages = [
     <p class="label">Asesoría nutricional</p>
     <h2 class="title" style="margin-bottom: 0.75rem;">Todos los planes</h2>
     <p class="subtitle" style="margin-bottom: 3rem;">
-      El método es uno. El nivel de acompañamiento lo defines tú, según tu ritmo y tu contexto.
+      La diferencia entre planes es la frecuencia de acompañamiento.
+      Si aún no sabes cuál elegir, más abajo hay una opción para ti.
     </p>
 
     <div class="packages-grid">
@@ -195,7 +188,7 @@ const packages = [
 
           <!-- CTA -->
           <a
-            href={waUrl(pkg.waText)}
+            href={WA_FALLBACK_URL}
             class={`pkg-cta${pkg.highlight ? ' pkg-cta--featured' : ''}`}
             data-wa-section="paquetes"
             data-wa-pkg={pkg.name}
