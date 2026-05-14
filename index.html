@@ -218,8 +218,8 @@
   .plan-price .trim { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
   .plan-cta {
     background: var(--ink); color: #fff; border: none;
-    padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
-    display: inline-flex; align-items: center; gap: 5px;
+    padding: 7px 13px; border-radius: 10px; font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
     font-family: 'Inter'; text-decoration: none; transition: all 0.2s;
   }
   .plan-cta:hover { background: var(--gold); transform: translateY(-1px); }
@@ -246,6 +246,41 @@
   }
 
   /* ── TESTIMONIALS ── */
+  /* ── TESTIMONIAL SLIDER ── */
+  .testimonial-slider-wrap { overflow: hidden; }
+  .testimonial-slider {
+    display: grid; grid-template-columns: repeat(3,1fr); gap: 14px;
+    transition: transform 0.4s cubic-bezier(.2,.8,.2,1);
+  }
+  .testimonial-nav {
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .t-nav-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1.5px solid var(--line); background: var(--card);
+    display: grid; place-items: center; cursor: pointer;
+    transition: all 0.2s; color: var(--ink);
+  }
+  .t-nav-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .t-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .t-nav-dots { display: flex; gap: 5px; }
+  .t-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--line); transition: background 0.2s, transform 0.2s;
+  }
+  .t-dot.active { background: var(--ink); transform: scale(1.3); }
+
+  /* Desktop: siempre 3 columnas, nav oculta */
+  @media (min-width: 769px) {
+    .testimonial-nav { display: none; }
+    .testimonial-slider { transform: none !important; }
+  }
+  /* Mobile: 1 tarjeta visible */
+  @media (max-width: 768px) {
+    .testimonial-slider { grid-template-columns: repeat(3, 100%); }
+    .testimonial-slider-wrap { overflow: hidden; }
+  }
+
   .testimonial-card {
     background: var(--card); border: 1px solid var(--line); border-radius: 20px;
     padding: 28px; transition: transform 0.3s, box-shadow 0.3s;
@@ -826,55 +861,68 @@
 
 <!-- ════════════════════════════════════════ TESTIMONIOS ═══════════════════════════════ -->
 <section class="container" id="testimonios" style="padding-top:8px;">
-  <div class="section-header reveal">
-    <h2>Pacientes reales</h2>
-    <p style="margin-top:8px;">Personas reales que cambiaron su relación con la comida.</p>
+  <div class="section-header reveal" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <h2>Pacientes reales</h2>
+      <p style="margin-top:8px;">Personas reales que cambiaron su relación con la comida.</p>
+    </div>
+    <div class="testimonial-nav" id="testimonialNav">
+      <button class="t-nav-btn" id="tPrev" onclick="moveTestimonial(-1)" aria-label="Anterior">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <span class="t-nav-dots" id="tDots"></span>
+      <button class="t-nav-btn" id="tNext" onclick="moveTestimonial(1)" aria-label="Siguiente">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:24px 0 56px;">
+  <div class="testimonial-slider-wrap" style="padding:24px 0 56px;">
+    <div class="testimonial-slider" id="testimonialSlider">
 
-    <div class="testimonial-card reveal" style="animation-delay:0.05s">
-      <div class="testimonial-stars">
-        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
-      <p class="testimonial-text">"Siempre pensé que yo era el problema. Que me faltaba fuerza de voluntad. Alejandro fue el primero en explicarme que el plan anterior simplemente ignoraba que yo almuerzo fuera de casa todos los días. Ahora tengo estructura y como rico."</p>
-      <div class="testimonial-author">
-        <div class="author-avatar">C</div>
-        <div>
-          <p class="author-name">Carla M.</p>
-          <p class="author-context">Gerente de marketing · Plan Constancia</p>
+      <div class="testimonial-card reveal" style="animation-delay:0.05s">
+        <div class="testimonial-stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <p class="testimonial-text">"Siempre pensé que yo era el problema. Que me faltaba fuerza de voluntad. Alejandro fue el primero en explicarme que el plan anterior simplemente ignoraba que yo almuerzo fuera de casa todos los días. Ahora tengo estructura y como rico."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">C</div>
+          <div>
+            <p class="author-name">Carla M.</p>
+            <p class="author-context">Gerente de marketing · Plan Constancia</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="testimonial-card reveal" style="animation-delay:0.1s">
-      <div class="testimonial-stars">
-        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
-      <p class="testimonial-text">"Lo que más me sorprendió es que nunca me pidieron que dejara de salir con amigos ni de tomar mi cerveza del viernes. Me enseñaron a comer dentro de esos contextos. Llevo 8 meses y no he rebotado."</p>
-      <div class="testimonial-author">
-        <div class="author-avatar">D</div>
-        <div>
-          <p class="author-name">Diego R.</p>
-          <p class="author-context">Ingeniero · Plan Acompañamiento</p>
+      <div class="testimonial-card reveal" style="animation-delay:0.1s">
+        <div class="testimonial-stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <p class="testimonial-text">"Lo que más me sorprendió es que nunca me pidieron que dejara de salir con amigos ni de tomar mi cerveza del viernes. Me enseñaron a comer dentro de esos contextos. Llevo 8 meses y no he rebotado."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">D</div>
+          <div>
+            <p class="author-name">Diego R.</p>
+            <p class="author-context">Ingeniero · Plan Acompañamiento</p>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="testimonial-card reveal" style="animation-delay:0.15s">
-      <div class="testimonial-stars">
-        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
-      <p class="testimonial-text">"Venía de dos nutricionistas que me daban la misma dieta genérica. Aquí el plan fue completamente distinto desde el inicio. Lo más valioso fue aprender a comer en restaurantes sin ansiedad. Eso cambió todo."</p>
-      <div class="testimonial-author">
-        <div class="author-avatar">V</div>
-        <div>
-          <p class="author-name">Valeria T.</p>
-          <p class="author-context">Abogada · Plan Transformación</p>
+      <div class="testimonial-card reveal" style="animation-delay:0.15s">
+        <div class="testimonial-stars">
+          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+        </div>
+        <p class="testimonial-text">"Venía de dos nutricionistas que me daban la misma dieta genérica. Aquí el plan fue completamente distinto desde el inicio. Lo más valioso fue aprender a comer en restaurantes sin ansiedad. Eso cambió todo."</p>
+        <div class="testimonial-author">
+          <div class="author-avatar">V</div>
+          <div>
+            <p class="author-name">Valeria T.</p>
+            <p class="author-context">Abogada · Plan Transformación</p>
+          </div>
         </div>
       </div>
-    </div>
 
+    </div>
   </div>
 </section>
 
@@ -1079,6 +1127,54 @@ const obs = new IntersectionObserver(entries => {
   });
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ── TESTIMONIAL SLIDER (mobile only) ──
+(function() {
+  const slider = document.getElementById('testimonialSlider');
+  const prevBtn = document.getElementById('tPrev');
+  const nextBtn = document.getElementById('tNext');
+  const dotsWrap = document.getElementById('tDots');
+  const cards = slider ? slider.querySelectorAll('.testimonial-card') : [];
+  let current = 0;
+
+  function isMobile() { return window.innerWidth <= 768; }
+
+  function buildDots() {
+    dotsWrap.innerHTML = '';
+    cards.forEach((_, i) => {
+      const d = document.createElement('span');
+      d.className = 't-dot' + (i === current ? ' active' : '');
+      d.onclick = () => goTo(i);
+      dotsWrap.appendChild(d);
+    });
+  }
+
+  function goTo(idx) {
+    current = Math.max(0, Math.min(idx, cards.length - 1));
+    slider.style.transform = `translateX(calc(-${current * 100}% - ${current * 14}px))`;
+    prevBtn.disabled = current === 0;
+    nextBtn.disabled = current === cards.length - 1;
+    dotsWrap.querySelectorAll('.t-dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  }
+
+  window.moveTestimonial = function(dir) { goTo(current + dir); };
+
+  if (cards.length) {
+    buildDots();
+    goTo(0);
+    // Touch swipe
+    let startX = 0;
+    slider.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    slider.addEventListener('touchend', e => {
+      const diff = startX - e.changedTouches[0].clientX;
+      if (Math.abs(diff) > 40) goTo(current + (diff > 0 ? 1 : -1));
+    });
+    window.addEventListener('resize', () => {
+      if (!isMobile()) slider.style.transform = '';
+      else goTo(current);
+    });
+  }
+})();
 </script>
 </body>
 </html>
