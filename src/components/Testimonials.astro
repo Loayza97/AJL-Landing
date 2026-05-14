@@ -1,0 +1,156 @@
+---
+// TODO: reemplazar con testimonios reales del equipo
+const testimonials = [
+  {
+    initials: 'CM',
+    name: 'Carla M.',
+    age: 32,
+    context: 'Gerente de proyectos',
+    months: 4,
+    quote:
+      'Probé keto y ayuno intermitente antes. Siempre rebotaba. Con AJL entendí que el problema no era yo: era que los planes ignoraban mi vida real. Ahora como en cualquier restaurante y sigo avanzando.',
+  },
+  {
+    initials: 'MV',
+    name: 'Marco V.',
+    age: 41,
+    context: 'Médico, guardias de 12 h',
+    months: 6,
+    quote:
+      'Con mi horario de guardia, cualquier dieta se rompía en 48 horas. Me dieron estructura para días buenos y para días de caos. Por primera vez llevo más de tres meses sin volver al punto de inicio.',
+  },
+  {
+    initials: 'AL',
+    name: 'Ana L.',
+    age: 36,
+    context: 'Abogada',
+    months: 3,
+    quote:
+      'Siempre creí que me faltaba fuerza de voluntad. No era eso: me faltaba un plan compatible con mi vida. Cenas de trabajo, viajes, reuniones. Todo está contemplado.',
+  },
+];
+---
+
+<section id="section-testimonials" class="section bg-gray">
+  <div class="container">
+    <p class="label">Pacientes reales</p>
+    <h2 class="title" style="margin-bottom: 3rem;">
+      Ellos ya cambiaron la relación<br />con su alimentación.
+    </h2>
+
+    <div class="testimonials-grid">
+      {testimonials.map(t => (
+        <article class="t-card">
+          <div class="t-card__header">
+            <div class="t-avatar" aria-hidden="true">{t.initials}</div>
+            <div>
+              <p class="t-name">{t.name}, {t.age} años</p>
+              <p class="t-context">{t.context}</p>
+              <p class="t-months">{t.months} meses con el método</p>
+            </div>
+          </div>
+          <blockquote class="t-quote">
+            <span class="t-quote-mark" aria-hidden="true">"</span>
+            {t.quote}
+          </blockquote>
+        </article>
+      ))}
+    </div>
+
+    <p class="t-disclaimer">
+      Resultados individuales. Los cambios dependen de la constancia y contexto de cada paciente.
+    </p>
+  </div>
+</section>
+
+<style>
+.bg-gray { background: var(--gray-light); }
+
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.t-card {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 1.75rem;
+  border: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.t-card__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.t-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--black);
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.t-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--black);
+}
+
+.t-context {
+  font-size: 0.78rem;
+  color: var(--gray-mid);
+  margin-top: 0.1rem;
+}
+
+.t-months {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.2rem;
+}
+
+.t-quote {
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.7;
+  position: relative;
+  padding-top: 0.5rem;
+  border-top: 1px solid #eeeeee;
+}
+
+.t-quote-mark {
+  font-size: 3rem;
+  color: var(--gold);
+  font-weight: 900;
+  line-height: 0.6;
+  float: left;
+  margin-right: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.t-disclaimer {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .testimonials-grid { grid-template-columns: 1fr; }
+}
+</style>

@@ -1,0 +1,184 @@
+---
+import '../styles/global.css';
+import {
+  WA_NUMBER,
+  SITE_TITLE,
+  SITE_DESCRIPTION,
+  OG_IMAGE,
+} from '../config.js';
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={SITE_DESCRIPTION} />
+  <meta name="robots" content="index, follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="AJL Nutrición" />
+  <meta property="og:title"       content={SITE_TITLE} />
+  <meta property="og:description" content={SITE_DESCRIPTION} />
+  <meta property="og:image"       content={OG_IMAGE} />
+  <meta property="og:url"         content="https://ajlnutricion.com" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={SITE_TITLE} />
+  <meta name="twitter:description" content={SITE_DESCRIPTION} />
+  <meta name="twitter:image"       content={OG_IMAGE} />
+
+  <!-- Fonts: Montserrat como fallback a Gilroy -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;800;900&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>{SITE_TITLE}</title>
+
+  <!--
+    META PIXEL — descomentar y reemplazar PIXEL_ID cuando esté disponible
+    <script>
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', 'PIXEL_ID');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=PIXEL_ID&ev=PageView&noscript=1"/></noscript>
+  -->
+
+  <!-- GOOGLE ANALYTICS 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQ5K6KFXT3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-SQ5K6KFXT3');
+  </script>
+</head>
+<body>
+  <slot />
+
+  <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
+  <script define:vars={{ WA_NUMBER }}>
+    // ── Configuración ──────────────────────────────────────────────────────────
+    const waNumber = WA_NUMBER;
+    const params   = new URLSearchParams(window.location.search);
+    const utmSource   = params.get('utm_source');
+    const utmMedium   = params.get('utm_medium');
+    const utmCampaign = params.get('utm_campaign');
+
+    // ── Construye label de origen para el mensaje (solo si hay UTM) ──────────
+    function getOriginLabel() {
+      if (!utmSource) return null;
+      const parts = [`origen: ${utmSource}`];
+      if (utmMedium)   parts.push(utmMedium);
+      if (utmCampaign) parts.push(utmCampaign);
+      return parts.join(' / ');
+    }
+
+    // ── Mensaje pre-llenado (≤200 chars visibles + UTM) ───────────────────────
+    function buildMessage() {
+      const origin = getOriginLabel();
+      const base   = 'Hola, me interesa la Evaluación Nutricional de S/80.';
+      return encodeURIComponent(origin ? `${base} [${origin}]` : base);
+    }
+
+    // ── Wrapper seguro para gtag ───────────────────────────────────────────────
+    function trackEvent(name, extra = {}) {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', name, extra);
+      }
+    }
+
+    // ── Inyecta URLs de WhatsApp en todos los CTAs ────────────────────────────
+    function initWALinks() {
+      const defaultMessage = buildMessage();
+      const origin         = getOriginLabel();
+
+      document.querySelectorAll('[data-wa-section]').forEach(el => {
+        const section = el.dataset.waSection;
+        const pkgName = el.dataset.waPkg; // presente solo en CTAs de paquete
+
+        let message = defaultMessage;
+        if (pkgName) {
+          const pkgText = `Hola, me interesa el paquete ${pkgName} de AJL Nutrición.`;
+          message = encodeURIComponent(origin ? `${pkgText} [${origin}]` : pkgText);
+        }
+
+        el.setAttribute('href', `https://wa.me/${waNumber}?text=${message}`);
+        el.addEventListener('click', () => {
+          const isFloating = section === 'floating';
+          trackEvent(isFloating ? 'whatsapp_click_floating' : 'whatsapp_click', {
+            section_id: section,
+            ...(pkgName && { package_name: pkgName }),
+          });
+        });
+      });
+    }
+
+    // ── Scroll tracking por sección ────────────────────────────────────────────
+    function initScrollTracking() {
+      if (!('IntersectionObserver' in window)) return;
+
+      const sectionEvents = {
+        'section-why-failed':   'scroll_frustracion',
+        'section-method':       'scroll_metodo',
+        'section-testimonials': 'scroll_testimonios',
+        'section-for-who':      'scroll_para_quien',
+      };
+
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const event = sectionEvents[entry.target.id];
+            if (event) trackEvent(event);
+            observer.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.25 }
+      );
+
+      Object.keys(sectionEvents).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    }
+
+    // ── Cookie banner ──────────────────────────────────────────────────────────
+    function initCookieBanner() {
+      const banner = document.getElementById('cookie-banner');
+      if (!banner) return;
+
+      const KEY = 'ajl_cookie_ok';
+      if (localStorage.getItem(KEY)) {
+        banner.remove();
+        return;
+      }
+      banner.style.display = 'flex';
+
+      document.getElementById('cookie-accept')?.addEventListener('click', () => {
+        localStorage.setItem(KEY, '1');
+        banner.remove();
+      });
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      initWALinks();
+      initScrollTracking();
+      initCookieBanner();
+    });
+  </script>
+</body>
+</html>

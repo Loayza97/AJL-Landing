@@ -1,0 +1,218 @@
+---
+import { WA_FALLBACK_URL } from '../config.js';
+
+const individual = [
+  {
+    icon: '🎯',
+    title: 'Sesión de estrategia',
+    desc: 'Evaluación física y revisión de tus patrones de alimentación, costumbres y tipos de día. Entendemos cómo comes y cómo vives para estructurar tu plan a partir de ahí. Entendemos tu rutina, hábitos y costumbres · 60 min.',
+    plans: ['Todos los planes'],
+  },
+  {
+    icon: '📋',
+    title: 'Plan nutricional personalizado',
+    desc: 'Distribución de tu alimentación a lo largo del día, construido desde los patrones y costumbres que identificamos en sesión. Con porciones y opciones adaptadas a tu rutina, tus horarios y lo que tienes disponible.',
+    plans: ['Todos los planes'],
+  },
+  {
+    icon: '💬',
+    title: 'Sesión de seguimiento',
+    desc: 'Espacio de reflexión: revisamos tus avances, cómo te sientes, qué hábitos estás logrando sostener y en qué momentos de tu rutina necesitas un empujón. Buscamos estrategias para que el plan se cumpla, no cambiarlo a la primera. Virtual, 30 min.',
+    plans: ['Constancia', 'Transformación'],
+  },
+  {
+    icon: '📈',
+    title: 'Sesión de logros',
+    desc: 'Medición de composición corporal (bioimpedancia, cinta métrica, plicómetro) junto con una revisión de tus hábitos y avances. Con los resultados, definimos el siguiente paso de tu proceso. Exclusiva para pacientes nuevos — incluida en el primer mes de tu proceso con nosotros.',
+    plans: ['Constancia', 'Transformación'],
+  },
+];
+
+const continuous = [
+  {
+    icon: '📱',
+    title: 'Seguimiento por WhatsApp',
+    desc: 'Para las decisiones alimentarias del día a día: qué comer cuando estás fuera de casa, cómo resolver una comida improvisada, o qué hacer cuando el plan no calza con tu día. L-V 9am-6pm, S 9am-1pm.',
+    plans: ['Acompañamiento', 'Constancia', 'Transformación'],
+  },
+  {
+    icon: '👥',
+    title: 'Sesiones grupales',
+    desc: '4 sesiones al mes en vivo. Un espacio educativo donde trabajamos los fundamentos que necesitas para sostener tus resultados por tu cuenta. Grabadas si no puedes asistir.',
+    plans: ['Acompañamiento', 'Constancia', 'Transformación'],
+  },
+  {
+    icon: '🏠',
+    title: 'Comunidad exclusiva',
+    desc: 'Grupo privado donde compartes el proceso con otras personas en la misma situación. No estás solo: recetas, experiencias y motivación entre quienes entienden por lo que estás pasando.',
+    plans: ['Acompañamiento', 'Constancia', 'Transformación'],
+  },
+  {
+    icon: '⚡',
+    title: 'Atención prioritaria',
+    desc: 'Prioridad en todo: agendamiento de sesiones, entrega de planes y respuesta por WhatsApp. El mismo método, con atención preferente en cada punto de contacto.',
+    plans: ['Transformación'],
+  },
+];
+---
+
+<section id="section-plan-details" class="section bg-gray">
+  <div class="container">
+    <p class="label">Asesoría nutricional</p>
+    <h2 class="title" style="margin-bottom: 3rem;">¿Qué incluye cada plan?</h2>
+
+    <!-- Sesiones individuales -->
+    <p class="group-label">Sesiones individuales</p>
+    <div class="details-grid">
+      {individual.map(item => (
+        <article class="detail-card">
+          <div class="detail-card__header">
+            <span class="detail-icon" aria-hidden="true">{item.icon}</span>
+            <h3 class="detail-title">{item.title}</h3>
+          </div>
+          <p class="detail-desc">{item.desc}</p>
+          <div class="detail-plans">
+            {item.plans.map(plan => (
+              <span class={`detail-tag${plan === 'Todos los planes' ? ' detail-tag--all' : ''}`}>
+                {plan}
+              </span>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <!-- Acompañamiento continuo -->
+    <p class="group-label" style="margin-top: 2.5rem;">Acompañamiento continuo</p>
+    <div class="details-grid">
+      {continuous.map(item => (
+        <article class="detail-card">
+          <div class="detail-card__header">
+            <span class="detail-icon" aria-hidden="true">{item.icon}</span>
+            <h3 class="detail-title">{item.title}</h3>
+          </div>
+          <p class="detail-desc">{item.desc}</p>
+          <div class="detail-plans">
+            {item.plans.map(plan => (
+              <span class="detail-tag">{plan}</span>
+            ))}
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <p class="details-footer">
+      ¿Dudas sobre algún servicio?{' '}
+      <a
+        href={WA_FALLBACK_URL}
+        class="details-footer__link"
+        data-wa-section="plan_details"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Escríbenos
+      </a>
+      {' '}y te ayudamos a elegir.
+    </p>
+  </div>
+</section>
+
+<style>
+.bg-gray { background: var(--gray-light); }
+
+.group-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.detail-card {
+  background: var(--white);
+  border-radius: 10px;
+  padding: 1.5rem;
+  border: 1px solid #e8e8e8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.detail-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.detail-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.detail-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--black);
+  letter-spacing: -0.2px;
+  line-height: 1.2;
+}
+
+.detail-desc {
+  font-size: 0.85rem;
+  color: var(--gray-dark);
+  line-height: 1.65;
+  flex: 1;
+}
+
+.detail-plans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: auto;
+}
+
+.detail-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 0.2rem 0.625rem;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  color: #777;
+}
+
+.detail-tag--all {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.details-footer {
+  margin-top: 2.5rem;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--gray-mid);
+}
+
+.details-footer__link {
+  color: var(--gold);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition);
+}
+
+.details-footer__link:hover { color: var(--gold-dark); }
+
+@media (max-width: 640px) {
+  .details-grid { grid-template-columns: 1fr; }
+}
+</style>

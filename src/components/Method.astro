@@ -1,0 +1,185 @@
+---
+import { WA_FALLBACK_URL } from '../config.js';
+
+const steps = [
+  {
+    n: '01',
+    title: 'Estructura en tu vida real',
+    desc: 'Tu rutina permite 3 comidas + 1 snack. Lo estructuramos. No te pedimos la vida ideal de otro, sino que ordenamos la tuya como es.',
+  },
+  {
+    n: '02',
+    title: 'Planificación semanal',
+    desc: 'Cada semana planificamos juntos. No te damos un plan mensual y suerte. Ajustamos según lo que viene: viaje, cenas, semana de caos.',
+  },
+  {
+    n: '03',
+    title: 'Gestión de porciones visible',
+    desc: 'Aprendes a medir con manos, tazas y platos — sin pesar gramos ni contar calorías. Una habilidad para toda la vida.',
+  },
+  {
+    n: '04',
+    title: 'Backend calórico oculto',
+    desc: 'Nosotros calculamos calorías y macros. Tú solo sigues las porciones. El fondo energético se gestiona sin que lo sientas como restricción.',
+  },
+  {
+    n: '05',
+    title: 'Acompañamiento cercano',
+    desc: 'Seguimiento frecuente, no solo una consulta mensual. Estamos presentes entre sesiones para que no te quedes sin respuesta ante la duda del día a día.',
+  },
+  {
+    n: '06',
+    title: 'Ajuste según adherencia real',
+    desc: 'No exigimos perfección desde el día 1. Ajustamos el plan a lo que puedes mantener hoy, y lo vamos escalando. El progreso es real o no sirve.',
+  },
+];
+---
+
+<section id="section-method" class="section bg-black">
+  <div class="container">
+    <p class="label">El método AJL</p>
+    <h2 class="title white" style="margin-bottom: 0.75rem;">
+      6 pasos para una estructura<br />que dura más de 30 días.
+    </h2>
+    <p class="subtitle light" style="margin-bottom: 0.75rem;">
+      No hay alimentos prohibidos. No hay planes ideales. Solo estructura
+      para tu vida concreta.
+    </p>
+    <p class="subtitle light" style="margin-bottom: 3.5rem; font-style: italic;">
+      El método no te pide otra vida. Trabaja con la que ya tienes.
+    </p>
+
+    <div class="steps-grid">
+      {steps.map(step => (
+        <div class="step-card">
+          <span class="step-n">{step.n}</span>
+          <h3 class="step-title">{step.title}</h3>
+          <p class="step-desc">{step.desc}</p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Compromiso del paciente (US-020) -->
+    <div class="commitment">
+      <p class="commitment__label">Tu parte en el proceso</p>
+      <ul class="commitment__list">
+        <li>Registras tus comidas las primeras semanas —no para siempre, sino para aprender a verte.</li>
+        <li>Asistes a las revisiones periódicas según el paquete que elijas.</li>
+        <li>Estás dispuesto a cuestionar algunas creencias previas sobre alimentación.</li>
+      </ul>
+      <p class="commitment__note">
+        Si esto no es algo que puedas comprometerte a hacer ahora,
+        probablemente no sea el momento indicado. Y está bien.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 3rem;">
+      <a
+        href="#section-packages"
+        class="btn-primary"
+        aria-label="Ver los paquetes disponibles"
+      >
+        Ver los paquetes →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-black { background: var(--black); }
+.white    { color: var(--white); }
+.light    { color: #aaaaaa; }
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.step-card {
+  border: 1px solid #222222;
+  border-radius: 8px;
+  padding: 1.75rem;
+  transition: border-color var(--transition);
+}
+
+.step-card:hover { border-color: var(--gold); }
+
+.step-n {
+  display: block;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--gold);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  letter-spacing: -2px;
+}
+
+.step-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 0.625rem;
+  letter-spacing: -0.2px;
+}
+
+.step-desc {
+  font-size: 0.9rem;
+  color: #999999;
+  line-height: 1.65;
+}
+
+/* Commitment box */
+.commitment {
+  margin-top: 3rem;
+  border: 1px solid #D4A843;
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  padding: 1.75rem 2rem;
+}
+
+.commitment__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.commitment__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1.25rem;
+}
+
+.commitment__list li {
+  color: #cccccc;
+  font-size: 0.95rem;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.commitment__list li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+
+.commitment__note {
+  font-size: 0.85rem;
+  color: #666666;
+  font-style: italic;
+  border-top: 1px solid #222;
+  padding-top: 1rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 640px) {
+  .steps-grid { grid-template-columns: 1fr; }
+}
+</style>

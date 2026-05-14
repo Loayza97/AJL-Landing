@@ -1,0 +1,172 @@
+---
+import { WA_FALLBACK_URL } from '../config.js';
+
+const forYes = [
+  'Estás dispuesto a estructurar tu rutina, aunque hoy sea caótica',
+  'Estás abierto al acompañamiento — no lo ves como intrusión',
+  'Quieres entender el proceso, no solo recibir una dieta y seguirla a ciegas',
+  'Aceptas progreso progresivo — no buscas magia en dos semanas',
+  'Tu vida incluye salidas, viajes y cenas sociales, y no quieres renunciar a eso',
+  'Has intentado antes sin éxito y buscas algo estructuralmente distinto',
+];
+
+const forNo = [
+  'Rechazas cualquier forma de estructura u organización en tu alimentación',
+  'Solo quieres que te digan qué no puedes comer',
+  'Esperas resultados sin involucrarte activamente en el proceso',
+  'Crees que ciertos alimentos son veneno y no estás dispuesto a cuestionarlo',
+  'Buscas una solución rápida: bajar X kilos en Y semanas',
+  'No tienes disponibilidad para revisiones periódicas con tu nutricionista',
+];
+---
+
+<section id="section-for-who" class="section bg-black">
+  <div class="container">
+    <p class="label">Filtro pasivo</p>
+    <h2 class="title white" style="margin-bottom: 0.75rem;">
+      ¿Este método es para ti?
+    </h2>
+    <p class="subtitle light" style="margin-bottom: 3rem;">
+      Sé honesto contigo mismo. Un buen encaje desde el inicio es la diferencia
+      entre un proceso que funciona y uno que no.
+    </p>
+
+    <div class="columns">
+      <div class="col col--yes">
+        <div class="col__header">
+          <span class="col__icon" aria-hidden="true">✓</span>
+          <h3 class="col__title">Para ti si…</h3>
+        </div>
+        <ul class="col__list">
+          {forYes.map(item => (
+            <li class="col__item col__item--yes">{item}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="col col--no">
+        <div class="col__header">
+          <span class="col__icon col__icon--no" aria-hidden="true">✕</span>
+          <h3 class="col__title">No es para ti si…</h3>
+        </div>
+        <ul class="col__list">
+          {forNo.map(item => (
+            <li class="col__item col__item--no">{item}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mensaje empático para quien no encaja (US-011) -->
+    <div class="not-fit-msg">
+      <p>
+        Si te describes más en la columna derecha, este método probablemente no sea para ti en
+        este momento, y <strong>está bien</strong>. No todos los métodos son para todos.
+        Si tu situación cambia, el link va a seguir aquí.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 2.5rem;">
+      <a
+        href="#section-packages"
+        class="btn-primary"
+        aria-label="Ver los paquetes disponibles"
+      >
+        Soy el perfil correcto — quiero ver los paquetes →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-black { background: var(--black); }
+.white    { color: var(--white); }
+.light    { color: #aaaaaa; }
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.col {
+  border-radius: 10px;
+  padding: 1.75rem;
+}
+
+.col--yes { background: #0a1a0a; border: 1px solid #1d3b1d; }
+.col--no  { background: #1a0a0a; border: 1px solid #3b1d1d; }
+
+.col__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.col__icon {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #4caf50;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(76,175,80,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.col__icon--no {
+  color: #ef5350;
+  background: rgba(239,83,80,0.12);
+}
+
+.col__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.2px;
+}
+
+.col__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.col__item {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.col__item--yes { color: #cccccc; }
+.col__item--yes::before { content: '→'; position: absolute; left: 0; color: #4caf50; font-size: 0.8rem; }
+
+.col__item--no { color: #999999; }
+.col__item--no::before { content: '→'; position: absolute; left: 0; color: #ef5350; font-size: 0.8rem; }
+
+/* Empathetic closing message */
+.not-fit-msg {
+  margin-top: 2rem;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+}
+
+.not-fit-msg p {
+  font-size: 0.9rem;
+  color: #777777;
+  line-height: 1.7;
+}
+
+.not-fit-msg strong { color: #999; }
+
+@media (max-width: 640px) {
+  .columns { grid-template-columns: 1fr; }
+}
+</style>

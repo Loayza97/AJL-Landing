@@ -1,0 +1,120 @@
+---
+const rows = [
+  { says: '"No tengo disciplina"',              real: 'Internalizaste un modelo restrictivo que nunca fue sostenible' },
+  { says: '"No puedo seguir dietas"',           real: 'Los planes que te dieron ignoraban tu rutina real' },
+  { says: '"Siempre vuelvo a subir"',           real: 'Nunca te enseñaron estructura aplicable a tu vida' },
+  { says: '"No tengo fuerza de voluntad"',      real: 'Los métodos previos no se adaptaban a tu contexto' },
+  { says: '"Soy un caso difícil"',              real: 'Tu caso es normal. El modelo que usaste no lo era' },
+];
+---
+
+<section id="section-why-failed" class="section bg-white">
+  <div class="container">
+    <p class="label">Por qué no funcionó antes</p>
+    <h2 class="title" style="max-width: 620px; margin-bottom: 1rem;">
+      "¿Por qué tú sí,<br />si ya muchos fallaron conmigo?"
+    </h2>
+    <p class="subtitle" style="margin-bottom: 3rem;">
+      Es la pregunta que todo paciente se hace antes de intentarlo de nuevo. La respuesta
+      no está en tu disciplina. Está en que los métodos anteriores te dieron planes
+      diseñados para una vida que no tienes.
+    </p>
+
+    <div class="table-wrapper" role="table" aria-label="Comparación de creencias vs realidad">
+      <div class="table-head" role="row">
+        <div role="columnheader">Lo que piensas</div>
+        <div role="columnheader" class="real-col">El problema real</div>
+      </div>
+      {rows.map(row => (
+        <div class="table-row" role="row">
+          <div class="table-cell says" role="cell">{row.says}</div>
+          <div class="table-cell real" role="cell">{row.real}</div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-white { background: var(--white); }
+
+.table-wrapper {
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--black);
+  padding: 1rem 1.5rem;
+  gap: 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.table-head .real-col { color: var(--gold); }
+
+.table-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1.1rem 1.5rem;
+  border-top: 1px solid #eeeeee;
+  transition: background var(--transition);
+}
+
+.table-row:hover { background: var(--gray-light); }
+
+.table-cell {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  align-self: center;
+}
+
+.table-cell.says {
+  color: var(--gray-dark);
+  font-style: italic;
+}
+
+.table-cell.real {
+  color: var(--black);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .table-head,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+
+  .table-head .real-col { display: none; }
+
+  .table-cell.says::before {
+    content: 'Lo que piensas: ';
+    font-style: normal;
+    font-weight: 700;
+    color: #888;
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+
+  .table-cell.real::before {
+    content: 'El problema real: ';
+    font-weight: 700;
+    color: var(--gold);
+    font-size: 0.7rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+}
+</style>
