@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AJL Nutrición — Transforma tu composición corporal sin restricciones</title>
+<meta name="description" content="Nutrición para tu vida real: restaurantes, delivery, cenas de trabajo. Sin restricciones absurdas. Sin culpa. Lima, Perú."/>
+<meta property="og:title" content="AJL Nutrición — Esta vez es diferente"/>
+<meta property="og:description" content="Método que se adapta a tu vida real. Sin planes rígidos, sin culpa."/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F5F7;
+    --card: #FFFFFF;
+    --ink: #1D1D1F;
+    --ink-soft: #6E6E73;
+    --line: #E8E8EC;
+    --gold: #C8973A;
+    --gold-soft: #FDF4E3;
+    --green: #34C77B;
+    --green-soft: #E1F8EB;
+    --blue: #5B6CFF;
+    --blue-soft: #EAEDFF;
+    --rose: #FF6B8A;
+    --rose-soft: #FFE5EC;
+    --sage: #6B9E7A;
+    --sage-soft: #EBF4ED;
+    --forest: #2A5240;
+    --forest-light: #1E3D2C;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; margin: 0; }
+  .container { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  a { cursor: pointer; }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(245,245,247,0.85); backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 24px; max-width: 1240px; margin: 0 auto;
+  }
+  .logo { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink); }
+  .logo-mark {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--gold), #9A6020);
+    display: grid; place-items: center;
+    color: #fff; font-size: 13px; font-weight: 800;
+    box-shadow: 0 4px 12px rgba(200,151,58,0.35);
+  }
+  .nav-links { display: flex; gap: 28px; font-size: 14px; font-weight: 500; }
+  .nav-links a { color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta {
+    background: var(--ink); color: #fff; text-decoration: none;
+    padding: 9px 18px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    transition: all 0.2s;
+  }
+  .nav-cta:hover { background: var(--gold); transform: translateY(-1px); }
+
+  /* ── HERO ── */
+  .hero { padding: 88px 0 48px; text-align: center; }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--card); border: 1px solid var(--line);
+    padding: 6px 16px; border-radius: 999px;
+    font-size: 13px; font-weight: 500; color: var(--ink-soft);
+    margin-bottom: 28px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    animation: pop 0.6s ease both;
+  }
+  .hero-tag::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 3px var(--green-soft);
+  }
+  @keyframes pop { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
+  .hero h1 {
+    font-size: clamp(52px,8.5vw,108px); font-weight: 800; letter-spacing: -0.045em; line-height: 1.0;
+    margin-bottom: 24px; animation: fadeUp 0.8s ease 0.1s both;
+  }
+  .grad { background: linear-gradient(135deg, var(--gold) 0%, var(--rose) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .grad-gold { background: linear-gradient(135deg, #C8973A 0%, #EFA05A 50%, #E06030 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .hero > .container > p { font-size: 18px; color: var(--ink-soft); max-width: 520px; margin: 0 auto 36px; animation: fadeUp 0.8s ease 0.2s both; }
+  .hero-ctas { display: inline-flex; gap: 10px; animation: fadeUp 0.8s ease 0.3s both; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 14px 26px; border-radius: 14px; font-size: 15px; font-weight: 600;
+    text-decoration: none; cursor: pointer; border: none;
+    transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'Plus Jakarta Sans';
+  }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-primary:hover { background: var(--gold); transform: translateY(-2px); box-shadow: 0 12px 24px rgba(200,151,58,0.35); }
+  .btn-ghost { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--ink); transform: translateY(-1px); }
+  .btn-sm { padding: 10px 20px; font-size: 14px; border-radius: 12px; }
+
+  /* ── SECTION HEADERS ── */
+  .section-header { margin-bottom: 12px; }
+  .section-header h2 { font-size: clamp(28px,4vw,42px); margin-bottom: 8px; }
+  .section-header p { color: var(--ink-soft); max-width: 560px; }
+
+  /* ── BENTO ── */
+  .bento {
+    display: grid; grid-template-columns: repeat(6,1fr);
+    grid-auto-rows: minmax(180px,auto); gap: 14px; padding: 32px 0 56px;
+  }
+  .tile {
+    background: var(--card); border: 1px solid var(--line); border-radius: 22px;
+    padding: 28px; position: relative; overflow: hidden;
+    transition: transform 0.4s cubic-bezier(.2,.8,.2,1), box-shadow 0.4s, border-color 0.3s;
+  }
+  .tile:hover { transform: translateY(-6px); box-shadow: 0 24px 48px rgba(0,0,0,0.09); border-color: rgba(200,151,58,0.3); }
+  .tile.span-2 { grid-column: span 2; }
+  .tile.span-3 { grid-column: span 3; }
+  .tile.span-4 { grid-column: span 4; }
+  .tile.span-6 { grid-column: span 6; }
+  .tile.row-2 { grid-row: span 2; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 16px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* ── HERO TILE ── */
+  .tile.hero-tile {
+    background: linear-gradient(145deg, #F5C96A 0%, #EFA05A 45%, #F0826A 100%);
+    color: #fff; border-color: transparent;
+  }
+  .tile.hero-tile:hover { border-color: rgba(245,180,80,0.4); }
+  .hero-tile .eyebrow { color: rgba(255,255,255,0.75); }
+  .hero-tile h3 { font-size: 32px; line-height: 1.08; margin-bottom: 12px; color: #fff; }
+  .hero-tile p { font-size: 14px; opacity: 0.88; margin: 0; color: #fff; line-height: 1.6; }
+  .hero-tile .arrow {
+    position: absolute; bottom: 28px; right: 28px;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.2); display: grid; place-items: center;
+    transition: transform 0.3s, background 0.3s;
+  }
+  .tile.hero-tile:hover .arrow { transform: translateX(5px); background: rgba(255,255,255,0.3); }
+
+  /* ── PROBLEM TABLE ── */
+  .problem-table { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
+  .problem-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    border-bottom: 1px solid var(--line); padding: 20px 0;
+  }
+  .problem-row:last-child { border-bottom: none; }
+  .problem-says { font-size: 19px; color: var(--ink-soft); padding-right: 16px; line-height: 1.55; font-style: italic; }
+  .problem-real { font-size: 19px; color: var(--ink); padding-left: 16px; border-left: 1px solid var(--line); line-height: 1.55; font-weight: 500; }
+  .problem-header { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  /* ── METHOD STEPS ── */
+  .method-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-top: 20px; }
+  .step { background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+  .step-num {
+    font-family: 'Plus Jakarta Sans'; font-size: 11px; font-weight: 800; color: var(--gold);
+    margin-bottom: 10px; letter-spacing: 0.1em;
+    background: linear-gradient(135deg, #C8973A, #EFA05A);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .step-title { font-family: 'Plus Jakarta Sans'; font-size: 22px; font-weight: 800; color: var(--ink); margin-bottom: 10px; letter-spacing: -0.02em; line-height: 1.15; }
+  .step-desc { font-size: 15px; color: var(--ink-soft); line-height: 1.65; }
+
+  /* ── FILTER TILE ── */
+  .filter-row { display: flex; gap: 8px; flex-direction: column; margin-top: 12px; }
+  .filter-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 13px; line-height: 1.5; padding: 11px 12px; border-radius: 12px;
+    background: var(--bg); border: 1px solid var(--line);
+  }
+  .check-icon { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── INCLUDES GRID ── */
+  .includes-group-label {
+    font-family: 'Plus Jakarta Sans'; font-weight: 700;
+    color: var(--ink-soft); letter-spacing: 0.04em; text-transform: uppercase;
+    font-size: 11px; margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .feature-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 20px 22px; transition: transform 0.3s, box-shadow 0.3s, border-color 0.3s;
+  }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.07); border-color: rgba(200,151,58,0.25); }
+  .feature-name { font-family: 'Plus Jakarta Sans'; font-weight: 700; font-size: 18px; margin-bottom: 4px; }
+  .feature-desc { font-size: 12px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 0; }
+
+  /* ── PLAN TILE ── */
+  .plan-tile { display: flex; flex-direction: column; }
+  .plan-icon { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 16px; transition: transform 0.4s; }
+  .tile:hover .plan-icon { transform: rotate(-8deg) scale(1.08); }
+  .plan-icon svg { width: 22px; height: 22px; stroke-width: 2.2; }
+  .plan-tile h3 { font-size: 26px; margin-bottom: 6px; }
+  .plan-who { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 16px; flex: 1; }
+  .plan-features { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+  .plan-features span { font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); color: var(--ink); }
+  .plan-footer { display: flex; align-items: flex-end; justify-content: space-between; padding-top: 16px; border-top: 1px solid var(--line); margin-top: auto; }
+  .plan-price .amount { font-family: 'Plus Jakarta Sans'; font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
+  .plan-price .per { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+  .plan-price .trim { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+  .plan-cta {
+    background: var(--ink); color: #fff; border: none;
+    padding: 10px 18px; border-radius: 12px; font-size: 13px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Inter'; text-decoration: none; transition: all 0.2s;
+  }
+  .plan-cta:hover { background: var(--gold); transform: translateY(-1px); }
+
+  /* ── FEATURED PLAN ── */
+  .tile.featured {
+    background: linear-gradient(145deg, #FFFBEF, #FEF5D5, #FDF0BA);
+    color: var(--ink); border: 1.5px solid rgba(200,151,58,0.3);
+    box-shadow: 0 8px 32px rgba(200,151,58,0.12);
+  }
+  .tile.featured:hover { box-shadow: 0 28px 56px rgba(200,151,58,0.18); border-color: rgba(200,151,58,0.5); transform: translateY(-6px); }
+  .tile.featured .plan-who { color: var(--ink-soft); }
+  .tile.featured .plan-footer { border-top-color: rgba(200,151,58,0.2); }
+  .tile.featured .plan-price .amount { color: var(--gold); }
+  .tile.featured .plan-price .per, .tile.featured .plan-price .trim { color: var(--ink-soft); }
+  .tile.featured .plan-features span { background: rgba(200,151,58,0.08); border-color: rgba(200,151,58,0.22); color: var(--ink); }
+  .tile.featured .plan-cta { background: var(--gold); color: #fff; }
+  .tile.featured .plan-cta:hover { background: #B0811A; }
+  .featured-badge {
+    position: absolute; top: 20px; right: 20px;
+    background: var(--gold); color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+  }
+
+  /* ── TESTIMONIALS ── */
+  .testimonial-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+    padding: 28px; transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .testimonial-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
+  .testimonial-stars { display: flex; gap: 4px; margin-bottom: 14px; }
+  .star { color: var(--gold); font-size: 14px; }
+  .testimonial-text { font-size: 14px; line-height: 1.7; color: var(--ink); margin-bottom: 18px; }
+  .testimonial-author { display: flex; align-items: center; gap: 10px; }
+  .author-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-soft), var(--sage-soft));
+    display: grid; place-items: center;
+    font-family: 'Plus Jakarta Sans'; font-weight: 700; font-size: 14px; color: var(--gold);
+    flex-shrink: 0;
+  }
+  .author-name { font-family: 'Plus Jakarta Sans'; font-weight: 700; font-size: 13px; }
+  .author-context { font-size: 12px; color: var(--ink-soft); }
+
+  /* ── FAQ ── */
+  .faq-item { border-bottom: 1px solid var(--line); }
+  .faq-item:first-child { border-top: 1px solid var(--line); }
+  .faq-trigger {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 0; background: none; border: none; cursor: pointer;
+    text-align: left; font-family: 'Plus Jakarta Sans'; font-size: 16px; font-weight: 600;
+    color: var(--ink); gap: 16px; transition: color 0.2s;
+  }
+  .faq-trigger:hover { color: var(--gold); }
+  .faq-icon {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--bg); border: 1px solid var(--line);
+    display: grid; place-items: center; flex-shrink: 0; transition: background 0.2s, transform 0.3s;
+  }
+  .faq-item.open .faq-icon { background: var(--gold); border-color: var(--gold); transform: rotate(45deg); }
+  .faq-item.open .faq-icon svg { stroke: #fff; }
+  .faq-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .faq-body p { padding: 0 0 20px; font-size: 14px; color: var(--ink-soft); line-height: 1.75; max-width: 640px; }
+
+  /* ── EVALUACION ── */
+  .eval-tile { background: var(--gold-soft); border-color: rgba(200,151,58,0.2); }
+
+  /* ── CTA SECTION ── */
+  .cta-section {
+    background: var(--ink); color: #fff;
+    padding: 80px 24px; text-align: center;
+    border-radius: 24px; margin: 0 0 24px;
+    position: relative; overflow: hidden;
+  }
+  .cta-section::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle at 25% 50%, rgba(200,151,58,0.28), transparent 55%),
+                radial-gradient(circle at 75% 50%, rgba(255,107,138,0.18), transparent 55%);
+    pointer-events: none;
+  }
+  .cta-inner { position: relative; z-index: 1; }
+  .cta-inner h2 { font-size: clamp(32px,4vw,52px); color: #fff; margin-bottom: 16px; }
+  .cta-inner p { color: rgba(255,255,255,0.65); margin-bottom: 32px; max-width: 440px; margin-left: auto; margin-right: auto; font-size: 15px; }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--card); border-top: 1px solid var(--line);
+    padding: 40px 24px 32px;
+  }
+  .footer-inner { max-width: 1240px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+  .footer-brand .logo { margin-bottom: 10px; }
+  .footer-brand p { font-size: 13px; color: var(--ink-soft); line-height: 1.6; max-width: 240px; }
+  .footer-links { display: flex; gap: 40px; flex-wrap: wrap; }
+  .footer-col h4 { font-family: 'Plus Jakarta Sans'; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 12px; }
+  .footer-col a { display: block; font-size: 13px; color: var(--ink); text-decoration: none; margin-bottom: 8px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--gold); }
+  .footer-bottom { max-width: 1240px; margin: 32px auto 0; padding-top: 20px; border-top: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .footer-bottom p { font-size: 12px; color: var(--ink-soft); }
+  .footer-bottom a { font-size: 12px; color: var(--ink-soft); text-decoration: none; transition: color 0.2s; }
+  .footer-bottom a:hover { color: var(--ink); }
+
+  /* ── REVEAL ── */
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ── COLOR HELPERS ── */
+  .ico-gold { background: var(--gold-soft); color: var(--gold); }
+  .ico-green { background: var(--green-soft); color: var(--green); }
+  .ico-blue { background: var(--blue-soft); color: var(--blue); }
+  .ico-rose { background: var(--rose-soft); color: var(--rose); }
+  .ico-sage { background: var(--sage-soft); color: var(--sage); }
+
+  /* ── WSP FLOAT ── */
+  .wsp-wrap {
+    position: fixed; bottom: 24px; right: 24px; z-index: 100;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .wsp-label {
+    background: var(--ink); color: #fff;
+    font-family: 'Plus Jakarta Sans'; font-size: 12px; font-weight: 600;
+    padding: 8px 14px; border-radius: 12px;
+    white-space: nowrap; opacity: 0; transform: translateX(8px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .wsp-wrap:hover .wsp-label { opacity: 1; transform: translateX(0); }
+  .wsp {
+    background: #25D366; width: 54px; height: 54px; border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(37,211,102,0.4);
+    text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; flex-shrink: 0;
+  }
+  .wsp:hover { transform: scale(1.08) translateY(-2px); box-shadow: 0 8px 32px rgba(37,211,102,0.5); }
+
+  /* ── INCLUDES GRID LAYOUT ── */
+  .includes-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════ NAV ════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a class="logo" href="#">
+      <div class="logo-mark">A</div>
+      AJL Nutrición
+    </a>
+    <div class="nav-links">
+      <a href="#metodo">Método</a>
+      <a href="#planes">Planes</a>
+      <a href="#incluye">Qué incluye</a>
+      <a href="#evaluacion">Evaluación</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a href="#planes" class="nav-cta">Ver planes →</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════ HERO ════════════════════════════════════════ -->
+<section class="hero" id="inicio">
+  <div class="container">
+<h1>Nutrición que se adapta<br><span class="grad">a tu día a día.</span></h1>
+    <p>Con un sistema personalizado para ti.</p>
+    <div class="hero-ctas">
+      <a href="#planes" class="btn btn-primary">Ver planes y precios →</a>
+      <a href="#metodo" class="btn btn-ghost">Cómo funciona</a>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ BANNER DIFERENCIA ═══════════════════════════ -->
+<section class="container">
+  <div class="bento" style="padding:8px 0 56px;">
+
+    <div class="tile span-6 reveal" style="background:var(--card);border-color:rgba(200,151,58,0.18);padding:44px 52px;grid-auto-rows:auto;">
+      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>La diferencia</span>
+      <h3 style="font-size:clamp(28px,3.5vw,44px);font-weight:800;line-height:1.08;letter-spacing:-0.035em;margin-bottom:18px;background:linear-gradient(135deg,#C8973A 0%,#EFA05A 50%,#E06030 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Estructura para tu vida real, no para la ideal.</h3>
+      <p style="font-size:16px;color:var(--ink-soft);max-width:680px;line-height:1.7;margin-bottom:32px;">Diseñamos el plan sobre lo que realmente comes, dónde comes y con quién. Si usas Rappi 4 veces por semana, el plan lo contempla desde el día uno. No hay una vida ideal que seguir: hay tu vida, y la trabajamos con ella.</p>
+      <div style="border-top:1px solid rgba(200,151,58,0.2);padding-top:24px;">
+        <p style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:14px;">Filosofía</p>
+        <blockquote style="font-family:'Plus Jakarta Sans';font-size:clamp(18px,2.2vw,26px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;background:linear-gradient(135deg,#C8973A,#EFA05A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 12px;">"La restricción extrema no produce resultados sostenibles. La estructura inteligente para tu vida real, sí."</blockquote>
+        <cite style="font-size:13px;color:var(--ink-soft);display:block;font-style:normal;">— Alejandro Loayza, Nutricionista AJL</cite>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ POR QUÉ FALLASTE ═══════════════════════════ -->
+<section class="container" id="por-que">
+  <div class="section-header reveal">
+    <h2>¿Cómo sé que esta vez va a funcionar<br>si ya he fallado antes?</h2>
+    <p style="margin-top:8px;">No fallaste porque te faltó fuerza de voluntad. Fallaste porque los planes que seguiste nunca fueron diseñados para tu vida real.</p>
+  </div>
+
+  <div class="bento" style="padding:24px 0 56px;">
+
+    <div class="tile span-6 reveal" style="animation-delay:0.05s">
+      <span class="eyebrow"><span class="dot" style="background:var(--rose)"></span>La verdad que nadie te dijo</span>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:8px;margin-bottom:4px;">
+        <p class="problem-header" style="color:var(--ink-soft);padding-right:16px;">Lo que el paciente dice</p>
+        <p class="problem-header" style="color:var(--gold);padding-left:16px;border-left:1px solid var(--line);">El problema real</p>
+      </div>
+
+      <div class="problem-table">
+        <div class="problem-row">
+          <p class="problem-says">"Me faltó disciplina"</p>
+          <p class="problem-real">El plan ignoró tu contexto social y laboral</p>
+        </div>
+        <div class="problem-row">
+          <p class="problem-says">"Comí algo que no debía y lo arruiné todo"</p>
+          <p class="problem-real">No había estructura para situaciones reales fuera de lo planeado</p>
+        </div>
+        <div class="problem-row">
+          <p class="problem-says">"Los fines de semana lo eché todo a perder"</p>
+          <p class="problem-real">No tenías herramientas para navegar días flexibles sin culpa</p>
+        </div>
+        <div class="problem-row">
+          <p class="problem-says">"Recuperé todo lo que bajé"</p>
+          <p class="problem-real">El plan nunca fue sostenible por diseño: era demasiado rígido</p>
+        </div>
+        <div class="problem-row">
+          <p class="problem-says">"El nutricionista me daba una dieta genérica"</p>
+          <p class="problem-real">No contemplaba tus hábitos reales, gustos ni vida social</p>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ MÉTODO ════════════════════════════════════ -->
+<section class="container" id="metodo">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;" class="reveal">
+    <div class="section-header" style="margin-bottom:0;">
+      <h2>Cómo funciona el método</h2>
+      <p style="margin-top:8px;">6 pilares que hacen que esta vez sea diferente a todo lo que probaste antes.</p>
+    </div>
+    <a href="#planes" class="btn btn-ghost btn-sm">Ver planes →</a>
+  </div>
+
+  <div class="bento" style="padding:24px 0 56px;">
+
+    <div class="tile span-6 reveal" style="animation-delay:0.05s">
+      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>Los 6 pilares</span>
+      <div class="method-steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Estructura en tu vida real</div>
+          <div class="step-desc">Lo construimos sobre lo que realmente comes, dónde y con quién. Rappi, restaurantes, eventos: todo entra.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Planificación semanal</div>
+          <div class="step-desc">Cada semana se ajusta a lo que viviste. La semana siguiente siempre es mejor que la anterior.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Gestión de porciones visible</div>
+          <div class="step-desc">Aprendes a medir sin báscula: palma, taza, puño. Funciona en cualquier restaurante del mundo.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Resultados precisos sin contar calorías</div>
+          <div class="step-desc">Tú ves decisiones simples. Nosotros hacemos los cálculos para garantizar el déficit calórico preciso.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">05</div>
+          <div class="step-title">Acompañamiento cercano</div>
+          <div class="step-desc">Canal directo para dudas del día a día. "¿Qué pido en este matrimonio?" es una pregunta válida.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">06</div>
+          <div class="step-title">Ajuste por adherencia real</div>
+          <div class="step-desc">El plan evoluciona con tus datos reales. Si algo no funciona, no te culpamos: lo cambiamos.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Este plan es para ti -->
+    <div class="tile span-3 reveal" style="animation-delay:0.1s">
+      <span class="eyebrow"><span class="dot" style="background:var(--green)"></span>Este plan es para ti si:</span>
+      <div class="filter-row" style="margin-top:8px;">
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Comes fuera de casa frecuentemente y no quieres renunciar a eso</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Ya probaste planes rígidos y no te funcionaron a largo plazo</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Estás dispuesto a registrar tu alimentación las primeras semanas</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Buscas resultados sostenibles en el tiempo, no una solución de 30 días</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Puedes comprometerte a asistir a revisiones regulares</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- No es para ti -->
+    <div class="tile span-3 reveal" style="animation-delay:0.15s;background:var(--bg);">
+      <span class="eyebrow"><span class="dot" style="background:var(--ink-soft)"></span>No es para ti si…</span>
+      <div class="filter-row" style="margin-top:8px;">
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Buscas que te digan qué comer cada día sin involucrarte en el proceso</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Esperas bajar X kilos en 30 días sin cambios de hábito reales</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Crees que el azúcar o los carbohidratos son "el enemigo" y no estás dispuesto a cuestionarlo</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>No puedes comprometerte a asistir a revisiones ni a registrar datos</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Buscas una dieta mágica rápida, no un cambio sostenible</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ PLANES ════════════════════════════════════ -->
+<section class="container" id="planes">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;" class="reveal">
+    <div class="section-header" style="margin-bottom:0;">
+      <h2>Elige tu plan</h2>
+      <p style="margin-top:8px;">4 niveles de acompañamiento. Sin permanencias. Todos incluyen planificación personalizada.</p>
+    </div>
+  </div>
+
+  <div class="bento" style="padding:24px 0 56px;">
+
+    <div class="tile hero-tile span-2 row-2 reveal">
+      <span class="eyebrow"><span class="dot" style="background:#fff"></span>4 planes</span>
+      <h3>El plan correcto para cada momento de tu vida.</h3>
+      <p>Básico · Acompañamiento · Constancia · Transformación. Desde S/250 hasta S/600/mes. Sin permanencias.</p>
+      <div class="arrow"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
+    </div>
+
+    <!-- BÁSICO -->
+    <div class="tile plan-tile span-2 reveal" style="animation-delay:0.08s">
+      <div class="plan-icon ico-sage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <h3>Básico</h3>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Para empezar</p>
+      <p class="plan-who">Estructura sólida y autonomía progresiva. Ideal si quieres sentar bases sin un compromiso de revisión intenso.</p>
+      <div class="plan-features">
+        <span>1 sesión/mes</span><span>Plan personalizado</span><span>Soporte WhatsApp</span>
+      </div>
+      <div class="plan-footer">
+        <div class="plan-price">
+          <div class="amount">S/250</div>
+          <div class="per">/mes</div>
+        </div>
+        <a href="#" class="plan-cta" onclick="openWsp('Básico',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <!-- ACOMPAÑAMIENTO -->
+    <div class="tile plan-tile span-2 reveal" style="animation-delay:0.14s">
+      <div class="plan-icon ico-blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <h3>Acompañamiento</h3>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Más guía</p>
+      <p class="plan-who">Para quienes necesitan revisión de progreso más frecuente y feedback cercano entre sesiones.</p>
+      <div class="plan-features">
+        <span>2 sesiones/mes</span><span>Plan personalizado</span><span>Soporte prioritario</span><span>Revisión quincenal</span>
+      </div>
+      <div class="plan-footer">
+        <div class="plan-price">
+          <div class="amount">S/320</div>
+          <div class="per">/mes</div>
+        </div>
+        <a href="#" class="plan-cta" onclick="openWsp('Acompañamiento',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <!-- CONSTANCIA — FEATURED -->
+    <div class="tile plan-tile featured span-2 reveal" style="animation-delay:0.2s">
+      <div class="featured-badge">Más elegido</div>
+      <div class="plan-icon" style="background:rgba(200,151,58,0.15);color:var(--gold);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <h3>Constancia</h3>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">El balance</p>
+      <p class="plan-who">Revisiones quincenales sin compromiso semanal intenso. El punto ideal entre resultados y flexibilidad.</p>
+      <div class="plan-features">
+        <span>Revisiones quinc.</span><span>Plan adaptativo</span><span>Soporte 24/7</span><span>Comunidad</span><span>Ajuste real</span>
+      </div>
+      <div class="plan-footer">
+        <div class="plan-price">
+          <div class="amount">S/440</div>
+          <div class="per">/mes</div>
+          <div class="trim">Desde S/1,100/trimestre</div>
+        </div>
+        <a href="#" class="plan-cta" onclick="openWsp('Constancia',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+    <!-- TRANSFORMACIÓN -->
+    <div class="tile plan-tile span-2 reveal" style="animation-delay:0.26s">
+      <div class="plan-icon ico-rose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      </div>
+      <h3>Transformación</h3>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Máximo nivel</p>
+      <p class="plan-who">Seguimiento semanal intensivo para quienes quieren transformación profunda y acelerada sin dejar su vida.</p>
+      <div class="plan-features">
+        <span>Revisiones semanales</span><span>Composición corp.</span><span>Acceso prioritario</span><span>Estrategia 6 meses</span>
+      </div>
+      <div class="plan-footer">
+        <div class="plan-price">
+          <div class="amount">S/600</div>
+          <div class="per">/mes</div>
+          <div class="trim">Desde S/1,500/trimestre</div>
+        </div>
+        <a href="#" class="plan-cta" onclick="openWsp('Transformación',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ QUÉ INCLUYE ═══════════════════════════════ -->
+<section class="container" id="incluye">
+  <div class="section-header reveal">
+    <h2>¿Qué incluye cada plan?</h2>
+    <p style="margin-top:8px;">Detalle de cada componente y qué planes lo incluyen.</p>
+  </div>
+
+  <div style="padding:24px 0 32px;">
+    <!-- Grupo 1: Sesiones -->
+    <p class="includes-group-label reveal">Sesiones individuales</p>
+    <div class="includes-grid" style="margin-bottom:24px;">
+
+      <div class="feature-card reveal" style="animation-delay:0.05s">
+        <p class="feature-name">Sesión de evaluación inicial</p>
+        <p class="feature-desc">Primera sesión donde se construye el plan sobre tu vida real, hábitos, trabajo y contexto social. La base de todo.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.1s">
+        <p class="feature-name">Revisión mensual (1 sesión)</p>
+        <p class="feature-desc">Revisión del mes, ajuste del plan según lo que viviste y calibración de metas para el siguiente período.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.15s">
+        <p class="feature-name">Revisión quincenal (2 sesiones)</p>
+        <p class="feature-desc">Revisión cada dos semanas. Ideal para quienes quieren feedback frecuente sin comprometerse a sesiones semanales.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.2s">
+        <p class="feature-name">Revisión semanal (4 sesiones)</p>
+        <p class="feature-desc">Sesión semanal intensiva. Máximo nivel de seguimiento y ajuste. Ideal para transformaciones profundas con estructura semanal.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.25s">
+        <p class="feature-name">Análisis de composición corporal</p>
+        <p class="feature-desc">Medición de masa grasa, músculo y agua corporal para ajustar metas de forma precisa más allá del peso en la balanza.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.3s">
+        <p class="feature-name">Estrategia nutricional a 6 meses</p>
+        <p class="feature-desc">Hoja de ruta de largo plazo: fases, metas progresivas y criterios de ajuste para los próximos 6 meses.</p>
+      </div>
+
+    </div>
+
+    <!-- Grupo 2: Acompañamiento continuo -->
+    <p class="includes-group-label reveal">Acompañamiento continuo</p>
+    <div class="includes-grid">
+
+      <div class="feature-card reveal" style="animation-delay:0.05s">
+        <p class="feature-name">Plan nutricional personalizado</p>
+        <p class="feature-desc">Plan adaptado a tu contexto: restaurantes habituales, hábitos familiares, gustos, intolerancias y vida social. No es un template.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.1s">
+        <p class="feature-name">Soporte por WhatsApp</p>
+        <p class="feature-desc">Canal directo para dudas del día a día: "¿qué pido en este restaurante?", "¿cómo manejo la cena de hoy?". Respuesta real, no genérica.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.15s">
+        <p class="feature-name">Soporte prioritario 24/7</p>
+        <p class="feature-desc">Acceso a respuesta prioritaria en cualquier momento. Para momentos críticos, dudas urgentes y situaciones imprevistas.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.2s">
+        <p class="feature-name">Ajuste por adherencia real</p>
+        <p class="feature-desc">El plan evoluciona con tus datos reales: si algo no funcionó, lo ajustamos en la siguiente revisión. Sin culpa, con datos.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.25s">
+        <p class="feature-name">Acceso a comunidad privada</p>
+        <p class="feature-desc">Grupo de pacientes activos de AJL. Apoyo entre pares, recetas, tips y motivación de quienes están en el mismo proceso.</p>
+      </div>
+
+      <div class="feature-card reveal" style="animation-delay:0.3s;background:linear-gradient(145deg,#FEFAF2,#FDF6E3,#FDF2CC);border-color:rgba(200,151,58,0.25);">
+        <p class="feature-name" style="color:var(--ink);">¿Tienes dudas sobre qué plan elegir?</p>
+        <p class="feature-desc" style="color:var(--ink-soft);margin-bottom:16px;">Puedes agendar una sesión de evaluación.</p>
+        <a href="#evaluacion" class="plan-cta" style="background:var(--gold);">Agendar evaluación →</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ TESTIMONIOS ═══════════════════════════════ -->
+<section class="container" id="testimonios" style="padding-top:8px;">
+  <div class="section-header reveal">
+    <h2>Pacientes reales</h2>
+    <p style="margin-top:8px;">Personas reales que cambiaron su relación con la comida.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:24px 0 56px;">
+
+    <div class="testimonial-card reveal" style="animation-delay:0.05s">
+      <div class="testimonial-stars">
+        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+      <p class="testimonial-text">"Siempre pensé que yo era el problema. Que me faltaba fuerza de voluntad. Alejandro fue el primero en explicarme que el plan anterior simplemente ignoraba que yo almuerzo fuera de casa todos los días. Ahora tengo estructura y como rico."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">C</div>
+        <div>
+          <p class="author-name">Carla M.</p>
+          <p class="author-context">Gerente de marketing · Plan Constancia</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card reveal" style="animation-delay:0.1s">
+      <div class="testimonial-stars">
+        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+      <p class="testimonial-text">"Lo que más me sorprendió es que nunca me pidieron que dejara de salir con amigos ni de tomar mi cerveza del viernes. Me enseñaron a comer dentro de esos contextos. Llevo 8 meses y no he rebotado."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">D</div>
+        <div>
+          <p class="author-name">Diego R.</p>
+          <p class="author-context">Ingeniero · Plan Acompañamiento</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonial-card reveal" style="animation-delay:0.15s">
+      <div class="testimonial-stars">
+        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+      <p class="testimonial-text">"Venía de dos nutricionistas que me daban la misma dieta genérica. Aquí el plan fue completamente distinto desde el inicio. Lo más valioso fue aprender a comer en restaurantes sin ansiedad. Eso cambió todo."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar">V</div>
+        <div>
+          <p class="author-name">Valeria T.</p>
+          <p class="author-context">Abogada · Plan Transformación</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ EVALUACIÓN ════════════════════════════════ -->
+<section class="container" id="evaluacion">
+  <div class="bento" style="padding:0 0 56px;">
+    <div class="tile span-4 reveal">
+      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>¿Todavía no te decides?</span>
+      <h3 style="font-size:40px;margin-bottom:12px;margin-top:4px;">Evaluación Nutricional Personal — <span style="color:var(--gold);">S/80</span></h3>
+      <p style="font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:8px;">Un primer paso de bajo riesgo para quienes aún no saben qué plan elegir. 20–30 minutos de diagnóstico real y dirección clara sobre cuál es tu siguiente paso.</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:24px;"><strong style="color:var(--gold);">Los S/80 se descuentan del primer mes</strong> si luego contratas un plan mensual.</p>
+      <a href="#" class="btn btn-primary btn-sm" onclick="openWsp('Evaluación S/80',event)">Agendar Evaluación por WhatsApp →</a>
+    </div>
+    <div class="tile eval-tile span-2 reveal" style="animation-delay:0.1s">
+      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>Incluye</span>
+      <div style="margin-top:10px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:13px;"><svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg><span>Diagnóstico real de tu situación nutricional actual</span></div>
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:13px;"><svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg><span>Dirección clara: qué plan te conviene y por qué</span></div>
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:13px;"><svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg><span>Revisión de historial y contexto de vida real</span></div>
+        <div style="display:flex;align-items:flex-start;gap:9px;font-size:13px;"><svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2.5" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><polyline points="20 6 9 17 4 12"/></svg><span>Los S/80 se descuentan si luego contratas un plan</span></div>
+        <div style="margin-top:4px;padding:10px 12px;background:rgba(200,151,58,0.12);border-radius:10px;font-size:12px;color:var(--gold);font-weight:600;">Duración: 20–30 minutos · Virtual o presencial</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ FAQ ════════════════════════════════════════ -->
+<section class="container" id="faq" style="padding-bottom:64px;">
+  <div class="section-header reveal">
+    <h2>Preguntas frecuentes</h2>
+    <p style="margin-top:8px;">Respuestas honestas a las dudas más comunes antes de escribirnos.</p>
+  </div>
+
+  <div style="max-width:800px;margin-top:32px;" class="reveal">
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Las consultas son presenciales o virtuales?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>Ambas modalidades están disponibles. La mayoría de nuestros pacientes prefieren la modalidad virtual por la comodidad, pero también atendemos de forma presencial en Lima. Indícanos tu preferencia al escribirnos.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Qué pasa después de la Evaluación de S/80?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>Recibes un diagnóstico claro de tu situación y una recomendación del plan que mejor encaja con tus metas y contexto. Si decides contratar un plan, los S/80 se descuentan del primer mes. No hay ninguna obligación de contratar.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Por qué la evaluación no es gratis?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>Porque es una consulta real con diagnóstico real, no una reunión de ventas. En 20–30 minutos hacemos un análisis completo de tu situación. El costo de S/80 también asegura que la persona que llega tiene intención genuina de cambiar.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Cuál es la diferencia concreta entre los planes?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>La diferencia principal está en la frecuencia de revisión y el nivel de soporte. Básico: 1 sesión/mes. Acompañamiento: 2 sesiones/mes. Constancia: revisiones quincenales + comunidad + ajuste por adherencia. Transformación: revisiones semanales + composición corporal + estrategia a 6 meses. Todos incluyen plan personalizado y soporte WhatsApp.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Cuánto tiempo tarda en verse resultados?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>Los primeros cambios en cómo te sientes suelen aparecer en las primeras 2–3 semanas. Los cambios en composición corporal visibles requieren al menos 6–8 semanas de adherencia consistente. No prometemos tiempos específicos, pero sí un plan diseñado para que los resultados sean sostenibles.</p></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-trigger" onclick="toggleFaq(this)" aria-expanded="false">
+        ¿Puedo seguir yendo a restaurantes y usando delivery?
+        <div class="faq-icon"><svg width="12" height="12" fill="none" stroke="var(--ink)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </button>
+      <div class="faq-body"><p>Sí, y eso es parte del diseño del plan, no una excepción. Aprender a comer en restaurantes, pedir por Rappi, navegar menús de trabajo y cenas sociales es parte del método. Si dejar todo eso fuera el requisito, el plan no sería sostenible.</p></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ CTA FINAL ═════════════════════════════════ -->
+<div class="container">
+  <div class="cta-section reveal">
+    <div class="cta-inner">
+      <h2>¿Listo para empezar?</h2>
+      <p>Escríbenos por WhatsApp. Sin presiones, sin formularios. Solo una conversación honesta sobre si somos el match correcto.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+        <a href="#planes" class="btn" style="background:#fff;color:var(--ink);border-radius:14px;">Ver planes →</a>
+        <a href="#" class="btn" onclick="openWsp('general',event)" style="background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:14px;">Escribir al WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════ FOOTER ════════════════════════════════════ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="logo" href="#inicio" style="margin-bottom:10px;display:inline-flex;">
+        <div class="logo-mark">A</div>
+        AJL Nutrición
+      </a>
+      <p>Clínica de nutrición de precisión en Lima, Perú. Método para vida real. Sin restricciones absurdas.</p>
+    </div>
+    <div class="footer-links">
+      <div class="footer-col">
+        <h4>Navegación</h4>
+        <a href="#metodo">Cómo funciona</a>
+        <a href="#planes">Planes</a>
+        <a href="#incluye">Qué incluye</a>
+        <a href="#evaluacion">Evaluación S/80</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contacto</h4>
+        <a href="#" onclick="openWsp('general',event)">WhatsApp +51 919 151 237</a>
+        <a href="mailto:alejandro.loayza.jordan@gmail.com">Correo electrónico</a>
+        <a href="https://instagram.com/alejandrojloayza" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://tiktok.com/@alejandrojloayza" target="_blank" rel="noopener">TikTok</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 AJL Nutrición · Lima, Perú · Todos los derechos reservados</p>
+    <div style="display:flex;gap:20px;">
+      <a href="#">Política de privacidad</a>
+      <a href="#">Aviso legal</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ════════════════════════════════════════ WSP FLOAT ═════════════════════════════════ -->
+<div class="wsp-wrap">
+  <span class="wsp-label">Inicia tu cambio aquí con nosotros</span>
+  <a href="#" class="wsp" onclick="openWsp('general',event)">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.526 5.855L.057 23.82a.75.75 0 0 0 .92.92l5.964-1.469A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.948 9.948 0 0 1-5.13-1.42l-.36-.22-3.74.92.94-3.63-.23-.38A9.935 9.935 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+  </a>
+</div>
+
+<script>
+// ── UTM capture ──
+const params = new URLSearchParams(window.location.search);
+const utm = {
+  source:   params.get('utm_source')   || '',
+  medium:   params.get('utm_medium')   || '',
+  campaign: params.get('utm_campaign') || ''
+};
+
+// ── WhatsApp link builder ──
+function buildWspUrl(plan) {
+  const BASE = 'https://wa.me/51919151237';
+  let msg = '';
+
+  if (plan === 'general') {
+    msg = 'Vi su página web y quiero iniciar mi cambio con ustedes.';
+  } else if (plan === 'Evaluación S/80') {
+    msg = 'Hola, quiero agendar la Evaluación Nutricional Personal de S/80.';
+  } else {
+    msg = `Hola, me interesa el plan ${plan} de AJL Nutrición.`;
+  }
+
+  const utmParts = [utm.source, utm.medium, utm.campaign].filter(Boolean);
+  if (utmParts.length) msg += ` (${utmParts.join(' · ')})`;
+
+  return `${BASE}?text=${encodeURIComponent(msg)}`;
+}
+
+function openWsp(plan, event) {
+  if (event) event.preventDefault();
+  window.open(buildWspUrl(plan), '_blank', 'noopener');
+}
+
+// ── FAQ accordion ──
+function toggleFaq(trigger) {
+  const item = trigger.closest('.faq-item');
+  const body = item.querySelector('.faq-body');
+  const isOpen = item.classList.contains('open');
+
+  document.querySelectorAll('.faq-item.open').forEach(el => {
+    el.classList.remove('open');
+    el.querySelector('.faq-body').style.maxHeight = '0';
+    el.querySelector('.faq-trigger').setAttribute('aria-expanded','false');
+  });
+
+  if (!isOpen) {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 'px';
+    trigger.setAttribute('aria-expanded','true');
+  }
+}
+
+// ── Reveal on scroll ──
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>

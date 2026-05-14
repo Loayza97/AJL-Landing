@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJL Nutrición — Obsidian Gold</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Jost:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #D4A843;
+    --gold-light: #F0C860;
+    --gold-dark: #A07830;
+    --obsidian: #0A0A0A;
+    --obsidian-2: #111111;
+    --obsidian-3: #1A1A1A;
+    --obsidian-4: #222222;
+    --cream: #F5F0E8;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--obsidian); color: var(--cream); font-family: 'Jost', sans-serif; overflow-x: hidden; }
+  h1, h2, h3 { font-family: 'Bodoni Moda', serif; }
+
+  /* Grain texture overlay */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.6;
+  }
+
+  /* Gold gradient text */
+  .gold-text {
+    background: linear-gradient(135deg, #D4A843 0%, #F0C860 40%, #A07830 70%, #D4A843 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  /* Gold line separator */
+  .gold-line {
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* Thin gold border cards */
+  .obsidian-card {
+    background: var(--obsidian-3);
+    border: 1px solid rgba(212, 168, 67, 0.15);
+    transition: border-color 0.3s, transform 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .obsidian-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,168,67,0.6), transparent);
+    transform: scaleX(0); transition: transform 0.4s;
+  }
+  .obsidian-card:hover { border-color: rgba(212,168,67,0.4); transform: translateY(-2px); }
+  .obsidian-card:hover::before { transform: scaleX(1); }
+
+  /* Featured plan */
+  .plan-featured {
+    background: linear-gradient(145deg, #1A1408 0%, #1A1A0A 50%, #0A0A0A 100%);
+    border: 1px solid var(--gold-dark);
+    box-shadow: 0 0 40px rgba(212,168,67,0.08), inset 0 1px 0 rgba(212,168,67,0.2);
+  }
+
+  /* CTA button gold */
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold-dark) 100%);
+    color: #000;
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 14px 32px;
+    display: inline-block;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-gold:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-gold::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+  }
+
+  /* Outline button */
+  .btn-outline {
+    border: 1px solid rgba(212,168,67,0.4);
+    color: var(--gold);
+    font-family: 'Jost', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    padding: 12px 28px;
+    display: inline-block;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .btn-outline:hover { background: rgba(212,168,67,0.08); border-color: var(--gold); }
+
+  /* Number display */
+  .price-display {
+    font-family: 'Bodoni Moda', serif;
+    font-size: 3.5rem; line-height: 1;
+    background: linear-gradient(135deg, #D4A843, #F0C860);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+
+  /* Hero background lines */
+  .hero-lines {
+    background-image: linear-gradient(rgba(212,168,67,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212,168,67,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Floating badge */
+  .badge-gold {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    display: inline-block;
+  }
+
+  /* Check/X icons */
+  .check { color: var(--gold); }
+  .cross { color: #555; }
+
+  /* Divider ornament */
+  .ornament {
+    display: flex; align-items: center; gap: 16px; justify-content: center;
+  }
+  .ornament::before, .ornament::after {
+    content: ''; flex: 1; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,168,67,0.3));
+  }
+  .ornament::after { background: linear-gradient(90deg, rgba(212,168,67,0.3), transparent); }
+
+  /* Section label */
+  .section-label {
+    font-family: 'Jost', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.8;
+  }
+
+  /* WhatsApp float */
+  .wsp-float {
+    position: fixed; bottom: 28px; right: 28px; z-index: 100;
+    background: #25D366;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(37,211,102,0.4);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .wsp-float:hover { transform: scale(1.08); box-shadow: 0 6px 30px rgba(37,211,102,0.5); }
+
+  /* Scroll animation */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.7s ease forwards; }
+
+  /* Tag pill */
+  .tag {
+    background: rgba(212,168,67,0.1);
+    border: 1px solid rgba(212,168,67,0.2);
+    color: var(--gold);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    display: inline-block;
+  }
+
+  /* Marquee */
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee-inner { display: flex; animation: marquee 20s linear infinite; white-space: nowrap; }
+  .marquee-inner:hover { animation-play-state: paused; }
+</style>
+</head>
+<body class="relative">
+
+<!-- ─── NAVBAR ─── -->
+<nav style="position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(10,10,10,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(212,168,67,0.1);">
+  <div style="max-width:1100px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-family:'Bodoni Moda',serif;font-size:1.2rem;letter-spacing:0.05em;" class="gold-text">AJL Nutrición</span>
+    <a href="#planes" class="btn-gold" style="padding:10px 24px;font-size:0.7rem;text-decoration:none;">Ver planes</a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="hero-lines" style="min-height:100vh;display:flex;align-items:center;padding-top:80px;position:relative;overflow:hidden;">
+  <!-- Radial glow -->
+  <div style="position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(212,168,67,0.06) 0%,transparent 70%);pointer-events:none;"></div>
+  <!-- Corner ornament top right -->
+  <div style="position:absolute;top:80px;right:0;width:300px;height:300px;border-left:1px solid rgba(212,168,67,0.08);border-bottom:1px solid rgba(212,168,67,0.08);pointer-events:none;"></div>
+
+  <div style="max-width:1100px;margin:0 auto;padding:80px 24px;width:100%;">
+    <div class="fade-up">
+      <p class="section-label" style="margin-bottom:24px;">Lima, Perú — Nutrición de precisión</p>
+      <h1 style="font-size:clamp(3rem,7vw,6rem);line-height:1.05;letter-spacing:-0.02em;margin-bottom:32px;max-width:800px;">
+        Probaste todo.<br>
+        <span class="gold-text">Esta vez</span> es diferente.
+      </h1>
+      <p style="font-size:1.05rem;line-height:1.7;color:rgba(245,240,232,0.65);max-width:520px;margin-bottom:48px;font-weight:300;">
+        Un método que se adapta a tu vida real: restaurantes, delivery, cenas de trabajo. Sin restricciones absurdas. Sin culpa.
+      </p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+        <a href="#planes" class="btn-gold" style="text-decoration:none;">Ver planes y precios</a>
+        <a href="#metodo" class="btn-outline" style="text-decoration:none;">Cómo funciona</a>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div style="margin-top:80px;display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:600px;">
+      <div>
+        <p style="font-family:'Bodoni Moda',serif;font-size:2.5rem;color:var(--gold);">4+</p>
+        <p style="font-size:0.8rem;color:rgba(245,240,232,0.5);letter-spacing:0.05em;text-transform:uppercase;margin-top:4px;">Años de experiencia</p>
+      </div>
+      <div>
+        <p style="font-family:'Bodoni Moda',serif;font-size:2.5rem;color:var(--gold);">93%</p>
+        <p style="font-size:0.8rem;color:rgba(245,240,232,0.5);letter-spacing:0.05em;text-transform:uppercase;margin-top:4px;">Pacientes que no rebotan</p>
+      </div>
+      <div>
+        <p style="font-family:'Bodoni Moda',serif;font-size:2.5rem;color:var(--gold);">100%</p>
+        <p style="font-size:0.8rem;color:rgba(245,240,232,0.5);letter-spacing:0.05em;text-transform:uppercase;margin-top:4px;">Adaptado a ti</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MARQUEE ─── -->
+<div style="border-top:1px solid rgba(212,168,67,0.1);border-bottom:1px solid rgba(212,168,67,0.1);padding:16px 0;overflow:hidden;background:rgba(212,168,67,0.03);">
+  <div class="marquee-inner">
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Sin restricciones absurdas</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Estructura para tu vida real</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Acompañamiento cercano</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Sin restricciones absurdas</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Estructura para tu vida real</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+    <span style="color:rgba(212,168,67,0.4);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">Acompañamiento cercano</span>
+    <span style="color:rgba(212,168,67,0.6);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-right:64px;">✦</span>
+  </div>
+</div>
+
+<!-- ─── POR QUÉ FALLASTE ─── -->
+<section style="padding:120px 24px;max-width:1100px;margin:0 auto;">
+  <div class="ornament" style="margin-bottom:64px;">
+    <span class="section-label">La verdad que nadie te dijo</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;">
+    <div>
+      <h2 style="font-size:clamp(2rem,4vw,3.5rem);line-height:1.1;margin-bottom:24px;">
+        ¿Por qué tú sí,<br>si ya muchos<br><em class="gold-text">fallaron conmigo?</em>
+      </h2>
+      <p style="color:rgba(245,240,232,0.6);line-height:1.75;font-weight:300;max-width:400px;">
+        No fallaste porque te faltó fuerza de voluntad. Fallaste porque los planes que seguiste nunca fueron diseñados para tu vida real.
+      </p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <!-- Table rows -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(212,168,67,0.1);padding:20px 0;">
+        <div style="padding-right:24px;">
+          <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:rgba(245,240,232,0.4);margin-bottom:8px;">Lo que crees</p>
+          <p style="font-size:0.9rem;color:rgba(245,240,232,0.7);">"Me faltó disciplina"</p>
+        </div>
+        <div style="padding-left:24px;border-left:1px solid rgba(212,168,67,0.15);">
+          <p style="font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--gold);opacity:0.7;margin-bottom:8px;">El problema real</p>
+          <p style="font-size:0.9rem;">El plan ignoró tu contexto social y laboral</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(212,168,67,0.1);padding:20px 0;">
+        <div style="padding-right:24px;">
+          <p style="font-size:0.9rem;color:rgba(245,240,232,0.7);">"Comí algo que no debía"</p>
+        </div>
+        <div style="padding-left:24px;border-left:1px solid rgba(212,168,67,0.15);">
+          <p style="font-size:0.9rem;">No había estructura para situaciones reales</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(212,168,67,0.1);padding:20px 0;">
+        <div style="padding-right:24px;">
+          <p style="font-size:0.9rem;color:rgba(245,240,232,0.7);">"Los fines de semana lo arruiné todo"</p>
+        </div>
+        <div style="padding-left:24px;border-left:1px solid rgba(212,168,67,0.15);">
+          <p style="font-size:0.9rem;">No tenías herramientas para días flexibles</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;padding:20px 0;">
+        <div style="padding-right:24px;">
+          <p style="font-size:0.9rem;color:rgba(245,240,232,0.7);">"Recuperé todo lo que bajé"</p>
+        </div>
+        <div style="padding-left:24px;border-left:1px solid rgba(212,168,67,0.15);">
+          <p style="font-size:0.9rem;">El plan nunca fue sostenible por diseño</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MÉTODO ─── -->
+<section id="metodo" style="padding:120px 24px;background:var(--obsidian-2);position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;right:0;width:400px;height:400px;background:radial-gradient(circle,rgba(212,168,67,0.04) 0%,transparent 70%);pointer-events:none;"></div>
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:80px;">
+      <p class="section-label" style="margin-bottom:16px;">El sistema</p>
+      <h2 style="font-size:clamp(2rem,4vw,3.5rem);">6 pilares del método AJL</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+      <!-- Steps -->
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">01</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Estructura en tu vida real</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">No diseñamos un plan ideal. Construimos uno sobre tu rutina real, incluyendo restaurantes, delivery y eventos sociales.</p>
+      </div>
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">02</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Planificación semanal</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">Cada semana se ajusta el plan según lo que viviste, no según lo que "debería" haber pasado.</p>
+      </div>
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">03</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Porciones visibles</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">Aprendes a medir sin báscula. Unidades reales: una palma, una taza, un puño. Funciona en cualquier restaurante.</p>
+      </div>
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">04</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Backend calórico oculto</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">Tú ves porciones y decisiones simples. Nosotros hacemos los cálculos en segundo plano para garantizar el déficit.</p>
+      </div>
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">05</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Acompañamiento cercano</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">No desaparecemos entre consultas. Hay canal directo para dudas reales del día a día.</p>
+      </div>
+      <div class="obsidian-card" style="padding:32px;">
+        <p style="font-family:'Bodoni Moda',serif;font-size:3rem;color:rgba(212,168,67,0.15);line-height:1;margin-bottom:16px;">06</p>
+        <h3 style="font-size:1.1rem;margin-bottom:12px;">Ajuste por adherencia real</h3>
+        <p style="font-size:0.85rem;color:rgba(245,240,232,0.55);line-height:1.65;">El plan evoluciona con tus datos reales, no con expectativas teóricas. Si algo no funciona, lo cambiamos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PLANES ─── -->
+<section id="planes" style="padding:120px 24px;max-width:1100px;margin:0 auto;">
+  <div style="text-align:center;margin-bottom:80px;">
+    <p class="section-label" style="margin-bottom:16px;">Elige tu nivel</p>
+    <h2 style="font-size:clamp(2rem,4vw,3.5rem);">Planes mensuales</h2>
+    <p style="color:rgba(245,240,232,0.5);margin-top:16px;font-weight:300;max-width:500px;margin-left:auto;margin-right:auto;">Todos incluyen planificación semanal personalizada. Elige el nivel de acompañamiento que necesitas.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:start;">
+
+    <!-- Plan Básico -->
+    <div class="obsidian-card" style="padding:32px;">
+      <p class="tag" style="margin-bottom:20px;">Básico</p>
+      <div class="price-display" style="font-size:2.5rem;margin-bottom:4px;">S/250</div>
+      <p style="font-size:0.75rem;color:rgba(245,240,232,0.4);margin-bottom:24px;">/mes</p>
+      <p style="font-size:0.8rem;color:rgba(245,240,232,0.6);line-height:1.6;margin-bottom:24px;min-height:60px;">Para quienes quieren empezar con estructura sólida y autonomía progresiva.</p>
+      <div style="border-top:1px solid rgba(212,168,67,0.1);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">1 sesión/mes</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Plan nutricional personalizado</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Soporte por WhatsApp</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.3);">Revisiones quincenales</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;">
+          <svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.3);">Acceso a comunidad</p>
+        </div>
+      </div>
+      <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20B%C3%A1sico%20de%20AJL%20Nutrici%C3%B3n." class="btn-outline" style="width:100%;text-align:center;text-decoration:none;display:block;">Quiero este plan</a>
+    </div>
+
+    <!-- Plan Acompañamiento -->
+    <div class="obsidian-card" style="padding:32px;">
+      <p class="tag" style="margin-bottom:20px;">Acompañamiento</p>
+      <div class="price-display" style="font-size:2.5rem;margin-bottom:4px;">S/320</div>
+      <p style="font-size:0.75rem;color:rgba(245,240,232,0.4);margin-bottom:24px;">/mes</p>
+      <p style="font-size:0.8rem;color:rgba(245,240,232,0.6);line-height:1.6;margin-bottom:24px;min-height:60px;">Para quienes necesitan más guía y revisión del progreso.</p>
+      <div style="border-top:1px solid rgba(212,168,67,0.1);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">2 sesiones/mes</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Plan nutricional personalizado</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Soporte prioritario</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Revisión quincenal</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;">
+          <svg class="cross" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.3);">Acceso a comunidad</p>
+        </div>
+      </div>
+      <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Acompa%C3%B1amiento%20de%20AJL%20Nutrici%C3%B3n." class="btn-outline" style="width:100%;text-align:center;text-decoration:none;display:block;">Quiero este plan</a>
+    </div>
+
+    <!-- Plan Constancia — FEATURED -->
+    <div class="plan-featured" style="padding:32px;position:relative;transform:scale(1.02);">
+      <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);">
+        <span class="badge-gold">Más elegido</span>
+      </div>
+      <p class="tag" style="margin-bottom:20px;background:rgba(212,168,67,0.2);border-color:rgba(212,168,67,0.4);">Constancia</p>
+      <div class="price-display" style="margin-bottom:4px;">S/440</div>
+      <p style="font-size:0.75rem;color:rgba(245,240,232,0.4);margin-bottom:24px;">/mes · Desde S/1,100/trimestre</p>
+      <p style="font-size:0.8rem;color:rgba(245,240,232,0.6);line-height:1.6;margin-bottom:24px;min-height:60px;">Para quienes quieren revisiones quincenales sin un compromiso semanal intenso.</p>
+      <div style="border-top:1px solid rgba(212,168,67,0.2);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Revisiones quincenales</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Plan nutricional adaptativo</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Soporte prioritario 24/7</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Acceso a comunidad privada</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Ajuste semanal por adherencia</p>
+        </div>
+      </div>
+      <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Constancia%20de%20AJL%20Nutrici%C3%B3n." class="btn-gold" style="width:100%;text-align:center;text-decoration:none;display:block;">Quiero este plan</a>
+    </div>
+
+    <!-- Plan Transformación -->
+    <div class="obsidian-card" style="padding:32px;">
+      <p class="tag" style="margin-bottom:20px;">Transformación</p>
+      <div class="price-display" style="font-size:2.5rem;margin-bottom:4px;">S/600</div>
+      <p style="font-size:0.75rem;color:rgba(245,240,232,0.4);margin-bottom:24px;">/mes · Desde S/1,500/trimestre</p>
+      <p style="font-size:0.8rem;color:rgba(245,240,232,0.6);line-height:1.6;margin-bottom:24px;min-height:60px;">Para quienes quieren el máximo nivel de seguimiento y resultados acelerados.</p>
+      <div style="border-top:1px solid rgba(212,168,67,0.1);padding-top:24px;margin-bottom:24px;">
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Revisiones semanales</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Plan ultra-personalizado</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Análisis de composición corporal</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:12px;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Acceso prioritario total</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:baseline;">
+          <svg class="check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <p style="font-size:0.82rem;color:rgba(245,240,232,0.75);">Estrategia nutricional a 6 meses</p>
+        </div>
+      </div>
+      <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Transformaci%C3%B3n%20de%20AJL%20Nutrici%C3%B3n." class="btn-outline" style="width:100%;text-align:center;text-decoration:none;display:block;">Quiero este plan</a>
+    </div>
+
+  </div>
+
+  <!-- Evaluación fallback -->
+  <div style="margin-top:48px;text-align:center;padding:32px;border:1px solid rgba(212,168,67,0.1);background:rgba(212,168,67,0.02);">
+    <p style="font-size:0.8rem;color:rgba(245,240,232,0.45);margin-bottom:12px;">¿Todavía no te decides?</p>
+    <p style="margin-bottom:8px;font-size:1rem;">Agenda una <strong style="color:var(--gold);">Evaluación Nutricional Personal — S/80</strong></p>
+    <p style="font-size:0.82rem;color:rgba(245,240,232,0.5);margin-bottom:20px;">20–30 min · Diagnóstico completo · Los S/80 se descuentan si luego contratas un plan</p>
+    <a href="https://wa.me/51919151237?text=Hola,%20quiero%20agendar%20la%20Evaluaci%C3%B3n%20Nutricional%20de%20S/80." class="btn-outline" style="text-decoration:none;">Primero quiero la Evaluación</a>
+  </div>
+</section>
+
+<!-- ─── PARA QUIÉN ─── -->
+<section style="padding:120px 24px;background:var(--obsidian-2);">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="text-align:center;margin-bottom:80px;">
+      <p class="section-label" style="margin-bottom:16px;">Filtro honesto</p>
+      <h2 style="font-size:clamp(2rem,4vw,3.5rem);">¿Este método es para ti?</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;">
+      <!-- Para quién sí -->
+      <div class="obsidian-card" style="padding:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+          <div style="width:8px;height:8px;background:var(--gold);border-radius:50%;"></div>
+          <h3 style="font-size:1.2rem;">Para ti si…</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.75);line-height:1.6;">Comes fuera de casa frecuentemente y quieres aprender a navegar eso sin arruinar tu progreso</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.75);line-height:1.6;">Ya probaste planes rígidos y no funcionaron a largo plazo</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.75);line-height:1.6;">Estás dispuesto a registrar tu alimentación las primeras semanas</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.75);line-height:1.6;">Buscas resultados sostenibles, no una solución de 30 días</p>
+          </div>
+        </div>
+      </div>
+      <!-- Para quién no -->
+      <div class="obsidian-card" style="padding:40px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:32px;">
+          <div style="width:8px;height:8px;background:#555;border-radius:50%;"></div>
+          <h3 style="font-size:1.2rem;color:rgba(245,240,232,0.6);">No es para ti si…</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="cross" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.4);line-height:1.6;">Buscas una dieta estricta que te diga exactamente qué comer cada día sin involucrarte</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="cross" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.4);line-height:1.6;">Esperas bajar X kilos en 30 días sin cambios de hábito reales</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="cross" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.4);line-height:1.6;">El azúcar, el gluten o los carbohidratos son "el enemigo" y no estás dispuesto a cuestionar eso</p>
+          </div>
+          <div style="display:flex;gap:14px;align-items:flex-start;">
+            <svg class="cross" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="flex-shrink:0;margin-top:2px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,232,0.4);line-height:1.6;">No puedes comprometerte a asistir a revisiones regulares</p>
+          </div>
+        </div>
+        <p style="margin-top:24px;font-size:0.8rem;color:rgba(245,240,232,0.35);line-height:1.6;font-style:italic;">Si no encajas ahora, no hay problema. Este espacio estará aquí cuando estés listo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer style="padding:60px 24px;border-top:1px solid rgba(212,168,67,0.1);text-align:center;">
+  <p style="font-family:'Bodoni Moda',serif;font-size:1.3rem;margin-bottom:8px;" class="gold-text">AJL Nutrición</p>
+  <p style="font-size:0.78rem;color:rgba(245,240,232,0.35);margin-bottom:24px;">Lima, Perú · +51 919 151 237</p>
+  <a href="https://wa.me/51919151237?text=Hola,%20quiero%20saber%20m%C3%A1s%20sobre%20AJL%20Nutrici%C3%B3n." class="btn-gold" style="text-decoration:none;">Escribir al WhatsApp</a>
+  <p style="margin-top:32px;font-size:0.7rem;color:rgba(245,240,232,0.2);">© 2026 AJL Nutrición · Política de privacidad</p>
+</footer>
+
+<!-- ─── WhatsApp FLOTANTE ─── -->
+<a href="https://wa.me/51919151237?text=Hola,%20quiero%20saber%20m%C3%A1s%20sobre%20AJL%20Nutrici%C3%B3n." class="wsp-float" title="Escribir por WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.526 5.855L.057 23.82a.75.75 0 0 0 .92.92l5.964-1.469A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.948 9.948 0 0 1-5.13-1.42l-.36-.22-3.74.92.94-3.63-.23-.38A9.935 9.935 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+</a>
+
+</body>
+</html>
