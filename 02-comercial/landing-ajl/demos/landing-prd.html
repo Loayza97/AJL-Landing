@@ -358,6 +358,83 @@
   .includes-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+  /* ══════════════════════════════════════════
+     MOBILE RESPONSIVE — ≤ 768px
+  ══════════════════════════════════════════ */
+  @media (max-width: 768px) {
+
+    /* Layout base */
+    .container { padding: 0 16px; }
+    section { padding: 48px 0; }
+
+    /* Nav — ocultar links, mostrar solo logo + CTA */
+    nav .nav-links { display: none; }
+    nav .nav-cta { padding: 10px 18px; font-size: 13px; }
+    nav { padding: 14px 16px; }
+
+    /* Hero */
+    .hero { padding: 80px 0 48px; }
+    .hero h1 { font-size: clamp(36px,10vw,52px); }
+
+    /* Bento: todas las tiles van a 1 columna */
+    .bento {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+      gap: 12px;
+    }
+    .tile.span-2,
+    .tile.span-3,
+    .tile.span-4,
+    .tile.span-6 { grid-column: span 1; }
+    .tile.row-2 { grid-row: span 1; }
+
+    /* Sección Planes — layout especial */
+    .bento.plans-bento {
+      grid-template-columns: 1fr 1fr;
+    }
+    .bento.plans-bento .hero-tile {
+      grid-column: span 2;
+    }
+    .bento.plans-bento .plan-tile {
+      grid-column: span 1;
+    }
+    .hero-tile h3 { font-size: 26px; }
+    .plan-tile .price { font-size: 28px; }
+
+    /* Problem table — reducir texto */
+    .problem-says,
+    .problem-real { font-size: 15px; }
+    .problem-row { padding: 14px 0; }
+
+    /* Method steps — 1 columna */
+    .method-steps { grid-template-columns: 1fr; }
+
+    /* Para-quién — 1 columna */
+    .bento .tile.span-3 { grid-column: span 1; }
+
+    /* Includes grid — 1 columna */
+    .includes-grid { grid-template-columns: 1fr; }
+
+    /* Section headers */
+    .section-header h2 { font-size: clamp(24px,6vw,32px); }
+
+    /* WSP float — siempre visible en mobile */
+    .wsp-label { display: none; }
+  }
+
+  @media (max-width: 480px) {
+    /* Planes en 1 columna en pantallas muy pequeñas */
+    .bento.plans-bento {
+      grid-template-columns: 1fr;
+    }
+    .bento.plans-bento .hero-tile {
+      grid-column: span 1;
+    }
+    .bento.plans-bento .plan-tile {
+      grid-column: span 1;
+    }
+  }
 </style>
 </head>
 <body>
@@ -569,7 +646,7 @@
     </div>
   </div>
 
-  <div class="bento" style="padding:24px 0 56px;">
+  <div class="bento plans-bento" style="padding:24px 0 56px;">
 
     <div class="tile hero-tile span-2 row-2 reveal">
       <span class="eyebrow"><span class="dot" style="background:#fff"></span>4 planes</span>
