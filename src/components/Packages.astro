@@ -1,108 +1,7 @@
 ---
-import { WA_FALLBACK_URL } from '../config.js';
+import { monthlyPlans } from '../data/plans.js';
 
-const packages = [
-  {
-    name: 'Básico',
-    tagline: 'Claridad en una sesión',
-    price: '250',
-    freq: 'Única',
-    badge: null,
-    highlight: false,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
-      { count: null, label: 'Sesión de logros', note: null, included: false },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: null, included: false },
-      { label: 'Soporte nutricional', note: null, included: false },
-      { label: 'Sesiones grupales', note: null, included: false },
-      { label: 'Comunidad exclusiva', note: null, included: false },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
-    programs: null,
-    programsNote: 'Solo disponible mensual',
-  },
-  {
-    name: 'Acompañamiento',
-    tagline: 'Tu primer paso con soporte',
-    price: '320',
-    freq: 'Mensual',
-    badge: null,
-    highlight: false,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
-      { count: null, label: 'Sesión de logros', note: null, included: false },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
-    programs: [
-      { label: '3 meses', total: 'S/900', perMes: 'S/300/mes' },
-    ],
-    programsNote: null,
-  },
-  {
-    name: 'Constancia',
-    tagline: 'Acompañamiento continuo',
-    price: '440',
-    freq: 'Quincenal',
-    badge: 'Recomendado',
-    highlight: true,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: 1, label: 'Sesión de seguimiento', note: 'Revisamos tu progreso', included: true },
-      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
-    programs: [
-      { label: '3 meses', total: 'S/1,250', perMes: 'S/417/mes' },
-      { label: '6 meses', total: 'S/2,400', perMes: 'S/400/mes' },
-    ],
-    programsNote: null,
-  },
-  {
-    name: 'Transformación',
-    tagline: 'Acompañamiento total, semanal',
-    price: '600',
-    freq: 'Semanal',
-    badge: 'Más completo',
-    highlight: false,
-    sessions: [
-      { count: 2, label: 'Sesiones de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 2, label: 'Planes nutricionales', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: 2, label: 'Sesiones de seguimiento', note: 'Revisamos tu progreso', included: true },
-      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: true, star: true },
-    ],
-    programs: [
-      { label: '3 meses', total: 'S/1,700', perMes: 'S/567/mes' },
-      { label: '6 meses', total: 'S/3,200', perMes: 'S/533/mes' },
-    ],
-    programsNote: null,
-  },
-];
+const packages = monthlyPlans;
 ---
 
 <section id="section-packages" class="section bg-white" aria-label="Paquetes de nutrición">
@@ -188,13 +87,11 @@ const packages = [
 
           <!-- CTA -->
           <a
-            href={WA_FALLBACK_URL}
+            href={`/checkout/${pkg.id}`}
             class={`pkg-cta${pkg.highlight ? ' pkg-cta--featured' : ''}`}
-            data-wa-section="paquetes"
-            data-wa-pkg={pkg.name}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Quiero el plan ${pkg.name} — abre WhatsApp`}
+            data-section="paquetes"
+            data-pkg={pkg.name}
+            aria-label={`Quiero el plan ${pkg.name}`}
           >
             Quiero este plan →
           </a>

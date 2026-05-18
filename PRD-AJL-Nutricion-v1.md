@@ -5,16 +5,18 @@
 ### 1.1 Document title and version
 
 - PRD: AJL Nutrición Landing Page
-- Version: 1.1
-- Actualizado: Mayo 2026
+- Version: 1.2
+- Actualizado: 2026-05-18
 
 ### 1.2 Product summary
 
 Esta es una landing page de precalificación pasiva para AJL Nutrición, una clínica de nutrición premium con base en Lima, Perú, dirigida a profesionales de 28–45 años de NSE A/B que buscan transformar su composición corporal sin restricciones alimentarias rígidas.
 
-La página tiene una función única: convertir tráfico frío y tibio proveniente de Instagram, TikTok, Meta Ads y referidos en leads calificados que llegan al WhatsApp de ventas listos para contratar un plan o, en caso de duda, agendar una Evaluación Nutricional Personal de S/80.
+La página tiene una doble función: (1) convertir tráfico frío y tibio proveniente de Instagram, TikTok, Meta Ads y referidos en leads calificados, y (2) permitir el pago directo desde el sitio (Yape, transferencia BCP/CCI o tarjeta vía Culqi) con confirmación posterior por WhatsApp.
 
-**Jerarquía de conversión (decisión tomada en v1.1):** los planes mensuales son el producto principal de la landing. La Evaluación Nutricional de S/80 es el producto de entrada para leads que aún no se deciden por un plan. El flujo es: ver planes → elegir plan → WhatsApp. Solo si el visitante no sabe cuál plan elegir, se le ofrece la evaluación como paso previo.
+**Jerarquía de conversión (decisión tomada en v1.1, mantenida en v1.2):** los planes mensuales son el producto principal de la landing. La Evaluación Nutricional de S/80 es el producto de entrada para leads que aún no se deciden por un plan.
+
+**Flujo de pago (nuevo en v1.2):** el lead que ya decidió hace clic en "Quiero este" en una card y aterriza en una página de checkout específica del plan (`/checkout/[slug]/`). Allí ve los 4 métodos de pago disponibles y un proceso de 4 pasos: pagar → enviar comprobante por WhatsApp → asesor confirma cita → primera sesión. Sigue habiendo touch humano post-pago, pero el compromiso financiero ocurre antes de la conversación de venta.
 
 La landing complementa el filtro upstream (reels, stories, ads) con un filtro pasivo: contenido honesto, criterios explícitos de "para quién sí / para quién no", y CTAs directos al WhatsApp con mensaje pre-llenado que identifica fuente vía UTM y el plan de interés.
 
@@ -41,9 +43,8 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 
 ### 2.3 Non-goals
 
-- No cerrar ventas de planes directamente en la página (sin carrito ni pago online).
-- No procesar pagos ni gestionar carrito en la v1.0.
-- No reemplazar la conversación de WhatsApp con el asesor.
+- No reemplazar la conversación de WhatsApp con el asesor (post-pago el contacto humano sigue siendo obligatorio para confirmar la cita).
+- No agendar slots de calendario directamente desde el sitio (el asesor coordina horario por WhatsApp).
 - No funcionar como sitio web institucional con múltiples páginas (blog, equipo, etc.).
 - No captar leads sin ningún filtro: la fricción pasiva es intencional.
 - No prometer resultados específicos de pérdida de peso ni usar lenguaje de "método revolucionario".
@@ -91,9 +92,10 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
   - CTA al final hace scroll a la sección de planes.
 
 - **Sección de planes** (Priority: High — producto principal)
-  - 4 planes con nombre, tagline, precio, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3 y 6 meses donde aplique.
+  - 4 planes con nombre, tagline, precio, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3 y 6 meses donde aplique).
   - Planes: Básico (S/250), Acompañamiento (S/320), Constancia (S/440 — destacado), Transformación (S/600).
-  - Cada plan tiene su propio CTA a WhatsApp con mensaje pre-llenado que incluye el nombre del plan.
+  - Cada precio se muestra con asterisco visible (`S/250*`) y un footnote al pie del grid: "*El pago con tarjeta tiene un recargo del 5%".
+  - Cada plan tiene su propio CTA "Quiero este" que dirige a la página de checkout específica del plan (`/checkout/basico/`, `/checkout/acompanamiento/`, `/checkout/constancia/`, `/checkout/transformacion/`).
   - Nota al final de la sección apunta hacia la Evaluación S/80 como opción para indecisos.
 
 - **Sección "¿Qué incluye cada plan?"** (Priority: High)
@@ -105,9 +107,30 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 - **Sección "Producto de entrada: Evaluación Nutricional S/80"** (Priority: Medium — fallback para indecisos)
   - Posicionada después de planes y testimonios, no como producto principal.
   - Encabezado: "¿Todavía no te decides?" para dejar claro que es para indecisos.
-  - Precio visible (S/80), duración 20–30 min, diagnóstico + dirección clara.
+  - Precio S/80 con asterisco visible y nota local "*El pago con tarjeta tiene un recargo del 5%".
+  - Duración 20–30 min, diagnóstico + dirección clara.
   - Comunicar que los S/80 se descuentan del primer mes si contrata un plan.
-  - CTA: "Primero quiero la Evaluación →" con mensaje pre-llenado que lo identifica.
+  - CTA: "Agendar Evaluación →" que dirige a `/checkout/evaluacion/`.
+
+- **Páginas de checkout** (Priority: High — nuevo en v1.2)
+  - 5 páginas estáticas, una por producto: `/checkout/{evaluacion,basico,acompanamiento,constancia,transformacion}/`.
+  - Diseño consistente con el landing (Plus Jakarta Sans, Inter, paleta gold/ink/bg compartida) servido por una hoja de estilos común en `/checkout/checkout.css`.
+  - Cada página muestra:
+    1. **Nav superior**: logo AJL + link "Volver a planes".
+    2. **Card del plan**: nombre, tagline, precio base, precio con tarjeta (incluye 5% recargo), lista de "lo que incluye".
+    3. **Flujo de 4 pasos**:
+       - **Paso 1 — Realiza tu pago**: Yape (919 151 237), BCP cuenta corriente (193-91104808-0-57), CCI (19391104808057), y botón Culqi con monto +5% pre-configurado.
+       - **Paso 2 — Envíanos tu comprobante por WhatsApp**: botón verde con mensaje pre-rellenado que identifica el plan y monto base ("Hola, te envío el comprobante del plan [Nombre] (S/X)").
+       - **Paso 3 — Recibe tu link de inscripción**: incluye horario de atención (lunes a sábado, 9:00 a.m. a 8:00 p.m.).
+       - **Paso 4 — Lista tu primera sesión**: modalidad presencial (Av. Almirante Manuel Villavicencio 1461, Lince, Lima) o virtual.
+    4. **Footer**: link al asesor por WhatsApp para resolver dudas previas al pago.
+  - Links de Culqi por plan (Culqi Express, monto +5% ya pre-configurado en el link):
+    - Evaluación: `https://express.culqi.com/pago/CE455B801E`
+    - Básico: `https://express.culqi.com/pago/D1100F369A`
+    - Acompañamiento: `https://express.culqi.com/pago/DD1BE52C10`
+    - Constancia: `https://express.culqi.com/pago/D4E12ED399`
+    - Transformación: `https://express.culqi.com/pago/8F6B63FDF7`
+  - Cada página dispara analytics propios en su carga: GA4 `begin_checkout` y Meta Pixel `InitiateCheckout` con `value` y `item_name` específicos del plan.
 
 - **Sección "Pacientes reales"** (Priority: Medium)
   - Mínimo 3 testimonios con nombre, contexto y resultado enfocado en relación con la comida (no kilos específicos).
@@ -128,12 +151,14 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
   - Mensaje pre-llenado con UTM de origen.
   - Esquina inferior derecha. Evento `whatsapp_click_floating` registrado.
 
-- **Tracking y UTMs** (Priority: High — pendiente de activación)
+- **Tracking y UTMs** (Priority: High — activo)
   - Captura de `utm_source`, `utm_medium`, `utm_campaign` desde la URL.
-  - Mensaje pre-llenado incluye UTM cuando está disponible; sin UTM, el mensaje va sin etiqueta de origen.
-  - Eventos custom: `scroll_frustracion`, `scroll_metodo`, `scroll_testimonios`, `scroll_para_quien`, `whatsapp_click` (con `section_id` y `package_name`), `whatsapp_click_floating`.
-  - Meta Pixel: pendiente de activación (falta Pixel ID).
-  - GA4: pendiente de activación (falta Measurement ID G-XXXXXXXXXX).
+  - Mensaje pre-llenado de WhatsApp incluye UTM cuando está disponible; sin UTM, el mensaje va sin etiqueta de origen.
+  - Eventos custom en landing: `scroll_frustracion`, `scroll_metodo`, `scroll_testimonios`, `scroll_para_quien`, `whatsapp_click` (con `section_id` y `package_name`), `whatsapp_click_floating`.
+  - Eventos custom en checkout: GA4 `begin_checkout` y Meta Pixel `InitiateCheckout` por plan, con `value` y `item_id`. La conversión final se confirma manualmente cuando el asesor valida el comprobante por WhatsApp (no hay webhook de Culqi → analytics todavía).
+  - Meta Pixel: **activo** — Pixel ID `982472270539383`.
+  - GA4: **activo** — Measurement ID `G-SQ5K6KFXT3`.
+  - Convención de UTMs versionada en `docs/utms.md` (fuente única de verdad para los links de bio, stories, ads, ManyChat, etc.).
 
 - **Pie de página** (Priority: Low)
   - Datos de contacto, CTA a WhatsApp, aviso legal mínimo, link a política de privacidad.
@@ -149,17 +174,19 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 - **Referidos**: Link compartido por paciente actual. `utm_source=referido`.
 - **Directo / desconocido**: Sin UTM. Registrado en analytics como origen desconocido. Mensaje de WhatsApp va sin etiqueta de origen.
 
-**Flujo principal:** Hero (scroll a planes) → Por qué fallaste → Método → **Planes** → Qué incluye cada plan → Testimonios → Para quién sí/no → Evaluación S/80 (fallback) → FAQ → Footer. El botón flotante de WhatsApp está siempre disponible para leads que ya vienen decididos.
+**Flujo principal:** Hero (scroll a planes) → Por qué fallaste → Método → **Planes** → Qué incluye cada plan → Testimonios → Para quién sí/no → Evaluación S/80 (fallback) → FAQ → Footer. El botón flotante de WhatsApp está siempre disponible para leads que ya vienen decididos. Cuando el lead clickea "Quiero este" o "Agendar Evaluación", entra al sub-flujo de checkout: `/checkout/[slug]/` → elegir método de pago → pagar → enviar comprobante por WhatsApp → confirmar cita con asesor → primera sesión.
 
 ### 5.2 Core experience
 
 - **Aterrizaje en hero**: Titular reconoce frustración previa. CTA hace scroll a planes (no a WhatsApp).
 - **Diagnóstico del problema**: Sección "Por qué fallaste" con la pregunta central "¿Por qué tú sí, si ya muchos fallaron conmigo?".
 - **Entendimiento del método**: 6 pasos + bloque de compromiso requerido actúa como filtro pasivo temprano.
-- **Elección de plan**: El visitante ve los 4 planes, qué incluye cada uno, y si está listo escribe al asesor mencionando el plan de interés.
-- **Si no se decide**: La sección de Evaluación S/80 le ofrece un paso previo de bajo riesgo.
+- **Elección de plan**: El visitante ve los 4 planes con precio + asterisco que indica el recargo del 5% para pagos con tarjeta. Si está listo, clickea "Quiero este" y aterriza en la página de checkout del plan.
+- **Pago + comprobante**: En el checkout elige uno de 4 métodos (Yape, BCP, CCI o Culqi). Tras pagar, envía la captura del comprobante por WhatsApp usando el botón verde, que llega al asesor con un mensaje pre-rellenado que identifica el plan y el monto.
+- **Confirmación con asesor**: El asesor valida el pago, coordina día/hora de la cita y entrega el link de inscripción dentro del horario de atención (lunes a sábado, 9-20h).
+- **Si no se decide**: La sección de Evaluación S/80 le ofrece un paso previo de bajo riesgo con el mismo flujo de checkout (`/checkout/evaluacion/`).
 - **Autoidentificación**: La sección "Para quién sí/no" permite que el visitante incompatible se autodescarte sin sentirse rechazado.
-- **Resolución de dudas**: FAQ responde objeciones comunes antes de que el visitante necesite escribir al asesor.
+- **Resolución de dudas**: FAQ responde objeciones comunes. El footer del checkout incluye un link al asesor para dudas previas al pago.
 
 ### 5.3 Advanced features & edge cases
 
@@ -184,13 +211,15 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 
 ### 7.1 User-centric metrics
 
-- **Tasa de clic en CTA WhatsApp**: >15% del total de visitantes.
-- **Distribución de clics por sección**: hero, planes, qué incluye, para quién, evaluación, footer, flotante.
-- **Distribución de clics por plan**: qué plan específico genera más conversaciones (vía `package_name` en evento).
+- **Tasa de clic "Quiero este" → entrada a checkout**: >12% del total de visitantes.
+- **Tasa de clic en botón flotante de WhatsApp**: >8% del total (mide leads que prefieren conversar antes de comprar).
+- **Distribución de entradas a checkout por plan**: qué plan específico tiene más `begin_checkout` (vía `item_id`).
+- **Tasa de pago completado por plan** (manual hasta que haya webhook Culqi → analytics): comprobantes recibidos por WhatsApp / `begin_checkout` registrados.
+- **Distribución de método de pago elegido**: % Yape vs % BCP vs % CCI vs % Culqi. Útil para anticipar comisión efectiva y simplificar la oferta a futuro.
 - **Tasa de scroll profundo**: >50% llegan a la sección de planes.
 - **Tasa de scroll hasta "Para quién sí/no"**: >40%.
 - **Tasa de rebote en hero**: <50%.
-- **Satisfacción cualitativa del lead al llegar a WhatsApp**: feedback subjetivo de Rodrigo.
+- **Satisfacción cualitativa del lead al llegar a WhatsApp con comprobante**: feedback subjetivo del asesor.
 
 ### 7.2 Business metrics
 
@@ -214,18 +243,29 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 
 ### 8.1 Integration points
 
-- **WhatsApp**: `https://wa.me/51919151237?text=<mensaje>`. Mensaje incluye nombre del plan o evaluación + UTM si está disponible.
-- **Meta Pixel**: Pendiente de activación. Pixel ID requerido.
-- **Google Analytics 4**: Pendiente de activación. Measurement ID requerido.
-- **UTM parameters**: Convención definida en sección 5.1. Pendiente de aplicar en cada canal.
-- **Hosting**: Astro estático desplegado en Netlify. Repo en GitHub (`HanzoDYoko/ajl-nutricion-`).
+- **WhatsApp**: `https://wa.me/51919151237?text=<mensaje>`. Dos modos:
+  - Desde landing → mensaje "me interesa el plan X" + UTM si disponible.
+  - Desde checkout → mensaje "te envío el comprobante del plan X (S/Y)" para que el asesor sepa de entrada qué pago debe validar.
+- **Culqi (Express)**: 5 links de pago independientes, uno por producto, cada uno con el monto base × 1.05 ya pre-configurado en Culqi para cubrir el recargo del 5% que la pasarela cobra.
+- **Datos bancarios manuales**:
+  - Yape: 919 151 237
+  - BCP cuenta corriente: 193-91104808-0-57
+  - CCI: 19391104808057
+  - Estos datos se centralizan visualmente en cada página de checkout. En código viven duplicados (hard-coded en cada `checkout/*/index.html`); si en algún momento cambian, hay que actualizarlos en los 5 archivos. Pendiente de refactor futuro a una fuente única.
+- **Meta Pixel**: **Activo** — Pixel ID `982472270539383`. Eventos: `PageView` en todas las páginas, `InitiateCheckout` con `value` y `content_name` en cada página de checkout al cargar.
+- **Google Analytics 4**: **Activo** — Measurement ID `G-SQ5K6KFXT3`. Eventos: pageview automático, eventos de scroll en landing, `begin_checkout` en cada página de checkout.
+- **UTM parameters**: Convención definida en `docs/utms.md`. Aplicada en bios de Instagram y TikTok.
+- **Hosting**: Sitio estático desplegado en **GitHub Pages** desde la raíz del repo `Loayza97/AJL-Landing`. El `index.html` principal vive en la raíz (no es output de Astro). Las páginas de checkout son archivos HTML estáticos en `/checkout/[slug]/index.html`. Dominio `ajlnutricion.com` mapeado vía `CNAME`.
+- **Nota de deuda técnica**: el repo también contiene un proyecto Astro en `src/` que NO se despliega. Coexiste con el `index.html` raíz como código paralelo. Hay un refactor pendiente para unificar la fuente de verdad.
 
 ### 8.2 Data storage & privacy
 
-- No se almacenan datos personales en v1.0. Todo viaja en el mensaje pre-llenado de WhatsApp.
+- No se almacenan datos personales en el sitio. Las páginas de checkout son estáticas y no envían datos a ningún servidor propio.
+- El pago vía Culqi se procesa en el dominio de Culqi (`express.culqi.com`); los datos de tarjeta nunca tocan nuestro dominio. Culqi cumple con PCI-DSS.
+- Los comprobantes (capturas de pago) viajan por WhatsApp directo al asesor; no se almacenan en infraestructura propia.
 - Cookie banner implementado según Ley 29733 (Perú).
-- Política de privacidad: placeholder en footer, pendiente de texto legal definitivo.
-- HTTPS garantizado vía Netlify (redirect HTTP → HTTPS configurado en `netlify.toml`).
+- Política de privacidad: placeholder en footer, pendiente de texto legal definitivo (mayor urgencia ahora que se procesan pagos, aunque no se almacenan datos).
+- HTTPS garantizado por GitHub Pages.
 
 ### 8.3 Scalability & performance
 
@@ -237,28 +277,30 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 ### 8.4 Potential challenges
 
 - **Hipótesis no validada**: ventana de 60 días y métricas claras permiten decisión basada en datos.
-- **Tracking incompleto**: Meta Pixel y GA4 aún no activos. Bloquea visibilidad de conversiones de ads.
 - **Testimonios pendientes**: la sección existe con placeholders. Requiere selección de pacientes reales.
 - **Foto del hero**: pendiente. Idealmente foto real de Alejandro o consulta (no stock).
-- **Política de privacidad**: texto legal pendiente. Footer tiene link placeholder.
-- **UTMs no aplicados en canales**: los links en bio de Instagram y TikTok aún no tienen UTMs. Bloquea trazabilidad.
+- **Política de privacidad**: texto legal pendiente, mayor urgencia ahora que se procesa pago.
+- **Imagen Open Graph pendiente**: `/og-image.jpg` aún no existe; el meta tag apunta a un archivo inexistente. Sin imagen, las previews al compartir el link en redes salen sin imagen de marca.
+- **Asimetría visible de precio**: el cliente que paga con tarjeta paga 5% más que el que paga con Yape o transferencia. Como ambos terminan hablando con el asesor por WhatsApp, podrían comparar precios y la diferencia salir a la conversación. La mitigación actual es comunicar el recargo desde el sitio con el asterisco y la nota. Vigilar si genera fricción real con clientes en los primeros 60 días.
+- **Conversión de pago no medida automáticamente**: hoy se mide `begin_checkout` pero no la conversión final (pago confirmado). Requiere validación manual con el asesor. Mejora futura: webhook de Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel.
+- **Doble código fuente (Astro vs `index.html` raíz)**: ya descrito en 8.1. Hay que decidir si se migra el deploy a Astro o se elimina el código Astro.
 
 ## 9. Milestones & sequencing
 
-### 9.1 Estado actual (v1.1)
+### 9.1 Estado actual (v1.2)
 
-Landing implementada y desplegada en GitHub. Pendiente de deploy en Netlify para URL pública.
+Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkout implementadas y servidas como rutas estáticas. GA4 y Meta Pixel activos. UTMs aplicadas en bios y documentadas en `docs/utms.md`. Pago directo vía Yape / BCP / CCI / Culqi habilitado para los 4 planes mensuales y la Evaluación.
 
 ### 9.2 Próximos pasos
 
-1. Deploy en Netlify → URL pública disponible en móvil.
-2. Activar GA4 (obtener Measurement ID y descomentar en `Layout.astro`).
-3. Activar Meta Pixel (obtener Pixel ID y descomentar en `Layout.astro`).
-4. Aplicar UTMs en links de bio (Instagram, TikTok) y en ManyChat.
-5. Reemplazar testimonios placeholder con contenido real.
-6. Agregar foto real al hero.
-7. Completar política de privacidad.
-8. Iniciar ventana de medición de 60 días.
+1. Verificar que los 5 links de Culqi tienen el monto exacto que muestran las páginas de checkout (S/84, S/262.50, S/336, S/462, S/630). Si difieren, ajustar en código o en Culqi.
+2. Crear y subir `og-image.jpg` real a la raíz pública del sitio para que las previews de redes funcionen.
+3. Reemplazar testimonios placeholder con contenido real.
+4. Agregar foto real al hero.
+5. Completar política de privacidad (mayor urgencia ahora que se procesa pago).
+6. Implementar webhook Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel, para medir conversión final automáticamente.
+7. Decidir el destino del código Astro paralelo (`src/`): migrar deploy o eliminar.
+8. Iniciar ventana de medición de 60 días con el sitio completo en producción.
 
 ## 10. User stories
 
@@ -341,20 +383,21 @@ Landing implementada y desplegada en GitHub. Pendiente de deploy en Netlify para
 - **Description**: Como visitante indeciso que no sabe qué plan elegir, quiero ver la Evaluación de S/80 como paso previo de bajo riesgo.
 - **Acceptance criteria**:
   - La sección está posicionada después de planes y testimonios, con el encabezado "¿Todavía no te decides?".
-  - El precio S/80 está visible sin hover ni click.
+  - El precio S/80 está visible sin hover ni click, con asterisco que indica el recargo del 5% si se paga con tarjeta.
   - Se comunica que los S/80 se descuentan del primer mes si el paciente contrata un plan.
   - Se especifica duración (20–30 min) y que incluye diagnóstico + dirección clara.
-  - El CTA dice "Primero quiero la Evaluación →" y abre WhatsApp con mensaje pre-llenado.
+  - El CTA dice "Agendar Evaluación →" y dirige a `/checkout/evaluacion/`.
 
 ### 10.10 Ver los planes de forma informativa y elegir uno
 
 - **ID**: US-010
-- **Description**: Como visitante, quiero ver los 4 planes disponibles con sus precios, frecuencias y diferencias, para elegir el que encaja con mi caso antes de contactar al asesor.
+- **Description**: Como visitante, quiero ver los 4 planes disponibles con sus precios, frecuencias y diferencias, para elegir el que encaja con mi caso antes de iniciar el pago.
 - **Acceptance criteria**:
   - Los 4 planes están presentes: Básico (S/250), Acompañamiento (S/320), Constancia (S/440), Transformación (S/600).
-  - Cada plan muestra nombre, tagline, precio, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3/6 meses donde aplique).
-  - Cada plan tiene su propio CTA a WhatsApp con mensaje pre-llenado que menciona el nombre del plan.
-  - El evento `whatsapp_click` se registra con `section_id=paquetes` y `package_name=<nombre del plan>`.
+  - Cada plan muestra nombre, tagline, precio con asterisco visible, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3/6 meses donde aplique).
+  - El footnote del grid aclara: "*El pago con tarjeta tiene un recargo del 5%".
+  - Cada plan tiene su propio CTA "Quiero este" que dirige a `/checkout/[slug]/`.
+  - Al cargar la página de checkout se dispara `begin_checkout` (GA4) e `InitiateCheckout` (Meta Pixel) con el `item_id` y `value` del plan.
 
 ### 10.11 Entender en detalle qué incluye cada plan
 
@@ -389,11 +432,12 @@ Landing implementada y desplegada en GitHub. Pendiente de deploy en Netlify para
 ### 10.14 Hacer clic en CTA hacia WhatsApp desde cualquier sección
 
 - **ID**: US-013
-- **Description**: Como visitante decidido a contactar al asesor, quiero poder hacerlo desde múltiples puntos de la landing.
+- **Description**: Como visitante decidido a contactar al asesor (sin pagar todavía), quiero poder hacerlo desde múltiples puntos de la landing.
 - **Acceptance criteria**:
-  - CTAs a WhatsApp en: cada tarjeta de plan, sección de evaluación, sección "qué incluye", y footer.
-  - El CTA del hero hace scroll a planes (no abre WhatsApp directamente).
-  - Cada CTA con mensaje pre-llenado que incluye plan o evaluación de interés + UTM si está disponible.
+  - Los CTAs de planes y evaluación dirigen al checkout, no a WhatsApp.
+  - Los CTAs que siguen yendo a WhatsApp son: sección "qué incluye" ("¿Dudas?"), CTA del hero secundario, footer, y botón flotante.
+  - El CTA principal del hero hace scroll a planes (no abre WhatsApp directamente).
+  - Cada CTA a WhatsApp lleva mensaje pre-llenado con plan o evaluación de interés + UTM si está disponible.
   - Evento `whatsapp_click` con `section_id` fijo acordado y `package_name` cuando aplica.
 
 ### 10.15 Usar el botón flotante de WhatsApp en cualquier momento
@@ -435,11 +479,11 @@ Landing implementada y desplegada en GitHub. Pendiente de deploy en Netlify para
 ### 10.19 Recibir leads como asesor con contexto pre-llenado
 
 - **ID**: US-018
-- **Description**: Como asesor comercial (Rodrigo), quiero recibir cada lead en WhatsApp con un mensaje pre-llenado que incluya el plan de interés y su fuente de origen.
+- **Description**: Como asesor comercial (Rodrigo), quiero recibir cada lead en WhatsApp con un mensaje pre-llenado que identifique de entrada qué necesita el lead, sea consulta previa, pago confirmado o duda específica.
 - **Acceptance criteria**:
-  - Mensaje pre-llenado incluye el plan específico cuando el lead hace clic en el CTA de un plan (ej: "Hola, me interesa el plan Constancia de AJL Nutrición.").
-  - Mensaje incluye UTM de origen cuando está disponible.
-  - Sin UTM, el mensaje va sin etiqueta de origen (no incluye "origen: directo").
+  - **Consulta previa al pago** (links de "Hablar con un asesor" en checkout y "¿Dudas?" en landing): mensaje "Hola, tengo una duda antes de pagar el plan [Nombre]".
+  - **Comprobante post-pago** (botón verde en paso 2 del checkout): mensaje "Hola, te envío el comprobante del plan [Nombre] (S/[base])".
+  - **Lead sin checkout** (botón flotante, footer, hero secundario): mensaje genérico "Vi su página web y quiero iniciar mi cambio con ustedes" o "Hola, me interesa el plan [Nombre]" + UTM si disponible.
   - El mensaje es editable por el lead antes de enviar.
   - El texto es natural y corto, en primera persona del lead.
   - El texto visible no supera 200 caracteres.
@@ -473,3 +517,34 @@ Landing implementada y desplegada en GitHub. Pendiente de deploy en Netlify para
   - Link a política de privacidad (placeholder hoy, texto legal pendiente).
   - Banner no bloquea el contenido principal en mobile.
   - Cumple con Ley N° 29733 de Protección de Datos Personales del Perú.
+
+### 10.23 Pagar un plan con tarjeta vía Culqi
+
+- **ID**: US-022
+- **Description**: Como lead decidido que quiere pagar con tarjeta, quiero hacerlo directo desde el sitio sin tener que conversar con el asesor primero.
+- **Acceptance criteria**:
+  - En la página `/checkout/[slug]/`, hay un botón visible "Pagar S/[monto+5%] con tarjeta" en la lista de métodos de pago.
+  - El botón abre el link de Culqi correspondiente al plan en una pestaña nueva.
+  - El monto que se ve en el botón coincide con el monto que Culqi cobra realmente (incluye el 5% del recargo).
+  - La página de checkout aclara visualmente que el precio con tarjeta incluye un recargo del 5% (no es una sorpresa al llegar a Culqi).
+  - Al cargar la página, se dispara `begin_checkout` (GA4) e `InitiateCheckout` (Meta Pixel) con `value` y `item_name` del plan.
+
+### 10.24 Pagar con Yape o transferencia y enviar comprobante
+
+- **ID**: US-023
+- **Description**: Como lead que prefiere no pagar con tarjeta para evitar el recargo, quiero ver los datos para pagar por Yape o transferencia y un canal claro para enviar el comprobante.
+- **Acceptance criteria**:
+  - La página de checkout muestra los datos completos para Yape (919 151 237), BCP cuenta corriente (193-91104808-0-57) e interbancaria CCI (19391104808057).
+  - Los números son seleccionables (CSS `user-select: all`) para que el usuario los pueda copiar de un solo click.
+  - En el paso 2 hay un botón verde "Enviar comprobante por WhatsApp" con mensaje pre-rellenado: "Hola, te envío el comprobante del plan [Nombre] (S/[base])".
+  - El paso 3 aclara que el asesor responde en horario de atención (lunes a sábado, 9:00 a.m. a 8:00 p.m.).
+
+### 10.25 Confirmar la cita después del pago
+
+- **ID**: US-024
+- **Description**: Como lead que ya pagó, quiero saber exactamente qué pasa después y cuándo tendré mi primera sesión.
+- **Acceptance criteria**:
+  - El paso 3 de la página de checkout describe: "Recibe tu link de inscripción. Uno de nuestros asesores te contactará para completar tu registro y agendar tu primera sesión".
+  - El paso 4 describe las dos modalidades disponibles con dirección presencial completa (Av. Almirante Manuel Villavicencio 1461, Lince, Lima) y opción virtual.
+  - El sitio NO promete confirmación instantánea ni agendamiento automático (la coordinación es manual con el asesor por WhatsApp).
+  - Si el lead tiene dudas previas, hay un link al asesor en el footer del checkout: "Habla con un asesor por WhatsApp".

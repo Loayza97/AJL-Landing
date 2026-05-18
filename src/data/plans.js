@@ -1,0 +1,160 @@
+// ─── Fuente única de verdad de los 5 productos ──────────────────────────────
+// Cualquier cambio de precio, features o link de pago se hace acá y se
+// propaga al landing (cards) y a las páginas de checkout.
+
+export const plans = {
+  evaluacion: {
+    id: 'evaluacion',
+    name: 'Evaluación Nutricional Personal',
+    tagline: 'Primer paso',
+    price: 80,
+    period: 'pago único',
+    culqiLink: 'https://express.culqi.com/pago/CE455B801E',
+    checkoutSummary: [
+      'Consulta personalizada de 20 a 30 minutos',
+      'Diagnóstico completo de hábitos y composición corporal',
+      'Dirección clara: qué, cómo y cuánto cambiar',
+      'Los S/80 se descuentan del primer mes si decides continuar',
+    ],
+  },
+  basico: {
+    id: 'basico',
+    name: 'Básico',
+    tagline: 'Claridad en una sesión',
+    price: 250,
+    period: 'mes',
+    culqiLink: 'https://express.culqi.com/pago/D1100F369A',
+    freq: 'Única',
+    badge: null,
+    highlight: false,
+    sessions: [
+      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
+      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
+      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
+      { count: null, label: 'Sesión de logros', note: null, included: false },
+    ],
+    continuous: [
+      { label: 'Seguimiento WhatsApp', note: null, included: false },
+      { label: 'Soporte nutricional', note: null, included: false },
+      { label: 'Sesiones grupales', note: null, included: false },
+      { label: 'Comunidad exclusiva', note: null, included: false },
+      { label: 'Atención prioritaria', note: null, included: false },
+    ],
+    programs: null,
+    programsNote: 'Solo disponible mensual',
+    checkoutSummary: [
+      '1 sesión de estrategia (60 min)',
+      'Plan nutricional adaptado a tu rutina',
+      'Pago único, sin permanencia',
+    ],
+  },
+  acompanamiento: {
+    id: 'acompanamiento',
+    name: 'Acompañamiento',
+    tagline: 'Tu primer paso con soporte',
+    price: 320,
+    period: 'mes',
+    culqiLink: 'https://express.culqi.com/pago/DD1BE52C10',
+    freq: 'Mensual',
+    badge: null,
+    highlight: false,
+    sessions: [
+      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
+      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
+      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
+      { count: null, label: 'Sesión de logros', note: null, included: false },
+    ],
+    continuous: [
+      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
+      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
+      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
+      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
+      { label: 'Atención prioritaria', note: null, included: false },
+    ],
+    programs: [
+      { label: '3 meses', total: 'S/900', perMes: 'S/300/mes' },
+    ],
+    programsNote: null,
+    checkoutSummary: [
+      '1 sesión de estrategia + plan personalizado',
+      'Seguimiento por WhatsApp y soporte nutricional',
+      'Sesiones grupales semanales y comunidad privada',
+    ],
+  },
+  constancia: {
+    id: 'constancia',
+    name: 'Constancia',
+    tagline: 'Acompañamiento continuo',
+    price: 440,
+    period: 'mes',
+    culqiLink: 'https://express.culqi.com/pago/D4E12ED399',
+    freq: 'Quincenal',
+    badge: 'Recomendado',
+    highlight: true,
+    sessions: [
+      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
+      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
+      { count: 1, label: 'Sesión de seguimiento', note: 'Revisamos tu progreso', included: true },
+      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
+    ],
+    continuous: [
+      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
+      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
+      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
+      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
+      { label: 'Atención prioritaria', note: null, included: false },
+    ],
+    programs: [
+      { label: '3 meses', total: 'S/1,250', perMes: 'S/417/mes' },
+      { label: '6 meses', total: 'S/2,400', perMes: 'S/400/mes' },
+    ],
+    programsNote: null,
+    checkoutSummary: [
+      'Estrategia + plan + sesión de seguimiento quincenal',
+      'Soporte WhatsApp continuo y sesiones grupales',
+      'Comunidad privada y revisión de progreso',
+    ],
+  },
+  transformacion: {
+    id: 'transformacion',
+    name: 'Transformación',
+    tagline: 'Acompañamiento total, semanal',
+    price: 600,
+    period: 'mes',
+    culqiLink: 'https://express.culqi.com/pago/8F6B63FDF7',
+    freq: 'Semanal',
+    badge: 'Más completo',
+    highlight: false,
+    sessions: [
+      { count: 2, label: 'Sesiones de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
+      { count: 2, label: 'Planes nutricionales', note: 'Adaptado a tu rutina y patrones', included: true },
+      { count: 2, label: 'Sesiones de seguimiento', note: 'Revisamos tu progreso', included: true },
+      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
+    ],
+    continuous: [
+      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
+      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
+      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
+      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
+      { label: 'Atención prioritaria', note: null, included: true, star: true },
+    ],
+    programs: [
+      { label: '3 meses', total: 'S/1,700', perMes: 'S/567/mes' },
+      { label: '6 meses', total: 'S/3,200', perMes: 'S/533/mes' },
+    ],
+    programsNote: null,
+    checkoutSummary: [
+      '2 sesiones de estrategia + planes nutricionales',
+      'Sesiones de seguimiento semanales',
+      'Atención prioritaria y comunidad privada',
+    ],
+  },
+};
+
+// Plans que aparecen como cards en el landing (excluye Evaluación)
+export const monthlyPlans = [
+  plans.basico,
+  plans.acompanamiento,
+  plans.constancia,
+  plans.transformacion,
+];

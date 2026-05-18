@@ -1,0 +1,387 @@
+/* ─── AJL Nutrición · Páginas de checkout ─────────────────────────────────── */
+
+:root {
+  --bg: #F5F5F7;
+  --card: #FFFFFF;
+  --ink: #1D1D1F;
+  --ink-soft: #6E6E73;
+  --line: rgba(0,0,0,0.08);
+  --gold: #C8973A;
+  --gold-soft: #FDF4E3;
+  --gold-dark: #9A6020;
+  --green: #2C8C3B;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+a { color: inherit; text-decoration: none; }
+ul { list-style: none; }
+img { max-width: 100%; display: block; }
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ─── Nav ──────────────────────────────────────────────────────────────────── */
+.checkout-nav {
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.checkout-nav .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.logo {
+  font-family: 'Plus Jakarta Sans';
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.back-link {
+  font-size: 14px;
+  color: var(--ink-soft);
+  transition: color 0.2s;
+}
+
+.back-link:hover { color: var(--gold); }
+
+/* ─── Header / plan card ──────────────────────────────────────────────────── */
+main { padding: 32px 0 64px; }
+
+.plan-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 32px;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 12px;
+}
+
+.eyebrow .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+}
+
+.plan-name {
+  font-size: clamp(28px, 5vw, 38px);
+  margin-bottom: 4px;
+}
+
+.plan-tagline {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 24px;
+}
+
+.plan-price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+
+.price-base {
+  font-family: 'Plus Jakarta Sans';
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.price-per {
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.price-card {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.price-card strong { color: var(--gold); font-weight: 700; }
+
+.plan-includes-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+.plan-includes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-includes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.plan-includes svg { flex-shrink: 0; margin-top: 3px; }
+
+/* ─── Steps ──────────────────────────────────────────────────────────────── */
+.steps-wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 32px;
+}
+
+.steps-title {
+  font-size: 22px;
+  margin-bottom: 24px;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 16px;
+  padding: 24px 0;
+  border-top: 1px solid var(--line);
+}
+
+.step:first-of-type { border-top: none; padding-top: 8px; }
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-family: 'Plus Jakarta Sans';
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.step-body h3 {
+  font-size: 17px;
+  margin-bottom: 6px;
+}
+
+.step-body > p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+
+/* Métodos de pago */
+.pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pay-methods li {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.pay-methods strong {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pay-value {
+  font-family: 'SF Mono', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: rgba(0,0,0,0.04);
+  padding: 3px 8px;
+  border-radius: 6px;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.pay-methods li.pay-card {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.pay-card strong { color: #fff; }
+
+.pay-card small {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  font-weight: 500;
+}
+
+.culqi-btn {
+  margin-left: auto;
+  background: var(--gold);
+  color: var(--ink);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.culqi-btn:hover {
+  background: var(--gold-dark);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* WhatsApp CTA */
+.wa-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--green);
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.wa-cta:hover {
+  background: #1f6b2a;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(44,140,59,0.25);
+}
+
+.wa-cta svg { width: 18px; height: 18px; }
+
+/* Hint */
+.step-hint {
+  background: var(--gold-soft);
+  border-left: 3px solid var(--gold);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-top: 8px;
+}
+
+/* Modalidades */
+.modalities {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.modalities li {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.modalities li strong { font-weight: 700; }
+
+/* Footer */
+.checkout-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding: 24px 16px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.checkout-footer a {
+  color: var(--gold);
+  font-weight: 700;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.checkout-footer a:hover { border-color: var(--gold); }
+
+/* Responsive */
+@media (max-width: 560px) {
+  .plan-card, .steps-wrap { padding: 24px 20px; }
+  .price-base { font-size: 36px; }
+  .step { grid-template-columns: 28px 1fr; gap: 12px; }
+  .step-num { width: 26px; height: 26px; font-size: 12px; }
+  .pay-methods li { flex-direction: column; align-items: flex-start; }
+  .culqi-btn { margin-left: 0; width: 100%; text-align: center; }
+}

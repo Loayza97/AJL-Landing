@@ -709,10 +709,10 @@
       </div>
       <div class="plan-footer">
         <div class="plan-price">
-          <div class="amount">S/250</div>
+          <div class="amount">S/250<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
           <div class="per">/mes</div>
         </div>
-        <a href="#" class="plan-cta" onclick="openWsp('Básico',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+        <a href="/checkout/basico/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
 
@@ -729,10 +729,10 @@
       </div>
       <div class="plan-footer">
         <div class="plan-price">
-          <div class="amount">S/320</div>
+          <div class="amount">S/320<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
           <div class="per">/mes</div>
         </div>
-        <a href="#" class="plan-cta" onclick="openWsp('Acompañamiento',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+        <a href="/checkout/acompanamiento/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
 
@@ -750,11 +750,11 @@
       </div>
       <div class="plan-footer">
         <div class="plan-price">
-          <div class="amount">S/440</div>
+          <div class="amount">S/440<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
           <div class="per">/mes</div>
           <div class="trim">Desde S/1,100/trimestre</div>
         </div>
-        <a href="#" class="plan-cta" onclick="openWsp('Constancia',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+        <a href="/checkout/constancia/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
 
@@ -771,15 +771,19 @@
       </div>
       <div class="plan-footer">
         <div class="plan-price">
-          <div class="amount">S/600</div>
+          <div class="amount">S/600<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
           <div class="per">/mes</div>
           <div class="trim">Desde S/1,500/trimestre</div>
         </div>
-        <a href="#" class="plan-cta" onclick="openWsp('Transformación',event)">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
+        <a href="/checkout/transformacion/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
 
   </div>
+
+  <p style="text-align:center;font-size:13px;color:var(--ink-soft);padding:0 0 8px;font-style:italic;" class="reveal">
+    <span style="color:var(--gold);font-weight:700;">*</span> El pago con tarjeta tiene un recargo del 5%.
+  </p>
 </section>
 
 <!-- ════════════════════════════════════════ QUÉ INCLUYE ═══════════════════════════════ -->
@@ -937,10 +941,11 @@
   <div class="bento" style="padding:0 0 56px;">
     <div class="tile span-4 reveal">
       <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>¿Todavía no te decides?</span>
-      <h3 style="font-size:40px;margin-bottom:12px;margin-top:4px;">Evaluación Nutricional Personal — <span style="color:var(--gold);">S/80</span></h3>
+      <h3 style="font-size:40px;margin-bottom:12px;margin-top:4px;">Evaluación Nutricional Personal — <span style="color:var(--gold);">S/80<sup style="font-size:0.45em;font-weight:600;">*</sup></span></h3>
       <p style="font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:8px;">Un primer paso de bajo riesgo para quienes aún no saben qué plan elegir. 20–30 minutos de diagnóstico real y dirección clara sobre cuál es tu siguiente paso.</p>
-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:24px;"><strong style="color:var(--gold);">Los S/80 se descuentan del primer mes</strong> si luego contratas un plan mensual.</p>
-      <a href="#" class="btn btn-primary btn-sm" onclick="openWsp('Evaluación S/80',event)">Agendar Evaluación por WhatsApp →</a>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:8px;"><strong style="color:var(--gold);">Los S/80 se descuentan del primer mes</strong> si luego contratas un plan mensual.</p>
+      <p style="font-size:12px;color:var(--ink-soft);font-style:italic;margin-bottom:24px;"><span style="color:var(--gold);font-weight:700;">*</span> El pago con tarjeta tiene un recargo del 5%.</p>
+      <a href="/checkout/evaluacion/" class="btn btn-primary btn-sm">Agendar Evaluación →</a>
     </div>
     <div class="tile eval-tile span-2 reveal" style="animation-delay:0.1s">
       <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>Incluye</span>

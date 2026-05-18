@@ -1,0 +1,362 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { plans } from '../../data/plans.js';
+import { pago, contacto } from '../../data/contacto.js';
+
+export function getStaticPaths() {
+  return Object.keys(plans).map(slug => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const plan = plans[slug];
+
+const waMsg = encodeURIComponent(
+  `Hola, te envío el comprobante del plan ${plan.name} (S/${plan.price}).`
+);
+const waLink = `https://wa.me/${contacto.whatsappNumber}?text=${waMsg}`;
+---
+
+<Layout>
+  <main class="checkout">
+    <div class="container">
+      <a href="/#section-packages" class="checkout-back">← Volver a planes</a>
+
+      <header class="checkout-header">
+        <p class="label">Confirmá tu compra</p>
+        <h1 class="checkout-title">{plan.name}</h1>
+        <p class="checkout-tagline">{plan.tagline}</p>
+
+        <div class="checkout-price">
+          <span class="checkout-price__amount">S/{plan.price}</span>
+          <span class="checkout-price__period">/ {plan.period}</span>
+        </div>
+
+        <ul class="checkout-summary">
+          {plan.checkoutSummary.map(item => (
+            <li><span class="check">✓</span> {item}</li>
+          ))}
+        </ul>
+      </header>
+
+      <section class="steps">
+        <h2 class="steps-title">Cómo completar tu pago</h2>
+
+        <!-- Paso 1 -->
+        <article class="step">
+          <span class="step-num">1</span>
+          <div class="step-body">
+            <h3>Realizá tu pago</h3>
+            <p>Elegí el medio que prefieras:</p>
+            <ul class="pay-methods">
+              <li>
+                <strong>Yape:</strong>
+                <span class="pay-value">{pago.yape}</span>
+              </li>
+              <li>
+                <strong>Transferencia BCP (cuenta corriente):</strong>
+                <span class="pay-value">{pago.bcpCuentaCorriente}</span>
+              </li>
+              <li>
+                <strong>Transferencia interbancaria (CCI):</strong>
+                <span class="pay-value">{pago.bcpCCI}</span>
+              </li>
+              <li class="pay-card">
+                <strong>Pago con tarjeta:</strong>
+                <a href={plan.culqiLink} target="_blank" rel="noopener noreferrer" class="culqi-link">
+                  Pagar S/{plan.price} con tarjeta →
+                </a>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Paso 2 -->
+        <article class="step">
+          <span class="step-num">2</span>
+          <div class="step-body">
+            <h3>Enviá tu comprobante por WhatsApp</h3>
+            <p>Sólo necesitamos una captura de pantalla de tu pago.</p>
+            <a href={waLink} class="btn-primary wa-cta" target="_blank" rel="noopener noreferrer">
+              Enviar comprobante por WhatsApp →
+            </a>
+          </div>
+        </article>
+
+        <!-- Paso 3 -->
+        <article class="step">
+          <span class="step-num">3</span>
+          <div class="step-body">
+            <h3>Recibí tu link de inscripción</h3>
+            <p>
+              Un asesor te contacta para completar tu registro y agendar tu primera sesión.
+            </p>
+            <p class="step-hint">🕘 Horario de atención: {contacto.horario}</p>
+          </div>
+        </article>
+
+        <!-- Paso 4 -->
+        <article class="step">
+          <span class="step-num">4</span>
+          <div class="step-body">
+            <h3>¡Listo para tu primera sesión!</h3>
+            <p>Elegí la modalidad que prefieras:</p>
+            <ul class="modalities">
+              <li>
+                <strong>🏢 Presencial:</strong> {contacto.direccion}
+              </li>
+              <li>
+                <strong>💻 Virtual:</strong> desde donde estés
+              </li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <footer class="checkout-footer">
+        <p>¿Tenés dudas antes de pagar?</p>
+        <a href={waLink} target="_blank" rel="noopener noreferrer" class="checkout-help">
+          Hablá con un asesor por WhatsApp →
+        </a>
+      </footer>
+    </div>
+  </main>
+</Layout>
+
+<style>
+.checkout {
+  background: var(--gray-light);
+  min-height: 100vh;
+  padding-block: clamp(2rem, 5vw, 4rem);
+}
+
+.checkout-back {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--gray-mid);
+  margin-bottom: 2rem;
+  transition: color var(--transition);
+}
+
+.checkout-back:hover { color: var(--gold); }
+
+/* Header */
+.checkout-header {
+  background: var(--white);
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e5e5e5;
+}
+
+.checkout-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-block: 0.5rem 0.25rem;
+}
+
+.checkout-tagline {
+  color: var(--gray-mid);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.checkout-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  padding-block: 1rem;
+  border-block: 1px solid #eeeeee;
+}
+
+.checkout-price__amount {
+  font-size: clamp(2.5rem, 5vw, 3.25rem);
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: -1.5px;
+  line-height: 1;
+}
+
+.checkout-price__period {
+  font-size: 0.95rem;
+  color: var(--gray-mid);
+}
+
+.checkout-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.checkout-summary li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.5;
+}
+
+.checkout-summary .check {
+  color: var(--gold);
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* Steps */
+.steps {
+  background: var(--white);
+  padding: clamp(1.75rem, 4vw, 2.5rem);
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+}
+
+.steps-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 1rem;
+  padding-block: 1.25rem;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.step:last-of-type { border-bottom: none; padding-bottom: 0; }
+.step:first-of-type { padding-top: 0; }
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--black);
+  color: var(--white);
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.step-body h3 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.2px;
+}
+
+.step-body p {
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.55;
+  margin-bottom: 0.75rem;
+}
+
+.step-hint {
+  background: var(--gold-pale);
+  border-left: 3px solid var(--gold);
+  padding: 0.6rem 0.9rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+/* Métodos de pago */
+.pay-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+}
+
+.pay-methods li {
+  background: var(--gray-light);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+
+.pay-methods strong { color: var(--black); font-weight: 700; }
+
+.pay-value {
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--gray-dark);
+  font-size: 0.92rem;
+  letter-spacing: 0.3px;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.pay-card { background: var(--black); }
+.pay-card strong { color: var(--white); }
+
+.culqi-link {
+  display: inline-block;
+  background: var(--gold);
+  color: var(--black);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  transition: background var(--transition);
+}
+
+.culqi-link:hover { background: var(--gold-dark); }
+
+/* WhatsApp CTA paso 2 */
+.wa-cta {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+
+/* Modalidades paso 4 */
+.modalities {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modalities li {
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.5;
+}
+
+/* Footer */
+.checkout-footer {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1.5rem;
+}
+
+.checkout-footer p {
+  color: var(--gray-mid);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkout-help {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition: color var(--transition);
+}
+
+.checkout-help:hover { color: var(--gold-dark); }
+
+/* Responsive */
+@media (max-width: 600px) {
+  .step { grid-template-columns: 36px 1fr; gap: 0.75rem; }
+  .step-num { width: 28px; height: 28px; font-size: 0.85rem; }
+}
+</style>
