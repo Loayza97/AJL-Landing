@@ -5,8 +5,8 @@
 ### 1.1 Document title and version
 
 - PRD: AJL Nutrición Landing Page
-- Version: 1.2
-- Actualizado: 2026-05-18
+- Version: 1.3
+- Actualizado: 2026-05-19
 
 ### 1.2 Product summary
 
@@ -92,11 +92,20 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
   - CTA al final hace scroll a la sección de planes.
 
 - **Sección de planes** (Priority: High — producto principal)
-  - 4 planes con nombre, tagline, precio, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3 y 6 meses donde aplique).
-  - Planes: Básico (S/250), Acompañamiento (S/320), Constancia (S/440 — destacado), Transformación (S/600).
+  - 4 planes con nombre, tagline, precio, y layout comparativo en 3 secciones uniformes (`Sesiones individuales`, `Acompañamiento continuo`, `Programas`). Las 4 cards muestran las mismas categorías para que el usuario pueda comparar de un golpe de vista.
+  - Planes: Básico (S/250), Acompañamiento (S/320), Constancia (S/440 — destacado, badge "Más elegido"), Transformación (S/600 — badge "Más completo").
+  - Cada feature está marcada con número (`1`, `2`) o check (`✓`) si está incluida, o con dash gris (`—`) si no. La estrella (`★`) reservada para Atención prioritaria, exclusiva de Transformación.
+  - Las features no incluidas se muestran al 28% de opacidad con tipografía más liviana — visibles para comparar pero sin competir con lo incluido.
   - Cada precio se muestra con asterisco visible (`S/250*`) y un footnote al pie del grid: "*El pago con tarjeta tiene un recargo del 5%".
-  - Cada plan tiene su propio CTA "Quiero este" que dirige a la página de checkout específica del plan (`/checkout/basico/`, `/checkout/acompanamiento/`, `/checkout/constancia/`, `/checkout/transformacion/`).
+  - Pill de frecuencia visible al lado del label "Sesiones individuales": `Única`, `Mensual`, `Quincenal`, `Semanal` según el plan.
+  - Sección "Programas" en cada card muestra el ahorro al pagar 3 o 6 meses anticipados: Acompañamiento 3m S/900, Constancia 3m S/1,250 / 6m S/2,400, Transformación 3m S/1,700 / 6m S/3,200. Básico no aplica (es pago único).
+  - Cada plan tiene su propio CTA "Quiero este" que dirige a la página de checkout específica del plan.
   - Nota al final de la sección apunta hacia la Evaluación S/80 como opción para indecisos.
+  - **Diferencias reales por plan** (fuente de verdad — alineada con los productos comerciales):
+    - **Básico (S/250)** — Solo 1 sesión de estrategia + plan personalizado. Sin seguimiento, sin acompañamiento continuo, sin sesiones grupales. Es el "primer paso de bajo riesgo" sin compromiso recurrente.
+    - **Acompañamiento (S/320/mes)** — 1 sesión + plan, igual que Básico, pero suma acompañamiento continuo: WhatsApp, soporte L-V 9am-6pm / S 9am-1pm, sesiones grupales 4/mes, comunidad privada.
+    - **Constancia (S/440/mes)** — Suma sobre Acompañamiento: 1 sesión de seguimiento quincenal y sesión de logros (primer mes). Mismo acompañamiento continuo.
+    - **Transformación (S/600/mes)** — 2 sesiones de estrategia + 2 sesiones de seguimiento semanal. Único plan con Atención prioritaria.
 
 - **Sección "¿Qué incluye cada plan?"** (Priority: High)
   - Detalle expandido de cada componente de los planes en tarjetas individuales.
@@ -115,6 +124,7 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 - **Páginas de checkout** (Priority: High — nuevo en v1.2)
   - 5 páginas estáticas, una por producto: `/checkout/{evaluacion,basico,acompanamiento,constancia,transformacion}/`.
   - Diseño consistente con el landing (Plus Jakarta Sans, Inter, paleta gold/ink/bg compartida) servido por una hoja de estilos común en `/checkout/checkout.css`.
+  - **Lista "Lo que incluye"** sincronizada con las features reales por plan (actualizada en v1.3 para reflejar la verdad comercial — incluye programas 3m/6m donde aplique y aclara explícitamente lo que NO incluye en Básico).
   - Cada página muestra:
     1. **Nav superior**: logo AJL + link "Volver a planes".
     2. **Card del plan**: nombre, tagline, precio base, precio con tarjeta (incluye 5% recargo), lista de "lo que incluye".
@@ -280,26 +290,26 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 - **Testimonios pendientes**: la sección existe con placeholders. Requiere selección de pacientes reales.
 - **Foto del hero**: pendiente. Idealmente foto real de Alejandro o consulta (no stock).
 - **Política de privacidad**: texto legal pendiente, mayor urgencia ahora que se procesa pago.
-- **Imagen Open Graph pendiente**: `/og-image.jpg` aún no existe; el meta tag apunta a un archivo inexistente. Sin imagen, las previews al compartir el link en redes salen sin imagen de marca.
 - **Asimetría visible de precio**: el cliente que paga con tarjeta paga 5% más que el que paga con Yape o transferencia. Como ambos terminan hablando con el asesor por WhatsApp, podrían comparar precios y la diferencia salir a la conversación. La mitigación actual es comunicar el recargo desde el sitio con el asterisco y la nota. Vigilar si genera fricción real con clientes en los primeros 60 días.
 - **Conversión de pago no medida automáticamente**: hoy se mide `begin_checkout` pero no la conversión final (pago confirmado). Requiere validación manual con el asesor. Mejora futura: webhook de Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel.
 - **Doble código fuente (Astro vs `index.html` raíz)**: ya descrito en 8.1. Hay que decidir si se migra el deploy a Astro o se elimina el código Astro.
+- **OG image actual es funcional pero no óptima**: la imagen `og-image.jpg` activa (1200×630, generada en v1.2) es una foto portrait de Alejandro con blurred fill en los laterales. Sirve para que los previews ya no salgan vacíos, pero idealmente debería ser una imagen pensada nativamente como banner horizontal con logo y tagline. Reemplazable cuando haya un asset mejor.
 
 ## 9. Milestones & sequencing
 
-### 9.1 Estado actual (v1.2)
+### 9.1 Estado actual (v1.3)
 
-Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkout implementadas y servidas como rutas estáticas. GA4 y Meta Pixel activos. UTMs aplicadas en bios y documentadas en `docs/utms.md`. Pago directo vía Yape / BCP / CCI / Culqi habilitado para los 4 planes mensuales y la Evaluación.
+Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkout implementadas y servidas como rutas estáticas. GA4 y Meta Pixel activos. UTMs aplicadas en bios y documentadas en `docs/utms.md`. Pago directo vía Yape / BCP / CCI / Culqi habilitado para los 4 planes mensuales y la Evaluación. **Cards del landing rediseñadas en v1.3** con formato comparativo (las 4 cards muestran las mismas categorías de features con ✓ o gris, facilitando la comparación visual). **OG image activa** (`og-image.jpg`) con meta tags completos para previews al compartir el link.
 
 ### 9.2 Próximos pasos
 
 1. Verificar que los 5 links de Culqi tienen el monto exacto que muestran las páginas de checkout (S/84, S/262.50, S/336, S/462, S/630). Si difieren, ajustar en código o en Culqi.
-2. Crear y subir `og-image.jpg` real a la raíz pública del sitio para que las previews de redes funcionen.
-3. Reemplazar testimonios placeholder con contenido real.
-4. Agregar foto real al hero.
-5. Completar política de privacidad (mayor urgencia ahora que se procesa pago).
-6. Implementar webhook Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel, para medir conversión final automáticamente.
-7. Decidir el destino del código Astro paralelo (`src/`): migrar deploy o eliminar.
+2. Reemplazar testimonios placeholder con contenido real.
+3. Agregar foto real al hero.
+4. Completar política de privacidad (mayor urgencia ahora que se procesa pago).
+5. Implementar webhook Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel, para medir conversión final automáticamente.
+6. Decidir el destino del código Astro paralelo (`src/`): migrar deploy o eliminar.
+7. Crear OG image dedicada (banner horizontal con logo + tagline), reemplazando la actual generada a partir de foto portrait.
 8. Iniciar ventana de medición de 60 días con el sitio completo en producción.
 
 ## 10. User stories
@@ -391,10 +401,12 @@ Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkou
 ### 10.10 Ver los planes de forma informativa y elegir uno
 
 - **ID**: US-010
-- **Description**: Como visitante, quiero ver los 4 planes disponibles con sus precios, frecuencias y diferencias, para elegir el que encaja con mi caso antes de iniciar el pago.
+- **Description**: Como visitante, quiero ver los 4 planes disponibles con sus precios, frecuencias y diferencias en un formato comparativo, para elegir el que encaja con mi caso antes de iniciar el pago.
 - **Acceptance criteria**:
   - Los 4 planes están presentes: Básico (S/250), Acompañamiento (S/320), Constancia (S/440), Transformación (S/600).
-  - Cada plan muestra nombre, tagline, precio con asterisco visible, frecuencia de sesiones, features incluidas y no incluidas, y pricing de programas (3/6 meses donde aplique).
+  - **Las 4 cards usan el mismo layout comparativo**: tres secciones idénticas en cada card (`Sesiones individuales`, `Acompañamiento continuo`, `Programas`), mostrando las mismas filas de features para facilitar comparación lado a lado.
+  - Features incluidas se marcan con número (cuando aplica cantidad) o check `✓`. Features no incluidas con dash gris (`—`) al 28% de opacidad. Estrella `★` para Atención prioritaria, exclusiva de Transformación.
+  - Cada plan muestra nombre, tagline, precio con asterisco visible, pill de frecuencia (`Única` / `Mensual` / `Quincenal` / `Semanal`), descripciones cortas de cada feature incluida, y pricing de programas (3/6 meses donde aplique).
   - El footnote del grid aclara: "*El pago con tarjeta tiene un recargo del 5%".
   - Cada plan tiene su propio CTA "Quiero este" que dirige a `/checkout/[slug]/`.
   - Al cargar la página de checkout se dispara `begin_checkout` (GA4) e `InitiateCheckout` (Meta Pixel) con el `item_id` y `value` del plan.
@@ -454,9 +466,10 @@ Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkou
 - **ID**: US-015
 - **Description**: Como visitante que quiere compartir la landing, quiero que el preview en redes se vea profesional.
 - **Acceptance criteria**:
-  - Open Graph configurado: `og:title`, `og:description`, `og:image`.
-  - Preview renderiza correctamente en WhatsApp, Facebook, Instagram DM y X/Twitter.
-  - Imagen OG pendiente: requiere asset real en `/public/og-image.jpg`.
+  - Open Graph configurado: `og:type`, `og:site_name`, `og:title`, `og:description`, `og:image`, `og:image:width`, `og:image:height`, `og:image:alt`, `og:url`. Twitter Card configurado con `summary_large_image`.
+  - `og-image.jpg` (1200×630, 133 KB, JPEG calidad 95) sirvido desde la raíz del sitio.
+  - Preview renderiza correctamente en WhatsApp, Facebook, Instagram DM, LinkedIn y X/Twitter.
+  - **Mejora futura**: la imagen actual fue generada a partir de una foto portrait con blurred fill lateral. Reemplazar por un banner horizontal nativo con logo + tagline cuando haya un asset diseñado para ese formato.
 
 ### 10.17 Cargar la landing en conexiones móviles lentas
 
