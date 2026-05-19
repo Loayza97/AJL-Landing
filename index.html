@@ -262,6 +262,46 @@
     padding: 4px 10px; border-radius: 999px;
   }
 
+  /* ── PLAN CARD: detailed feature list ── */
+  .plan-price-top { display: flex; align-items: baseline; gap: 6px; margin: 8px 0 4px; }
+  .plan-price-top .amount { font-family: 'Plus Jakarta Sans'; font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .plan-price-top .per { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+  .tile.featured .plan-price-top .amount { color: var(--gold); }
+
+  .plan-section-label {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 18px 0 10px; padding-top: 12px; border-top: 1px solid var(--line);
+  }
+  .tile.featured .plan-section-label { border-top-color: rgba(200,151,58,0.2); }
+
+  .plan-freq-pill {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--gold); background: rgba(200,151,58,0.12);
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .tile.featured .plan-freq-pill { background: rgba(200,151,58,0.22); }
+
+  .plan-feature-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
+  .plan-feature-row { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; }
+  .plan-feature-row .pf-mark { font-family: 'Plus Jakarta Sans'; font-weight: 800; color: var(--gold); font-size: 14px; line-height: 1.25; text-align: center; }
+  .plan-feature-row .pf-name { font-weight: 600; font-size: 13px; color: var(--ink); line-height: 1.3; }
+  .plan-feature-row .pf-desc { font-size: 11px; color: var(--ink-soft); line-height: 1.4; margin-top: 2px; }
+  .plan-feature-row.excluded { opacity: 0.28; }
+  .plan-feature-row.excluded .pf-mark { color: var(--ink-soft); font-weight: 500; }
+  .plan-feature-row.excluded .pf-name { font-weight: 500; font-size: 12px; }
+  .plan-feature-row.star .pf-mark { color: var(--gold); font-size: 13px; }
+
+  .plan-program-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 11px; padding: 2px 0; gap: 6px; }
+  .plan-program-row .pp-label { color: var(--ink-soft); flex-shrink: 0; }
+  .plan-program-row .pp-prices { font-family: 'Plus Jakarta Sans'; font-weight: 700; color: var(--gold); text-align: right; font-size: 12px; }
+  .plan-program-row .pp-prices small { font-size: 10px; color: var(--ink-soft); font-weight: 500; margin-left: 4px; }
+  .plan-programs-note { font-size: 12px; color: var(--ink-soft); font-style: italic; padding: 4px 0; }
+
+  .plan-cta-row { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; }
+  .tile.featured .plan-cta-row { border-top-color: rgba(200,151,58,0.2); }
+
   /* ── TESTIMONIALS ── */
   /* ── TESTIMONIAL SLIDER ── */
   .testimonial-slider-wrap { overflow: hidden; }
@@ -713,16 +753,34 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       </div>
       <h3>Básico</h3>
-      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Para empezar</p>
-      <p class="plan-who">Estructura sólida y autonomía progresiva. Ideal si quieres sentar bases sin un compromiso de revisión intenso.</p>
-      <div class="plan-features">
-        <span>1 sesión/mes</span><span>Plan personalizado</span><span>Soporte WhatsApp</span>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 8px;">Claridad en una sesión</p>
+
+      <div class="plan-price-top">
+        <span class="amount">S/250<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></span>
+        <span class="per">/mes</span>
       </div>
-      <div class="plan-footer">
-        <div class="plan-price">
-          <div class="amount">S/250<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
-          <div class="per">/mes</div>
-        </div>
+
+      <p class="plan-section-label">Sesiones individuales <span class="plan-freq-pill">Única</span></p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Sesión de estrategia</div><div class="pf-desc">Analizamos tu rutina · 60 min</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Plan nutricional</div><div class="pf-desc">Adaptado a tu rutina y patrones</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Sesión de seguimiento</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Sesión de logros</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Acompañamiento continuo</p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Seguimiento WhatsApp</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Soporte nutricional</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Sesiones grupales</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Comunidad exclusiva</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Atención prioritaria</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Programas</p>
+      <p class="plan-programs-note">Solo disponible mensual</p>
+
+      <div class="plan-cta-row">
         <a href="/checkout/basico/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
@@ -733,16 +791,34 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </div>
       <h3>Acompañamiento</h3>
-      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Más guía</p>
-      <p class="plan-who">Para quienes necesitan revisión de progreso más frecuente y feedback cercano entre sesiones.</p>
-      <div class="plan-features">
-        <span>2 sesiones/mes</span><span>Plan personalizado</span><span>Soporte prioritario</span><span>Revisión quincenal</span>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 8px;">Tu primer paso con soporte</p>
+
+      <div class="plan-price-top">
+        <span class="amount">S/320<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></span>
+        <span class="per">/mes</span>
       </div>
-      <div class="plan-footer">
-        <div class="plan-price">
-          <div class="amount">S/320<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
-          <div class="per">/mes</div>
-        </div>
+
+      <p class="plan-section-label">Sesiones individuales <span class="plan-freq-pill">Mensual</span></p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Sesión de estrategia</div><div class="pf-desc">Analizamos tu rutina · 60 min</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Plan nutricional</div><div class="pf-desc">Adaptado a tu rutina y patrones</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Sesión de seguimiento</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Sesión de logros</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Acompañamiento continuo</p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Seguimiento WhatsApp</div><div class="pf-desc">Acompañamiento continuo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Soporte nutricional</div><div class="pf-desc">L-V 9am-6pm, S 9am-1pm</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Sesiones grupales</div><div class="pf-desc">4/mes, espacio educativo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Comunidad exclusiva</div><div class="pf-desc">Grupo privado</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Atención prioritaria</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Programas</p>
+      <div class="plan-program-row"><span class="pp-label">3 meses</span><span class="pp-prices">S/900 <small>S/300/mes</small></span></div>
+
+      <div class="plan-cta-row">
         <a href="/checkout/acompanamiento/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
@@ -754,38 +830,75 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       </div>
       <h3>Constancia</h3>
-      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">El balance</p>
-      <p class="plan-who">Revisiones quincenales sin compromiso semanal intenso. El punto ideal entre resultados y flexibilidad.</p>
-      <div class="plan-features">
-        <span>Revisiones quinc.</span><span>Plan adaptativo</span><span>Soporte 24/7</span><span>Comunidad</span><span>Ajuste real</span>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 8px;">Acompañamiento continuo</p>
+
+      <div class="plan-price-top">
+        <span class="amount">S/440<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></span>
+        <span class="per">/mes</span>
       </div>
-      <div class="plan-footer">
-        <div class="plan-price">
-          <div class="amount">S/440<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
-          <div class="per">/mes</div>
-          <div class="trim">Desde S/1,100/trimestre</div>
-        </div>
+
+      <p class="plan-section-label">Sesiones individuales <span class="plan-freq-pill">Quincenal</span></p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Sesión de estrategia</div><div class="pf-desc">Analizamos tu rutina · 60 min</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Plan nutricional</div><div class="pf-desc">Adaptado a tu rutina y patrones</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">1</span><div><div class="pf-name">Sesión de seguimiento</div><div class="pf-desc">Revisamos tu progreso</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Sesión de logros</div><div class="pf-desc">Solo en tu primer mes con nosotros</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Acompañamiento continuo</p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Seguimiento WhatsApp</div><div class="pf-desc">Acompañamiento continuo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Soporte nutricional</div><div class="pf-desc">L-V 9am-6pm, S 9am-1pm</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Sesiones grupales</div><div class="pf-desc">4/mes, espacio educativo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Comunidad exclusiva</div><div class="pf-desc">Grupo privado</div></div></li>
+        <li class="plan-feature-row excluded"><span class="pf-mark">—</span><div><div class="pf-name">Atención prioritaria</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Programas</p>
+      <div class="plan-program-row"><span class="pp-label">3 meses</span><span class="pp-prices">S/1,250 <small>S/417/mes</small></span></div>
+      <div class="plan-program-row"><span class="pp-label">6 meses</span><span class="pp-prices">S/2,400 <small>S/400/mes</small></span></div>
+
+      <div class="plan-cta-row">
         <a href="/checkout/constancia/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
 
     <!-- TRANSFORMACIÓN -->
     <div class="tile plan-tile span-2 reveal" style="animation-delay:0.26s">
+      <div class="featured-badge" style="background:var(--ink);">Más completo</div>
       <div class="plan-icon ico-rose">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       </div>
       <h3>Transformación</h3>
-      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 12px;">Máximo nivel</p>
-      <p class="plan-who">Seguimiento semanal intensivo para quienes quieren transformación profunda y acelerada sin dejar su vida.</p>
-      <div class="plan-features">
-        <span>Revisiones semanales</span><span>Composición corp.</span><span>Acceso prioritario</span><span>Estrategia 6 meses</span>
+      <p style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-soft);margin:4px 0 8px;">Acompañamiento total, semanal</p>
+
+      <div class="plan-price-top">
+        <span class="amount">S/600<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></span>
+        <span class="per">/mes</span>
       </div>
-      <div class="plan-footer">
-        <div class="plan-price">
-          <div class="amount">S/600<sup style="font-size:0.5em;font-weight:600;color:var(--gold);">*</sup></div>
-          <div class="per">/mes</div>
-          <div class="trim">Desde S/1,500/trimestre</div>
-        </div>
+
+      <p class="plan-section-label">Sesiones individuales <span class="plan-freq-pill">Semanal</span></p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">2</span><div><div class="pf-name">Sesión de estrategia</div><div class="pf-desc">Analizamos tu rutina · 60 min</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Plan nutricional</div><div class="pf-desc">Adaptado a tu rutina y patrones</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">2</span><div><div class="pf-name">Sesión de seguimiento</div><div class="pf-desc">Revisamos tu progreso</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Sesión de logros</div><div class="pf-desc">Solo en tu primer mes con nosotros</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Acompañamiento continuo</p>
+      <ul class="plan-feature-list">
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Seguimiento WhatsApp</div><div class="pf-desc">Acompañamiento continuo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Soporte nutricional</div><div class="pf-desc">L-V 9am-6pm, S 9am-1pm</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Sesiones grupales</div><div class="pf-desc">4/mes, espacio educativo</div></div></li>
+        <li class="plan-feature-row"><span class="pf-mark">✓</span><div><div class="pf-name">Comunidad exclusiva</div><div class="pf-desc">Grupo privado</div></div></li>
+        <li class="plan-feature-row star"><span class="pf-mark">★</span><div><div class="pf-name">Atención prioritaria</div></div></li>
+      </ul>
+
+      <p class="plan-section-label">Programas</p>
+      <div class="plan-program-row"><span class="pp-label">3 meses</span><span class="pp-prices">S/1,700 <small>S/567/mes</small></span></div>
+      <div class="plan-program-row"><span class="pp-label">6 meses</span><span class="pp-prices">S/3,200 <small>S/533/mes</small></span></div>
+
+      <div class="plan-cta-row">
         <a href="/checkout/transformacion/" class="plan-cta">Quiero este <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></a>
       </div>
     </div>
