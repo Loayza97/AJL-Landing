@@ -163,8 +163,18 @@
   }
   .tile.hero-tile:hover { border-color: rgba(245,180,80,0.4); }
   .hero-tile .eyebrow { color: rgba(255,255,255,0.75); }
-  .hero-tile h3 { font-size: 32px; line-height: 1.08; margin-bottom: 12px; color: #fff; }
-  .hero-tile p { font-size: 14px; opacity: 0.88; margin: 0; color: #fff; line-height: 1.6; }
+  .hero-tile h3 { font-size: 32px; line-height: 1.08; margin-bottom: 12px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+  .hero-tile p { font-size: 15px; font-weight: 500; opacity: 1; margin: 0; color: #fff; line-height: 1.6; text-shadow: 0 1px 2px rgba(0,0,0,0.18); }
+  .hero-tile .modes {
+    display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;
+  }
+  .hero-tile .mode-pill {
+    background: rgba(255,255,255,0.22); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff; font-size: 15px; font-weight: 600; padding: 11px 20px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 9px; line-height: 1.2;
+  }
+  .hero-tile .mode-pill .mode-ico { font-size: 18px; line-height: 1; }
   .hero-tile .arrow {
     position: absolute; bottom: 28px; right: 28px;
     width: 44px; height: 44px; border-radius: 50%;
@@ -743,7 +753,11 @@
     <div class="tile hero-tile span-2 row-2 reveal">
       <span class="eyebrow"><span class="dot" style="background:#fff"></span>4 planes</span>
       <h3>El plan correcto para cada momento de tu vida.</h3>
-      <p>Básico · Acompañamiento · Constancia · Transformación. Desde S/250 hasta S/600/mes. Sin permanencias.</p>
+      <p>Básico · Acompañamiento · Constancia · Transformación.<br>Desde <strong>S/250</strong> hasta <strong>S/600/mes</strong>. Sin permanencias.</p>
+      <div class="modes">
+        <span class="mode-pill"><span class="mode-ico">🏢</span> Presencial · Lince, Lima</span>
+        <span class="mode-pill"><span class="mode-ico">💻</span> Virtual · desde donde estés</span>
+      </div>
       <div class="arrow"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
     </div>
 
