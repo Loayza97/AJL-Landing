@@ -175,13 +175,6 @@
     display: inline-flex; align-items: center; gap: 9px; line-height: 1.2;
   }
   .hero-tile .mode-pill .mode-ico { font-size: 18px; line-height: 1; }
-  .hero-tile .arrow {
-    position: absolute; bottom: 28px; right: 28px;
-    width: 44px; height: 44px; border-radius: 50%;
-    background: rgba(255,255,255,0.2); display: grid; place-items: center;
-    transition: transform 0.3s, background 0.3s;
-  }
-  .tile.hero-tile:hover .arrow { transform: translateX(5px); background: rgba(255,255,255,0.3); }
 
   /* ── PROBLEM TABLE ── */
   .problem-table { display: flex; flex-direction: column; gap: 0; margin-top: 8px; }
@@ -758,7 +751,6 @@
         <span class="mode-pill"><span class="mode-ico">🏢</span> Presencial · Lince, Lima</span>
         <span class="mode-pill"><span class="mode-ico">💻</span> Virtual · desde donde estés</span>
       </div>
-      <div class="arrow"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg></div>
     </div>
 
     <!-- BÁSICO -->
