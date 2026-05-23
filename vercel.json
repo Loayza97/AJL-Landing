@@ -13,6 +13,5 @@
         { "key": "Cache-Control", "value": "no-store" }
       ]
     }
-  ],
-  "ignoreCommand": "exit 0"
+  ]
 }
