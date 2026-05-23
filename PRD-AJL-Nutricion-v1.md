@@ -5,8 +5,8 @@
 ### 1.1 Document title and version
 
 - PRD: AJL Nutrición Landing Page
-- Version: 1.3
-- Actualizado: 2026-05-19
+- Version: 1.4
+- Actualizado: 2026-05-22
 
 ### 1.2 Product summary
 
@@ -22,6 +22,8 @@ La landing complementa el filtro upstream (reels, stories, ads) con un filtro pa
 
 La hipótesis estratégica que esta versión busca validar es que precalificar al lead antes y durante la landing, sin formularios interactivos, mejora la calidad del lead que llega al asesor sin sacrificar volumen significativo. El éxito se medirá tras 60 días de tráfico estable post-lanzamiento.
 
+**Nuevo en v1.4 (2026-05-22):** la landing ahora corre en **Vercel** (migrada desde GitHub Pages) para soportar funciones de servidor. Se implementó el **Libro de Reclamaciones digital** exigido por la Ley N° 29571 (Código de Protección y Defensa del Consumidor), con form en `/reclamaciones/`, handler serverless en `/api/reclamaciones.mjs`, almacenamiento en Supabase y notificaciones por email vía Resend. El correlativo único `AJL-YYYY-NNNN` se asigna por SQL function en Supabase.
+
 ## 2. Goals
 
 ### 2.1 Business goals
@@ -32,6 +34,7 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 - Generar visibilidad de la fuente del lead y del plan de interés mediante UTMs y mensaje pre-llenado.
 - Apoyar la meta de pasar de aproximadamente S/35,000/mes a S/60,000–70,000/mes en el año 1.
 - Reducir tiempo del asesor con leads no calificados, aumentando capacidad efectiva sin contratar más asesores.
+- Cumplir con la obligación legal de tener un Libro de Reclamaciones digital accesible desde el sitio (Ley N° 29571 / DS N° 011-2011-PCM, INDECOPI).
 
 ### 2.2 User goals
 
@@ -172,6 +175,19 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 
 - **Pie de página** (Priority: Low)
   - Datos de contacto, CTA a WhatsApp, aviso legal mínimo, link a política de privacidad.
+  - **Link al Libro de Reclamaciones** (badge + texto legal mencionando Ley 29571).
+
+- **Libro de Reclamaciones digital** (Priority: High — nuevo en v1.4, compliance legal)
+  - URL pública: `/reclamaciones/`. Form estático con validación cliente + handler serverless.
+  - Cumple campos requeridos por INDECOPI (DS N° 011-2011-PCM): identificación del consumidor (nombre, DNI/CE, domicilio, email, teléfono, edad, apoderado si menor), identificación del bien o servicio, tipo de reclamación (reclamo vs queja), detalle, pedido, correlativo único, plazo legal de respuesta de 30 días.
+  - **Backend (`/api/reclamaciones.mjs`)**: Vercel Function en Node.js (ES Module). Valida payload, genera correlativo `AJL-YYYY-NNNN` vía SQL function en Supabase, inserta la fila y dispara 2 emails en paralelo vía Resend.
+  - **Almacenamiento**: tabla `reclamos` en Supabase Postgres (proyecto compartido "Alejandro el máximo Techie", región São Paulo). RLS activado — solo `service_role` puede leer/escribir desde el handler. Vista `reclamos_kpis` lista para dashboard futuro con conteos por estado (`pendiente`, `en_proceso`, `respondido`) y vencidos (>30 días).
+  - **Emails (Resend, dominio `ajlnutricion.com` verificado con DKIM + SPF + MX en `send.ajlnutricion.com`)**:
+    - Al consumidor (`FROM=reclamos@ajlnutricion.com`): confirmación de recepción con correlativo destacado.
+    - Al asesor (`NOTIFICATION_EMAIL=ajlnutricion@gmail.com`): notificación con todos los datos del reclamo y fecha de vencimiento del plazo de 30 días.
+  - **Página de gracias** (`/reclamaciones/gracias/`): muestra correlativo desde `sessionStorage`, lista los próximos pasos para el cliente.
+  - **Mención del libro físico**: el aviso legal del form indica que también existe libro físico en el local de Lince (Av. Almirante Manuel Villavicencio 1461).
+  - **Gestión interna**: en v1.4 se hace manualmente desde Supabase Studio (actualizar `estado`, `respuesta`, `respuesta_fecha`). Panel admin propio queda como mejora futura.
 
 ## 5. User experience
 
@@ -265,24 +281,30 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 - **Meta Pixel**: **Activo** — Pixel ID `982472270539383`. Eventos: `PageView` en todas las páginas, `InitiateCheckout` con `value` y `content_name` en cada página de checkout al cargar.
 - **Google Analytics 4**: **Activo** — Measurement ID `G-SQ5K6KFXT3`. Eventos: pageview automático, eventos de scroll en landing, `begin_checkout` en cada página de checkout.
 - **UTM parameters**: Convención definida en `docs/utms.md`. Aplicada en bios de Instagram y TikTok.
-- **Hosting**: Sitio estático desplegado en **GitHub Pages** desde la raíz del repo `Loayza97/AJL-Landing`. El `index.html` principal vive en la raíz (no es output de Astro). Las páginas de checkout son archivos HTML estáticos en `/checkout/[slug]/index.html`. Dominio `ajlnutricion.com` mapeado vía `CNAME`.
-- **Nota de deuda técnica**: el repo también contiene un proyecto Astro en `src/` que NO se despliega. Coexiste con el `index.html` raíz como código paralelo. Hay un refactor pendiente para unificar la fuente de verdad.
+- **Hosting (desde v1.4)**: **Vercel** (Hobby plan, auto-deploy en cada push a `main` del repo `Loayza97/AJL-Landing`). Reemplazó a GitHub Pages porque necesitábamos ejecutar serverless functions para el libro de reclamaciones. El `index.html` principal y las páginas de checkout viven en la raíz como HTML estáticos. Config en `vercel.json` (`cleanUrls`, `trailingSlash`, `outputDirectory: "."`, sin build command). Archivos no productivos excluidos del deploy vía `.vercelignore` (PRDs, docs internas, source Astro).
+- **Supabase (desde v1.4)**: Postgres en proyecto compartido "Alejandro el máximo Techie" (región São Paulo). Solo se usa la tabla `reclamos`, la vista `reclamos_kpis` y la función `generar_correlativo()` — el resto del schema pertenece al sistema interno de nutrición y no se toca. Acceso desde el handler vía `SUPABASE_SERVICE_KEY` (formato `sb_secret_*` de la nueva API de Supabase).
+- **Resend (desde v1.4)**: dominio `ajlnutricion.com` verificado con DKIM, SPF y MX en subdominio `send.ajlnutricion.com`. API key con permiso "Full access" creada en onboarding (TODO: rotar a "Sending access" para principio de menor privilegio).
+- **DNS (Namecheap)**: apex `@` y `www` apuntan a Vercel (`A 216.198.79.1` y CNAME a `*.vercel-dns-017.com`). Resend usa subdominios `send`, `_dmarc`, `resend._domainkey`. Mail Settings está en "Custom MX" (requerido para que MX en subdominios aparezca en el dropdown de Namecheap). Subdominios `app-*` y `baserow` apuntan al VPS interno (no relacionado con la landing).
+- **Variables de entorno en Vercel** (Production + Preview): `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (sensitive), `RESEND_API_KEY` (sensitive), `FROM_EMAIL`, `NOTIFICATION_EMAIL`.
+- **Nota de deuda técnica**: el repo también contiene un proyecto Astro en `src/` que NO se despliega (Vercel lo ignora vía `.vercelignore`). Coexiste con el `index.html` raíz como código paralelo. Hay un refactor pendiente para decidir si se migra o se elimina.
 
 ### 8.2 Data storage & privacy
 
-- No se almacenan datos personales en el sitio. Las páginas de checkout son estáticas y no envían datos a ningún servidor propio.
+- La landing y las páginas de checkout siguen siendo estáticas y no envían datos personales a ningún servidor propio.
 - El pago vía Culqi se procesa en el dominio de Culqi (`express.culqi.com`); los datos de tarjeta nunca tocan nuestro dominio. Culqi cumple con PCI-DSS.
 - Los comprobantes (capturas de pago) viajan por WhatsApp directo al asesor; no se almacenan en infraestructura propia.
+- **Excepción (desde v1.4): el Libro de Reclamaciones SÍ almacena datos personales.** El form de `/reclamaciones/` recolecta nombre, DNI/CE, domicilio, teléfono, email, edad y descripción del reclamo, y los persiste en la tabla `reclamos` de Supabase. Esta excepción es legalmente requerida por la Ley 29571 (no es opcional). IP de origen y user-agent se guardan para auditoría.
 - Cookie banner implementado según Ley 29733 (Perú).
-- Política de privacidad: placeholder en footer, pendiente de texto legal definitivo (mayor urgencia ahora que se procesan pagos, aunque no se almacenan datos).
-- HTTPS garantizado por GitHub Pages.
+- **Política de privacidad: pendiente texto legal definitivo. Urgencia alta en v1.4** porque ahora sí se procesan y almacenan datos personales (vía el libro). La Ley 29733 exige aviso de privacidad y consentimiento explícito al recolectar datos; hoy el form del libro NO tiene checkbox de consentimiento ni link a política — gap legal real a cerrar.
+- HTTPS garantizado por Vercel (cert auto-emitido y renovado).
 
 ### 8.3 Scalability & performance
 
-- Sitio estático: escalabilidad ilimitada para el volumen esperado.
-- CDN incluido por defecto en Netlify.
+- Sitio estático servido desde la CDN global de Vercel: escalabilidad ilimitada para el volumen esperado.
 - Imágenes: WebP/AVIF con lazy loading.
 - JS mínimo client-side: captura UTM, construcción de links de WhatsApp, scroll tracking con IntersectionObserver.
+- **Endpoint `/api/reclamaciones` (serverless)**: cold-start ~300-600ms, warm ~80-150ms. Sin rate limiting hoy — riesgo de spam si alguien descubre el endpoint y lo abusa. Para volumen esperado (~1-10 reclamos/mes) no es un problema; volverá a serlo si crece el tráfico o aparece intento de abuso.
+- Plan Vercel Hobby: 100 GB de bandwidth/mes y 100k invocaciones de function/mes incluidas, sobra para el escenario actual.
 
 ### 8.4 Potential challenges
 
@@ -294,23 +316,39 @@ Diego es un ingeniero de 38 años que ha intentado bajar grasa corporal durante 
 - **Conversión de pago no medida automáticamente**: hoy se mide `begin_checkout` pero no la conversión final (pago confirmado). Requiere validación manual con el asesor. Mejora futura: webhook de Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel.
 - **Doble código fuente (Astro vs `index.html` raíz)**: ya descrito en 8.1. Hay que decidir si se migra el deploy a Astro o se elimina el código Astro.
 - **OG image actual es funcional pero no óptima**: la imagen `og-image.jpg` activa (1200×630, generada en v1.2) es una foto portrait de Alejandro con blurred fill en los laterales. Sirve para que los previews ya no salgan vacíos, pero idealmente debería ser una imagen pensada nativamente como banner horizontal con logo y tagline. Reemplazable cuando haya un asset mejor.
+- **Libro de reclamaciones sin consentimiento ni captcha (v1.4)**: el form recolecta datos personales sin checkbox de aviso de privacidad (gap Ley 29733) y sin protección anti-spam (sin captcha ni rate limiting). Para 1-10 reclamos/mes no es crítico operativamente, pero el gap legal sí lo es. Prioridad: cerrar consentimiento explícito antes que captcha.
+- **Sin panel admin para gestionar reclamos**: la gestión de respuestas (`estado`, `respuesta`, `respuesta_fecha`) se hace manualmente en Supabase Studio. Funcional pero frágil — el día que un asesor distinto tenga que responder, va a ser fricción. Mejora futura: panel admin con auth (puede ser otra ruta protegida en Vercel + Supabase Auth).
+- **Resend API key con permiso "Full access"**: la key actual se generó automáticamente en el onboarding y tiene más privilegios de los necesarios. Debería rotarse a una key con permiso "Sending access" únicamente (principio de menor privilegio).
 
 ## 9. Milestones & sequencing
 
-### 9.1 Estado actual (v1.3)
+### 9.1 Estado actual (v1.4)
 
-Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkout implementadas y servidas como rutas estáticas. GA4 y Meta Pixel activos. UTMs aplicadas en bios y documentadas en `docs/utms.md`. Pago directo vía Yape / BCP / CCI / Culqi habilitado para los 4 planes mensuales y la Evaluación. **Cards del landing rediseñadas en v1.3** con formato comparativo (las 4 cards muestran las mismas categorías de features con ✓ o gris, facilitando la comparación visual). **OG image activa** (`og-image.jpg`) con meta tags completos para previews al compartir el link.
+Landing en producción en `ajlnutricion.com`, **ahora hosteada en Vercel** (migrada desde GitHub Pages el 2026-05-22). Páginas de checkout implementadas y servidas como rutas estáticas. GA4 y Meta Pixel activos. UTMs aplicadas en bios y documentadas en `docs/utms.md`. Pago directo vía Yape / BCP / CCI / Culqi habilitado para los 4 planes mensuales y la Evaluación. Cards del landing con formato comparativo (rediseñadas en v1.3). OG image activa (`og-image.jpg`) con meta tags completos.
+
+**Nuevo en v1.4: Libro de Reclamaciones digital en producción** en `/reclamaciones/`. Cumple Ley N° 29571 / DS N° 011-2011-PCM. Stack: Vercel Function + Supabase (tabla `reclamos` con RLS) + Resend (emails desde `reclamos@ajlnutricion.com`). Correlativo `AJL-2026-NNNN` asignado por SQL function. Primer reclamo de prueba: `AJL-2026-0001` (smoke test del deploy). Link al libro desde el footer de la landing con aviso legal mínimo. La gestión interna de respuestas se hace por ahora desde Supabase Studio.
 
 ### 9.2 Próximos pasos
 
-1. Verificar que los 5 links de Culqi tienen el monto exacto que muestran las páginas de checkout (S/84, S/262.50, S/336, S/462, S/630). Si difieren, ajustar en código o en Culqi.
-2. Reemplazar testimonios placeholder con contenido real.
-3. Agregar foto real al hero.
-4. Completar política de privacidad (mayor urgencia ahora que se procesa pago).
-5. Implementar webhook Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel, para medir conversión final automáticamente.
-6. Decidir el destino del código Astro paralelo (`src/`): migrar deploy o eliminar.
-7. Crear OG image dedicada (banner horizontal con logo + tagline), reemplazando la actual generada a partir de foto portrait.
-8. Iniciar ventana de medición de 60 días con el sitio completo en producción.
+**Urgentes (compliance/legal):**
+
+1. **Completar política de privacidad** y agregar checkbox de consentimiento explícito en el form del libro de reclamaciones (Ley 29733). Este es el gap legal más cercano al riesgo real ahora que se almacenan datos personales.
+2. Agregar captcha (hCaptcha o Cloudflare Turnstile) y rate limiting básico al endpoint `/api/reclamaciones` para prevenir abuso.
+3. Rotar la `RESEND_API_KEY` actual ("Full access") por una nueva con permiso solo "Sending access".
+
+**Funcional / producto:**
+
+4. Verificar que los 5 links de Culqi tienen el monto exacto que muestran las páginas de checkout (S/84, S/262.50, S/336, S/462, S/630). Si difieren, ajustar en código o en Culqi.
+5. Reemplazar testimonios placeholder con contenido real.
+6. Agregar foto real al hero.
+7. Implementar webhook Culqi → endpoint → evento `purchase` en GA4 / `Purchase` en Meta Pixel, para medir conversión final automáticamente. **Ahora es viable** porque ya tenemos backend serverless en Vercel.
+8. Panel admin para gestionar reclamos (responder, marcar `respondido`, ver `reclamos_kpis`). Reemplazar el uso manual de Supabase Studio.
+
+**Mantenimiento:**
+
+9. Decidir el destino del código Astro paralelo (`src/`): migrar deploy o eliminar.
+10. Crear OG image dedicada (banner horizontal con logo + tagline), reemplazando la actual generada a partir de foto portrait.
+11. Iniciar ventana de medición de 60 días con el sitio completo en producción.
 
 ## 10. User stories
 
@@ -561,3 +599,75 @@ Landing en producción en `ajlnutricion.com` (GitHub Pages). Páginas de checkou
   - El paso 4 describe las dos modalidades disponibles con dirección presencial completa (Av. Almirante Manuel Villavicencio 1461, Lince, Lima) y opción virtual.
   - El sitio NO promete confirmación instantánea ni agendamiento automático (la coordinación es manual con el asesor por WhatsApp).
   - Si el lead tiene dudas previas, hay un link al asesor en el footer del checkout: "Habla con un asesor por WhatsApp".
+
+### 10.26 Presentar un reclamo o queja vía el Libro de Reclamaciones
+
+- **ID**: US-025
+- **Description**: Como consumidor del servicio de AJL Nutrición que tuvo un problema, quiero poder presentar un reclamo o queja formal desde el sitio y recibir confirmación con un número de seguimiento, conforme a lo que exige la Ley 29571.
+- **Acceptance criteria**:
+  - Acceso desde el footer de la landing con badge "Libro de Reclamaciones" + aviso legal que menciona la Ley 29571.
+  - URL pública: `/reclamaciones/` (no requiere login).
+  - Form captura todos los campos exigidos por DS 011-2011-PCM: identificación del consumidor (nombre, DNI/CE, domicilio, email, teléfono, edad, apoderado si menor), identificación del bien o servicio, tipo (reclamo vs queja), detalle, pedido.
+  - Validación cliente bloquea submit si faltan campos obligatorios o si el formato (email/DNI) es inválido.
+  - Al submit, se asigna correlativo único `AJL-YYYY-NNNN` y se redirige a `/reclamaciones/gracias/` con el correlativo visible.
+  - El consumidor recibe email automático desde `reclamos@ajlnutricion.com` con asunto "Tu reclamo fue recibido — AJL-YYYY-NNNN" y el correlativo destacado.
+  - El asesor (`ajlnutricion@gmail.com`) recibe notificación con todos los datos del reclamo y fecha límite de respuesta (30 días calendario).
+  - El reclamo se persiste en Supabase con timestamp, IP de origen y user-agent para auditoría.
+  - El aviso legal del form menciona también el libro físico en el local de Lince.
+
+## 11. Changelog
+
+Histórico de versiones del PRD y de la implementación del sitio.
+
+### v1.4 — 2026-05-22
+
+**Compliance & nueva feature**
+
+- **Libro de Reclamaciones digital** implementado y en producción (`/reclamaciones/`). Cumple Ley N° 29571 y DS N° 011-2011-PCM (INDECOPI). Stack: Vercel Function + Supabase (tabla `reclamos` con RLS, función SQL `generar_correlativo()`, vista `reclamos_kpis`) + Resend (emails desde `reclamos@ajlnutricion.com`).
+- **Migración de hosting** de GitHub Pages a Vercel — necesario para ejecutar funciones serverless. Mismo dominio (`ajlnutricion.com`), mismo SSL (ahora auto-emitido por Vercel).
+- DNS de Namecheap actualizado: A `@` y CNAME `www` ahora apuntan a Vercel. Resend agregado con DKIM/SPF/MX en subdominio `send`. VPS interno (`app-*`, `baserow`) intacto.
+- Nuevo `vercel.json` con `cleanUrls`, `trailingSlash` y headers `no-store` para `/api/*`. Nuevo `.vercelignore` que excluye PRDs, docs y código Astro del deploy.
+- `package.json`: removida dependencia de Astro, agregada `@supabase/supabase-js`. El handler usa extensión `.mjs` para ES Module syntax (sin `"type": "module"` en package.json).
+- Nueva sección 10.26 (US-025): presentar un reclamo vía el libro.
+
+**Cambios documentados en el PRD**
+
+- Cabecera versión 1.4, fecha 2026-05-22.
+- Product summary (1.2): párrafo nuevo sobre migración a Vercel + libro de reclamaciones.
+- Business goals (2.1): nuevo objetivo de cumplir Ley 29571.
+- Functional requirements (4): nueva sub-sección "Libro de Reclamaciones digital" + mención al footer del libro en "Pie de página".
+- Integration points (8.1): Vercel reemplaza a GitHub Pages, agregados Supabase, Resend, DNS de Namecheap, env vars de Vercel.
+- Data storage & privacy (8.2): corregido — ahora SÍ se almacenan datos personales (los reclamos). Política de privacidad pasa a urgencia alta.
+- Scalability (8.3): agregada nota sobre cold-start de la function y plan Hobby de Vercel.
+- Potential challenges (8.4): nuevos riesgos (consentimiento, captcha, panel admin, rotación de Resend API key).
+- Estado actual (9.1): refleja v1.4 con libro en producción.
+- Próximos pasos (9.2): reorganizados por urgencia (compliance → producto → mantenimiento).
+
+### v1.3 — 2026-05-19
+
+- Cards del landing rediseñadas con formato comparativo: las 4 cards muestran las mismas categorías de features (`Sesiones individuales`, `Acompañamiento continuo`, `Programas`) con ✓ o gris para facilitar comparación visual.
+- Lista "Lo que incluye" en cada página de checkout sincronizada con las features reales por plan (incluye programas 3m/6m y aclaraciones de lo NO incluido en Básico).
+- OG image activa (`og-image.jpg` 1200×630) con meta tags `og:image` y `twitter:image` completos.
+- Hero-tile menciona modalidad presencial/virtual con pills.
+- Diferencias reales por plan documentadas explícitamente en la sección de planes (fuente de verdad alineada con los productos comerciales).
+
+### v1.2 — Mayo 2026
+
+- Flujo de pago directo agregado: páginas de checkout estáticas (`/checkout/[slug]/`) para los 4 planes + Evaluación.
+- Integración con Culqi Express: 5 links de pago (uno por producto) con monto +5% pre-configurado.
+- Datos bancarios manuales (Yape, BCP, CCI) visibles en cada checkout.
+- Eventos `begin_checkout` (GA4) e `InitiateCheckout` (Meta Pixel) por plan.
+- Mensaje pre-llenado de WhatsApp post-pago: "Hola, te envío el comprobante del plan X (S/Y)".
+
+### v1.1 — pre-Mayo 2026
+
+- Reorganización de jerarquía: planes mensuales como producto principal, Evaluación S/80 como fallback para indecisos.
+- Convención de UTMs versionada en `docs/utms.md`.
+- Cookie banner conforme Ley 29733.
+
+### v1.0 — Initial
+
+- Landing inicial con hero, sección "Por qué fallaste antes", método de 6 pasos, planes, testimonios placeholder, "Para quién sí / no", FAQ, footer.
+- Tracking GA4 + Meta Pixel.
+- Botón flotante de WhatsApp con UTM.
+- Deploy en GitHub Pages, dominio `ajlnutricion.com` vía CNAME.
