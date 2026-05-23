@@ -1,13 +1,12 @@
 {
   "name": "ajl-nutricion",
-  "type": "module",
   "version": "1.0.0",
-  "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
-    "preview": "astro preview"
+  "private": true,
+  "description": "Landing page de AJL Nutrición + Libro de Reclamaciones",
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
-    "astro": "^4.15.0"
+    "@supabase/supabase-js": "^2.45.0"
   }
 }

@@ -1,0 +1,18 @@
+# Astro source paralela (no se despliega — código histórico)
+src/
+dist/
+.astro/
+astro.config.mjs
+
+# Build artefacts y locks que Vercel maneja
+node_modules/
+package-lock.json
+
+# Docs y data que no entran al deploy
+docs/
+db/
+PRD-AJL-Nutricion-v1.md
+CLAUDE.md
+
+# Deploy viejo de Netlify
+.netlify/

@@ -376,6 +376,19 @@ main { padding: 32px 0 64px; }
 
 .checkout-footer a:hover { border-color: var(--gold); }
 
+.libro-row {
+  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--ink-soft);
+}
+.libro-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border: 1.5px solid var(--ink); border-radius: 6px;
+  font-weight: 700; font-size: 12px; color: var(--ink) !important;
+  transition: all 0.2s; border-bottom: 1.5px solid var(--ink) !important;
+}
+.libro-link:hover { background: var(--ink); color: #fff !important; }
+
 /* Responsive */
 @media (max-width: 560px) {
   .plan-card, .steps-wrap { padding: 24px 20px; }

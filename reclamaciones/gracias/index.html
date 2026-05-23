@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Reclamo recibido por AJL Nutrición.">
+<meta name="robots" content="noindex, follow">
+
+<title>Reclamo recibido — AJL Nutrición</title>
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/checkout/checkout.css">
+
+<style>
+  .gracias-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: clamp(32px, 6vw, 56px); text-align: center; margin: 32px 0; }
+  .check-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(44,140,59,0.12); color: var(--green); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px; }
+  .gracias-card h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 32px); margin-bottom: 12px; }
+  .gracias-card .subtitle { color: var(--ink-soft); font-size: 15px; line-height: 1.6; max-width: 480px; margin: 0 auto 24px; }
+  .correlativo-box { background: var(--bg); border: 1px dashed var(--gold); border-radius: 12px; padding: 16px 20px; margin: 24px auto; max-width: 320px; }
+  .correlativo-box .label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+  .correlativo-box .codigo { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 26px; font-weight: 800; color: var(--gold); letter-spacing: 0.04em; }
+  .next-steps { text-align: left; max-width: 460px; margin: 32px auto 0; }
+  .next-steps h3 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .next-steps ol { margin: 0; padding-left: 20px; color: var(--ink); }
+  .next-steps li { margin-bottom: 8px; font-size: 14px; line-height: 1.55; }
+  .home-cta { display: inline-block; background: var(--ink); color: #fff; padding: 12px 22px; border-radius: 12px; font-weight: 700; font-size: 14px; margin-top: 24px; transition: all 0.18s; }
+  .home-cta:hover { background: var(--gold); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+
+<nav class="checkout-nav">
+  <div class="container">
+    <a href="/" class="logo"><span class="logo-mark">A</span>AJL Nutrición</a>
+    <a href="/" class="back-link">← Volver al inicio</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <section class="gracias-card">
+      <div class="check-icon">
+        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h1>Tu reclamo fue recibido</h1>
+      <p class="subtitle">Te respondemos por email dentro de los próximos <strong>30 días calendario</strong>, conforme a la Ley N° 29571.</p>
+
+      <div class="correlativo-box" id="correlativoBox">
+        <div class="label">Número de seguimiento</div>
+        <div class="codigo" id="correlativoCode">—</div>
+      </div>
+
+      <p class="subtitle" id="emailLine" style="display:none">
+        Te enviamos copia a <strong id="emailValue"></strong>.<br>
+        Revisá tu carpeta de spam si no llega en los próximos minutos.
+      </p>
+
+      <div class="next-steps">
+        <h3>¿Y ahora qué?</h3>
+        <ol>
+          <li>Recibirás un email automático con tu número de seguimiento.</li>
+          <li>Nuestro equipo revisará tu caso dentro de los próximos días.</li>
+          <li>Te responderemos por email con la resolución antes de los 30 días calendario.</li>
+          <li>Si querés contactarnos antes, escribinos al WhatsApp mencionando tu número.</li>
+        </ol>
+      </div>
+
+      <a href="/" class="home-cta">Volver al inicio</a>
+    </section>
+
+  </div>
+</main>
+
+<script>
+  const correlativo = sessionStorage.getItem('ajl_correlativo');
+  const email = sessionStorage.getItem('ajl_email');
+  if (correlativo) {
+    document.getElementById('correlativoCode').textContent = correlativo;
+  }
+  if (email) {
+    document.getElementById('emailValue').textContent = email;
+    document.getElementById('emailLine').style.display = '';
+  }
+  // Limpiamos sessionStorage después de mostrar (no queremos que persista)
+  sessionStorage.removeItem('ajl_correlativo');
+  sessionStorage.removeItem('ajl_email');
+</script>
+
+</body>
+</html>

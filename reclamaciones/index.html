@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Libro de Reclamaciones de AJL Nutrición conforme a la Ley N° 29571 (Código de Protección y Defensa del Consumidor).">
+<meta name="robots" content="index, follow">
+
+<title>Libro de Reclamaciones — AJL Nutrición</title>
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/checkout/checkout.css">
+
+<style>
+  /* Reuso casi todo de checkout.css. Aquí solo los ajustes propios del form. */
+  .libro-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: clamp(20px, 4vw, 32px); margin-bottom: 20px; }
+  .libro-card h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(24px, 4vw, 32px); margin-bottom: 8px; line-height: 1.15; }
+  .libro-card .lead { color: var(--ink-soft); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+  .legal-notice { background: #FDF4E3; border-left: 3px solid var(--gold); padding: 14px 16px; border-radius: 8px; font-size: 13px; color: var(--ink); line-height: 1.55; margin-bottom: 20px; }
+  .legal-notice strong { color: var(--gold); }
+
+  .form-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .form-section:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+  .form-section h2 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-field { display: flex; flex-direction: column; }
+  .form-field.full { grid-column: 1 / -1; }
+  .form-field label { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+  .form-field label .req { color: #c0392b; font-weight: 800; }
+  .form-field input, .form-field select, .form-field textarea {
+    font-family: inherit; font-size: 14px; padding: 11px 14px; border: 1px solid var(--line);
+    border-radius: 10px; background: #fff; color: var(--ink); transition: border-color 0.18s, box-shadow 0.18s;
+  }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(200,151,58,0.15);
+  }
+  .form-field textarea { resize: vertical; min-height: 88px; line-height: 1.55; }
+  .form-field .help { font-size: 11px; color: var(--ink-soft); margin-top: 4px; line-height: 1.4; }
+  .form-field .error { font-size: 12px; color: #c0392b; margin-top: 4px; display: none; }
+  .form-field.has-error input, .form-field.has-error select, .form-field.has-error textarea { border-color: #c0392b; }
+  .form-field.has-error .error { display: block; }
+
+  .tipo-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tipo-card { border: 1px solid var(--line); border-radius: 12px; padding: 14px; cursor: pointer; transition: all 0.18s; }
+  .tipo-card input { position: absolute; opacity: 0; pointer-events: none; }
+  .tipo-card .tipo-name { font-weight: 700; color: var(--ink); margin-bottom: 4px; font-size: 14px; }
+  .tipo-card .tipo-desc { font-size: 11px; color: var(--ink-soft); line-height: 1.45; }
+  .tipo-card:has(input:checked) { border-color: var(--gold); background: #FDF4E3; box-shadow: 0 0 0 3px rgba(200,151,58,0.1); }
+  .tipo-card:hover { border-color: rgba(200,151,58,0.4); }
+
+  .submit-row { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); align-items: center; }
+  .submit-row .submitting { display: none; font-size: 13px; color: var(--ink-soft); }
+  .submit-row.is-submitting .submitting { display: inline; }
+  .submit-row.is-submitting button { opacity: 0.6; pointer-events: none; }
+
+  .btn-primary-submit {
+    background: var(--ink); color: #fff; border: none; padding: 13px 24px; border-radius: 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer;
+    transition: all 0.18s;
+  }
+  .btn-primary-submit:hover { background: var(--gold); transform: translateY(-1px); }
+
+  .submit-error { background: #fdecea; border-left: 3px solid #c0392b; padding: 12px 14px; border-radius: 8px; font-size: 13px; color: #c0392b; margin-top: 16px; display: none; }
+  .submit-error.visible { display: block; }
+
+  @media (max-width: 560px) {
+    .form-grid, .tipo-options { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="checkout-nav">
+  <div class="container">
+    <a href="/" class="logo"><span class="logo-mark">A</span>AJL Nutrición</a>
+    <a href="/" class="back-link">← Volver al inicio</a>
+  </div>
+</nav>
+
+<main>
+  <div class="container">
+
+    <section class="libro-card">
+      <h1>Libro de Reclamaciones</h1>
+      <p class="lead">Completá el siguiente formulario para presentar un reclamo o queja. Te responderemos por email dentro de los 30 días calendario que establece la ley.</p>
+
+      <div class="legal-notice">
+        <strong>Aviso legal:</strong> Conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N° 29571), AJL Nutrición pone a tu disposición este Libro de Reclamaciones. Tu reclamo o queja también puede ser registrado en el libro físico ubicado en nuestro local de Av. Almirante Manuel Villavicencio 1461, Lince, Lima.
+      </div>
+    </section>
+
+    <section class="libro-card">
+      <form id="reclamoForm" novalidate>
+
+        <!-- ── Identificación del consumidor ─────────────────── -->
+        <div class="form-section">
+          <h2>1. Identificación del consumidor</h2>
+          <div class="form-grid">
+            <div class="form-field full">
+              <label for="nombre">Nombre y apellidos <span class="req">*</span></label>
+              <input type="text" id="nombre" name="nombre" required autocomplete="name" maxlength="120">
+              <div class="error">Ingresá tu nombre completo.</div>
+            </div>
+            <div class="form-field">
+              <label for="dni">DNI o Carné de Extranjería <span class="req">*</span></label>
+              <input type="text" id="dni" name="dni" required inputmode="numeric" pattern="[0-9A-Za-z]{8,12}" maxlength="12">
+              <div class="help">8-12 caracteres</div>
+              <div class="error">DNI inválido. Debe tener entre 8 y 12 caracteres.</div>
+            </div>
+            <div class="form-field">
+              <label for="edad">Edad</label>
+              <input type="number" id="edad" name="edad" min="1" max="120" inputmode="numeric">
+              <div class="help">Si sos menor de 18, se requiere apoderado</div>
+            </div>
+            <div class="form-field full" id="apoderadoField" style="display:none">
+              <label for="apoderado_nombre">Nombre del apoderado <span class="req">*</span></label>
+              <input type="text" id="apoderado_nombre" name="apoderado_nombre" autocomplete="name" maxlength="120">
+              <div class="error">Apoderado requerido si el consumidor es menor de 18 años.</div>
+            </div>
+            <div class="form-field full">
+              <label for="domicilio">Domicilio</label>
+              <input type="text" id="domicilio" name="domicilio" autocomplete="street-address" maxlength="200">
+            </div>
+            <div class="form-field">
+              <label for="email">Email <span class="req">*</span></label>
+              <input type="email" id="email" name="email" required autocomplete="email" maxlength="150">
+              <div class="error">Email inválido.</div>
+            </div>
+            <div class="form-field">
+              <label for="telefono">Teléfono</label>
+              <input type="tel" id="telefono" name="telefono" autocomplete="tel" maxlength="20" inputmode="tel">
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Identificación del bien o servicio ─────────────────── -->
+        <div class="form-section">
+          <h2>2. Identificación del bien o servicio</h2>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="bien_tipo">Tipo</label>
+              <select id="bien_tipo" name="bien_tipo">
+                <option value="">Seleccioná…</option>
+                <option value="servicio">Servicio</option>
+                <option value="producto">Producto</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="bien_monto">Monto reclamado (S/)</label>
+              <input type="number" id="bien_monto" name="bien_monto" min="0" step="0.01" inputmode="decimal">
+            </div>
+            <div class="form-field full">
+              <label for="bien_descripcion">Descripción del bien o servicio</label>
+              <textarea id="bien_descripcion" name="bien_descripcion" maxlength="800" placeholder="Ej: Plan Constancia mensual contratado el 12 de mayo de 2026"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Detalle del reclamo ─────────────────── -->
+        <div class="form-section">
+          <h2>3. Detalle del reclamo o queja</h2>
+
+          <div class="form-field full" style="margin-bottom: 16px;">
+            <label>Tipo <span class="req">*</span></label>
+            <div class="tipo-options">
+              <label class="tipo-card">
+                <input type="radio" name="tipo" value="reclamo" required>
+                <div class="tipo-name">Reclamo</div>
+                <div class="tipo-desc">Disconformidad relacionada con los bienes o servicios prestados.</div>
+              </label>
+              <label class="tipo-card">
+                <input type="radio" name="tipo" value="queja" required>
+                <div class="tipo-name">Queja</div>
+                <div class="tipo-desc">Malestar respecto a la atención al público o a un tema no relacionado con el servicio en sí.</div>
+              </label>
+            </div>
+            <div class="error" id="tipoError">Tenés que elegir reclamo o queja.</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-field full">
+              <label for="detalle">Detalle <span class="req">*</span></label>
+              <textarea id="detalle" name="detalle" required maxlength="2000" placeholder="Contanos qué pasó con el mayor detalle posible…"></textarea>
+              <div class="help">Máximo 2000 caracteres</div>
+              <div class="error">Describí el detalle del reclamo.</div>
+            </div>
+            <div class="form-field full">
+              <label for="pedido">¿Qué pedís que pase? <span class="req">*</span></label>
+              <textarea id="pedido" name="pedido" required maxlength="1000" placeholder="Ej: Reembolso, ajuste del plan, reposición, etc."></textarea>
+              <div class="error">Indicá qué solución estás pidiendo.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="submit-error" id="submitError"></div>
+
+        <div class="submit-row" id="submitRow">
+          <span class="submitting">Enviando…</span>
+          <button type="submit" class="btn-primary-submit">Enviar reclamo →</button>
+        </div>
+
+      </form>
+    </section>
+
+    <footer class="checkout-footer">
+      ¿Querés contactarnos directo en vez de presentar un reclamo formal?
+      <a href="https://wa.me/51919151237?text=Hola%2C%20quiero%20comentarles%20algo%20sobre%20el%20servicio." target="_blank" rel="noopener noreferrer">Habla con un asesor por WhatsApp →</a>
+    </footer>
+
+  </div>
+</main>
+
+<script>
+(function() {
+  const form = document.getElementById('reclamoForm');
+  const submitRow = document.getElementById('submitRow');
+  const submitError = document.getElementById('submitError');
+  const edadInput = document.getElementById('edad');
+  const apoderadoField = document.getElementById('apoderadoField');
+  const apoderadoInput = document.getElementById('apoderado_nombre');
+
+  // Mostrar/ocultar apoderado según edad
+  function toggleApoderado() {
+    const edad = parseInt(edadInput.value, 10);
+    if (!isNaN(edad) && edad < 18) {
+      apoderadoField.style.display = 'flex';
+      apoderadoInput.required = true;
+    } else {
+      apoderadoField.style.display = 'none';
+      apoderadoInput.required = false;
+      apoderadoField.classList.remove('has-error');
+    }
+  }
+  edadInput.addEventListener('input', toggleApoderado);
+
+  // Marcar error en un campo
+  function setError(name, hasError) {
+    const field = form.querySelector(`[name="${name}"]`)?.closest('.form-field');
+    if (field) field.classList.toggle('has-error', hasError);
+  }
+
+  // Validación cliente (defensiva — la function valida también)
+  function validar() {
+    let ok = true;
+    const data = {};
+
+    ['nombre', 'dni', 'email', 'detalle', 'pedido'].forEach(name => {
+      const v = form.querySelector(`[name="${name}"]`).value.trim();
+      data[name] = v;
+      if (!v) { setError(name, true); ok = false; } else setError(name, false);
+    });
+
+    // email
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) {
+      setError('email', true); ok = false;
+    }
+    // dni
+    if (data.dni && !/^[0-9A-Za-z]{8,12}$/.test(data.dni)) {
+      setError('dni', true); ok = false;
+    }
+
+    // tipo
+    const tipo = form.querySelector('input[name="tipo"]:checked')?.value;
+    document.getElementById('tipoError').style.display = tipo ? 'none' : 'block';
+    if (!tipo) ok = false; else data.tipo = tipo;
+
+    // apoderado si menor
+    const edad = parseInt(edadInput.value, 10);
+    if (!isNaN(edad) && edad < 18) {
+      const apo = apoderadoInput.value.trim();
+      if (!apo) { setError('apoderado_nombre', true); ok = false; }
+    }
+
+    // Resto de campos opcionales
+    ['domicilio', 'telefono', 'edad', 'apoderado_nombre',
+     'bien_tipo', 'bien_monto', 'bien_descripcion'].forEach(name => {
+      const v = form.querySelector(`[name="${name}"]`).value.trim();
+      if (v) data[name] = v;
+    });
+
+    return { ok, data };
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitError.classList.remove('visible');
+
+    const { ok, data } = validar();
+    if (!ok) {
+      submitError.textContent = 'Revisá los campos marcados en rojo.';
+      submitError.classList.add('visible');
+      return;
+    }
+
+    submitRow.classList.add('is-submitting');
+
+    try {
+      const r = await fetch('/api/reclamaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || 'Error desconocido');
+
+      // Guardamos el correlativo en sessionStorage para mostrarlo en /gracias/
+      sessionStorage.setItem('ajl_correlativo', json.correlativo);
+      sessionStorage.setItem('ajl_email', data.email);
+      window.location.href = '/reclamaciones/gracias/';
+    } catch (err) {
+      submitRow.classList.remove('is-submitting');
+      submitError.textContent = 'No se pudo enviar el reclamo: ' + (err.message || 'intentá de nuevo en unos minutos.');
+      submitError.classList.add('visible');
+      submitError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
