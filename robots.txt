@@ -1,0 +1,11 @@
+# robots.txt · AJL Nutrición
+# https://ajlnutricion.com
+
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# El endpoint del libro de reclamaciones no debe indexarse
+Disallow: /reclamaciones/gracias/
+
+Sitemap: https://ajlnutricion.com/sitemap.xml
