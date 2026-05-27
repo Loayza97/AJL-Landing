@@ -66,6 +66,15 @@
   .submit-error { background: #fdecea; border-left: 3px solid #c0392b; padding: 12px 14px; border-radius: 8px; font-size: 13px; color: #c0392b; margin-top: 16px; display: none; }
   .submit-error.visible { display: block; }
 
+  .consent-section { background: #FDF4E3; border: 1px solid var(--gold); border-radius: 12px; padding: 14px 16px; margin-top: 24px; transition: all 0.18s; }
+  .consent-section.has-error { border-color: #c0392b; background: #fdecea; }
+  .consent-label { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; }
+  .consent-label input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; cursor: pointer; accent-color: var(--gold); }
+  .consent-label span { font-size: 13px; line-height: 1.55; color: var(--ink); }
+  .consent-label a { color: var(--gold); font-weight: 600; text-decoration: underline; }
+  .consent-error { display: none; font-size: 12px; color: #c0392b; margin-top: 8px; margin-left: 30px; }
+  .consent-section.has-error .consent-error { display: block; }
+
   @media (max-width: 560px) {
     .form-grid, .tipo-options { grid-template-columns: 1fr; }
   }
@@ -195,6 +204,18 @@
           </div>
         </div>
 
+        <!-- ── Consentimiento de privacidad (Ley 29733) ─────────────────── -->
+        <div class="consent-section" id="consentSection">
+          <label class="consent-label">
+            <input type="checkbox" id="consentimiento" name="consentimiento" required>
+            <span>
+              He leído y acepto la <a href="/privacidad/" target="_blank" rel="noopener noreferrer">Política de Privacidad</a>.
+              Entiendo que mis datos serán tratados conforme a la Ley N° 29733 y que podrán transferirse a procesadores en el exterior (Supabase en Brasil y Resend en EE.UU.) según se detalla en la política. <span class="req">*</span>
+            </span>
+          </label>
+          <div class="consent-error" id="consentError">Tienes que aceptar la Política de Privacidad para continuar.</div>
+        </div>
+
         <div class="submit-error" id="submitError"></div>
 
         <div class="submit-row" id="submitRow">
@@ -274,6 +295,17 @@
       if (!apo) { setError('apoderado_nombre', true); ok = false; }
     }
 
+    // consentimiento de privacidad (Ley 29733)
+    const consentChecked = document.getElementById('consentimiento').checked;
+    const consentSection = document.getElementById('consentSection');
+    if (!consentChecked) {
+      consentSection.classList.add('has-error');
+      ok = false;
+    } else {
+      consentSection.classList.remove('has-error');
+      data.consentimiento = true;
+    }
+
     // Resto de campos opcionales
     ['domicilio', 'telefono', 'edad', 'apoderado_nombre',
      'bien_tipo', 'bien_monto', 'bien_descripcion'].forEach(name => {
@@ -290,7 +322,7 @@
 
     const { ok, data } = validar();
     if (!ok) {
-      submitError.textContent = 'Revisá los campos marcados en rojo.';
+      submitError.textContent = 'Revisa los campos marcados en rojo.';
       submitError.classList.add('visible');
       return;
     }

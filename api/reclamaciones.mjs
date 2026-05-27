@@ -108,6 +108,9 @@ export default async function handler(req, res) {
   if (!['reclamo', 'queja'].includes(data.tipo)) {
     return bad(res, 400, 'Tipo inválido (debe ser "reclamo" o "queja")');
   }
+  if (data.consentimiento !== true) {
+    return bad(res, 400, 'Debes aceptar la Política de Privacidad para continuar');
+  }
 
   // Edad y apoderado: si menor de 18, apoderado es obligatorio
   const edad = data.edad ? parseInt(data.edad, 10) : null;
@@ -145,6 +148,7 @@ export default async function handler(req, res) {
     reclamo_tipo: data.tipo,
     reclamo_detalle: data.detalle.trim(),
     reclamo_pedido: data.pedido.trim(),
+    consentimiento_otorgado: true,
     ip_origen: ip,
     user_agent: ua,
   };
