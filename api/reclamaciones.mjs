@@ -51,7 +51,7 @@ function htmlClienteRecibido({ correlativo, nombre, tipo }) {
       <p>Confirmamos la recepción de tu ${tipo} en AJL Nutrición. Tu número de seguimiento es:</p>
       <p style="font-size:22px;font-weight:700;color:#C8973A;letter-spacing:0.04em">${correlativo}</p>
       <p>Te responderemos dentro de los próximos <strong>30 días calendario</strong>, conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N° 29571).</p>
-      <p>Si necesitas hacer seguimiento, mencioná este número de correlativo.</p>
+      <p>Si necesitas hacer seguimiento, menciona este número de correlativo.</p>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
       <p style="font-size:13px;color:#6E6E73">AJL Nutrición · Av. Almirante Manuel Villavicencio 1461, Lince, Lima</p>
     </div>
@@ -82,7 +82,7 @@ function htmlAsesorNotificacion(data) {
       <p style="margin-top:24px"><strong>Plazo legal de respuesta: 30 días calendario</strong> (vence el ${
         new Date(new Date(data.fecha_creacion).getTime() + 30 * 24 * 3600 * 1000).toLocaleDateString('es-PE')
       }).</p>
-      <p>Gestioná desde el dashboard de Supabase.</p>
+      <p>Gestiona desde el dashboard de Supabase.</p>
     </div>
   `;
 }

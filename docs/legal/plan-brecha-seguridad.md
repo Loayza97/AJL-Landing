@@ -168,8 +168,8 @@ QUÉ TE RECOMENDAMOS HACER
 INTENTOS DE PHISHING, ETC.]
 
 CONTACTO
-Si tenés consultas o querés ejercer tu derecho de acceso/rectificación/
-cancelación, escribinos a reclamos@ajlnutricion.com.
+Si tienes consultas o quieres ejercer tu derecho de acceso/rectificación/
+cancelación, escríbenos a reclamos@ajlnutricion.com.
 
 Lamentamos sinceramente este inconveniente y nos comprometemos a seguir
 mejorando nuestras medidas de seguridad.

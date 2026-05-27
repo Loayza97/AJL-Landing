@@ -246,11 +246,11 @@ con la Plantilla #6 pidiendo identificación. **No actuar sin verificar.**
 ### Solicitud abusiva o repetitiva
 
 Si la misma persona hace 10 solicitudes ARCO en un mes sin razón válida,
-podés responder cobrando un costo razonable o negándote a actuar, según
+puedes responder cobrando un costo razonable o negándote a actuar, según
 permite el reglamento. Conservar evidencia del abuso.
 
 ### Si el plazo de 10 días se va a vencer
 
-Si por complejidad de la solicitud no llegás a los 10 días, responder
-antes del vencimiento avisando que necesitás más tiempo (la ley permite
+Si por complejidad de la solicitud no llegas a los 10 días, responder
+antes del vencimiento avisando que necesitas más tiempo (la ley permite
 ampliar el plazo en casos justificados, comunicándolo al titular).

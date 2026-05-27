@@ -94,7 +94,7 @@
 
     <section class="libro-card">
       <h1>Libro de Reclamaciones</h1>
-      <p class="lead">Completá el siguiente formulario para presentar un reclamo o queja. Te responderemos por email dentro de los 30 días calendario que establece la ley.</p>
+      <p class="lead">Completa el siguiente formulario para presentar un reclamo o queja. Te responderemos por email dentro de los 30 días calendario que establece la ley.</p>
 
       <div class="legal-notice">
         <strong>Aviso legal:</strong> Conforme a lo establecido en el Código de Protección y Defensa del Consumidor (Ley N° 29571), AJL Nutrición pone a tu disposición este Libro de Reclamaciones. Tu reclamo o queja también puede ser registrado en el libro físico ubicado en nuestro local de Av. Almirante Manuel Villavicencio 1461, Lince, Lima.
@@ -111,7 +111,7 @@
             <div class="form-field full">
               <label for="nombre">Nombre y apellidos <span class="req">*</span></label>
               <input type="text" id="nombre" name="nombre" required autocomplete="name" maxlength="120">
-              <div class="error">Ingresá tu nombre completo.</div>
+              <div class="error">Ingresa tu nombre completo.</div>
             </div>
             <div class="form-field">
               <label for="dni">DNI o Carné de Extranjería <span class="req">*</span></label>
@@ -122,7 +122,7 @@
             <div class="form-field">
               <label for="edad">Edad</label>
               <input type="number" id="edad" name="edad" min="1" max="120" inputmode="numeric">
-              <div class="help">Si sos menor de 18, se requiere apoderado</div>
+              <div class="help">Si eres menor de 18, se requiere apoderado</div>
             </div>
             <div class="form-field full" id="apoderadoField" style="display:none">
               <label for="apoderado_nombre">Nombre del apoderado <span class="req">*</span></label>
@@ -152,7 +152,7 @@
             <div class="form-field">
               <label for="bien_tipo">Tipo</label>
               <select id="bien_tipo" name="bien_tipo">
-                <option value="">Seleccioná…</option>
+                <option value="">Selecciona…</option>
                 <option value="servicio">Servicio</option>
                 <option value="producto">Producto</option>
               </select>
@@ -186,20 +186,20 @@
                 <div class="tipo-desc">Malestar respecto a la atención al público o a un tema no relacionado con el servicio en sí.</div>
               </label>
             </div>
-            <div class="error" id="tipoError">Tenés que elegir reclamo o queja.</div>
+            <div class="error" id="tipoError">Tienes que elegir reclamo o queja.</div>
           </div>
 
           <div class="form-grid">
             <div class="form-field full">
               <label for="detalle">Detalle <span class="req">*</span></label>
-              <textarea id="detalle" name="detalle" required maxlength="2000" placeholder="Contanos qué pasó con el mayor detalle posible…"></textarea>
+              <textarea id="detalle" name="detalle" required maxlength="2000" placeholder="Cuéntanos qué pasó con el mayor detalle posible…"></textarea>
               <div class="help">Máximo 2000 caracteres</div>
-              <div class="error">Describí el detalle del reclamo.</div>
+              <div class="error">Describe el detalle del reclamo.</div>
             </div>
             <div class="form-field full">
-              <label for="pedido">¿Qué pedís que pase? <span class="req">*</span></label>
+              <label for="pedido">¿Qué pides que pase? <span class="req">*</span></label>
               <textarea id="pedido" name="pedido" required maxlength="1000" placeholder="Ej: Reembolso, ajuste del plan, reposición, etc."></textarea>
-              <div class="error">Indicá qué solución estás pidiendo.</div>
+              <div class="error">Indica qué solución estás pidiendo.</div>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@
               Entiendo que mis datos serán tratados conforme a la Ley N° 29733 y que podrán transferirse a procesadores en el exterior (Supabase en Brasil y Resend en EE.UU.) según se detalla en la política. <span class="req">*</span>
             </span>
           </label>
-          <div class="consent-error" id="consentError">Tenés que aceptar la Política de Privacidad para continuar.</div>
+          <div class="consent-error" id="consentError">Tienes que aceptar la Política de Privacidad para continuar.</div>
         </div>
 
         <div class="submit-error" id="submitError"></div>
@@ -227,7 +227,7 @@
     </section>
 
     <footer class="checkout-footer">
-      ¿Querés contactarnos directo en vez de presentar un reclamo formal?
+      ¿Quieres contactarnos directo en vez de presentar un reclamo formal?
       <a href="https://wa.me/51919151237?text=Hola%2C%20quiero%20comentarles%20algo%20sobre%20el%20servicio." target="_blank" rel="noopener noreferrer">Habla con un asesor por WhatsApp →</a>
     </footer>
 
@@ -322,7 +322,7 @@
 
     const { ok, data } = validar();
     if (!ok) {
-      submitError.textContent = 'Revisá los campos marcados en rojo.';
+      submitError.textContent = 'Revisa los campos marcados en rojo.';
       submitError.classList.add('visible');
       return;
     }
@@ -344,7 +344,7 @@
       window.location.href = '/reclamaciones/gracias/';
     } catch (err) {
       submitRow.classList.remove('is-submitting');
-      submitError.textContent = 'No se pudo enviar el reclamo: ' + (err.message || 'intentá de nuevo en unos minutos.');
+      submitError.textContent = 'No se pudo enviar el reclamo: ' + (err.message || 'intenta de nuevo en unos minutos.');
       submitError.classList.add('visible');
       submitError.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
