@@ -134,7 +134,7 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
     3. **Flujo de 4 pasos**:
        - **Paso 1 — Realiza tu pago**: Yape (919 151 237), BCP cuenta corriente (193-91104808-0-57), CCI (19391104808057), y botón Culqi con monto +5% pre-configurado.
        - **Paso 2 — Envíanos tu comprobante por WhatsApp**: botón verde con mensaje pre-rellenado que identifica el plan y monto base ("Hola, te envío el comprobante del plan [Nombre] (S/X)").
-       - **Paso 3 — Recibe tu link de inscripción**: incluye horario de atención (lunes a sábado, 9:00 a.m. a 8:00 p.m.).
+       - **Paso 3 — Recibe tu link de inscripción**: incluye horario de atención (lunes a viernes 10:00 a.m. a 8:00 p.m., sábados 9:00 a.m. a 7:00 p.m.).
        - **Paso 4 — Lista tu primera sesión**: modalidad presencial (Av. Almirante Manuel Villavicencio 1461, Lince, Lima) o virtual.
     4. **Footer**: link al asesor por WhatsApp para resolver dudas previas al pago.
   - Links de Culqi por plan (Culqi Express, monto +5% ya pre-configurado en el link):
@@ -209,7 +209,7 @@ La hipótesis estratégica que esta versión busca validar es que precalificar a
 - **Entendimiento del método**: 6 pasos + bloque de compromiso requerido actúa como filtro pasivo temprano.
 - **Elección de plan**: El visitante ve los 4 planes con precio + asterisco que indica el recargo del 5% para pagos con tarjeta. Si está listo, clickea "Quiero este" y aterriza en la página de checkout del plan.
 - **Pago + comprobante**: En el checkout elige uno de 4 métodos (Yape, BCP, CCI o Culqi). Tras pagar, envía la captura del comprobante por WhatsApp usando el botón verde, que llega al asesor con un mensaje pre-rellenado que identifica el plan y el monto.
-- **Confirmación con asesor**: El asesor valida el pago, coordina día/hora de la cita y entrega el link de inscripción dentro del horario de atención (lunes a sábado, 9-20h).
+- **Confirmación con asesor**: El asesor valida el pago, coordina día/hora de la cita y entrega el link de inscripción dentro del horario de atención (lunes a viernes 10-20h, sábados 9-19h).
 - **Si no se decide**: La sección de Evaluación S/80 le ofrece un paso previo de bajo riesgo con el mismo flujo de checkout (`/checkout/evaluacion/`).
 - **Autoidentificación**: La sección "Para quién sí/no" permite que el visitante incompatible se autodescarte sin sentirse rechazado.
 - **Resolución de dudas**: FAQ responde objeciones comunes. El footer del checkout incluye un link al asesor para dudas previas al pago.
@@ -588,7 +588,7 @@ Landing en producción en `ajlnutricion.com`, **ahora hosteada en Vercel** (migr
   - La página de checkout muestra los datos completos para Yape (919 151 237), BCP cuenta corriente (193-91104808-0-57) e interbancaria CCI (19391104808057).
   - Los números son seleccionables (CSS `user-select: all`) para que el usuario los pueda copiar de un solo click.
   - En el paso 2 hay un botón verde "Enviar comprobante por WhatsApp" con mensaje pre-rellenado: "Hola, te envío el comprobante del plan [Nombre] (S/[base])".
-  - El paso 3 aclara que el asesor responde en horario de atención (lunes a sábado, 9:00 a.m. a 8:00 p.m.).
+  - El paso 3 aclara que el asesor responde en horario de atención (lunes a viernes 10:00 a.m. a 8:00 p.m., sábados 9:00 a.m. a 7:00 p.m.).
 
 ### 10.25 Confirmar la cita después del pago
 
