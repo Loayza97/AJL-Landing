@@ -49,3 +49,12 @@ def test_buscar_nombre_por_telefono_sin_codigo_pais():
 
 def test_buscar_nombre_fallback():
     assert buscar_nombre_por_telefono("51000000000", []) == "Paciente"
+
+def test_webhook_kapso_error_retorna_200(client):
+    from kapso import KapsoError
+    with patch("receiver.get_pacientes", return_value=[]), \
+         patch("receiver.enviar_mensaje", side_effect=KapsoError("timeout")):
+        resp = client.post("/nicobot-recepcion",
+                           data=json.dumps(PAYLOAD_WSP),
+                           content_type="application/json")
+    assert resp.status_code == 200

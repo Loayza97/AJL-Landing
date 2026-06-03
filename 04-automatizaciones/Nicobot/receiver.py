@@ -29,6 +29,8 @@ def recibir():
         mensaje_nico = f"📩 *{nombre}* respondió:\n\"{texto}\""
         enviar_mensaje(config.NUMERO_NUTRICIONISTA, mensaje_nico)
         print(f"[OK] Reenviado mensaje de {nombre} a Nicolás")
+    except KapsoError as e:
+        print(f"[ERROR] Fallo al reenviar a Nicolás: {e}")
     except (KeyError, IndexError, TypeError) as e:
         print(f"[WARN] Payload inesperado: {e}")
     return jsonify({"status": "ok"}), 200
