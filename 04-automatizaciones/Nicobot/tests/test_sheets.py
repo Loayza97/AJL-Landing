@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from sheets import get_pacientes, PacienteRow
 
+
 def test_get_pacientes_filtra_sin_entregado():
     mock_rows = [
         {"Nombre": "María", "Apellido": "García", "Número de WhatsApp": "51987654321",
@@ -12,8 +13,12 @@ def test_get_pacientes_filtra_sin_entregado():
     with patch("sheets.get_all_records", return_value=mock_rows):
         pacientes = get_pacientes()
     assert len(pacientes) == 1
-    assert pacientes[0].nombre == "María García"
+    assert pacientes[0].nombre == "María"
+    assert pacientes[0].apellido == "García"
+    assert pacientes[0].primer_nombre == "María"
+    assert pacientes[0].nombre_completo == "María García"
     assert pacientes[0].telefono == "51987654321"
+
 
 def test_get_pacientes_ignora_sin_telefono():
     mock_rows = [
@@ -24,6 +29,7 @@ def test_get_pacientes_ignora_sin_telefono():
         pacientes = get_pacientes()
     assert len(pacientes) == 0
 
+
 def test_get_pacientes_ignora_sin_fecha():
     mock_rows = [
         {"Nombre": "Ana", "Apellido": "López", "Número de WhatsApp": "51999999999",
@@ -32,3 +38,21 @@ def test_get_pacientes_ignora_sin_fecha():
     with patch("sheets.get_all_records", return_value=mock_rows):
         pacientes = get_pacientes()
     assert len(pacientes) == 0
+
+
+def test_primer_nombre_toma_primera_palabra():
+    p = PacienteRow(nombre="Ana Lucía", apellido="Ríos", telefono="51999999999",
+                    fecha_entrega_plan=__import__("datetime").date(2026, 6, 1))
+    assert p.primer_nombre == "Ana"
+
+
+def test_apellido_vacio_permitido():
+    mock_rows = [
+        {"Nombre": "Carlos", "Apellido": "", "Número de WhatsApp": "51911111111",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert len(pacientes) == 1
+    assert pacientes[0].apellido == ""
+    assert pacientes[0].nombre_completo == "Carlos"

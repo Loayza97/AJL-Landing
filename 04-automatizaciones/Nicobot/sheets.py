@@ -8,9 +8,19 @@ SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 @dataclass
 class PacienteRow:
-    nombre: str
+    nombre: str        # raw "Nombre" column (may contain multiple words)
+    apellido: str      # raw "Apellido" column (may be empty)
     telefono: str
     fecha_entrega_plan: date
+
+    @property
+    def primer_nombre(self) -> str:
+        partes = self.nombre.split()
+        return partes[0] if partes else self.nombre
+
+    @property
+    def nombre_completo(self) -> str:
+        return f"{self.nombre} {self.apellido}".strip()
 
 def _get_worksheet():
     creds = Credentials.from_service_account_file(
@@ -31,7 +41,8 @@ def get_pacientes() -> list[PacienteRow]:
         estado = str(row.get("Estado", "")).strip()
         if estado != "Entregado":
             continue
-        nombre = f"{row.get('Nombre', '').strip()} {row.get('Apellido', '').strip()}".strip()
+        nombre = str(row.get("Nombre", "")).strip()
+        apellido = str(row.get("Apellido", "")).strip()
         telefono = str(row.get("Número de WhatsApp", "")).strip()
         fecha_str = str(row.get("Fecha de Entrega del Plan", "")).strip()
         if not telefono or not fecha_str or not nombre:
@@ -39,7 +50,7 @@ def get_pacientes() -> list[PacienteRow]:
         try:
             fecha = date.fromisoformat(fecha_str)
         except ValueError:
-            print(f"[WARN] Fecha inválida para {nombre}: '{fecha_str}' — skipping")
+            print(f"[WARN] Fecha inválida para {nombre} {apellido}: '{fecha_str}' — skipping")
             continue
-        pacientes.append(PacienteRow(nombre=nombre, telefono=telefono, fecha_entrega_plan=fecha))
+        pacientes.append(PacienteRow(nombre=nombre, apellido=apellido, telefono=telefono, fecha_entrega_plan=fecha))
     return pacientes

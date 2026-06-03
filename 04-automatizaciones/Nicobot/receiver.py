@@ -10,7 +10,7 @@ def buscar_nombre_por_telefono(telefono: str, pacientes: list[PacienteRow]) -> s
     for p in pacientes:
         tel_p = "".join(filter(str.isdigit, p.telefono))
         if tel_p == tel_limpio or tel_limpio.endswith(tel_p) or tel_p.endswith(tel_limpio):
-            return p.nombre
+            return p.nombre_completo
     return "Paciente"
 
 @app.route("/nicobot-recepcion", methods=["POST"])

@@ -40,11 +40,11 @@ def test_webhook_ignora_no_texto(client):
     mock_envio.assert_not_called()
 
 def test_buscar_nombre_por_telefono_exacto():
-    pacientes = [PacienteRow("María García", "51987654321", date(2026, 6, 1))]
+    pacientes = [PacienteRow("María", "García", "51987654321", date(2026, 6, 1))]
     assert buscar_nombre_por_telefono("51987654321", pacientes) == "María García"
 
 def test_buscar_nombre_por_telefono_sin_codigo_pais():
-    pacientes = [PacienteRow("Juan Pérez", "51987654321", date(2026, 6, 1))]
+    pacientes = [PacienteRow("Juan", "Pérez", "51987654321", date(2026, 6, 1))]
     assert buscar_nombre_por_telefono("987654321", pacientes) == "Juan Pérez"
 
 def test_buscar_nombre_fallback():
