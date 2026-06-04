@@ -43,6 +43,16 @@ def test_procesar_pacientes_envia_template_a_activos():
     mock_envio.assert_called_once_with("51987654321", "María")
 
 
+def test_procesar_pacientes_usa_chapa_en_template():
+    pacientes = [
+        PacienteRow("Alejandro", "Loayza", "51912846283", date(2026, 6, 7), chapa="peladito"),
+    ]
+    with patch("sender.debe_enviar_hoy", return_value=True), \
+         patch("sender.enviar_template") as mock_envio:
+        procesar_pacientes(pacientes)
+    mock_envio.assert_called_once_with("51912846283", "peladito")
+
+
 def test_procesar_pacientes_no_envia_a_inactivos():
     pacientes = [
         PacienteRow("Juan", "Pérez", "51912345678", date(2026, 1, 1)),

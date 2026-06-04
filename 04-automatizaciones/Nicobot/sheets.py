@@ -12,6 +12,7 @@ class PacienteRow:
     apellido: str      # raw "Apellido" column (may be empty)
     telefono: str
     fecha_entrega_plan: date
+    chapa: str = ""    # raw "Chapa" column: apodo personal con que Nico se refiere al paciente
 
     @property
     def primer_nombre(self) -> str:
@@ -21,6 +22,11 @@ class PacienteRow:
     @property
     def nombre_completo(self) -> str:
         return f"{self.nombre} {self.apellido}".strip()
+
+    @property
+    def nombre_saludo(self) -> str:
+        """Nombre que va en el template: la Chapa; si está vacía, el primer nombre."""
+        return self.chapa if self.chapa else self.primer_nombre
 
 def _get_worksheet():
     creds = Credentials.from_service_account_file(
@@ -66,6 +72,7 @@ def get_pacientes() -> list[PacienteRow]:
                 continue
         nombre = str(row.get("Nombre", "")).strip()
         apellido = str(row.get("Apellido", "")).strip()
+        chapa = str(row.get("Chapa", "")).strip()
         telefono = normalizar_telefono(str(row.get("Número de WhatsApp", "")))
         fecha_str = str(row.get("Fecha de Entrega del Plan", "")).strip()
         if not telefono or not fecha_str or not nombre:
@@ -75,5 +82,5 @@ def get_pacientes() -> list[PacienteRow]:
         except (ValueError, IndexError):
             print(f"[WARN] Fecha inválida para {nombre} {apellido}: '{fecha_str}' — skipping")
             continue
-        pacientes.append(PacienteRow(nombre=nombre, apellido=apellido, telefono=telefono, fecha_entrega_plan=fecha))
+        pacientes.append(PacienteRow(nombre=nombre, apellido=apellido, chapa=chapa, telefono=telefono, fecha_entrega_plan=fecha))
     return pacientes

@@ -18,7 +18,7 @@ def procesar_pacientes(pacientes: list[PacienteRow]):
         if not debe_enviar_hoy(p.fecha_entrega_plan):
             continue
         try:
-            enviar_template(p.telefono, p.primer_nombre)
+            enviar_template(p.telefono, p.nombre_saludo)
             print(f"[OK] Enviado a {p.nombre_completo} ({p.telefono})")
         except KapsoError as e:
             print(f"[ERROR] Fallo envío a {p.nombre_completo}: {e}")

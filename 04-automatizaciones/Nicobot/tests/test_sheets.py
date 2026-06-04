@@ -59,9 +59,35 @@ def test_get_pacientes_ignora_sin_fecha():
 
 
 def test_primer_nombre_toma_primera_palabra():
-    p = PacienteRow(nombre="Ana Lucía", apellido="Ríos", telefono="51999999999",
+    p = PacienteRow(nombre="Ana Lucía", apellido="Ríos", chapa="", telefono="51999999999",
                     fecha_entrega_plan=__import__("datetime").date(2026, 6, 1))
     assert p.primer_nombre == "Ana"
+
+
+def test_nombre_saludo_usa_chapa():
+    p = PacienteRow(nombre="Alejandro", apellido="Loayza", chapa="peladito",
+                    telefono="51999999999",
+                    fecha_entrega_plan=__import__("datetime").date(2026, 6, 1))
+    assert p.nombre_saludo == "peladito"
+
+
+def test_nombre_saludo_fallback_primer_nombre_si_chapa_vacia():
+    p = PacienteRow(nombre="Ana Lucía", apellido="Ríos", chapa="",
+                    telefono="51999999999",
+                    fecha_entrega_plan=__import__("datetime").date(2026, 6, 1))
+    assert p.nombre_saludo == "Ana"
+
+
+def test_get_pacientes_lee_columna_chapa():
+    mock_rows = [
+        {"Nombre": "Alejandro", "Apellido": "Loayza", "Chapa": "peladito",
+         "Número de WhatsApp": "912846283", "Fecha de Entrega del Plan": "1/6/2026",
+         "Estado": ""},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert pacientes[0].chapa == "peladito"
+    assert pacientes[0].nombre_saludo == "peladito"
 
 
 def test_telefono_9_digitos_agrega_codigo_peru():
