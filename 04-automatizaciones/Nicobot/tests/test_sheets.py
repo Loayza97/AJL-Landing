@@ -46,6 +46,36 @@ def test_primer_nombre_toma_primera_palabra():
     assert p.primer_nombre == "Ana"
 
 
+def test_telefono_9_digitos_agrega_codigo_peru():
+    mock_rows = [
+        {"Nombre": "María", "Apellido": "García", "Número de WhatsApp": "987654321",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert pacientes[0].telefono == "51987654321"
+
+
+def test_telefono_con_codigo_no_se_duplica():
+    mock_rows = [
+        {"Nombre": "Juan", "Apellido": "Pérez", "Número de WhatsApp": "51987654321",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert pacientes[0].telefono == "51987654321"
+
+
+def test_telefono_con_simbolos_se_limpia():
+    mock_rows = [
+        {"Nombre": "Ana", "Apellido": "Ríos", "Número de WhatsApp": "+51 987-654-321",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert pacientes[0].telefono == "51987654321"
+
+
 def test_apellido_vacio_permitido():
     mock_rows = [
         {"Nombre": "Carlos", "Apellido": "", "Número de WhatsApp": "51911111111",

@@ -34,6 +34,17 @@ def get_all_records():
     ws = _get_worksheet()
     return ws.get_all_records()
 
+CODIGO_PAIS = "51"  # Perú: números locales de 9 dígitos se completan con este prefijo
+
+
+def normalizar_telefono(raw: str) -> str:
+    """Deja solo dígitos; si quedan 9 (móvil peruano local), antepone el código de país."""
+    digitos = "".join(filter(str.isdigit, raw))
+    if len(digitos) == 9:
+        return CODIGO_PAIS + digitos
+    return digitos
+
+
 def get_pacientes() -> list[PacienteRow]:
     rows = get_all_records()
     pacientes = []
@@ -43,7 +54,7 @@ def get_pacientes() -> list[PacienteRow]:
             continue
         nombre = str(row.get("Nombre", "")).strip()
         apellido = str(row.get("Apellido", "")).strip()
-        telefono = str(row.get("Número de WhatsApp", "")).strip()
+        telefono = normalizar_telefono(str(row.get("Número de WhatsApp", "")))
         fecha_str = str(row.get("Fecha de Entrega del Plan", "")).strip()
         if not telefono or not fecha_str or not nombre:
             continue
