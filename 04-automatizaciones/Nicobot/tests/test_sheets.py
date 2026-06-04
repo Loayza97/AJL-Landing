@@ -3,21 +3,39 @@ from unittest.mock import patch, MagicMock
 from sheets import get_pacientes, PacienteRow
 
 
-def test_get_pacientes_filtra_sin_entregado():
+def test_get_pacientes_por_defecto_ignora_estado():
+    # Por defecto (REQUIERE_ESTADO_ENTREGADO=False) el Estado no filtra:
+    # basta con nombre + telefono + fecha válida.
     mock_rows = [
         {"Nombre": "María", "Apellido": "García", "Número de WhatsApp": "51987654321",
          "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
         {"Nombre": "Juan", "Apellido": "Pérez", "Número de WhatsApp": "51912345678",
          "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Pendiente"},
     ]
-    with patch("sheets.get_all_records", return_value=mock_rows):
+    with patch("sheets.config.REQUIERE_ESTADO_ENTREGADO", False), \
+         patch("sheets.get_all_records", return_value=mock_rows):
         pacientes = get_pacientes()
-    assert len(pacientes) == 1
+    assert len(pacientes) == 2
     assert pacientes[0].nombre == "María"
     assert pacientes[0].apellido == "García"
     assert pacientes[0].primer_nombre == "María"
     assert pacientes[0].nombre_completo == "María García"
     assert pacientes[0].telefono == "51987654321"
+
+
+def test_get_pacientes_filtra_por_estado_si_flag_activo():
+    # Con el flag activado, vuelve a exigir Estado=="Entregado".
+    mock_rows = [
+        {"Nombre": "María", "Apellido": "García", "Número de WhatsApp": "51987654321",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Entregado"},
+        {"Nombre": "Juan", "Apellido": "Pérez", "Número de WhatsApp": "51912345678",
+         "Fecha de Entrega del Plan": "2026-06-01", "Estado": "Pendiente"},
+    ]
+    with patch("sheets.config.REQUIERE_ESTADO_ENTREGADO", True), \
+         patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert len(pacientes) == 1
+    assert pacientes[0].nombre == "María"
 
 
 def test_get_pacientes_ignora_sin_telefono():

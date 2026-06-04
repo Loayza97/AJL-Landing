@@ -58,9 +58,12 @@ def get_pacientes() -> list[PacienteRow]:
     rows = get_all_records()
     pacientes = []
     for row in rows:
-        estado = str(row.get("Estado", "")).strip()
-        if estado != "Entregado":
-            continue
+        # Filtro por Estado: silenciado por defecto (config.REQUIERE_ESTADO_ENTREGADO).
+        # La fecha de entrega ya implica que el plan se entregó.
+        if config.REQUIERE_ESTADO_ENTREGADO:
+            estado = str(row.get("Estado", "")).strip()
+            if estado != "Entregado":
+                continue
         nombre = str(row.get("Nombre", "")).strip()
         apellido = str(row.get("Apellido", "")).strip()
         telefono = normalizar_telefono(str(row.get("Número de WhatsApp", "")))
