@@ -12,6 +12,8 @@ PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 KAPSO_API_URL = os.getenv("KAPSO_API_URL", "https://api.kapso.ai/meta/whatsapp/v22.0")
 TEMPLATE_NAME = os.getenv("TEMPLATE_NAME", "seguimiento_x3")
 TEMPLATE_LANG = os.getenv("TEMPLATE_LANG", "es")
+TEMPLATE_AVISO_NAME = os.getenv("TEMPLATE_AVISO_NAME", "aviso_nico_v2")
+DEBOUNCE_MINUTOS = int(os.getenv("DEBOUNCE_MINUTOS", "10"))
 
 # Si es True, solo procesa filas con Estado=="Entregado".
 # Por defecto False: basta con tener nombre + fecha válida (la fecha ya implica entrega).
