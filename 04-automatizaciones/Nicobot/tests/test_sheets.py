@@ -78,6 +78,19 @@ def test_nombre_saludo_fallback_primer_nombre_si_chapa_vacia():
     assert p.nombre_saludo == "Ana"
 
 
+def test_get_pacientes_tolera_encabezado_con_salto_de_linea():
+    # El Sheet real tiene el encabezado "Número de \nWhatsApp" (con salto de línea).
+    mock_rows = [
+        {"Nombre": "Alejandro", "Apellido": "Loayza", "Chapa": "peladito",
+         "Número de \nWhatsApp": "912846283", "Fecha de Entrega del Plan": "1/6/2026",
+         "Estado": ""},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert len(pacientes) == 1
+    assert pacientes[0].telefono == "51912846283"
+
+
 def test_get_pacientes_lee_columna_chapa():
     mock_rows = [
         {"Nombre": "Alejandro", "Apellido": "Loayza", "Chapa": "peladito",

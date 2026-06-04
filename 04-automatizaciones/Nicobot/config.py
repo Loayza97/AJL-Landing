@@ -9,7 +9,7 @@ SHEET_ID = os.getenv("SHEET_ID")
 SHEET_NAME = os.getenv("SHEET_NAME", "Hoja 1")
 NUMERO_NUTRICIONISTA = os.getenv("NUMERO_NUTRICIONISTA")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
-KAPSO_API_URL = os.getenv("KAPSO_API_URL", "https://api.kapso.ai/meta/whatsapp")
+KAPSO_API_URL = os.getenv("KAPSO_API_URL", "https://api.kapso.ai/meta/whatsapp/v22.0")
 TEMPLATE_NAME = os.getenv("TEMPLATE_NAME", "seguimiento_x3")
 TEMPLATE_LANG = os.getenv("TEMPLATE_LANG", "es")
 

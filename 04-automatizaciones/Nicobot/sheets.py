@@ -1,8 +1,15 @@
 from dataclasses import dataclass
 from datetime import date
+import re
 import gspread
 from google.oauth2.service_account import Credentials
 import config
+
+
+def _normalizar_fila(row: dict) -> dict:
+    """Colapsa espacios y saltos de línea en los encabezados.
+    El Sheet real tiene títulos multilínea como 'Número de \\nWhatsApp'."""
+    return {re.sub(r"\s+", " ", str(k)).strip(): v for k, v in row.items()}
 
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
@@ -64,6 +71,7 @@ def get_pacientes() -> list[PacienteRow]:
     rows = get_all_records()
     pacientes = []
     for row in rows:
+        row = _normalizar_fila(row)
         # Filtro por Estado: silenciado por defecto (config.REQUIERE_ESTADO_ENTREGADO).
         # La fecha de entrega ya implica que el plan se entregó.
         if config.REQUIERE_ESTADO_ENTREGADO:
