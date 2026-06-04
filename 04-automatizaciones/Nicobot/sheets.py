@@ -45,6 +45,15 @@ def normalizar_telefono(raw: str) -> str:
     return digitos
 
 
+def parsear_fecha(fecha_str: str) -> date:
+    """Acepta día/mes/año (25/07/2026) o ISO (2026-07-25). Lanza ValueError si no calza."""
+    fecha_str = fecha_str.strip()
+    if "/" in fecha_str:
+        dia, mes, anio = fecha_str.split("/")
+        return date(int(anio), int(mes), int(dia))
+    return date.fromisoformat(fecha_str)
+
+
 def get_pacientes() -> list[PacienteRow]:
     rows = get_all_records()
     pacientes = []
@@ -59,8 +68,8 @@ def get_pacientes() -> list[PacienteRow]:
         if not telefono or not fecha_str or not nombre:
             continue
         try:
-            fecha = date.fromisoformat(fecha_str)
-        except ValueError:
+            fecha = parsear_fecha(fecha_str)
+        except (ValueError, IndexError):
             print(f"[WARN] Fecha inválida para {nombre} {apellido}: '{fecha_str}' — skipping")
             continue
         pacientes.append(PacienteRow(nombre=nombre, apellido=apellido, telefono=telefono, fecha_entrega_plan=fecha))

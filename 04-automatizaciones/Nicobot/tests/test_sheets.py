@@ -76,6 +76,38 @@ def test_telefono_con_simbolos_se_limpia():
     assert pacientes[0].telefono == "51987654321"
 
 
+def test_fecha_formato_peruano_barra():
+    mock_rows = [
+        {"Nombre": "María", "Apellido": "García", "Número de WhatsApp": "987654321",
+         "Fecha de Entrega del Plan": "25/07/2026", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    import datetime
+    assert pacientes[0].fecha_entrega_plan == datetime.date(2026, 7, 25)
+
+
+def test_fecha_formato_iso_sigue_funcionando():
+    mock_rows = [
+        {"Nombre": "Juan", "Apellido": "Pérez", "Número de WhatsApp": "987654321",
+         "Fecha de Entrega del Plan": "2026-07-25", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    import datetime
+    assert pacientes[0].fecha_entrega_plan == datetime.date(2026, 7, 25)
+
+
+def test_fecha_invalida_se_descarta():
+    mock_rows = [
+        {"Nombre": "Ana", "Apellido": "Ríos", "Número de WhatsApp": "987654321",
+         "Fecha de Entrega del Plan": "no-es-fecha", "Estado": "Entregado"},
+    ]
+    with patch("sheets.get_all_records", return_value=mock_rows):
+        pacientes = get_pacientes()
+    assert len(pacientes) == 0
+
+
 def test_apellido_vacio_permitido():
     mock_rows = [
         {"Nombre": "Carlos", "Apellido": "", "Número de WhatsApp": "51911111111",
