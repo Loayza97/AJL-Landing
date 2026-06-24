@@ -1,6 +1,6 @@
 // ─── Fuente única de verdad de los 5 productos ──────────────────────────────
 // Cualquier cambio de precio, features o link de pago se hace acá y se
-// propaga al landing (cards) y a las páginas de checkout.
+// propaga al landing (matriz comparativa) y a las páginas de checkout.
 
 export const plans = {
   evaluacion: {
@@ -27,21 +27,8 @@ export const plans = {
     freq: 'Única',
     badge: null,
     highlight: false,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
-      { count: null, label: 'Sesión de logros', note: null, included: false },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: null, included: false },
-      { label: 'Soporte nutricional', note: null, included: false },
-      { label: 'Sesiones grupales', note: null, included: false },
-      { label: 'Comunidad exclusiva', note: null, included: false },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
     programs: null,
-    programsNote: 'Solo disponible mensual',
+    programsNote: 'Pago único, sin permanencia',
     checkoutSummary: [
       '1 sesión de estrategia (60 min)',
       'Plan nutricional adaptado a tu rutina',
@@ -58,19 +45,6 @@ export const plans = {
     freq: 'Mensual',
     badge: null,
     highlight: false,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: null, label: 'Sesión de seguimiento', note: null, included: false },
-      { count: null, label: 'Sesión de logros', note: null, included: false },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
     programs: [
       { label: '3 meses', total: 'S/900', perMes: 'S/300/mes' },
     ],
@@ -91,19 +65,6 @@ export const plans = {
     freq: 'Quincenal',
     badge: 'Recomendado',
     highlight: true,
-    sessions: [
-      { count: 1, label: 'Sesión de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 1, label: 'Plan nutricional', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: 1, label: 'Sesión de seguimiento', note: 'Revisamos tu progreso', included: true },
-      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: false },
-    ],
     programs: [
       { label: '3 meses', total: 'S/1,250', perMes: 'S/417/mes' },
       { label: '6 meses', total: 'S/2,400', perMes: 'S/400/mes' },
@@ -125,19 +86,6 @@ export const plans = {
     freq: 'Semanal',
     badge: 'Más completo',
     highlight: false,
-    sessions: [
-      { count: 2, label: 'Sesiones de estrategia', note: 'Analizamos tu rutina · 60 min', included: true },
-      { count: 2, label: 'Planes nutricionales', note: 'Adaptado a tu rutina y patrones', included: true },
-      { count: 2, label: 'Sesiones de seguimiento', note: 'Revisamos tu progreso', included: true },
-      { count: null, label: 'Sesión de logros', note: 'Solo en tu primer mes con nosotros', included: true },
-    ],
-    continuous: [
-      { label: 'Seguimiento WhatsApp', note: 'Acompañamiento continuo', included: true },
-      { label: 'Soporte nutricional', note: 'L-V 9am-6pm, S 9am-1pm', included: true },
-      { label: 'Sesiones grupales', note: '4/mes, espacio educativo', included: true },
-      { label: 'Comunidad exclusiva', note: 'Grupo privado', included: true },
-      { label: 'Atención prioritaria', note: null, included: true, star: true },
-    ],
     programs: [
       { label: '3 meses', total: 'S/1,700', perMes: 'S/567/mes' },
       { label: '6 meses', total: 'S/3,200', perMes: 'S/533/mes' },
@@ -151,10 +99,66 @@ export const plans = {
   },
 };
 
-// Plans que aparecen como cards en el landing (excluye Evaluación)
+// Planes mensuales en orden de columna (de menor a mayor acompañamiento).
 export const monthlyPlans = [
   plans.basico,
   plans.acompanamiento,
   plans.constancia,
   plans.transformacion,
+];
+
+// ─── Matriz de features (fuente única para la tabla comparativa) ────────────
+// value: número (string) → se muestra tal cual · true → ✓ · false → —
+//        'star' → ★ (incluido + destacado)
+export const featureGroups = [
+  {
+    group: 'Sesiones individuales',
+    rows: [
+      {
+        label: 'Sesión de estrategia',
+        desc: 'Evaluación física y revisión de tus patrones de alimentación, costumbres y tipos de día. Estructuramos tu plan a partir de cómo comes y cómo vives · 60 min.',
+        values: { basico: '1', acompanamiento: '1', constancia: '1', transformacion: '2' },
+      },
+      {
+        label: 'Plan nutricional personalizado',
+        desc: 'Distribución de tu alimentación a lo largo del día, con porciones y opciones adaptadas a tu rutina, tus horarios y lo que tienes disponible.',
+        values: { basico: '1', acompanamiento: '1', constancia: '1', transformacion: '2' },
+      },
+      {
+        label: 'Sesión de seguimiento',
+        desc: 'Revisamos avances, cómo te sientes y qué hábitos estás sosteniendo. Buscamos estrategias para que el plan se cumpla, no cambiarlo a la primera · Virtual, 30 min.',
+        values: { basico: false, acompanamiento: false, constancia: '1', transformacion: '2' },
+      },
+      {
+        label: 'Sesión de logros',
+        desc: 'Medición de composición corporal (bioimpedancia, cinta métrica, plicómetro) + revisión de hábitos. Exclusiva para pacientes nuevos, incluida en tu primer mes.',
+        values: { basico: false, acompanamiento: false, constancia: true, transformacion: true },
+      },
+    ],
+  },
+  {
+    group: 'Acompañamiento continuo',
+    rows: [
+      {
+        label: 'Seguimiento por WhatsApp',
+        desc: 'Para las decisiones del día a día: qué comer fuera de casa, cómo resolver una comida improvisada, qué hacer cuando el plan no calza con tu día · L-V 9am-6pm, S 9am-1pm.',
+        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
+      },
+      {
+        label: 'Sesiones grupales',
+        desc: '4 sesiones al mes en vivo. Espacio educativo donde trabajamos los fundamentos para sostener tus resultados por tu cuenta. Grabadas si no puedes asistir.',
+        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
+      },
+      {
+        label: 'Comunidad exclusiva',
+        desc: 'Grupo privado donde compartes el proceso con otras personas en tu misma situación: recetas, experiencias y motivación entre quienes te entienden.',
+        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
+      },
+      {
+        label: 'Atención prioritaria',
+        desc: 'Prioridad en todo: agendamiento de sesiones, entrega de planes y respuesta por WhatsApp. El mismo método, con atención preferente en cada contacto.',
+        values: { basico: false, acompanamiento: false, constancia: false, transformacion: 'star' },
+      },
+    ],
+  },
 ];

@@ -205,7 +205,9 @@
     --forest-light: #1E3D2C;
   }
   *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
   html, body { margin: 0; padding: 0; }
+  ::selection { background: var(--gold); color: #fff; }
   body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
@@ -245,6 +247,8 @@
     transition: all 0.2s;
   }
   .nav-cta:hover { background: var(--gold); transform: translateY(-1px); }
+  nav { transition: box-shadow 0.3s ease; }
+  nav.scrolled { box-shadow: 0 6px 28px rgba(0,0,0,0.07); }
 
   /* ── HERO ── */
   .hero { padding: 88px 0 48px; text-align: center; }
@@ -264,8 +268,11 @@
   @keyframes pop { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:scale(1); } }
   .hero h1 {
     font-size: clamp(52px,8.5vw,108px); font-weight: 800; letter-spacing: -0.045em; line-height: 1.0;
-    margin-bottom: 24px; animation: fadeUp 0.8s ease 0.1s both;
+    margin-bottom: 24px;
   }
+  .hero h1 .reveal-line { display: block; overflow: hidden; padding-bottom: 0.08em; }
+  .hero h1 .reveal-line > span { display: inline-block; transform: translateY(110%); animation: lineUp 0.95s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes lineUp { to { transform: translateY(0); } }
   .grad { background: linear-gradient(135deg, var(--gold) 0%, var(--rose) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .grad-gold { background: linear-gradient(135deg, #C8973A 0%, #EFA05A 50%, #E06030 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
@@ -579,8 +586,9 @@
   .libro-badge .libro-icon { display: inline-flex; flex-shrink: 0; }
 
   /* ── REVEAL ── */
-  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease, transform 0.7s ease; }
-  .reveal.in { opacity: 1; transform: translateY(0); }
+  .reveal { opacity: 0; transform: translateY(28px); }
+  .reveal.in { animation: revealUp 0.85s cubic-bezier(0.16,1,0.3,1) both; }
+  @keyframes revealUp { to { opacity: 1; transform: translateY(0); } }
 
   /* ── COLOR HELPERS ── */
   .ico-gold { background: var(--gold-soft); color: var(--gold); }
@@ -614,7 +622,11 @@
   /* ── INCLUDES GRID LAYOUT ── */
   .includes-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
 
-  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .reveal, .hero h1 .reveal-line > span { opacity: 1 !important; transform: none !important; }
+  }
 
   /* ══════════════════════════════════════════
      MOBILE RESPONSIVE — ≤ 768px
@@ -706,7 +718,6 @@
     <div class="nav-links">
       <a href="#metodo">Método</a>
       <a href="#planes">Planes</a>
-      <a href="#incluye">Qué incluye</a>
       <a href="#evaluacion">Evaluación</a>
       <a href="#faq">FAQ</a>
     </div>
@@ -717,30 +728,15 @@
 <!-- ════════════════════════════════════════ HERO ════════════════════════════════════════ -->
 <section class="hero" id="inicio">
   <div class="container">
-<h1>Nutrición que se adapta<br><span class="grad">a tu día a día.</span></h1>
-    <p>Con un sistema personalizado para ti.</p>
+<h1>
+      <span class="reveal-line"><span style="animation-delay:0.1s">Cambia tu cuerpo</span></span>
+      <span class="reveal-line"><span class="grad" style="animation-delay:0.24s">sin cambiar tu vida.</span></span>
+    </h1>
+    <p>Nutrición personalizada para tu día real —restaurantes, delivery y cenas sociales incluidas. Resultados que se sostienen, sin dietas rígidas ni culpa.</p>
     <div class="hero-ctas">
-      <a href="#planes" class="btn btn-primary">Ver planes y precios →</a>
-      <a href="#metodo" class="btn btn-ghost">Cómo funciona</a>
+      <a href="#evaluacion" class="btn btn-primary">Empieza con la Evaluación · S/80 →</a>
+      <a href="#planes" class="btn btn-ghost">Ver los planes</a>
     </div>
-  </div>
-</section>
-
-<!-- ════════════════════════════════════════ BANNER DIFERENCIA ═══════════════════════════ -->
-<section class="container">
-  <div class="bento" style="padding:8px 0 56px;">
-
-    <div class="tile span-6 reveal" style="background:var(--card);border-color:rgba(200,151,58,0.18);padding:44px 52px;grid-auto-rows:auto;">
-      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>La diferencia</span>
-      <h3 style="font-size:clamp(28px,3.5vw,44px);font-weight:800;line-height:1.08;letter-spacing:-0.035em;margin-bottom:18px;background:linear-gradient(135deg,#C8973A 0%,#EFA05A 50%,#E06030 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Estructura para tu vida real, no para la ideal.</h3>
-      <p style="font-size:16px;color:var(--ink-soft);max-width:680px;line-height:1.7;margin-bottom:32px;">Diseñamos el plan sobre lo que realmente comes, dónde comes y con quién. Si usas Rappi 4 veces por semana, el plan lo contempla desde el día uno. No hay una vida ideal que seguir: hay tu vida, y la trabajamos con ella.</p>
-      <div style="border-top:1px solid rgba(200,151,58,0.2);padding-top:24px;">
-        <p style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:14px;">Filosofía</p>
-        <blockquote style="font-family:'Plus Jakarta Sans';font-size:clamp(18px,2.2vw,26px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;background:linear-gradient(135deg,#C8973A,#EFA05A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 12px;">"La restricción extrema no produce resultados sostenibles. La estructura inteligente para tu vida real, sí."</blockquote>
-        <cite style="font-size:13px;color:var(--ink-soft);display:block;font-style:normal;">— Alejandro Loayza, Nutricionista AJL</cite>
-      </div>
-    </div>
-
   </div>
 </section>
 
@@ -789,6 +785,24 @@
   </div>
 </section>
 
+<!-- ════════════════════════════════════════ LA DIFERENCIA ═══════════════════════════════ -->
+<section class="container">
+  <div class="bento" style="padding:8px 0 56px;">
+
+    <div class="tile span-6 reveal" style="background:var(--card);border-color:rgba(200,151,58,0.18);padding:44px 52px;grid-auto-rows:auto;">
+      <span class="eyebrow"><span class="dot" style="background:var(--gold)"></span>La diferencia</span>
+      <h3 style="font-size:clamp(28px,3.5vw,44px);font-weight:800;line-height:1.08;letter-spacing:-0.035em;margin-bottom:18px;background:linear-gradient(135deg,#C8973A 0%,#EFA05A 50%,#E06030 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">Estructura para tu vida real, no para la ideal.</h3>
+      <p style="font-size:16px;color:var(--ink-soft);max-width:680px;line-height:1.7;margin-bottom:32px;">Diseñamos el plan sobre lo que realmente comes, dónde comes y con quién. Si usas Rappi 4 veces por semana, el plan lo contempla desde el día uno. No hay una vida ideal que seguir: hay tu vida, y la trabajamos con ella.</p>
+      <div style="border-top:1px solid rgba(200,151,58,0.2);padding-top:24px;">
+        <p style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:14px;">Filosofía</p>
+        <blockquote style="font-family:'Plus Jakarta Sans';font-size:clamp(18px,2.2vw,26px);font-weight:700;letter-spacing:-0.02em;line-height:1.3;background:linear-gradient(135deg,#C8973A,#EFA05A);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin:0 0 12px;">"La restricción extrema no produce resultados sostenibles. La estructura inteligente para tu vida real, sí."</blockquote>
+        <cite style="font-size:13px;color:var(--ink-soft);display:block;font-style:normal;">— Alejandro Loayza, Nutricionista AJL</cite>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 <!-- ════════════════════════════════════════ MÉTODO ════════════════════════════════════ -->
 <section class="container" id="metodo">
   <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;" class="reveal">
@@ -833,60 +847,6 @@
           <div class="step-num">06</div>
           <div class="step-title">Ajuste por adherencia real</div>
           <div class="step-desc">El plan evoluciona con tus datos reales. Si algo no funciona, no te culpamos: lo cambiamos.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Este plan es para ti -->
-    <div class="tile span-3 reveal" style="animation-delay:0.1s">
-      <span class="eyebrow"><span class="dot" style="background:var(--green)"></span>Este plan es para ti si:</span>
-      <div class="filter-row" style="margin-top:8px;">
-        <div class="filter-item">
-          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span>Comes fuera de casa frecuentemente y no quieres renunciar a eso</span>
-        </div>
-        <div class="filter-item">
-          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span>Ya probaste planes rígidos y no te funcionaron a largo plazo</span>
-        </div>
-        <div class="filter-item">
-          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span>Estás dispuesto a registrar tu alimentación las primeras semanas</span>
-        </div>
-        <div class="filter-item">
-          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span>Buscas resultados sostenibles en el tiempo, no una solución de 30 días</span>
-        </div>
-        <div class="filter-item">
-          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
-          <span>Puedes comprometerte a asistir a revisiones regulares</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- No es para ti -->
-    <div class="tile span-3 reveal" style="animation-delay:0.15s;background:var(--bg);">
-      <span class="eyebrow"><span class="dot" style="background:var(--ink-soft)"></span>No es para ti si…</span>
-      <div class="filter-row" style="margin-top:8px;">
-        <div class="filter-item" style="opacity:0.7;">
-          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-          <span>Buscas que te digan qué comer cada día sin involucrarte en el proceso</span>
-        </div>
-        <div class="filter-item" style="opacity:0.7;">
-          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-          <span>Esperas bajar X kilos en 30 días sin cambios de hábito reales</span>
-        </div>
-        <div class="filter-item" style="opacity:0.7;">
-          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-          <span>Crees que el azúcar o los carbohidratos son "el enemigo" y no estás dispuesto a cuestionarlo</span>
-        </div>
-        <div class="filter-item" style="opacity:0.7;">
-          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-          <span>No puedes comprometerte a asistir a revisiones ni a registrar datos</span>
-        </div>
-        <div class="filter-item" style="opacity:0.7;">
-          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
-          <span>Buscas una dieta mágica rápida, no un cambio sostenible</span>
         </div>
       </div>
     </div>
@@ -1078,156 +1038,6 @@
   </p>
 </section>
 
-<!-- ════════════════════════════════════════ QUÉ INCLUYE ═══════════════════════════════ -->
-<section class="container" id="incluye">
-  <div class="section-header reveal">
-    <h2>¿Qué incluye cada plan?</h2>
-    <p style="margin-top:8px;">Detalle de cada componente y qué planes lo incluyen.</p>
-  </div>
-
-  <div style="padding:24px 0 32px;">
-    <!-- Grupo 1: Sesiones -->
-    <p class="includes-group-label reveal">Sesiones individuales</p>
-    <div class="includes-grid" style="margin-bottom:24px;">
-
-      <div class="feature-card reveal" style="animation-delay:0.05s">
-        <p class="feature-name">Sesión de evaluación inicial</p>
-        <p class="feature-desc">Primera sesión donde se construye el plan sobre tu vida real, hábitos, trabajo y contexto social. La base de todo.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.1s">
-        <p class="feature-name">Revisión mensual (1 sesión)</p>
-        <p class="feature-desc">Revisión del mes, ajuste del plan según lo que viviste y calibración de metas para el siguiente período.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.15s">
-        <p class="feature-name">Revisión quincenal (2 sesiones)</p>
-        <p class="feature-desc">Revisión cada dos semanas. Ideal para quienes quieren feedback frecuente sin comprometerse a sesiones semanales.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.2s">
-        <p class="feature-name">Revisión semanal (4 sesiones)</p>
-        <p class="feature-desc">Sesión semanal intensiva. Máximo nivel de seguimiento y ajuste. Ideal para transformaciones profundas con estructura semanal.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.25s">
-        <p class="feature-name">Análisis de composición corporal</p>
-        <p class="feature-desc">Medición de masa grasa, músculo y agua corporal para ajustar metas de forma precisa más allá del peso en la balanza.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.3s">
-        <p class="feature-name">Estrategia nutricional a 6 meses</p>
-        <p class="feature-desc">Hoja de ruta de largo plazo: fases, metas progresivas y criterios de ajuste para los próximos 6 meses.</p>
-      </div>
-
-    </div>
-
-    <!-- Grupo 2: Acompañamiento continuo -->
-    <p class="includes-group-label reveal">Acompañamiento continuo</p>
-    <div class="includes-grid">
-
-      <div class="feature-card reveal" style="animation-delay:0.05s">
-        <p class="feature-name">Plan nutricional personalizado</p>
-        <p class="feature-desc">Plan adaptado a tu contexto: restaurantes habituales, hábitos familiares, gustos, intolerancias y vida social. No es un template.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.1s">
-        <p class="feature-name">Soporte por WhatsApp</p>
-        <p class="feature-desc">Canal directo para dudas del día a día: "¿qué pido en este restaurante?", "¿cómo manejo la cena de hoy?". Respuesta real, no genérica.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.15s">
-        <p class="feature-name">Soporte prioritario 24/7</p>
-        <p class="feature-desc">Acceso a respuesta prioritaria en cualquier momento. Para momentos críticos, dudas urgentes y situaciones imprevistas.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.2s">
-        <p class="feature-name">Ajuste por adherencia real</p>
-        <p class="feature-desc">El plan evoluciona con tus datos reales: si algo no funcionó, lo ajustamos en la siguiente revisión. Sin culpa, con datos.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.25s">
-        <p class="feature-name">Acceso a comunidad privada</p>
-        <p class="feature-desc">Grupo de pacientes activos de AJL. Apoyo entre pares, recetas, tips y motivación de quienes están en el mismo proceso.</p>
-      </div>
-
-      <div class="feature-card reveal" style="animation-delay:0.3s;background:linear-gradient(145deg,#FEFAF2,#FDF6E3,#FDF2CC);border-color:rgba(200,151,58,0.25);">
-        <p class="feature-name" style="color:var(--ink);">¿Tienes dudas sobre qué plan elegir?</p>
-        <p class="feature-desc" style="color:var(--ink-soft);margin-bottom:16px;">Puedes agendar una sesión de evaluación.</p>
-        <a href="#evaluacion" class="plan-cta" style="background:var(--gold);">Agendar evaluación →</a>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- ════════════════════════════════════════ TESTIMONIOS ═══════════════════════════════ -->
-<section class="container" id="testimonios" style="padding-top:8px;">
-  <div class="section-header reveal" style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-    <div>
-      <h2>Pacientes reales</h2>
-      <p style="margin-top:8px;">Personas reales que cambiaron su relación con la comida.</p>
-    </div>
-    <div class="testimonial-nav" id="testimonialNav">
-      <button class="t-nav-btn" id="tPrev" onclick="moveTestimonial(-1)" aria-label="Anterior">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-      </button>
-      <span class="t-nav-dots" id="tDots"></span>
-      <button class="t-nav-btn" id="tNext" onclick="moveTestimonial(1)" aria-label="Siguiente">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div class="testimonial-slider-wrap" style="padding:24px 0 56px;">
-    <div class="testimonial-slider" id="testimonialSlider">
-
-      <div class="testimonial-card reveal" style="animation-delay:0.05s">
-        <div class="testimonial-stars">
-          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-        </div>
-        <p class="testimonial-text">"Siempre pensé que yo era el problema. Que me faltaba fuerza de voluntad. Alejandro fue el primero en explicarme que el plan anterior simplemente ignoraba que yo almuerzo fuera de casa todos los días. Ahora tengo estructura y como rico."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">C</div>
-          <div>
-            <p class="author-name">Carla M.</p>
-            <p class="author-context">Gerente de marketing · Plan Constancia</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial-card reveal" style="animation-delay:0.1s">
-        <div class="testimonial-stars">
-          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-        </div>
-        <p class="testimonial-text">"Lo que más me sorprendió es que nunca me pidieron que dejara de salir con amigos ni de tomar mi cerveza del viernes. Me enseñaron a comer dentro de esos contextos. Llevo 8 meses y no he rebotado."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">D</div>
-          <div>
-            <p class="author-name">Diego R.</p>
-            <p class="author-context">Ingeniero · Plan Acompañamiento</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="testimonial-card reveal" style="animation-delay:0.15s">
-        <div class="testimonial-stars">
-          <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-        </div>
-        <p class="testimonial-text">"Venía de dos nutricionistas que me daban la misma dieta genérica. Aquí el plan fue completamente distinto desde el inicio. Lo más valioso fue aprender a comer en restaurantes sin ansiedad. Eso cambió todo."</p>
-        <div class="testimonial-author">
-          <div class="author-avatar">V</div>
-          <div>
-            <p class="author-name">Valeria T.</p>
-            <p class="author-context">Abogada · Plan Transformación</p>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
 <!-- ════════════════════════════════════════ EVALUACIÓN ════════════════════════════════ -->
 <section class="container" id="evaluacion">
   <div class="bento" style="padding:0 0 56px;">
@@ -1249,6 +1059,68 @@
         <div style="margin-top:4px;padding:10px 12px;background:rgba(200,151,58,0.12);border-radius:10px;font-size:12px;color:var(--gold);font-weight:600;">Duración: 20–30 minutos · Virtual o presencial</div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════ ¿ES PARA TI? ═══════════════════════════════ -->
+<section class="container" id="para-ti">
+  <div class="section-header reveal">
+    <h2>¿Este método es para ti?</h2>
+    <p style="margin-top:8px;">Un buen encaje desde el inicio es la diferencia entre un proceso que funciona y uno que no.</p>
+  </div>
+
+  <div class="bento" style="padding:24px 0 56px;">
+
+    <!-- Este plan es para ti -->
+    <div class="tile span-3 reveal" style="animation-delay:0.1s">
+      <span class="eyebrow"><span class="dot" style="background:var(--green)"></span>Es para ti si:</span>
+      <div class="filter-row" style="margin-top:8px;">
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Comes fuera de casa frecuentemente y no quieres renunciar a eso</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Ya probaste planes rígidos y no te funcionaron a largo plazo</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Estás dispuesto a registrar tu alimentación las primeras semanas</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Buscas resultados sostenibles en el tiempo, no una solución de 30 días</span>
+        </div>
+        <div class="filter-item">
+          <div class="check-icon" style="background:var(--green-soft);"><svg width="12" height="12" fill="none" stroke="var(--green)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <span>Puedes comprometerte a asistir a revisiones regulares</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- No es para ti -->
+    <div class="tile span-3 reveal" style="animation-delay:0.15s;background:var(--bg);">
+      <span class="eyebrow"><span class="dot" style="background:var(--ink-soft)"></span>No es para ti si…</span>
+      <div class="filter-row" style="margin-top:8px;">
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Buscas que te digan qué comer cada día sin involucrarte en el proceso</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Esperas bajar X kilos en 30 días sin cambios de hábito reales</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>No puedes comprometerte a asistir a revisiones ni a registrar datos</span>
+        </div>
+        <div class="filter-item" style="opacity:0.7;">
+          <div class="check-icon" style="background:var(--card);border:1px solid var(--line);"><svg width="10" height="10" fill="none" stroke="var(--ink-soft)" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+          <span>Buscas una dieta mágica rápida, no un cambio sostenible</span>
+        </div>
+      </div>
+    </div>
+
   </div>
 </section>
 
@@ -1341,7 +1213,6 @@
         <h4>Navegación</h4>
         <a href="#metodo">Cómo funciona</a>
         <a href="#planes">Planes</a>
-        <a href="#incluye">Qué incluye</a>
         <a href="#evaluacion">Evaluación S/80</a>
         <a href="#faq">FAQ</a>
       </div>
@@ -1485,6 +1356,64 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
       else goTo(current);
     });
   }
+})();
+
+// ── Nav shadow on scroll ──
+const navEl = document.querySelector('nav');
+const onNavScroll = () => { if (navEl) navEl.classList.toggle('scrolled', window.scrollY > 8); };
+onNavScroll();
+window.addEventListener('scroll', onNavScroll, { passive: true });
+
+// ── Magnetic CTAs (solo con puntero fino y movimiento permitido) ──
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches &&
+    window.matchMedia('(pointer: fine)').matches) {
+  document.querySelectorAll('.btn-primary, .plan-cta, .nav-cta').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const mx = e.clientX - r.left - r.width / 2;
+      const my = e.clientY - r.top - r.height / 2;
+      btn.style.transform = `translate(${mx * 0.22}px, ${my * 0.32}px)`;
+    });
+    btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+  });
+}
+
+// ── Count-up en precios (planes + Evaluación) ──
+(function() {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const els = [
+    ...document.querySelectorAll('.plan-price-top .amount'),
+    document.querySelector('#evaluacion h3 > span')
+  ].filter(Boolean);
+  if (reduce || !els.length) return;
+
+  function countUp(el) {
+    const html = el.innerHTML;
+    const m = html.match(/S\/\s*([\d.,]+)/);
+    if (!m) return;
+    const target = parseInt(m[1].replace(/[.,]/g, ''), 10);
+    if (!target) return;
+    const idx = html.indexOf(m[0]);
+    const prefix = html.slice(0, idx);
+    const suffix = html.slice(idx + m[0].length);
+    const dur = 1000;
+    let start = null;
+    function frame(t) {
+      if (start === null) start = t;
+      const p = Math.min((t - start) / dur, 1);
+      const val = Math.round((1 - Math.pow(1 - p, 3)) * target);
+      el.innerHTML = prefix + 'S/' + val.toLocaleString('es-PE') + suffix;
+      if (p < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { countUp(e.target); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.6 });
+  els.forEach(el => obs.observe(el));
 })();
 </script>
 </body>

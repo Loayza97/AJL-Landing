@@ -1,64 +1,49 @@
 ---
-// TODO: reemplazar con testimonios reales del equipo
-const testimonials = [
-  {
-    initials: 'CM',
-    name: 'Carla M.',
-    age: 32,
-    context: 'Gerente de proyectos',
-    months: 4,
-    quote:
-      'Probé keto y ayuno intermitente antes. Siempre rebotaba. Con AJL entendí que el problema no era yo: era que los planes ignoraban mi vida real. Ahora como en cualquier restaurante y sigo avanzando.',
-  },
-  {
-    initials: 'MV',
-    name: 'Marco V.',
-    age: 41,
-    context: 'Médico, guardias de 12 h',
-    months: 6,
-    quote:
-      'Con mi horario de guardia, cualquier dieta se rompía en 48 horas. Me dieron estructura para días buenos y para días de caos. Por primera vez llevo más de tres meses sin volver al punto de inicio.',
-  },
-  {
-    initials: 'AL',
-    name: 'Ana L.',
-    age: 36,
-    context: 'Abogada',
-    months: 3,
-    quote:
-      'Siempre creí que me faltaba fuerza de voluntad. No era eso: me faltaba un plan compatible con mi vida. Cenas de trabajo, viajes, reuniones. Todo está contemplado.',
-  },
-];
+// ─── Sección 6: Testimonios en video ────────────────────────────────────────
+// Muro de clips verticales reales. Click-to-play + carga diferida:
+// al inicio la página solo baja las miniaturas (~100KB), no los videos.
+import { testimonios } from '../data/testimonios.js';
 ---
 
 <section id="section-testimonials" class="section bg-gray">
   <div class="container">
     <p class="label">Pacientes reales</p>
-    <h2 class="title" style="margin-bottom: 3rem;">
-      Ellos ya cambiaron la relación<br />con su alimentación.
+    <h2 class="title" style="margin-bottom: 0.75rem;">
+      No te lo contamos nosotros.<br />Te lo cuentan ellos.
     </h2>
+    <p class="subtitle" style="margin-bottom: 3rem;">
+      Historias reales de personas que cambiaron su relación con la comida —
+      parte de los <strong>+800 pacientes</strong> que ya pasaron por el método.
+    </p>
 
-    <div class="testimonials-grid">
-      {testimonials.map(t => (
-        <article class="t-card">
-          <div class="t-card__header">
-            <div class="t-avatar" aria-hidden="true">{t.initials}</div>
-            <div>
-              <p class="t-name">{t.name}, {t.age} años</p>
-              <p class="t-context">{t.context}</p>
-              <p class="t-months">{t.months} meses con el método</p>
-            </div>
+    <div class="vt-grid">
+      {testimonios.map(t => (
+        <figure class="vt-card">
+          <div class="vt-video">
+            <video
+              class="vt-player"
+              preload="none"
+              playsinline
+              poster={t.poster}
+              data-name={t.name}
+            >
+              <source src={t.src} type="video/mp4" />
+            </video>
+            <button class="vt-play" type="button" aria-label={`Reproducir el testimonio de ${t.name}`}>
+              <span class="vt-play__icon" aria-hidden="true">▶</span>
+            </button>
           </div>
-          <blockquote class="t-quote">
-            <span class="t-quote-mark" aria-hidden="true">"</span>
-            {t.quote}
-          </blockquote>
-        </article>
+          <figcaption class="vt-cap">
+            <span class="vt-name">{t.name}</span>
+            <span class="vt-role">{t.role}</span>
+          </figcaption>
+        </figure>
       ))}
     </div>
 
     <p class="t-disclaimer">
-      Resultados individuales. Los cambios dependen de la constancia y contexto de cada paciente.
+      Testimonios reales grabados por pacientes. Los resultados dependen de la
+      constancia y el contexto de cada persona.
     </p>
   </div>
 </section>
@@ -66,91 +51,111 @@ const testimonials = [
 <style>
 .bg-gray { background: var(--gray-light); }
 
-.testimonials-grid {
+.vt-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.t-card {
-  background: var(--white);
-  border-radius: 10px;
-  padding: 1.75rem;
-  border: 1px solid #e5e5e5;
-  display: flex;
-  flex-direction: column;
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
 }
 
-.t-card__header {
+.vt-card {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.t-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+.vt-video {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  overflow: hidden;
   background: var(--black);
-  color: var(--gold);
-  font-weight: 900;
-  font-size: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.vt-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Botón play sobre el poster */
+.vt-play {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.35));
+  border: none;
+  cursor: pointer;
+  transition: background var(--transition);
 }
 
-.t-name {
-  font-weight: 700;
-  font-size: 0.9rem;
+.vt-play:hover { background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.45)); }
+.vt-play.is-hidden { display: none; }
+
+.vt-play__icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--gold);
   color: var(--black);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 4px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: transform var(--transition);
 }
 
-.t-context {
-  font-size: 0.78rem;
-  color: var(--gray-mid);
-  margin-top: 0.1rem;
+.vt-play:hover .vt-play__icon { transform: scale(1.08); }
+
+.vt-cap {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
 }
 
-.t-months {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--gold);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 0.2rem;
-}
-
-.t-quote {
-  font-size: 0.92rem;
-  color: var(--gray-dark);
-  line-height: 1.7;
-  position: relative;
-  padding-top: 0.5rem;
-  border-top: 1px solid #eeeeee;
-}
-
-.t-quote-mark {
-  font-size: 3rem;
-  color: var(--gold);
-  font-weight: 900;
-  line-height: 0.6;
-  float: left;
-  margin-right: 0.25rem;
-  margin-top: 0.35rem;
-}
+.vt-name { font-size: 0.95rem; font-weight: 800; color: var(--black); letter-spacing: -0.2px; }
+.vt-role { font-size: 0.75rem; color: var(--gray-mid); margin-top: 0.1rem; }
 
 .t-disclaimer {
   font-size: 0.75rem;
   color: #aaa;
   text-align: center;
+  margin-top: 2.5rem;
 }
 
-@media (max-width: 900px) {
-  .testimonials-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 900px) { .vt-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 460px) { .vt-grid { grid-template-columns: 1fr; max-width: 320px; margin-inline: auto; } }
 </style>
+
+<script>
+  // Click-to-play: carga el video solo al pulsar; pausa los demás.
+  document.querySelectorAll('.vt-card').forEach(card => {
+    const video = card.querySelector('.vt-player');
+    const btn = card.querySelector('.vt-play');
+    if (!video || !btn) return;
+
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vt-player').forEach(v => {
+        if (v !== video) { v.pause(); }
+      });
+      video.setAttribute('controls', '');
+      video.play();
+      btn.classList.add('is-hidden');
+
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'testimonio_play', { name: video.dataset.name });
+      }
+    });
+
+    // Al terminar, vuelve a mostrar el poster + botón
+    video.addEventListener('ended', () => {
+      video.removeAttribute('controls');
+      video.currentTime = 0;
+      btn.classList.remove('is-hidden');
+    });
+  });
+</script>

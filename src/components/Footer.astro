@@ -32,10 +32,12 @@ import { WA_FALLBACK_URL } from '../config.js';
         © {new Date().getFullYear()} AJL Nutrición. Todos los derechos reservados.
       </p>
       <p class="footer__privacy">
-        <a href="/politica-de-privacidad" class="footer__legal-link">Política de privacidad</a>
-        ·
-        <a href="/terminos" class="footer__legal-link">Términos</a>
+        <a href="/privacidad/" class="footer__legal-link">Política de privacidad</a>
       </p>
+      <a href="/reclamaciones/" class="footer__reclamaciones" aria-label="Libro de Reclamaciones">
+        <span class="footer__reclamaciones-icon" aria-hidden="true">📕</span>
+        Libro de Reclamaciones
+      </a>
       <p class="footer__disclaimer">
         Los resultados individuales varían según el caso y la constancia de cada paciente.
         AJL Nutrición no garantiza resultados específicos de pérdida de peso.
@@ -122,6 +124,25 @@ import { WA_FALLBACK_URL } from '../config.js';
 
 .footer__legal-link:hover { color: var(--gold); }
 
+/* Libro de Reclamaciones (obligatorio, visible) */
+.footer__reclamaciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  align-self: flex-end;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid #333;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #ccc;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.footer__reclamaciones:hover { border-color: var(--gold); color: var(--gold); }
+.footer__reclamaciones-icon { font-size: 0.95rem; }
+
 .footer__disclaimer {
   font-size: 0.7rem;
   color: #444;
@@ -136,8 +157,9 @@ import { WA_FALLBACK_URL } from '../config.js';
     text-align: center;
   }
 
-  .footer__legal { text-align: center; }
+  .footer__legal { text-align: center; align-items: center; }
   .footer__privacy { justify-content: center; }
+  .footer__reclamaciones { align-self: center; }
   .footer__disclaimer { margin-inline: auto; }
 }
 </style>

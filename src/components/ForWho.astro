@@ -1,28 +1,38 @@
 ---
-import { WA_FALLBACK_URL } from '../config.js';
+// ─── Sección 3: Filtro pasivo (¿es para ti?) ────────────────────────────────
+// Reubicada ANTES de los precios: califica al lead antes de pedir la decisión.
+// Integra "Tu parte en el proceso" (antes en Method) para consolidar el
+// mensaje de compromiso en un solo lugar.
 
 const forYes = [
   'Estás dispuesto a estructurar tu rutina, aunque hoy sea caótica',
-  'Estás abierto al acompañamiento — no lo ves como intrusión',
+  'Ves el acompañamiento como ayuda, no como intrusión',
   'Quieres entender el proceso, no solo recibir una dieta y seguirla a ciegas',
   'Aceptas progreso progresivo — no buscas magia en dos semanas',
-  'Tu vida incluye salidas, viajes y cenas sociales, y no quieres renunciar a eso',
-  'Has intentado antes sin éxito y buscas algo estructuralmente distinto',
+  'Tu vida incluye salidas, viajes y cenas, y no quieres renunciar a eso',
+  'Ya intentaste antes sin éxito y buscas algo estructuralmente distinto',
 ];
 
 const forNo = [
-  'Rechazas cualquier forma de estructura u organización en tu alimentación',
+  'Rechazas cualquier forma de estructura en tu alimentación',
   'Solo quieres que te digan qué no puedes comer',
-  'Esperas resultados sin involucrarte activamente en el proceso',
+  'Esperas resultados sin involucrarte en el proceso',
   'Crees que ciertos alimentos son veneno y no estás dispuesto a cuestionarlo',
-  'Buscas una solución rápida: bajar X kilos en Y semanas',
-  'No tienes disponibilidad para revisiones periódicas con tu nutricionista',
+  'Buscas bajar X kilos en Y semanas, rápido y sin esfuerzo',
+  'No tienes disponibilidad para revisiones periódicas',
+];
+
+// Antes vivía en Method ("Tu parte en el proceso"): lo que el método te pide.
+const commitment = [
+  'Registrar tus comidas las primeras semanas —no para siempre, sino para aprender a verte',
+  'Asistir a las revisiones periódicas según el paquete que elijas',
+  'Estar dispuesto a cuestionar algunas creencias previas sobre alimentación',
 ];
 ---
 
 <section id="section-for-who" class="section bg-black">
   <div class="container">
-    <p class="label">Filtro pasivo</p>
+    <p class="label">Antes de elegir un plan</p>
     <h2 class="title white" style="margin-bottom: 0.75rem;">
       ¿Este método es para ti?
     </h2>
@@ -57,11 +67,22 @@ const forNo = [
       </div>
     </div>
 
-    <!-- Mensaje empático para quien no encaja (US-011) -->
+    <!-- Tu parte en el proceso (integrado desde Method) -->
+    <div class="commitment">
+      <p class="commitment__label">Y esto es lo que el método te pide</p>
+      <ul class="commitment__list">
+        {commitment.map(item => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <!-- Cierre empático único (fusiona not-fit-msg + nota de compromiso) -->
     <div class="not-fit-msg">
       <p>
-        Si te describes más en la columna derecha, este método probablemente no sea para ti en
-        este momento, y <strong>está bien</strong>. No todos los métodos son para todos.
+        Si te describes más en la columna derecha, o esto no es algo que puedas
+        comprometerte a hacer ahora, probablemente no sea el momento —
+        y <strong>está bien</strong>. No todos los métodos son para todos.
         Si tu situación cambia, el link va a seguir aquí.
       </p>
     </div>
@@ -70,9 +91,10 @@ const forNo = [
       <a
         href="#section-packages"
         class="btn-primary"
+        data-cta="forwho_primary"
         aria-label="Ver los paquetes disponibles"
       >
-        Soy el perfil correcto — quiero ver los paquetes →
+        Soy el perfil correcto — ver los planes →
       </a>
     </div>
   </div>
@@ -149,9 +171,49 @@ const forNo = [
 .col__item--no { color: #999999; }
 .col__item--no::before { content: '→'; position: absolute; left: 0; color: #ef5350; font-size: 0.8rem; }
 
-/* Empathetic closing message */
+/* Tu parte en el proceso */
+.commitment {
+  margin-top: 1.5rem;
+  border: 1px solid #D4A843;
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+}
+
+.commitment__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.commitment__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.commitment__list li {
+  color: #cccccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.commitment__list li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+
+/* Cierre empático */
 .not-fit-msg {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   border: 1px solid #333;
   border-radius: 8px;
   padding: 1.25rem 1.5rem;
