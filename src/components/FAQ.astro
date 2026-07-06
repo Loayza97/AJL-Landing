@@ -25,7 +25,20 @@ const faqs = [
     a: 'Sí, ese es exactamente el punto del método. El plan se construye para tu vida real, incluyendo restaurantes, delivery, cenas sociales y viajes. Si no funciona en tu contexto, no funciona.',
   },
 ];
+
+// Schema FAQPage (rich results) — generado desde el mismo array
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(f => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
 ---
+
+<script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
 <section id="section-faq" class="section bg-gray">
   <div class="container">

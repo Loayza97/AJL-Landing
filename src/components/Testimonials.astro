@@ -1,24 +1,32 @@
 ---
-// ─── Sección 6: Testimonios en video ────────────────────────────────────────
-// Muro de clips verticales reales. Click-to-play + carga diferida:
-// al inicio la página solo baja las miniaturas (~100KB), no los videos.
+// ─── Testimonios en video (scroller horizontal) ─────────────────────────────
+// Muro de clips verticales reales en un carrusel con scroll-snap.
+// Click-to-play + carga diferida: al inicio solo se bajan las miniaturas.
 import { testimonios } from '../data/testimonios.js';
 ---
 
 <section id="section-testimonials" class="section bg-gray">
   <div class="container">
-    <p class="label">Pacientes reales</p>
-    <h2 class="title" style="margin-bottom: 0.75rem;">
-      No te lo contamos nosotros.<br />Te lo cuentan ellos.
-    </h2>
-    <p class="subtitle" style="margin-bottom: 3rem;">
-      Historias reales de personas que cambiaron su relación con la comida —
-      parte de los <strong>+800 pacientes</strong> que ya pasaron por el método.
-    </p>
+    <div class="vt-head">
+      <div>
+        <p class="label">Pacientes reales</p>
+        <h2 class="title" style="margin-bottom: 0.75rem;">
+          No te lo contamos nosotros.<br />Te lo cuentan ellos.
+        </h2>
+        <p class="subtitle">
+          Historias reales de personas que cambiaron su relación con la comida —
+          parte de los <strong>+800 pacientes</strong> que ya pasaron por el método.
+        </p>
+      </div>
+      <div class="vt-nav" aria-hidden="true">
+        <button class="vt-arrow" data-dir="-1" type="button" aria-label="Anterior">‹</button>
+        <button class="vt-arrow" data-dir="1" type="button" aria-label="Siguiente">›</button>
+      </div>
+    </div>
 
-    <div class="vt-grid">
+    <div class="vt-scroller" role="list">
       {testimonios.map(t => (
-        <figure class="vt-card">
+        <figure class="vt-card" role="listitem">
           <div class="vt-video">
             <video
               class="vt-player"
@@ -41,6 +49,8 @@ import { testimonios } from '../data/testimonios.js';
       ))}
     </div>
 
+    <p class="vt-hint" aria-hidden="true">Desliza para ver más →</p>
+
     <p class="t-disclaimer">
       Testimonios reales grabados por pacientes. Los resultados dependen de la
       constancia y el contexto de cada persona.
@@ -51,13 +61,57 @@ import { testimonios } from '../data/testimonios.js';
 <style>
 .bg-gray { background: var(--gray-light); }
 
-.vt-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1.25rem;
+.vt-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
 }
 
+/* Flechas de navegación */
+.vt-nav { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+.vt-arrow {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  background: var(--white);
+  color: var(--black);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+}
+.vt-arrow:hover { background: var(--gold); border-color: var(--gold); }
+.vt-arrow:disabled { opacity: 0.35; cursor: default; background: var(--white); border-color: #ccc; }
+
+/* Scroller */
+.vt-scroller {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding-bottom: 1rem;
+  margin-inline: calc(-1 * var(--container-px));
+  padding-inline: var(--container-px);
+  scrollbar-width: thin;
+  scrollbar-color: var(--gold) transparent;
+}
+
+.vt-scroller::-webkit-scrollbar { height: 6px; }
+.vt-scroller::-webkit-scrollbar-track { background: transparent; }
+.vt-scroller::-webkit-scrollbar-thumb { background: #d8d8d8; border-radius: 3px; }
+.vt-scroller:hover::-webkit-scrollbar-thumb { background: var(--gold); }
+
 .vt-card {
+  flex: 0 0 240px;
+  scroll-snap-align: start;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -72,13 +126,8 @@ import { testimonios } from '../data/testimonios.js';
   box-shadow: 0 4px 20px rgba(0,0,0,0.12);
 }
 
-.vt-player {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.vt-player { width: 100%; height: 100%; object-fit: cover; }
 
-/* Botón play sobre el poster */
 .vt-play {
   position: absolute;
   inset: 0;
@@ -90,17 +139,16 @@ import { testimonios } from '../data/testimonios.js';
   cursor: pointer;
   transition: background var(--transition);
 }
-
 .vt-play:hover { background: linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.45)); }
 .vt-play.is-hidden { display: none; }
 
 .vt-play__icon {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--gold);
   color: var(--black);
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -108,27 +156,36 @@ import { testimonios } from '../data/testimonios.js';
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   transition: transform var(--transition);
 }
-
 .vt-play:hover .vt-play__icon { transform: scale(1.08); }
 
-.vt-cap {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
-
+.vt-cap { display: flex; flex-direction: column; text-align: center; }
 .vt-name { font-size: 0.95rem; font-weight: 800; color: var(--black); letter-spacing: -0.2px; }
 .vt-role { font-size: 0.75rem; color: var(--gray-mid); margin-top: 0.1rem; }
+
+.vt-hint {
+  font-size: 0.78rem;
+  color: var(--gray-mid);
+  text-align: center;
+  margin-top: 0.5rem;
+}
 
 .t-disclaimer {
   font-size: 0.75rem;
   color: #aaa;
   text-align: center;
-  margin-top: 2.5rem;
+  margin-top: 1.75rem;
 }
 
-@media (max-width: 900px) { .vt-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 460px) { .vt-grid { grid-template-columns: 1fr; max-width: 320px; margin-inline: auto; } }
+/* En desktop, si caben todas, ocultamos el hint */
+@media (min-width: 1180px) {
+  .vt-hint { display: none; }
+}
+
+@media (max-width: 700px) {
+  .vt-head { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
+  .vt-nav { display: none; } /* en móvil se navega con el dedo */
+  .vt-card { flex-basis: 70vw; max-width: 280px; }
+}
 </style>
 
 <script>
@@ -139,23 +196,45 @@ import { testimonios } from '../data/testimonios.js';
     if (!video || !btn) return;
 
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.vt-player').forEach(v => {
-        if (v !== video) { v.pause(); }
-      });
+      document.querySelectorAll('.vt-player').forEach(v => { if (v !== video) v.pause(); });
       video.setAttribute('controls', '');
       video.play();
       btn.classList.add('is-hidden');
-
       if (typeof window.gtag === 'function') {
         window.gtag('event', 'testimonio_play', { name: video.dataset.name });
       }
     });
 
-    // Al terminar, vuelve a mostrar el poster + botón
     video.addEventListener('ended', () => {
       video.removeAttribute('controls');
       video.currentTime = 0;
       btn.classList.remove('is-hidden');
     });
   });
+
+  // Flechas: desplazan el scroller ~2 cards y se deshabilitan en los extremos.
+  const scroller = document.querySelector('.vt-scroller');
+  if (scroller) {
+    const arrows = document.querySelectorAll('.vt-arrow');
+    const step = () => {
+      const card = scroller.querySelector('.vt-card');
+      const cardW = card ? card.getBoundingClientRect().width + 20 : 280;
+      return cardW * 2;
+    };
+    arrows.forEach(a => a.addEventListener('click', () => {
+      scroller.scrollBy({ left: Number(a.dataset.dir) * step(), behavior: 'smooth' });
+    }));
+
+    const updateArrows = () => {
+      const max = scroller.scrollWidth - scroller.clientWidth - 2;
+      arrows.forEach(a => {
+        const dir = Number(a.dataset.dir);
+        a.disabled = (dir < 0 && scroller.scrollLeft <= 2) ||
+                     (dir > 0 && scroller.scrollLeft >= max);
+      });
+    };
+    scroller.addEventListener('scroll', updateArrows, { passive: true });
+    window.addEventListener('resize', updateArrows);
+    updateArrows();
+  }
 </script>

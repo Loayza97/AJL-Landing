@@ -6,6 +6,55 @@ import {
   SITE_DESCRIPTION,
   OG_IMAGE,
 } from '../config.js';
+
+// Canonical por página (evita que checkout canonicalice al home)
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://ajlnutricion.com');
+
+// Schema LocalBusiness (site-wide) — negocio, dirección, geo, horarios, catálogo
+const businessSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'MedicalBusiness',
+  '@id': 'https://ajlnutricion.com/#business',
+  name: 'AJL Nutrición',
+  alternateName: 'AJL Nutrición — Alejandro Loayza',
+  legalName: 'FJ INVESTMENTS S.A.C.',
+  description:
+    'Nutricionista en Lince, Lima. Planes de nutrición personalizados adaptados a tu vida real: restaurantes, delivery, cenas de trabajo. Sin restricciones absurdas, sin culpa.',
+  url: 'https://ajlnutricion.com/',
+  image: 'https://ajlnutricion.com/og-image.jpg',
+  logo: 'https://ajlnutricion.com/favicon.svg',
+  telephone: '+51919151237',
+  priceRange: 'S/80–S/600',
+  medicalSpecialty: 'Dietetics',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Av. Almirante Manuel Villavicencio 1461',
+    addressLocality: 'Lince',
+    addressRegion: 'Lima',
+    postalCode: '15046',
+    addressCountry: 'PE',
+  },
+  geo: { '@type': 'GeoCoordinates', latitude: -12.089, longitude: -77.0357 },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+      opens: '10:00',
+      closes: '20:00',
+    },
+    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Saturday', opens: '09:00', closes: '19:00' },
+  ],
+  areaServed: [
+    { '@type': 'City', name: 'Lima' },
+    { '@type': 'AdministrativeArea', name: 'Lince' },
+    { '@type': 'AdministrativeArea', name: 'Miraflores' },
+    { '@type': 'AdministrativeArea', name: 'San Isidro' },
+  ],
+  sameAs: [
+    'https://www.instagram.com/alejandrojloayza_nutricion',
+    'https://www.tiktok.com/@alejandrojloayza_nutri',
+  ],
+};
 ---
 
 <!DOCTYPE html>
@@ -14,7 +63,14 @@ import {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={SITE_DESCRIPTION} />
-  <meta name="robots" content="index, follow" />
+  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <link rel="canonical" href={canonicalURL.href} />
+
+  <!-- Geo / local SEO -->
+  <meta name="geo.region" content="PE-LIM" />
+  <meta name="geo.placename" content="Lince, Lima, Perú" />
+  <meta name="geo.position" content="-12.0890;-77.0357" />
+  <meta name="ICBM" content="-12.0890, -77.0357" />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
@@ -22,7 +78,7 @@ import {
   <meta property="og:title"       content={SITE_TITLE} />
   <meta property="og:description" content={SITE_DESCRIPTION} />
   <meta property="og:image"       content={OG_IMAGE} />
-  <meta property="og:url"         content="https://ajlnutricion.com" />
+  <meta property="og:url"         content={canonicalURL.href} />
 
   <!-- Twitter / X -->
   <meta name="twitter:card"        content="summary_large_image" />
@@ -40,6 +96,9 @@ import {
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <title>{SITE_TITLE}</title>
+
+  <!-- Schema: LocalBusiness (nutricionista en Lince, Lima) -->
+  <script type="application/ld+json" set:html={JSON.stringify(businessSchema)} />
 
   <!-- META PIXEL -->
   <script>

@@ -1,16 +1,15 @@
-# Astro source paralela (no se despliega — código histórico)
-src/
-dist/
-.astro/
-astro.config.mjs
+# Vercel construye Astro (src/, astro.config.mjs, package.json) y sirve dist/.
+# Solo excluimos lo que NO debe entrar al deploy.
 
-# Build artefacts y locks que Vercel maneja
+# Build local (Vercel lo regenera)
 node_modules/
-package-lock.json
+.astro/
+dist/
 
-# Docs y data que no entran al deploy
+# Docs, data y material que no forma parte del sitio
 docs/
 db/
+02-comercial/
 PRD-AJL-Nutricion-v1.md
 CLAUDE.md
 

@@ -1,13 +1,14 @@
 ---
 import { WA_FALLBACK_URL } from '../config.js';
+import { contacto } from '../data/contacto.js';
 ---
 
 <footer id="section-footer" class="footer">
   <div class="container footer__inner">
     <div class="footer__brand">
       <p class="footer__logo">AJL Nutrición</p>
-      <p class="footer__tagline">Estructura para tu vida real.</p>
-      <p class="footer__location">Lima, Perú</p>
+      <p class="footer__tagline">Nutricionista en Lince, Lima · Estructura para tu vida real.</p>
+      <p class="footer__location">{contacto.direccion}</p>
     </div>
 
     <div class="footer__links">
