@@ -5,8 +5,8 @@
 ### 1.1 Document title and version
 
 - PRD: AJL Nutrición Landing Page
-- Version: 1.4
-- Actualizado: 2026-05-22
+- Version: 2.0
+- Actualizado: 2026-07-06
 
 ### 1.2 Product summary
 
@@ -23,6 +23,33 @@ La landing complementa el filtro upstream (reels, stories, ads) con un filtro pa
 La hipótesis estratégica que esta versión busca validar es que precalificar al lead antes y durante la landing, sin formularios interactivos, mejora la calidad del lead que llega al asesor sin sacrificar volumen significativo. El éxito se medirá tras 60 días de tráfico estable post-lanzamiento.
 
 **Nuevo en v1.4 (2026-05-22):** la landing ahora corre en **Vercel** (migrada desde GitHub Pages) para soportar funciones de servidor. Se implementó el **Libro de Reclamaciones digital** exigido por la Ley N° 29571 (Código de Protección y Defensa del Consumidor), con form en `/reclamaciones/`, handler serverless en `/api/reclamaciones.mjs`, almacenamiento en Supabase y notificaciones por email vía Resend. El correlativo único `AJL-YYYY-NNNN` se asigna por SQL function en Supabase.
+
+---
+
+**Nuevo en v2.0 (2026-07-06) — Reconstrucción de la landing (rama `rebuild/landing-v2`):** reconstrucción sección por sección con dos objetivos: **eliminar información repetida** y **convertir mejor**. Se reordenó el funnel y se consolidaron componentes. Los cambios grandes:
+
+- **Nuevo orden del funnel** (arco: problema → solución → prueba → califica → oferta):
+  `Hero → Diagnóstico+Método → Testimonios → ¿Es para ti? → Planes → Evaluación S/80 → FAQ → Footer`.
+  - El filtro "¿es para ti?" (`ForWho`) subió **antes** de los precios (antes calificaba tarde, después de la tabla).
+  - Los **testimonios subieron antes de los precios** (prueba social que "calienta" al lead antes del ask).
+  - La **Evaluación S/80** se reubicó **justo después de los planes** (on-ramp inmediato para el indeciso; antes estaba al final).
+
+- **Consolidación de componentes (11 → 9):**
+  - `WhyFailed` + `Method` → **`WhyFailedMethod`** (un solo arco diagnóstico→método con frase puente).
+  - `Packages` + `PlanDetails` → **`Plans`**: **tabla comparativa** única (features en filas × 4 planes en columnas). Cada servicio se describe **una sola vez** en un popover al tocar el "?". Columna "Constancia" destacada como ancla de decisión. En móvil colapsa a cards. Fuente de datos única `featureGroups` en `src/data/plans.js` (reemplaza los arrays duplicados `sessions`/`continuous`).
+
+- **Redundancias eliminadas** (6 detectadas en auditoría): duplicación Packages/PlanDetails; mensaje "vida real / sin alimentos prohibidos" (ahora vive solo en el Hero); descuento "S/80 se descuenta" (consolidado en Evaluación); mensaje de compromiso "y está bien" (consolidado en ForWho como "tu parte en el proceso"); frases de dolor repetidas; CTAs idénticos (ahora diferenciados con `data-cta`).
+
+- **Testimonios en video (reemplazan los testimonios ficticios):** **7 pacientes reales** (Belinda, Joseph, Miriam, Solange, Kiabell, María Escajadillo, María Guadalupe) en un **scroller horizontal** con scroll-snap y flechas. Clips editados transcodificados de HEVC/H.264 a **H.264 720×1280 web-optimizado** (`public/testimonios/`), con **click-to-play + carga diferida** (al inicio solo bajan las miniaturas). Cada poster es un fotograma elegido a mano (de frente, sin hablar). Datos en `src/data/testimonios.js` (escalable: añadir clip + 1 línea).
+
+- **Hero:** franja de confianza above-the-fold (**+800 pacientes atendidos** — redondeo conservador de ~820 DNI únicos —, consultorio en Lince, presencial/virtual) + **CTA dual** (ver planes / empezar con la Evaluación).
+
+- **Fixes de producción (bugs preexistentes de `main`):**
+  - Checkout: **voseo argentino → tuteo peruano** ("Confirmá"→"Confirma", etc.).
+  - Footer + CookieBanner: se **agregó el enlace al Libro de Reclamaciones** (`/reclamaciones/`, obligatorio INDECOPI; antes no lo enlazaba nada) y se corrigieron enlaces legales rotos (`/politica-de-privacidad` → `/privacidad/`, se quitó `/terminos` inexistente).
+  - FAQ: se corrigió referencia a planes inexistentes ("Orientación/Premium") y se reemplazó la pregunta redundante del descuento por una de permanencia/cancelación.
+
+- **Pendientes conocidos (defectos en los videos originales, no en la web):** el clip de **María Escajadillo** tiene el rótulo en placeholder ("Profesión / Kilos") desde ~seg 15; el de **María Guadalupe** tiene un título con palabra repetida ("¿Qué miedos miedos…?"). Se recomienda regrabar/reeditar esos rótulos. Quedan 3 clips adicionales por paciente disponibles para rotar o sumar.
 
 ## 2. Goals
 

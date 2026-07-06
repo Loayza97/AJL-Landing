@@ -4,9 +4,17 @@
   "private": true,
   "description": "Landing page de AJL Nutrición + Libro de Reclamaciones",
   "engines": {
-    "node": ">=18"
+    "node": ">=18.14.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
+  },
+  "devDependencies": {
+    "astro": "^4.16.19"
   }
 }

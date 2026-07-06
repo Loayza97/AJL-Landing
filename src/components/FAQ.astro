@@ -9,12 +9,12 @@ const faqs = [
     a: 'Recibes un diagnóstico completo de tu situación actual y una dirección clara de acción. Desde ahí, decides junto con Rodrigo si contratas algún paquete y cuál se ajusta mejor a tu caso.',
   },
   {
-    q: '¿Por qué los S/80 no son gratis si igual voy a contratar un paquete?',
-    a: 'La evaluación es una consulta real con diagnóstico completo, no una reunión de venta. Tiene valor independiente. Además, los S/80 se descuentan del primer mes si decides continuar con un paquete.',
+    q: '¿Hay permanencia o puedo cancelar cuando quiera?',
+    a: 'No hay contratos de permanencia: los planes son mensuales y puedes parar cuando quieras. El Básico es de pago único. Los programas de 3 y 6 meses son opcionales —solo si quieres comprometerte a cambio de un mejor precio por mes.',
   },
   {
-    q: '¿En qué se diferencia cada paquete?',
-    a: 'La diferencia principal es la frecuencia de seguimiento y el nivel de acompañamiento. Desde 1 consulta mensual en Orientación hasta acceso continuo en Premium. La Evaluación te ayuda a identificar qué nivel necesitas.',
+    q: '¿En qué se diferencia cada plan?',
+    a: 'En la frecuencia de acompañamiento: el Básico es una sesión única, y de ahí sube a mensual, quincenal y semanal (Acompañamiento, Constancia y Transformación). La tabla comparativa de más arriba muestra exactamente qué incluye cada uno.',
   },
   {
     q: '¿Cuánto tiempo lleva ver resultados reales?',
@@ -25,7 +25,20 @@ const faqs = [
     a: 'Sí, ese es exactamente el punto del método. El plan se construye para tu vida real, incluyendo restaurantes, delivery, cenas sociales y viajes. Si no funciona en tu contexto, no funciona.',
   },
 ];
+
+// Schema FAQPage (rich results) — generado desde el mismo array
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(f => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
 ---
+
+<script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
 <section id="section-faq" class="section bg-gray">
   <div class="container">

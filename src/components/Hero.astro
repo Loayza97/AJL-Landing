@@ -1,28 +1,52 @@
 ---
-import { WA_FALLBACK_URL } from '../config.js';
+import { contacto } from '../data/contacto.js';
+
+// Señales de confianza above-the-fold (sin credenciales).
+// "+800 pacientes" = redondeo conservador de ~820 DNI únicos en la base real.
+const trust = [
+  '+800 pacientes atendidos',
+  'Consultorio en Lince, Lima',
+  'Presencial y virtual',
+];
 ---
 
 <section id="section-hero" class="hero">
   <div class="container hero__inner">
-    <p class="label">AJL Nutrición · Lima, Perú</p>
+    <p class="label">AJL Nutrición · Nutricionista en Lince, Lima</p>
     <h1 class="hero__title">
       No es tu disciplina.<br />
       <span class="hero__accent">Es que nadie te dio un plan para tu vida real.</span>
     </h1>
     <p class="hero__sub">
-      Cambios reales en composición corporal a través de planificación práctica,
-      gestión de porciones y acompañamiento cercano — integrados a tu vida,
-      sin restricción de alimentos.
+      Cambios reales en composición corporal con planificación práctica,
+      porciones que aprendes a manejar y acompañamiento cercano —
+      sin prohibir alimentos ni pedirte una vida que no tienes.
     </p>
+
     <div class="hero__cta-group">
       <a
         href="#section-packages"
         class="btn-primary"
-        aria-label="Ver los paquetes disponibles"
+        data-cta="hero_primary"
+        aria-label="Ver los planes disponibles"
       >
-        Quiero empezar →
+        Ver los planes →
+      </a>
+      <a
+        href="#section-evaluation"
+        class="hero__cta-secondary"
+        data-cta="hero_evaluacion"
+        aria-label="Empezar con la Evaluación Nutricional de S/80"
+      >
+        ¿No sabes cuál? Empieza con la Evaluación de S/80
       </a>
     </div>
+
+    <ul class="hero__trust" aria-label="Por qué confiar en AJL Nutrición">
+      {trust.map(item => (
+        <li class="hero__trust-item">{item}</li>
+      ))}
+    </ul>
   </div>
 </section>
 
@@ -37,7 +61,7 @@ import { WA_FALLBACK_URL } from '../config.js';
 }
 
 .hero__inner {
-  max-width: 760px;
+  max-width: 800px;
 }
 
 .hero__title {
@@ -57,7 +81,7 @@ import { WA_FALLBACK_URL } from '../config.js';
   font-size: clamp(1rem, 2.5vw, 1.2rem);
   color: #cccccc;
   line-height: 1.75;
-  max-width: 560px;
+  max-width: 580px;
   margin-bottom: 2.5rem;
 }
 
@@ -68,9 +92,49 @@ import { WA_FALLBACK_URL } from '../config.js';
   gap: 1rem;
 }
 
-.hero__note {
+.hero__cta-secondary {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--gold);
+  border-bottom: 1px solid rgba(212, 168, 67, 0.4);
+  padding-bottom: 2px;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+.hero__cta-secondary:hover {
+  color: var(--gold-dark);
+  border-color: var(--gold);
+}
+
+/* Franja de confianza */
+.hero__trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  margin-top: 3rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid #222;
+}
+
+.hero__trust-item {
+  position: relative;
   font-size: 0.8rem;
-  color: #777777;
+  font-weight: 600;
   letter-spacing: 0.3px;
+  color: #999999;
+  padding-left: 1.1rem;
+}
+
+.hero__trust-item::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+@media (max-width: 480px) {
+  .hero__trust { gap: 0.5rem 1.25rem; }
 }
 </style>

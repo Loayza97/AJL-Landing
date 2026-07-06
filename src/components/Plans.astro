@@ -1,0 +1,407 @@
+---
+// ─── Sección 4: Planes (tabla comparativa) ──────────────────────────────────
+// Fusiona Packages + PlanDetails en un solo bloque sin duplicar info.
+// Desktop: matriz comparativa con filas expandibles (descripción de cada feature).
+// Móvil: cards apiladas. Ambas se generan desde monthlyPlans + featureGroups.
+
+import { monthlyPlans, featureGroups } from '../data/plans.js';
+
+// Renderiza el valor de una celda: número, ✓, — o ★
+function cellMark(value) {
+  if (value === true)   return { text: '✓', cls: 'on' };
+  if (value === 'star') return { text: '★', cls: 'star' };
+  if (value === false || value == null) return { text: '—', cls: 'off' };
+  return { text: value, cls: 'num' }; // número
+}
+---
+
+<section id="section-packages" class="section bg-white" aria-label="Planes de nutrición">
+  <div class="container">
+    <p class="label">Asesoría nutricional</p>
+    <h2 class="title" style="margin-bottom: 0.75rem;">Elige tu nivel de acompañamiento</h2>
+    <p class="subtitle" style="margin-bottom: 3rem;">
+      Todos los planes usan el mismo método. La diferencia es la frecuencia con la que
+      nos acompañamos. Toca el <strong>?</strong> de cada servicio para ver qué incluye.
+    </p>
+
+    <!-- ───────── Desktop: matriz comparativa ───────── -->
+    <div class="matrix" role="table" aria-label="Comparación de planes">
+      <!-- Encabezado de planes -->
+      <div class="mrow mrow--head" role="row">
+        <div class="cell cell--rowlabel" role="columnheader"></div>
+        {monthlyPlans.map(p => (
+          <div class={`cell cell--plan${p.highlight ? ' hl' : ''}`} role="columnheader">
+            {p.badge && <span class={`mbadge${p.highlight ? ' mbadge--gold' : ''}`}>{p.badge}</span>}
+            <span class="mplan-name">{p.name}</span>
+            <span class="mplan-tagline">{p.tagline}</span>
+          </div>
+        ))}
+      </div>
+
+      <!-- Precio -->
+      <div class="mrow mrow--price" role="row">
+        <div class="cell cell--rowlabel" role="rowheader">Precio</div>
+        {monthlyPlans.map(p => (
+          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
+            <span class="mprice">S/{p.price}</span><span class="mprice-per">/mes</span>
+          </div>
+        ))}
+      </div>
+
+      <!-- Frecuencia -->
+      <div class="mrow" role="row">
+        <div class="cell cell--rowlabel" role="rowheader">Frecuencia</div>
+        {monthlyPlans.map(p => (
+          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
+            <span class="mfreq">{p.freq}</span>
+          </div>
+        ))}
+      </div>
+
+      <!-- Grupos de features -->
+      {featureGroups.map(group => (
+        <>
+          <div class="mgroup" role="row">{group.group}</div>
+          {group.rows.map(row => (
+            <div class="mrow mrow--feat" role="row">
+              <div class="cell cell--rowlabel" role="rowheader">
+                <span class="feat-label">{row.label}</span>
+                <details class="feat-info">
+                  <summary class="feat-q" aria-label={`Qué incluye: ${row.label}`}>?</summary>
+                  <div class="feat-pop">{row.desc}</div>
+                </details>
+              </div>
+              {monthlyPlans.map(p => {
+                const m = cellMark(row.values[p.id]);
+                return (
+                  <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
+                    <span class={`mark mark--${m.cls}`}>{m.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </>
+      ))}
+
+      <!-- Programas (multi-mes) -->
+      <div class="mrow mrow--programs" role="row">
+        <div class="cell cell--rowlabel" role="rowheader">Programas</div>
+        {monthlyPlans.map(p => (
+          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
+            {p.programs ? (
+              <ul class="mprog">
+                {p.programs.map(pr => (
+                  <li><strong>{pr.label}</strong> {pr.total} <span>({pr.perMes})</span></li>
+                ))}
+              </ul>
+            ) : (
+              <span class="mprog-note">{p.programsNote}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <!-- CTA -->
+      <div class="mrow mrow--cta" role="row">
+        <div class="cell cell--rowlabel" role="cell"></div>
+        {monthlyPlans.map(p => (
+          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
+            <a
+              href={`/checkout/${p.id}`}
+              class={`mcta${p.highlight ? ' mcta--gold' : ''}`}
+              data-section="paquetes"
+              data-pkg={p.name}
+              aria-label={`Quiero el plan ${p.name}`}
+            >
+              Quiero este →
+            </a>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- ───────── Móvil: cards apiladas ───────── -->
+    <div class="plan-cards">
+      {monthlyPlans.map(p => (
+        <article class={`pcard${p.highlight ? ' pcard--hl' : ''}`}>
+          {p.badge && <span class={`mbadge${p.highlight ? ' mbadge--gold' : ''}`}>{p.badge}</span>}
+          <h3 class="pcard-name">{p.name}</h3>
+          <p class="pcard-tagline">{p.tagline}</p>
+          <div class="pcard-price"><span>S/{p.price}</span>/mes · {p.freq}</div>
+
+          <ul class="pcard-feats">
+            {featureGroups.flatMap(g => g.rows).map(row => {
+              const m = cellMark(row.values[p.id]);
+              const included = m.cls !== 'off';
+              return (
+                <li class={included ? '' : 'pcard-feat--off'}>
+                  <span class="pcard-mark">{m.cls === 'num' ? `${m.text}×` : (included ? '✓' : '—')}</span>
+                  {row.label}
+                </li>
+              );
+            })}
+          </ul>
+
+          {p.programs && (
+            <ul class="pcard-prog">
+              {p.programs.map(pr => (
+                <li><strong>{pr.label}:</strong> {pr.total} ({pr.perMes})</li>
+              ))}
+            </ul>
+          )}
+
+          <a
+            href={`/checkout/${p.id}`}
+            class={`mcta${p.highlight ? ' mcta--gold' : ''}`}
+            data-section="paquetes"
+            data-pkg={p.name}
+            aria-label={`Quiero el plan ${p.name}`}
+          >
+            Quiero este →
+          </a>
+        </article>
+      ))}
+    </div>
+
+    <!-- Puente hacia la Evaluación (para indecisos) -->
+    <div class="packages-note">
+      <p>
+        ¿No sabes cuál elegir? La <strong>Evaluación Nutricional de S/80</strong> —
+        más abajo— es una consulta previa que define el plan correcto para tu caso.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-white { background: var(--white); }
+
+/* ───────── Matriz (desktop) ───────── */
+.matrix {
+  --cols: 1.7fr repeat(4, 1fr);
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: visible; /* permite que el popover de "?" se vea fuera de la tabla */
+}
+
+.plan-cards { display: none; }
+
+.mrow {
+  display: grid;
+  grid-template-columns: var(--cols);
+  align-items: center;
+  column-gap: 0.5rem;
+}
+
+.cell {
+  padding: 0.85rem 1rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.cell--rowlabel {
+  text-align: left;
+  font-weight: 600;
+  color: var(--gray-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Columna recomendada destacada (continua porque no hay gap vertical) */
+.cell.hl { background: var(--gold-pale); }
+
+/* Encabezado de planes */
+.mrow--head { border-bottom: 1px solid #eee; }
+.cell--plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-block: 1.25rem;
+}
+.cell--plan.hl { border-top: 3px solid var(--gold); }
+
+.mbadge {
+  align-self: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: #888;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 0.1rem 0.6rem;
+  margin-bottom: 0.25rem;
+}
+.mbadge--gold { background: var(--gold); color: var(--black); border-color: var(--gold); }
+
+.mplan-name { font-size: 1.1rem; font-weight: 900; color: var(--black); letter-spacing: -0.3px; }
+.mplan-tagline { font-size: 0.72rem; color: var(--gray-mid); }
+
+/* Precio / frecuencia */
+.mrow--price { border-bottom: 1px solid #f0f0f0; }
+.mprice { font-size: 1.6rem; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
+.mprice-per { font-size: 0.72rem; color: var(--gray-mid); }
+.mfreq {
+  display: inline-block;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--gold); border: 1px solid var(--gold); border-radius: 20px; padding: 0.15rem 0.6rem;
+}
+
+/* Grupo */
+.mgroup {
+  background: #fafafa;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding: 0.7rem 1rem;
+  border-block: 1px solid #f0f0f0;
+}
+
+/* Filas de feature (tabla limpia + popover en el "?") */
+.mrow--feat { border-bottom: 1px solid #f3f3f3; }
+.mrow--feat:hover { background: #fcfcfc; }
+
+.feat-label { line-height: 1.35; }
+
+/* "?" como disparador del popover */
+.feat-info { position: relative; display: inline-flex; }
+.feat-q {
+  list-style: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 17px; height: 17px;
+  border-radius: 50%;
+  border: 1px solid #ccc;
+  color: #999;
+  font-size: 0.62rem;
+  font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.feat-q::-webkit-details-marker { display: none; }
+.feat-q:hover { border-color: var(--gold); color: var(--gold); }
+.feat-info[open] .feat-q { background: var(--gold); border-color: var(--gold); color: var(--black); }
+
+.feat-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 280px;
+  max-width: 70vw;
+  background: var(--white);
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
+  padding: 0.85rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--gray-dark);
+  line-height: 1.6;
+  text-align: left;
+  z-index: 30;
+}
+.feat-pop::before {
+  content: '';
+  position: absolute;
+  top: -5px; left: 4px;
+  width: 9px; height: 9px;
+  background: var(--white);
+  border-left: 1px solid #e5e5e5;
+  border-top: 1px solid #e5e5e5;
+  transform: rotate(45deg);
+}
+
+/* Marcas */
+.mark--on   { color: var(--gold); font-weight: 900; }
+.mark--star { color: var(--gold); font-weight: 900; }
+.mark--off  { color: #ccc; }
+.mark--num  { font-weight: 900; color: var(--black); font-size: 1rem; }
+
+/* Programas */
+.mrow--programs { border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
+.mprog { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: var(--gray-dark); }
+.mprog strong { color: var(--black); }
+.mprog span { color: var(--gold); }
+.mprog-note { font-size: 0.72rem; color: var(--gray-mid); font-style: italic; }
+
+/* CTA */
+.mrow--cta { padding-block: 0.25rem; }
+.mcta {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 100%;
+  padding: 0.7rem 0.5rem;
+  background: var(--gray-light);
+  color: var(--black);
+  font-weight: 700; font-size: 0.82rem;
+  border-radius: var(--radius);
+  min-height: 44px;
+  transition: background var(--transition), color var(--transition);
+}
+.mcta:hover { background: var(--gold); }
+.mcta--gold { background: var(--gold); }
+.mcta--gold:hover { background: var(--gold-dark); }
+
+/* Nota Evaluación */
+.packages-note {
+  margin-top: 2rem;
+  padding: 1.5rem 2rem;
+  background: var(--gray-light);
+  border-radius: 10px;
+  text-align: center;
+}
+.packages-note p { font-size: 0.92rem; color: var(--gray-dark); line-height: 1.65; }
+
+/* ───────── Cards (móvil) ───────── */
+@media (max-width: 860px) {
+  .matrix { display: none; }
+  .plan-cards { display: grid; gap: 1rem; }
+
+  .pcard {
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .pcard--hl { border-color: var(--gold); box-shadow: 0 4px 20px rgba(212,168,67,0.12); }
+
+  .pcard .mbadge { align-self: flex-start; margin-bottom: 0; }
+  .pcard-name { font-size: 1.25rem; font-weight: 900; letter-spacing: -0.3px; }
+  .pcard-tagline { font-size: 0.8rem; color: var(--gray-mid); margin-top: -0.4rem; }
+  .pcard-price { font-size: 0.9rem; color: var(--gray-dark); }
+  .pcard-price span { font-size: 1.8rem; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
+
+  .pcard-feats { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
+  .pcard-feats li { font-size: 0.85rem; color: var(--gray-dark); display: flex; gap: 0.5rem; }
+  .pcard-feat--off { opacity: 0.4; }
+  .pcard-mark { color: var(--gold); font-weight: 900; flex-shrink: 0; width: 18px; }
+  .pcard-feat--off .pcard-mark { color: #bbb; }
+
+  .pcard-prog {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    font-size: 0.78rem; color: var(--gray-dark);
+    border-top: 1px solid #eee; padding-top: 0.6rem; margin-top: 0.3rem;
+  }
+  .pcard-prog strong { color: var(--black); }
+
+  .pcard .mcta { margin-top: 0.5rem; }
+}
+</style>
+
+<script>
+  // Solo un popover "?" abierto a la vez + cerrar al clic afuera.
+  const infos = Array.from(document.querySelectorAll('.feat-info'));
+  infos.forEach(d => {
+    d.addEventListener('toggle', () => {
+      if (d.open) infos.forEach(o => { if (o !== d) o.open = false; });
+    });
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.feat-info')) infos.forEach(o => { o.open = false; });
+  });
+</script>
