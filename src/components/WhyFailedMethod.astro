@@ -1,21 +1,12 @@
 ---
-// ─── Sección 2: Diagnóstico → Método ────────────────────────────────────────
-// Un solo arco: "por qué fallaste antes" fluye directo a "cómo lo resolvemos".
-// Reemplaza a WhyFailed.astro + Method.astro (eliminados de index.astro).
-
-const rows = [
-  { says: '"No tengo disciplina"',          real: 'Internalizaste un modelo restrictivo que nunca fue sostenible' },
-  { says: '"No puedo seguir dietas"',        real: 'Los planes que te dieron ignoraban tu rutina real' },
-  { says: '"Siempre vuelvo a subir"',        real: 'Nunca te enseñaron estructura aplicable a tu vida' },
-  { says: '"No tengo fuerza de voluntad"',   real: 'Los métodos previos no se adaptaban a tu contexto' },
-  { says: '"Soy un caso difícil"',           real: 'Tu caso es normal. El modelo que usaste no lo era' },
-];
+// ─── Método AJL (6 pasos) ───────────────────────────────────────────────────
+// El proceso parte de la vida real del paciente, no de un plan ideal.
 
 const steps = [
   {
     n: '01',
     title: 'Estructura en tu vida real',
-    desc: 'Partimos de tu rutina como es —3 comidas + 1 snack, lo que ya haces— y la ordenamos. No copiamos la vida ideal de otro.',
+    desc: 'Partimos de tu rutina como es, con lo que ya haces cada día, y la ordenamos. No copiamos la vida ideal de otro.',
   },
   {
     n: '02',
@@ -25,7 +16,7 @@ const steps = [
   {
     n: '03',
     title: 'Gestión de porciones visible',
-    desc: 'Aprendes a medir con manos, tazas y platos —sin pesar gramos ni contar calorías. Una habilidad para toda la vida.',
+    desc: 'Aprendes a medir con manos, tazas y platos, sin pesar gramos ni contar calorías. Una habilidad para toda la vida.',
   },
   {
     n: '04',
@@ -45,37 +36,10 @@ const steps = [
 ];
 ---
 
-<section id="section-why-failed" class="section bg-white diagnosis">
-  <div class="container">
-    <p class="label">Por qué no funcionó antes</p>
-    <h2 class="title" style="max-width: 620px; margin-bottom: 1rem;">
-      "¿Por qué tú sí,<br />si ya muchos fallaron conmigo?"
-    </h2>
-    <p class="subtitle" style="margin-bottom: 3rem;">
-      Es la pregunta que todos se hacen antes de intentarlo de nuevo. La respuesta no está
-      en tu disciplina: está en que los métodos anteriores te dieron un plan para una vida
-      que no es la tuya.
-    </p>
-
-    <div class="table-wrapper" role="table" aria-label="Comparación de creencias vs realidad">
-      <div class="table-head" role="row">
-        <div role="columnheader">Lo que piensas</div>
-        <div role="columnheader" class="real-col">El problema real</div>
-      </div>
-      {rows.map(row => (
-        <div class="table-row" role="row">
-          <div class="table-cell says" role="cell">{row.says}</div>
-          <div class="table-cell real" role="cell">{row.real}</div>
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
-
 <section id="section-method" class="section bg-black method">
   <div class="container">
     <p class="bridge">
-      Por eso construimos el proceso al revés:<br />
+      Construimos el proceso al revés:<br />
       <span>empezamos por tu vida, no por un plan ideal.</span>
     </p>
 
@@ -102,75 +66,25 @@ const steps = [
         href="#section-packages"
         class="btn-primary"
         data-cta="method_primary"
-        aria-label="Ver los paquetes disponibles"
+        aria-label="Ver los planes disponibles"
       >
-        Ver los paquetes →
+        Ver los planes →
       </a>
     </div>
   </div>
 </section>
 
 <style>
-.bg-white { background: var(--white); }
-.bg-black { background: var(--black); }
+.bg-black { background: var(--verde-osc); }
 .white    { color: var(--white); }
-.light    { color: #aaaaaa; }
+.light    { color: rgba(255, 255, 255, 0.68); }
 
-/* ── Diagnóstico: tabla creencia vs realidad ── */
-.table-wrapper {
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.table-head {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: var(--black);
-  padding: 1rem 1.5rem;
-  gap: 1rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: #888;
-}
-
-.table-head .real-col { color: var(--gold); }
-
-.table-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  padding: 1.1rem 1.5rem;
-  border-top: 1px solid #eeeeee;
-  transition: background var(--transition);
-}
-
-.table-row:hover { background: var(--gray-light); }
-
-.table-cell {
-  font-size: 0.95rem;
-  line-height: 1.5;
-  align-self: center;
-}
-
-.table-cell.says {
-  color: var(--gray-dark);
-  font-style: italic;
-}
-
-.table-cell.real {
-  color: var(--black);
-  font-weight: 600;
-}
-
-/* ── Puente diagnóstico → método ── */
+/* ── Puente introductorio ── */
 .bridge {
   font-size: clamp(1.15rem, 3vw, 1.6rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.4;
-  color: #666;
+  color: rgba(255, 255, 255, 0.6);
   margin-bottom: 3.5rem;
   letter-spacing: -0.4px;
 }
@@ -185,13 +99,14 @@ const steps = [
 }
 
 .step-card {
-  border: 1px solid #222222;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
   padding: 1.75rem;
-  transition: border-color var(--transition);
+  transition: border-color var(--transition), transform var(--transition);
 }
 
-.step-card:hover { border-color: var(--gold); }
+.step-card:hover { border-color: var(--gold); transform: translateY(-3px); }
 
 .step-n {
   display: block;
@@ -213,38 +128,11 @@ const steps = [
 
 .step-desc {
   font-size: 0.9rem;
-  color: #999999;
+  color: rgba(255, 255, 255, 0.72);
   line-height: 1.65;
 }
 
 @media (max-width: 640px) {
-  .table-head,
-  .table-row { grid-template-columns: 1fr; }
-  .table-head .real-col { display: none; }
-
-  .table-cell.says::before {
-    content: 'Lo que piensas: ';
-    font-style: normal;
-    font-weight: 700;
-    color: #888;
-    font-size: 0.7rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-
-  .table-cell.real::before {
-    content: 'El problema real: ';
-    font-weight: 700;
-    color: var(--gold);
-    font-size: 0.7rem;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    display: block;
-    margin-bottom: 0.25rem;
-  }
-
   .steps-grid { grid-template-columns: 1fr; }
 }
 </style>

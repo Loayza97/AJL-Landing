@@ -21,7 +21,7 @@ const includes = [
       </h2>
       <p class="subtitle" style="margin-bottom: 2rem;">
         ¿Viste los planes y aún no sabes cuál es el tuyo? Empieza por acá.
-        Es una consulta real con diagnóstico completo —no una reunión de venta—
+        Es una consulta real con diagnóstico completo, no una reunión de venta,
         para que llegues a la decisión con claridad, no a ciegas.
       </p>
 
@@ -43,7 +43,7 @@ const includes = [
     <div class="eval-card">
       <p class="eval-card__label">Inversión inicial</p>
       <p class="eval-card__price">S/{evaluacion.price}</p>
-      <p class="eval-card__duration">20 – 30 min · Diagnóstico + dirección</p>
+      <p class="eval-card__duration">20 a 30 min · Diagnóstico y dirección</p>
 
       <a
         href={`/checkout/${evaluacion.id}`}
@@ -63,7 +63,7 @@ const includes = [
 </section>
 
 <style>
-.bg-white { background: var(--white); }
+.bg-white { background: var(--verde-claro); }
 
 .eval-layout {
   display: grid;
@@ -109,9 +109,9 @@ const includes = [
 
 /* Card */
 .eval-card {
-  background: var(--black);
+  background: linear-gradient(160deg, var(--verde-osc) 0%, var(--verde) 140%);
   color: var(--white);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 2.25rem;
   display: flex;
   flex-direction: column;
@@ -120,6 +120,7 @@ const includes = [
   gap: 0.5rem;
   position: sticky;
   top: 2rem;
+  box-shadow: var(--shadow-strong);
 }
 
 .eval-card__label {
@@ -127,7 +128,7 @@ const includes = [
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: #888;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .eval-card__price {
@@ -141,7 +142,7 @@ const includes = [
 
 .eval-card__duration {
   font-size: 0.8rem;
-  color: #777;
+  color: rgba(255, 255, 255, 0.72);
   margin-bottom: 1rem;
 }
 
@@ -152,7 +153,7 @@ const includes = [
 
 .eval-card__slots {
   font-size: 0.75rem;
-  color: #888;
+  color: rgba(255, 255, 255, 0.7);
   letter-spacing: 0.3px;
 }
 

@@ -12,15 +12,16 @@ const trust = [
 
 <section id="section-hero" class="hero">
   <div class="container hero__inner">
-    <p class="label">AJL Nutrición · Nutricionista en Lince, Lima</p>
+    <p class="label">AJL Nutrición · Nutrición para tu vida real</p>
     <h1 class="hero__title">
-      No es tu disciplina.<br />
-      <span class="hero__accent">Es que nadie te dio un plan para tu vida real.</span>
+      Deja de hacer dietas.<br />
+      <span class="hero__accent">Aprende a comer.</span>
     </h1>
     <p class="hero__sub">
-      Cambios reales en composición corporal con planificación práctica,
-      porciones que aprendes a manejar y acompañamiento cercano —
-      sin prohibir alimentos ni pedirte una vida que no tienes.
+      Con lo que ya comes en tus restaurantes, tu chamba, tus antojos en las
+      porciones correctas. Te acompañamos hasta que aprendas a decidir solo. Los
+      resultados llegan como un efecto secundario de tener una alimentación
+      sostenible.
     </p>
 
     <div class="hero__cta-group">
@@ -32,14 +33,7 @@ const trust = [
       >
         Ver los planes →
       </a>
-      <a
-        href="#section-evaluation"
-        class="hero__cta-secondary"
-        data-cta="hero_evaluacion"
-        aria-label="Empezar con la Evaluación Nutricional de S/80"
-      >
-        ¿No sabes cuál? Empieza con la Evaluación de S/80
-      </a>
+      <p class="hero__cta-promise">Para que aprendas a ser dueño de tu alimentación.</p>
     </div>
 
     <ul class="hero__trust" aria-label="Por qué confiar en AJL Nutrición">
@@ -52,7 +46,9 @@ const trust = [
 
 <style>
 .hero {
-  background: var(--black);
+  position: relative;
+  overflow: hidden;
+  background: var(--verde-osc);
   color: var(--white);
   min-height: 100svh;
   display: flex;
@@ -60,8 +56,52 @@ const trust = [
   padding-block: clamp(5rem, 10vw, 8rem);
 }
 
+/* Foto del equipo (desktop: horizontal) */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: url('/equipo-desktop.jpg') center / cover no-repeat;
+}
+
+/* Velo verde para legibilidad del texto + destello terracota.
+   Más oscuro a la izquierda (donde va el texto), se aclara a la derecha
+   para dejar ver al equipo. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(1200px 500px at 82% -10%, rgba(214, 138, 92, 0.20), transparent 60%),
+    linear-gradient(95deg,
+      rgba(23, 60, 44, 0.95) 0%,
+      rgba(23, 60, 44, 0.86) 38%,
+      rgba(23, 60, 44, 0.55) 72%,
+      rgba(23, 60, 44, 0.35) 100%);
+}
+
 .hero__inner {
+  position: relative;
+  z-index: 1;
   max-width: 800px;
+}
+
+/* Móvil: foto vertical + velo más parejo (equipo arriba, texto legible) */
+@media (max-width: 768px) {
+  .hero::before {
+    background-image: url('/equipo-mobile.jpg');
+    background-position: center top;
+  }
+  .hero::after {
+    background:
+      radial-gradient(700px 380px at 80% -8%, rgba(214, 138, 92, 0.16), transparent 60%),
+      linear-gradient(180deg,
+        rgba(23, 60, 44, 0.45) 0%,
+        rgba(23, 60, 44, 0.72) 42%,
+        rgba(23, 60, 44, 0.93) 100%);
+  }
 }
 
 .hero__title {
@@ -79,7 +119,7 @@ const trust = [
 
 .hero__sub {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
-  color: #cccccc;
+  color: rgba(255, 255, 255, 0.88);
   line-height: 1.75;
   max-width: 580px;
   margin-bottom: 2.5rem;
@@ -90,6 +130,14 @@ const trust = [
   flex-direction: column;
   align-items: flex-start;
   gap: 1rem;
+}
+
+.hero__cta-promise {
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: -0.4rem;
 }
 
 .hero__cta-secondary {
@@ -113,7 +161,7 @@ const trust = [
   gap: 0.75rem 1.5rem;
   margin-top: 3rem;
   padding-top: 1.75rem;
-  border-top: 1px solid #222;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 .hero__trust-item {
@@ -121,7 +169,7 @@ const trust = [
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.3px;
-  color: #999999;
+  color: rgba(255, 255, 255, 0.72);
   padding-left: 1.1rem;
 }
 

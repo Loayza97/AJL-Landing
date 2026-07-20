@@ -1,25 +1,27 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Hero from '../components/Hero.astro';
-import WhyFailedMethod from '../components/WhyFailedMethod.astro';
-import Evaluation from '../components/Evaluation.astro';
 import Testimonials from '../components/Testimonials.astro';
-import ForWho from '../components/ForWho.astro';
 import Plans from '../components/Plans.astro';
+import Evaluation from '../components/Evaluation.astro';
 import FAQ from '../components/FAQ.astro';
+import Ubicacion from '../components/Ubicacion.astro';
+import CtaFinal from '../components/CtaFinal.astro';
 import Footer from '../components/Footer.astro';
 import FloatingWhatsApp from '../components/FloatingWhatsApp.astro';
 import CookieBanner from '../components/CookieBanner.astro';
 ---
 
 <Layout>
+  <!-- Distribución:
+       Hero → Testimonios → Planes → Evaluación → FAQ → Ubicación → CTA final → Footer -->
   <Hero />
-  <WhyFailedMethod />
   <Testimonials />
-  <ForWho />
   <Plans />
   <Evaluation />
   <FAQ />
+  <Ubicacion />
+  <CtaFinal />
   <Footer />
   <FloatingWhatsApp />
   <CookieBanner />

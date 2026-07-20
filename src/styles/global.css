@@ -1,21 +1,41 @@
-/* ─── Variables ─────────────────────────────────────────────────────────────── */
+/* ─── Variables — Tema AJL (verde + terracota) ───────────────────────────────
+   Paleta e identidad tomadas de la guía GUIA-TEMA-Y-DISTRIBUCION-LANDING.
+   Verde = cercanía y confianza · Terracota = empatía y calidez (CTAs).
+   Los nombres antiguos (--black, --gold, etc.) se conservan como alias para
+   que los componentes existentes adopten el tema sin reescribirse. */
 :root {
-  --black:      #000000;
-  --white:      #ffffff;
-  --gray-light: #f5f5f5;
-  --gray-mid:   #888888;
-  --gray-dark:  #333333;
-  --gold:       #D4A843;
-  --gold-dark:  #B8902E;
-  --gold-pale:  #f9f0d8;
+  /* Paleta AJL */
+  --verde:        #2F6E52;
+  --verde-osc:    #173C2C;
+  --verde-claro:  #E9F1EB;
+  --dorado:       #D68A5C;   /* terracota — acento / CTA */
+  --dorado-osc:   #BE6E42;   /* terracota oscuro — hover */
+  --dorado-claro: #F6E5D9;
+  --crema:        #FBF7F1;
+  --ink:          #20302A;
+  --gris:         #5E6B63;
 
-  --font: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  /* Alias retro-compatibles (usados por los componentes actuales) */
+  --black:      var(--verde-osc);
+  --white:      #ffffff;
+  --gray-light: var(--verde-claro);
+  --gray-mid:   var(--gris);
+  --gray-dark:  var(--ink);
+  --gold:       var(--dorado);
+  --gold-dark:  var(--dorado-osc);
+  --gold-pale:  var(--dorado-claro);
+
+  --font:      'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-head: 'Fraunces', Georgia, 'Times New Roman', serif;
 
   --container-max:     1200px;
   --container-px:      clamp(1.25rem, 5vw, 3rem);
   --section-py:        clamp(4rem, 8vw, 7rem);
 
-  --radius:            4px;
+  --radius:            14px;
+  --radius-lg:         18px;
+  --shadow:            0 10px 30px rgba(23, 60, 44, 0.10);
+  --shadow-strong:     0 18px 50px rgba(23, 60, 44, 0.18);
   --transition:        220ms ease;
 }
 
@@ -26,9 +46,10 @@ body  {
   font-family: var(--font);
   font-size: 1rem;
   line-height: 1.65;
-  color: var(--black);
-  background: var(--white);
+  color: var(--ink);
+  background: var(--crema);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 img, video { max-width: 100%; height: auto; display: block; }
 a   { color: inherit; text-decoration: none; }
@@ -47,25 +68,35 @@ button, input, select, textarea { font: inherit; }
 }
 
 /* ─── Typography ─────────────────────────────────────────────────────────────── */
+h1, h2, h3,
+.title,
+.hero__title,
+.checkout-title {
+  font-family: var(--font-head);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
 .label {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--dorado);
   margin-bottom: 0.75rem;
 }
 
 .title {
   font-size: clamp(1.75rem, 4.5vw, 2.875rem);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.5px;
+  color: var(--verde-osc);
 }
 
 .subtitle {
   font-size: clamp(1rem, 2vw, 1.125rem);
-  color: var(--gray-mid);
+  color: var(--gris);
   line-height: 1.75;
   max-width: 600px;
 }
@@ -76,20 +107,21 @@ button, input, select, textarea { font: inherit; }
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: var(--gold);
-  color: var(--black);
+  background: var(--dorado);
+  color: #ffffff;
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: 0.2px;
   padding: 1rem 2rem;
-  border-radius: var(--radius);
+  border-radius: 999px;
   border: none;
   cursor: pointer;
   min-height: 52px;
-  transition: background var(--transition), transform var(--transition);
+  box-shadow: 0 8px 22px rgba(214, 138, 92, 0.35);
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
   white-space: nowrap;
 }
-.btn-primary:hover  { background: var(--gold-dark); transform: translateY(-1px); }
+.btn-primary:hover  { background: var(--dorado-osc); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(214, 138, 92, 0.5); }
 .btn-primary:active { transform: translateY(0); }
 
 .btn-outline {
@@ -98,18 +130,18 @@ button, input, select, textarea { font: inherit; }
   justify-content: center;
   gap: 0.5rem;
   background: transparent;
-  color: var(--gold);
+  color: var(--dorado);
   font-weight: 700;
   font-size: 1rem;
   padding: 0.9rem 2rem;
-  border-radius: var(--radius);
-  border: 2px solid var(--gold);
+  border-radius: 999px;
+  border: 2px solid var(--dorado);
   cursor: pointer;
   min-height: 52px;
   transition: all var(--transition);
   white-space: nowrap;
 }
-.btn-outline:hover { background: var(--gold); color: var(--black); }
+.btn-outline:hover { background: var(--dorado); color: #ffffff; }
 
 /* ─── Accessibility ──────────────────────────────────────────────────────────── */
 .sr-only {
@@ -122,6 +154,6 @@ button, input, select, textarea { font: inherit; }
 }
 
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--dorado);
   outline-offset: 3px;
 }
