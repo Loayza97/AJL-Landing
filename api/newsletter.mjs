@@ -18,7 +18,7 @@ const SITE = (process.env.PUBLIC_SITE_URL || 'https://ajlnutricion.com').replace
 
 // Versión exacta del aviso de consentimiento (debe coincidir con el popup).
 const CONSENT_TEXT =
-  'Acepto recibir correos de marketing de AJL Nutrición y he leído la Política de Privacidad. (v2026-07-20)';
+  'Acepto recibir correos de AJL Nutrición (novedades, consejos y promociones) y he leído la Política de Privacidad. (v2026-07-20.2)';
 
 function bad(res, status, message) {
   return res.status(status).json({ ok: false, error: message });
