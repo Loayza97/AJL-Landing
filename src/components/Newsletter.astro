@@ -1,0 +1,172 @@
+---
+// ─── Popup de captación de correos (newsletter → cupón 10%) ──────────────────
+// Doble opt-in: envía a /api/newsletter; el cupón llega tras confirmar el correo.
+---
+
+<div id="nl-overlay" class="nl-overlay" role="dialog" aria-modal="true" aria-labelledby="nl-title" hidden>
+  <div class="nl-modal">
+    <button class="nl-close" id="nl-close" type="button" aria-label="Cerrar">&times;</button>
+
+    <div class="nl-body" id="nl-form-wrap">
+      <p class="nl-brand">AJL Nutrición</p>
+      <p class="nl-kicker">Consigue un descuento</p>
+      <p class="nl-off">10% OFF</p>
+      <p class="nl-copy">
+        Suscríbete y recibe un cupón de <strong>10% de descuento</strong> en tu plan.
+        Al enviar tu correo aceptas recibir correos de marketing de AJL Nutrición.
+        Lee nuestra <a href="/privacidad/" target="_blank" rel="noopener">Política de Privacidad</a>.
+      </p>
+
+      <form id="nl-form" novalidate>
+        <!-- Honeypot anti-bot (oculto para humanos) -->
+        <input type="text" name="website" id="nl-hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <input type="email" id="nl-email" name="email" required placeholder="Escribe tu correo"
+               autocomplete="email" aria-label="Tu correo electrónico" />
+
+        <label class="nl-consent">
+          <input type="checkbox" id="nl-consent" required />
+          <span>Acepto recibir correos de marketing y la <a href="/privacidad/" target="_blank" rel="noopener">Política de Privacidad</a>.</span>
+        </label>
+
+        <button type="submit" class="nl-btn" id="nl-btn">OBTENER 10% OFF</button>
+        <p class="nl-error" id="nl-error"></p>
+      </form>
+    </div>
+
+    <div class="nl-body nl-success" id="nl-success" hidden>
+      <div class="nl-check" aria-hidden="true">✓</div>
+      <p class="nl-brand">¡Casi listo!</p>
+      <p class="nl-copy">Te enviamos un correo para <strong>confirmar tu suscripción</strong>. Ábrelo y confirma para recibir tu cupón de 10%. (Revisa también spam.)</p>
+      <button type="button" class="nl-btn nl-btn--ghost" id="nl-done">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .nl-overlay {
+    position: fixed; inset: 0; z-index: 1200;
+    background: rgba(23, 60, 44, .55); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center; padding: 1.25rem;
+  }
+  .nl-overlay[hidden] { display: none; }
+
+  .nl-modal {
+    position: relative; width: 100%; max-width: 440px;
+    background: var(--crema, #FBF7F1); border-radius: 20px;
+    box-shadow: 0 30px 70px rgba(23, 60, 44, .35);
+    padding: clamp(1.75rem, 5vw, 2.5rem);
+    animation: nl-in .28s ease;
+  }
+  @keyframes nl-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+
+  .nl-close {
+    position: absolute; top: 12px; right: 14px; border: none; background: none;
+    font-size: 1.7rem; line-height: 1; color: var(--gris, #5E6B63); cursor: pointer;
+  }
+  .nl-close:hover { color: var(--verde-osc, #173C2C); }
+
+  .nl-brand { font-family: var(--font-head, Georgia, serif); font-weight: 600; color: var(--verde-osc, #173C2C); font-size: 1.15rem; margin-bottom: .5rem; }
+  .nl-kicker { text-transform: uppercase; letter-spacing: 2px; font-size: .72rem; font-weight: 700; color: var(--gris, #5E6B63); }
+  .nl-off { font-family: var(--font-head, Georgia, serif); font-weight: 700; color: var(--dorado, #D68A5C); font-size: clamp(2.6rem, 12vw, 3.4rem); line-height: 1; margin: .25rem 0 .75rem; }
+  .nl-copy { font-size: .88rem; color: var(--gris, #5E6B63); line-height: 1.55; margin-bottom: 1.1rem; }
+  .nl-copy a { color: var(--dorado-osc, #BE6E42); text-decoration: underline; }
+
+  #nl-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+  #nl-email {
+    width: 100%; padding: .9rem 1.1rem; font-size: 1rem; border: 1px solid #d9d3c7;
+    border-radius: 12px; background: #fff; color: var(--ink, #20302A); margin-bottom: .75rem;
+  }
+  #nl-email:focus { outline: none; border-color: var(--dorado, #D68A5C); box-shadow: 0 0 0 3px rgba(214,138,92,.18); }
+
+  .nl-consent { display: flex; gap: .55rem; align-items: flex-start; font-size: .8rem; color: var(--gris, #5E6B63); line-height: 1.45; margin-bottom: 1rem; cursor: pointer; }
+  .nl-consent input { margin-top: .15rem; accent-color: var(--dorado, #D68A5C); flex-shrink: 0; }
+  .nl-consent a { color: var(--dorado-osc, #BE6E42); text-decoration: underline; }
+
+  .nl-btn {
+    width: 100%; padding: 1rem; border: none; border-radius: 999px; cursor: pointer;
+    background: var(--verde-osc, #173C2C); color: #fff; font-weight: 700; font-size: .95rem;
+    letter-spacing: .5px; transition: background .18s, transform .18s;
+  }
+  .nl-btn:hover { background: var(--verde, #2F6E52); transform: translateY(-1px); }
+  .nl-btn[disabled] { opacity: .6; pointer-events: none; }
+  .nl-btn--ghost { background: transparent; color: var(--verde-osc, #173C2C); border: 1px solid #d9d3c7; margin-top: 1rem; }
+  .nl-btn--ghost:hover { background: #fff; }
+
+  .nl-error { color: #c0392b; font-size: .82rem; margin-top: .6rem; min-height: 1em; }
+
+  .nl-success { text-align: center; }
+  .nl-check { width: 56px; height: 56px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(47,110,82,.14); color: var(--verde, #2F6E52); display: flex; align-items: center; justify-content: center; font-size: 1.6rem; font-weight: 800; }
+</style>
+
+<script>
+  (function () {
+    const KEY_SEEN = 'ajl_news_seen';   // timestamp de última vez que se mostró
+    const KEY_DONE = 'ajl_news_done';   // ya se suscribió
+    const COOLDOWN = 30 * 24 * 3600 * 1000; // 30 días
+
+    const overlay = document.getElementById('nl-overlay');
+    if (!overlay) return;
+    const form = document.getElementById('nl-form');
+    const emailEl = document.getElementById('nl-email');
+    const consentEl = document.getElementById('nl-consent');
+    const hpEl = document.getElementById('nl-hp');
+    const btn = document.getElementById('nl-btn');
+    const errEl = document.getElementById('nl-error');
+    const formWrap = document.getElementById('nl-form-wrap');
+    const successEl = document.getElementById('nl-success');
+
+    function canShow() {
+      if (localStorage.getItem(KEY_DONE)) return false;
+      const seen = parseInt(localStorage.getItem(KEY_SEEN) || '0', 10);
+      return Date.now() - seen > COOLDOWN;
+    }
+    function open() {
+      if (!canShow() || !overlay.hidden) return;
+      overlay.hidden = false;
+      localStorage.setItem(KEY_SEEN, String(Date.now()));
+      setTimeout(() => emailEl && emailEl.focus(), 100);
+      cleanupTriggers();
+    }
+    function close() { overlay.hidden = true; }
+
+    let timer = setTimeout(open, 15000); // a los 15s
+    function onExit(e) { if (e.clientY <= 0) open(); } // exit-intent (desktop)
+    document.addEventListener('mouseout', onExit);
+    function cleanupTriggers() { clearTimeout(timer); document.removeEventListener('mouseout', onExit); }
+
+    document.getElementById('nl-close').addEventListener('click', close);
+    document.getElementById('nl-done').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !overlay.hidden) close(); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      const email = (emailEl.value || '').trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { errEl.textContent = 'Ingresa un correo válido.'; return; }
+      if (!consentEl.checked) { errEl.textContent = 'Debes aceptar para continuar.'; return; }
+
+      btn.disabled = true; btn.textContent = 'Enviando…';
+      try {
+        const params = new URLSearchParams(location.search);
+        const source = params.get('utm_source') ? `${params.get('utm_source')}/${params.get('utm_campaign') || ''}` : 'popup_home';
+        const r = await fetch('/api/newsletter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, consent: true, website: hpEl.value, source }),
+        });
+        const json = await r.json();
+        if (!r.ok) throw new Error(json.error || 'No se pudo suscribir');
+        localStorage.setItem(KEY_DONE, '1');
+        formWrap.hidden = true;
+        successEl.hidden = false;
+        if (typeof window.gtag === 'function') window.gtag('event', 'newsletter_signup', { source });
+      } catch (err) {
+        btn.disabled = false; btn.textContent = 'OBTENER 10% OFF';
+        errEl.textContent = err.message || 'Hubo un problema. Intenta de nuevo.';
+      }
+    });
+  })();
+</script>

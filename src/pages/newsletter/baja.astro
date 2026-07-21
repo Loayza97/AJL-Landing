@@ -1,0 +1,32 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+  <main class="np">
+    <div class="container">
+      <section class="np-card">
+        <h1 id="title">Te diste de baja</h1>
+        <p class="np-lead" id="msg">Ya no recibirás correos de marketing de AJL Nutrición. Puedes volver a suscribirte cuando quieras.</p>
+        <a class="np-back" href="/">← Volver al inicio</a>
+      </section>
+    </div>
+  </main>
+
+  <style>
+    .np { min-height: 60vh; display: flex; align-items: center; padding-block: clamp(2rem, 6vw, 5rem); }
+    .np .container { max-width: 560px; text-align: center; }
+    .np-card { background: #fff; border: 1px solid #e6e2d9; border-radius: 18px; padding: clamp(28px, 6vw, 48px); box-shadow: var(--shadow); }
+    .np-card h1 { color: var(--verde-osc); font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: .75rem; }
+    .np-lead { color: var(--gris); line-height: 1.6; margin-bottom: 1.5rem; }
+    .np-back { display: inline-block; font-size: .9rem; color: var(--dorado-osc); font-weight: 600; }
+  </style>
+
+  <script>
+    const estado = new URLSearchParams(location.search).get('estado');
+    if (estado && estado !== 'ok') {
+      document.getElementById('title').textContent = 'Enlace no válido';
+      document.getElementById('msg').textContent = 'No pudimos procesar la baja con este enlace. Si el problema sigue, escríbenos por WhatsApp.';
+    }
+  </script>
+</Layout>

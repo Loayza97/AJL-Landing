@@ -1,0 +1,52 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout>
+  <main class="np">
+    <div class="container">
+      <section class="np-card">
+        <div id="ok" style="display:none">
+          <div class="np-check" aria-hidden="true">✓</div>
+          <h1>Tu 10% está listo</h1>
+          <p class="np-lead">Este es tu cupón. Te lo enviamos también por correo.</p>
+          <p class="np-code" id="code">—</p>
+          <p class="np-hint">Al pagar tu plan, envíanoslo por WhatsApp junto con tu comprobante y aplicamos el 10%. Es de un solo uso y vence en 30 días.</p>
+          <a class="np-wa" id="wa" href="#" target="_blank" rel="noopener noreferrer">Usar mi cupón por WhatsApp →</a>
+        </div>
+        <div id="err" style="display:none">
+          <h1>Enlace no válido</h1>
+          <p class="np-lead">Este enlace de confirmación ya se usó o expiró. Si necesitas ayuda, escríbenos.</p>
+          <a class="np-wa" href="https://wa.me/51919151237?text=Hola!%20Tengo%20una%20duda%20con%20mi%20cup%C3%B3n%20de%2010%25" target="_blank" rel="noopener noreferrer">Escríbenos por WhatsApp →</a>
+        </div>
+      </section>
+      <a class="np-back" href="/">← Volver al inicio</a>
+    </div>
+  </main>
+
+  <style>
+    .np { min-height: 70vh; display: flex; align-items: center; padding-block: clamp(2rem, 6vw, 5rem); }
+    .np .container { max-width: 620px; text-align: center; }
+    .np-card { background: #fff; border: 1px solid #e6e2d9; border-radius: 18px; padding: clamp(28px, 6vw, 48px); box-shadow: var(--shadow); }
+    .np-card h1 { color: var(--verde-osc); font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: .5rem; }
+    .np-check { width: 60px; height: 60px; margin: 0 auto 1rem; border-radius: 50%; background: rgba(47,110,82,.12); color: var(--verde); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800; }
+    .np-lead { color: var(--gris); margin-bottom: 1.25rem; }
+    .np-code { font-family: var(--font-head); font-size: clamp(2rem, 7vw, 2.8rem); font-weight: 700; letter-spacing: .06em; color: var(--dorado-osc); background: var(--verde-claro); border-radius: 14px; padding: 16px; margin: 0 auto 1.25rem; }
+    .np-hint { font-size: .92rem; color: var(--gris); line-height: 1.6; margin-bottom: 1.75rem; }
+    .np-wa { display: inline-flex; align-items: center; gap: .5rem; background: #25D366; color: #fff; font-weight: 700; padding: .9rem 1.75rem; border-radius: 999px; box-shadow: 0 8px 22px rgba(37,211,102,.3); }
+    .np-back { display: inline-block; margin-top: 1.5rem; font-size: .9rem; color: var(--dorado-osc); font-weight: 600; }
+  </style>
+
+  <script>
+    const p = new URLSearchParams(location.search);
+    const code = p.get('code');
+    if (code) {
+      document.getElementById('ok').style.display = 'block';
+      document.getElementById('code').textContent = code;
+      document.getElementById('wa').href =
+        'https://wa.me/51919151237?text=' + encodeURIComponent('Hola! Quiero usar mi cupón ' + code + ' de 10%');
+    } else {
+      document.getElementById('err').style.display = 'block';
+    }
+  </script>
+</Layout>
