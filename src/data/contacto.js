@@ -18,7 +18,7 @@ const direccionPartes = {
   distrito: 'Lince',
   ciudad: 'Lima',
   region: 'Lima',
-  codigoPostal: '15046',
+  codigoPostal: '15073',
   pais: 'PE',
 };
 
