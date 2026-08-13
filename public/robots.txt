@@ -8,4 +8,7 @@ Disallow: /api/
 # El endpoint del libro de reclamaciones no debe indexarse
 Disallow: /reclamaciones/gracias/
 
+# Mockups y demos internas: no son contenido público del negocio
+Disallow: /demos/
+
 Sitemap: https://ajlnutricion.com/sitemap.xml

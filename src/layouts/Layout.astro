@@ -6,11 +6,20 @@ import {
   SITE_DESCRIPTION,
   OG_IMAGE,
 } from '../config.js';
+import { contacto } from '../data/contacto.js';
 
 // Canonical por página (evita que checkout canonicalice al home)
 const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://ajlnutricion.com');
 
-// Schema LocalBusiness (site-wide) — negocio, dirección, geo, horarios, catálogo
+// Páginas de servicio (gracias, baja) no deben entrar al índice: son contenido
+// fino y duplicado que le baja la calidad media al dominio.
+const { noindex = false } = Astro.props;
+
+// Schema LocalBusiness (site-wide) — negocio, dirección, geo, horarios, catálogo.
+// Todo el NAP (dirección, teléfono, geo, horarios) sale de data/contacto.js para
+// que el texto visible y el schema no puedan divergir. Ver nota allí.
+const { direccionPartes, geo } = contacto;
+
 const businessSchema = {
   '@context': 'https://schema.org',
   '@type': 'MedicalBusiness',
@@ -23,27 +32,25 @@ const businessSchema = {
   url: 'https://ajlnutricion.com/',
   image: 'https://ajlnutricion.com/og-image.jpg',
   logo: 'https://ajlnutricion.com/favicon.svg',
-  telephone: '+51919151237',
+  telephone: contacto.telefono,
+  hasMap: contacto.maps.ficha,
   priceRange: 'S/80–S/600',
   medicalSpecialty: 'Dietetics',
   address: {
     '@type': 'PostalAddress',
-    streetAddress: 'Av. Almirante Manuel Villavicencio 1461',
-    addressLocality: 'Lince',
-    addressRegion: 'Lima',
-    postalCode: '15046',
-    addressCountry: 'PE',
+    streetAddress: direccionPartes.calle,
+    addressLocality: direccionPartes.distrito,
+    addressRegion: direccionPartes.region,
+    postalCode: direccionPartes.codigoPostal,
+    addressCountry: direccionPartes.pais,
   },
-  geo: { '@type': 'GeoCoordinates', latitude: -12.089, longitude: -77.0357 },
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-      opens: '10:00',
-      closes: '20:00',
-    },
-    { '@type': 'OpeningHoursSpecification', dayOfWeek: 'Saturday', opens: '09:00', closes: '19:00' },
-  ],
+  geo: { '@type': 'GeoCoordinates', latitude: geo.lat, longitude: geo.lng },
+  openingHoursSpecification: contacto.horarioSpec.map(({ dias, abre, cierra }) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: dias.length === 1 ? dias[0] : dias,
+    opens: abre,
+    closes: cierra,
+  })),
   areaServed: [
     { '@type': 'City', name: 'Lima' },
     { '@type': 'AdministrativeArea', name: 'Lince' },
@@ -63,14 +70,17 @@ const businessSchema = {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={SITE_DESCRIPTION} />
-  <meta name="robots" content="index, follow, max-image-preview:large" />
+  <meta
+    name="robots"
+    content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}
+  />
   <link rel="canonical" href={canonicalURL.href} />
 
   <!-- Geo / local SEO -->
   <meta name="geo.region" content="PE-LIM" />
   <meta name="geo.placename" content="Lince, Lima, Perú" />
-  <meta name="geo.position" content="-12.0890;-77.0357" />
-  <meta name="ICBM" content="-12.0890, -77.0357" />
+  <meta name="geo.position" content={`${geo.lat};${geo.lng}`} />
+  <meta name="ICBM" content={`${geo.lat}, ${geo.lng}`} />
 
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
