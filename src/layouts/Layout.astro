@@ -8,8 +8,18 @@ import {
 } from '../config.js';
 import { contacto } from '../data/contacto.js';
 
+// Origen canónico del sitio. Se define UNA vez en astro.config.mjs (`site`) y
+// todo lo absoluto —canonical, OG, schema— se deriva de ahí, para que el día
+// que cambie el dominio no queden URLs sueltas apuntando al anterior.
+// Debe coincidir con el dominio primario configurado en Vercel: hoy es el www.
+const SITE_ORIGIN = (Astro.site ?? new URL('https://www.ajlnutricion.com')).origin;
+
 // Canonical por página (evita que checkout canonicalice al home)
-const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://ajlnutricion.com');
+const canonicalURL = new URL(Astro.url.pathname, SITE_ORIGIN);
+
+// OG requiere URLs absolutas: una ruta relativa hace que varias plataformas no
+// resuelvan la imagen al compartir el enlace.
+const ogImageURL = new URL(OG_IMAGE, SITE_ORIGIN);
 
 // Páginas de servicio (gracias, baja) no deben entrar al índice: son contenido
 // fino y duplicado que le baja la calidad media al dominio.
@@ -23,15 +33,15 @@ const { direccionPartes, geo } = contacto;
 const businessSchema = {
   '@context': 'https://schema.org',
   '@type': 'MedicalBusiness',
-  '@id': 'https://ajlnutricion.com/#business',
+  '@id': `${SITE_ORIGIN}/#business`,
   name: 'AJL Nutrición',
   alternateName: 'AJL Nutrición — Alejandro Loayza',
   legalName: 'FJ INVESTMENTS S.A.C.',
   description:
     'Nutricionista en Lince, Lima. Planes de nutrición personalizados adaptados a tu vida real: restaurantes, delivery, cenas de trabajo. Sin restricciones absurdas, sin culpa.',
-  url: 'https://ajlnutricion.com/',
-  image: 'https://ajlnutricion.com/og-image.jpg',
-  logo: 'https://ajlnutricion.com/favicon.svg',
+  url: `${SITE_ORIGIN}/`,
+  image: ogImageURL.href,
+  logo: `${SITE_ORIGIN}/favicon.svg`,
   telephone: contacto.telefono,
   hasMap: contacto.maps.ficha,
   priceRange: 'S/80–S/600',
@@ -87,14 +97,14 @@ const businessSchema = {
   <meta property="og:site_name"   content="AJL Nutrición" />
   <meta property="og:title"       content={SITE_TITLE} />
   <meta property="og:description" content={SITE_DESCRIPTION} />
-  <meta property="og:image"       content={OG_IMAGE} />
+  <meta property="og:image"       content={ogImageURL.href} />
   <meta property="og:url"         content={canonicalURL.href} />
 
   <!-- Twitter / X -->
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content={SITE_TITLE} />
   <meta name="twitter:description" content={SITE_DESCRIPTION} />
-  <meta name="twitter:image"       content={OG_IMAGE} />
+  <meta name="twitter:image"       content={ogImageURL.href} />
 
   <!-- Fonts: Fraunces (titulares) + Inter (cuerpo) — identidad de marca AJL -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />

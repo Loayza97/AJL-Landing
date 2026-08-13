@@ -9,7 +9,7 @@ const supabase = createClient(
   { auth: { persistSession: false } }
 );
 
-const SITE = (process.env.PUBLIC_SITE_URL || 'https://ajlnutricion.com').replace(/\/$/, '');
+const SITE = (process.env.PUBLIC_SITE_URL || 'https://www.ajlnutricion.com').replace(/\/$/, '');
 
 function redir(res, path) {
   res.statusCode = 302;

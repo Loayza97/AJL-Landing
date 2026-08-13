@@ -2,49 +2,49 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <url>
-    <loc>https://ajlnutricion.com/</loc>
+    <loc>https://www.ajlnutricion.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/checkout/evaluacion/</loc>
+    <loc>https://www.ajlnutricion.com/checkout/evaluacion/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/checkout/basico/</loc>
+    <loc>https://www.ajlnutricion.com/checkout/basico/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/checkout/acompanamiento/</loc>
+    <loc>https://www.ajlnutricion.com/checkout/acompanamiento/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/checkout/constancia/</loc>
+    <loc>https://www.ajlnutricion.com/checkout/constancia/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/checkout/transformacion/</loc>
+    <loc>https://www.ajlnutricion.com/checkout/transformacion/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/reclamaciones/</loc>
+    <loc>https://www.ajlnutricion.com/reclamaciones/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
   <url>
-    <loc>https://ajlnutricion.com/privacidad/</loc>
+    <loc>https://www.ajlnutricion.com/privacidad/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

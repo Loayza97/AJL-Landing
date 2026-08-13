@@ -14,7 +14,7 @@ const supabase = createClient(
 
 const RESEND_URL = 'https://api.resend.com/emails';
 const FROM = process.env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
-const SITE = (process.env.PUBLIC_SITE_URL || 'https://ajlnutricion.com').replace(/\/$/, '');
+const SITE = (process.env.PUBLIC_SITE_URL || 'https://www.ajlnutricion.com').replace(/\/$/, '');
 
 // Alfabeto sin caracteres ambiguos (0/O, 1/I/L).
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
