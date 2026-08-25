@@ -90,7 +90,7 @@ el siguiente incidente de seguridad:
    - Razón social: FJ INVESTMENTS S.A.C.
    - RUC: 20609894963
    - Nombre comercial: AJL Nutrición
-   - Domicilio: Av. Almirante Manuel Villavicencio 1461, Lince, Lima
+   - Domicilio: Jr. Almirante Manuel Villavicencio 1461, Lince, Lima
    - Contacto: reclamos@ajlnutricion.com
 
 2. DESCRIPCIÓN DEL INCIDENTE

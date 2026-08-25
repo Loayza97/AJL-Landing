@@ -13,12 +13,14 @@ del deploy a Vercel vía `.vercelignore`.
 | [plantilla-respuesta-arco.md](./plantilla-respuesta-arco.md) | Responder solicitudes de derechos del titular (Acceso, Rectificación, Cancelación, Oposición, Portabilidad, Olvido) dentro del plazo legal de 10 días hábiles. |
 | [plan-brecha-seguridad.md](./plan-brecha-seguridad.md) | Qué hacer si se detecta una brecha de seguridad. Notificación obligatoria a la ANPDP en 48h. |
 | [checklist-nuevo-procesador.md](./checklist-nuevo-procesador.md) | Pasos a seguir antes de empezar a usar una nueva herramienta SaaS que toque datos personales. |
+| [decision-consentimiento-cookies.md](./decision-consentimiento-cookies.md) | Registro de decisión sobre analítica y publicidad: GA4 con consentimiento, Meta Pixel con interés legítimo y derecho de oposición. Incluye el riesgo asumido, las condiciones que obligarían a apretar, y cómo hacerlo. |
 
 ## Cuándo usar cada uno
 
 - **Llega un email a `reclamos@ajlnutricion.com` con palabras como "borren mis datos", "qué datos tienen de mí", "dejen de usar mis datos"** → `plantilla-respuesta-arco.md`
-- **Recibís notificación de Supabase / Resend / Vercel de un incidente de seguridad** → `plan-brecha-seguridad.md`
+- **Recibes notificación de Supabase / Resend / Vercel de un incidente de seguridad** → `plan-brecha-seguridad.md`
 - **Alguien del equipo propone agregar una nueva herramienta (Mailchimp, Calendly, Typeform, Stripe, etc.)** → `checklist-nuevo-procesador.md`
+- **Empieza a llegar tráfico de la Unión Europea, aparece un reclamo por el píxel publicitario, o se plantea cambiar qué se trackea** → `decision-consentimiento-cookies.md`
 
 ## Responsable interno
 
@@ -31,4 +33,4 @@ de operativizar). Esta persona:
 
 ## Última actualización
 
-2026-05-26 — Versión 1.0
+2026-08-25 — Versión 1.1 (añadido el registro de decisión sobre cookies)

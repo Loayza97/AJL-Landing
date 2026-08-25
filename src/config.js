@@ -11,6 +11,7 @@ export const SITE_DESCRIPTION =
   'Nutricionista en Lince, Lima. Planes personalizados para tu vida real: tus restaurantes, delivery y cenas de trabajo, sin restricciones absurdas ni culpa. Evaluación nutricional desde S/80.';
 export const OG_IMAGE = '/og-image.jpg';
 
-// IDs de pixels — descomentar y rellenar cuando estén disponibles
-// export const META_PIXEL_ID = 'XXXXXXXXXXXXXXXXXX';
-// export const GA4_ID = 'G-XXXXXXXXXX';
+// IDs de pixels. Se cargan SOLO tras el consentimiento del visitante
+// (ver el gate en layouts/Layout.astro); nunca en el <head> a secas.
+export const META_PIXEL_ID = '982472270539383';
+export const GA4_ID = 'G-SQ5K6KFXT3';

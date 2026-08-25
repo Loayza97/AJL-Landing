@@ -53,7 +53,7 @@ function htmlConfirmacion(confirmUrl) {
       </p>
       <p style="font-size:13px;color:#5E6B63">Si no fuiste tú, ignora este correo y no pasará nada.</p>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-      <p style="font-size:12px;color:#5E6B63">AJL Nutrición · Av. Almirante Manuel Villavicencio 1461, Lince, Lima</p>
+      <p style="font-size:12px;color:#5E6B63">AJL Nutrición · Jr. Almirante Manuel Villavicencio 1461, Lince, Lima</p>
     </div>`;
 }
 

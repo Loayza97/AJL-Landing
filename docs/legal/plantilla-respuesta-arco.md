@@ -233,7 +233,7 @@ AJL Nutrición — FJ INVESTMENTS S.A.C.
 
 ### Solicitud por terceros (abogados, ANPDP)
 
-Si recibís un correo de un abogado o de la ANPDP pidiendo info sobre un
+Si recibes un correo de un abogado o de la ANPDP pidiendo info sobre un
 titular específico, la respuesta es la misma — pero verificar primero que
 la persona representada autoriza la solicitud (poder notarial o autorización
 por escrito).

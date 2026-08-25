@@ -4,12 +4,19 @@
 <!-- Cookie banner (US-021) — oculto por defecto, JS lo muestra si no hay consentimiento -->
 <div id="cookie-banner" class="cookie-banner" style="display: none;" role="alertdialog" aria-label="Aviso de cookies">
   <p class="cookie-banner__text">
-    Usamos cookies de analítica (Google Analytics) y publicidad (Meta Pixel) para medir el rendimiento de esta página.
-    Consulta nuestra <a href="/privacidad/" class="cookie-banner__link">política de privacidad</a>.
+    Usamos cookies para entender qué te sirve de esta página y para medir nuestros anuncios.
+    <strong>Ninguna se activa hasta que aceptes</strong>, y puedes cambiar de opinión cuando quieras
+    desde el pie de página. Más detalle en la
+    <a href="/privacidad/" class="cookie-banner__link">política de privacidad</a>.
   </p>
-  <button id="cookie-accept" class="btn-primary cookie-banner__btn" aria-label="Aceptar cookies">
-    Aceptar
-  </button>
+  <div class="cookie-banner__acciones">
+    <button id="cookie-reject" class="btn-outline cookie-banner__btn" aria-label="Rechazar cookies">
+      Rechazar
+    </button>
+    <button id="cookie-accept" class="btn-primary cookie-banner__btn" aria-label="Aceptar cookies">
+      Aceptar
+    </button>
+  </div>
 </div>
 
 <style>
@@ -44,11 +51,20 @@
   text-underline-offset: 2px;
 }
 
+.cookie-banner__acciones {
+  display: flex;
+  gap: 0.625rem;
+  flex-shrink: 0;
+}
+
+/* Mismo tamaño y prominencia en ambos: un "Rechazar" empequeñecido
+   convierte la elección en decorativa y anula el consentimiento. */
 .cookie-banner__btn {
   font-size: 0.85rem;
   padding: 0.625rem 1.25rem;
   min-height: 44px;
-  flex-shrink: 0;
+  flex: 1;
+  white-space: nowrap;
 }
 
 @media (max-width: 600px) {
@@ -57,7 +73,9 @@
     right: 1rem;
     bottom: 7rem;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
+
+  .cookie-banner__acciones { width: 100%; }
 }
 </style>

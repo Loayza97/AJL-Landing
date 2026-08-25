@@ -49,7 +49,7 @@ function htmlBienvenida({ code, unsubUrl }) {
         <a href="https://wa.me/51919151237?text=Hola!%20Quiero%20usar%20mi%20cup%C3%B3n%20${encodeURIComponent(code)}%20de%2010%25" style="background:#25D366;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:999px;display:inline-block">Usar mi cupón por WhatsApp</a>
       </p>
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
-      <p style="font-size:12px;color:#5E6B63">AJL Nutrición · Av. Almirante Manuel Villavicencio 1461, Lince, Lima.<br>
+      <p style="font-size:12px;color:#5E6B63">AJL Nutrición · Jr. Almirante Manuel Villavicencio 1461, Lince, Lima.<br>
       Si no quieres recibir más correos, <a href="${unsubUrl}" style="color:#5E6B63">date de baja aquí</a>.</p>
     </div>`;
 }

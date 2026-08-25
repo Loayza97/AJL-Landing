@@ -5,7 +5,10 @@ import {
   SITE_TITLE,
   SITE_DESCRIPTION,
   OG_IMAGE,
+  META_PIXEL_ID,
+  GA4_ID,
 } from '../config.js';
+import CookieBanner from '../components/CookieBanner.astro';
 import { contacto } from '../data/contacto.js';
 
 // Origen canónico del sitio. Se define UNA vez en astro.config.mjs (`site`) y
@@ -120,33 +123,21 @@ const businessSchema = {
   <!-- Schema: LocalBusiness (nutricionista en Lince, Lima) -->
   <script type="application/ld+json" set:html={JSON.stringify(businessSchema)} />
 
-  <!-- META PIXEL -->
-  <script>
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-    n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-    document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '982472270539383');
-    fbq('track', 'PageView');
-  </script>
-  <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=982472270539383&ev=PageView&noscript=1"/></noscript>
-
-  <!-- GOOGLE ANALYTICS 4 -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQ5K6KFXT3"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-SQ5K6KFXT3');
-  </script>
+  <!-- Analítica (GA4) y publicidad (Meta Pixel) NO se cargan aquí a propósito.
+       La política de privacidad declara el consentimiento como base legal para
+       ellas (secciones 9.2 y 4), así que se inyectan al final del <body> solo
+       si el visitante acepta. Tampoco hay <noscript> del pixel: ese <img>
+       dispara la baliza sin JavaScript y se saltaría el gate entero. -->
 </head>
 <body>
   <slot />
 
+  <!-- El banner vive en el Layout, no en cada página: el tracking se carga en
+       todas, así que la elección tiene que estar disponible en todas. -->
+  <CookieBanner />
+
   <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
-  <script define:vars={{ WA_NUMBER }}>
+  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID }}>
     // ── Configuración ──────────────────────────────────────────────────────────
     const waNumber = WA_NUMBER;
     const params   = new URLSearchParams(window.location.search);
@@ -177,6 +168,43 @@ const businessSchema = {
       }
     }
 
+    // ── Wrapper seguro para el Meta Pixel ─────────────────────────────────────
+    // No-op si el visitante no consintió: fbq ni siquiera existe.
+    function trackMeta(evento, extra = {}) {
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', evento, extra);
+      }
+    }
+
+    // ── Conversión propia (primera parte) ─────────────────────────────────────
+    // El clic a WhatsApp es LA conversión del negocio. Registrarla en nuestro
+    // propio backend nos da una fuente de verdad que no depende de que el
+    // visitante acepte cookies, ni de bloqueadores, ni de que Meta o Google
+    // sigan reportando lo mismo dentro de un año.
+    //
+    // A propósito NO se envía nada que identifique a nadie: ni IP, ni
+    // user-agent, ni identificador de sesión. Solo el evento y su origen de
+    // campaña. Por eso es tratamiento anónimo y no necesita consentimiento ni
+    // aparecer en la política como dato personal.
+    //
+    // sendBeacon porque el clic navega fuera del sitio: un fetch normal se
+    // cancelaría a medio vuelo.
+    function registrarConversion(datos) {
+      try {
+        const cuerpo = JSON.stringify(datos);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/conversion', new Blob([cuerpo], { type: 'application/json' }));
+        } else {
+          fetch('/api/conversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: cuerpo,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+
     // ── Inyecta URLs de WhatsApp en todos los CTAs ────────────────────────────
     function initWALinks() {
       const defaultMessage = buildMessage();
@@ -195,9 +223,32 @@ const businessSchema = {
         el.setAttribute('href', `https://wa.me/${waNumber}?text=${message}`);
         el.addEventListener('click', () => {
           const isFloating = section === 'floating';
+
+          // GA4: evento propio, el que ya existía.
           trackEvent(isFloating ? 'whatsapp_click_floating' : 'whatsapp_click', {
             section_id: section,
             ...(pkgName && { package_name: pkgName }),
+          });
+
+          // Meta: evento ESTÁNDAR 'Lead'. Tiene que ser el nombre estándar, no
+          // uno propio: es el que Meta sabe usar para optimizar campañas y
+          // construir públicos similares. Sin esto, una campaña solo puede
+          // optimizar hacia PageView, o sea hacia gente que carga la página en
+          // vez de gente que escribe.
+          trackMeta('Lead', {
+            content_name: pkgName || 'Evaluación Nutricional',
+            content_category: section,
+          });
+
+          // Nuestra propia fuente de verdad, independiente del consentimiento.
+          registrarConversion({
+            evento: 'whatsapp_click',
+            seccion: section,
+            paquete: pkgName || null,
+            utm_source: utmSource || null,
+            utm_medium: utmMedium || null,
+            utm_campaign: utmCampaign || null,
+            path: window.location.pathname,
           });
         });
       });
@@ -232,29 +283,155 @@ const businessSchema = {
       });
     }
 
-    // ── Cookie banner ──────────────────────────────────────────────────────────
+    // ── Consentimiento de cookies (Ley 29733) ─────────────────────────────────
+    // GA4 y el Meta Pixel se cargan SOLO si el visitante acepta. La clave es
+    // nueva a propósito: la anterior ('ajl_cookie_ok') se recogió con el
+    // tracking ya disparado y sin opción de rechazar, así que no era una
+    // elección libre y no se hereda. Queda huérfana en el navegador; es inerte.
+    const CONSENT_KEY = 'ajl_consent'; // 'granted' | 'denied' | ausente
+
+    // localStorage lanza en modo privado de algunos navegadores y con las
+    // cookies de terceros bloqueadas. Ante la duda, tratamos como "sin decisión".
+    function leerConsentimiento() {
+      try { return localStorage.getItem(CONSENT_KEY); } catch { return null; }
+    }
+    function guardarConsentimiento(valor) {
+      try { localStorage.setItem(CONSENT_KEY, valor); } catch {}
+    }
+    function olvidarConsentimiento() {
+      try { localStorage.removeItem(CONSENT_KEY); } catch {}
+    }
+
+    // ── GA4 con Consent Mode v2 ───────────────────────────────────────────────
+    // gtag.js se carga SIEMPRE, pero arranca con todos los permisos en 'denied'.
+    // En ese estado no escribe cookies ni identificadores: manda pings sin
+    // cookies con los que Google modela tráfico agregado. Al aceptar se envía un
+    // 'consent update' y pasa a medición completa, sin recargar la página.
+    //
+    // El compromiso, dicho claro: los pings sin cookies siguen transmitiendo la
+    // IP del visitante, así que esto NO es "cero datos". Es medición agregada
+    // sin identificadores persistentes, y la política lo describe en esos
+    // términos (sección 9.2). El Meta Pixel no entra aquí: publicidad sin
+    // consentimiento no tiene defensa razonable, y sigue bloqueado del todo.
+    let ga4Iniciado = false;
+    function iniciarGA4() {
+      if (ga4Iniciado) return;
+      ga4Iniciado = true;
+
+      // gtag va en window porque trackEvent() comprueba window.gtag
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+
+      // El 'default' DEBE ir antes de cargar gtag.js y antes del config.
+      window.gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        functionality_storage: 'granted',
+        security_storage: 'granted',
+        wait_for_update: 500,
+      });
+      window.gtag('set', 'ads_data_redaction', true);
+      window.gtag('set', 'url_passthrough', true);
+
+      const ga = document.createElement('script');
+      ga.async = true;
+      ga.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`;
+      document.head.appendChild(ga);
+
+      window.gtag('js', new Date());
+      window.gtag('config', GA4_ID);
+    }
+
+    // ── Meta Pixel ────────────────────────────────────────────────────────────
+    // Base legal: consentimiento. Se carga SOLO si el visitante acepta.
+    //
+    // Se evaluó dejarlo en interés legítimo con derecho de oposición para no
+    // perder señal publicitaria, pero hoy NO hay campañas activas: no hay nada
+    // que optimizar, así que gatearlo no cuesta nada, mientras que el interés
+    // legítimo estaría justificándose por una inversión que aún no existe —su
+    // versión más débil. Cuando haya campañas, ese argumento se vuelve sólido y
+    // el cambio es una línea. Ver docs/legal/decision-consentimiento-cookies.md.
+    //
+    // Idempotente: aceptar dos veces, o aceptar tras revocar sin recargar, no
+    // debe inyectarlo por duplicado.
+    let pixelCargado = false;
+    function cargarMetaPixel() {
+      if (pixelCargado) return;
+      pixelCargado = true;
+
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      window.fbq('init', META_PIXEL_ID);
+      window.fbq('track', 'PageView');
+    }
+
+    // Sube GA4 a medición completa y enciende la publicidad.
+    function aplicarConsentimiento() {
+      if (typeof window.gtag === 'function') {
+        window.gtag('consent', 'update', {
+          ad_storage: 'granted',
+          ad_user_data: 'granted',
+          ad_personalization: 'granted',
+          analytics_storage: 'granted',
+        });
+        window.gtag('set', 'ads_data_redaction', false);
+      }
+      cargarMetaPixel();
+    }
+
+    // ── Banner de consentimiento ───────────────────────────────────────────────
     function initCookieBanner() {
       const banner = document.getElementById('cookie-banner');
       if (!banner) return;
 
-      const KEY = 'ajl_cookie_ok';
-      if (localStorage.getItem(KEY)) {
-        banner.remove();
-        return;
-      }
-      banner.style.display = 'flex';
+      // No se usa remove(): el enlace del footer necesita poder reabrirlo.
+      const decidir = (valor) => {
+        guardarConsentimiento(valor);
+        banner.style.display = 'none';
+        if (valor === 'granted') aplicarConsentimiento();
+      };
 
-      document.getElementById('cookie-accept')?.addEventListener('click', () => {
-        localStorage.setItem(KEY, '1');
-        banner.remove();
+      document.getElementById('cookie-accept')?.addEventListener('click', () => decidir('granted'));
+      document.getElementById('cookie-reject')?.addEventListener('click', () => decidir('denied'));
+
+      if (!leerConsentimiento()) banner.style.display = 'flex';
+    }
+
+    // ── Revocación desde el footer ─────────────────────────────────────────────
+    // Borra la decisión y reabre el banner. Lo ya cargado sigue en memoria hasta
+    // el próximo reload; el texto del banner lo dice en lugar de aparentar que
+    // se apaga en caliente.
+    function initPreferenciasCookies() {
+      const enlace = document.getElementById('cookie-preferences');
+      const banner = document.getElementById('cookie-banner');
+      if (!enlace || !banner) return;
+
+      enlace.addEventListener('click', (e) => {
+        e.preventDefault();
+        olvidarConsentimiento();
+        banner.style.display = 'flex';
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     }
+
+    // Arranque. GA4 siempre, en estado denegado (medición agregada sin cookies);
+    // el píxel solo con consentimiento explícito. No esperamos a
+    // DOMContentLoaded: cuanto antes se dispare el PageView, menos visitas se
+    // pierden por rebote temprano.
+    iniciarGA4();
+    if (leerConsentimiento() === 'granted') aplicarConsentimiento();
 
     // ── Init ───────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
       initWALinks();
       initScrollTracking();
       initCookieBanner();
+      initPreferenciasCookies();
     });
   </script>
 </body>
