@@ -32,8 +32,29 @@ Cada día que pase son consultas de clientes que no quedan registradas.
    que ya están configuradas en Vercel y apuntan a ese proyecto.
 2. En el menú lateral, abre **SQL Editor**.
 3. Pulsa **New query**.
-4. Abre el archivo `db/conversiones.sql` de este repo, copia **todo** su
-   contenido y pégalo en el editor.
+4. Copia y pega este bloque. Es el contenido de `db/conversiones.sql` sin los
+   comentarios: esos documentan la decisión para quien lea el código, pero no
+   hacen nada al ejecutarse.
+
+   ```sql
+   CREATE TABLE IF NOT EXISTS conversiones (
+     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+     evento       TEXT NOT NULL CHECK (evento IN ('whatsapp_click')),
+     seccion      TEXT,
+     paquete      TEXT,
+     utm_source   TEXT,
+     utm_medium   TEXT,
+     utm_campaign TEXT,
+     path         TEXT,
+     creado_en    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   );
+
+   CREATE INDEX IF NOT EXISTS idx_conv_creado   ON conversiones (creado_en DESC);
+   CREATE INDEX IF NOT EXISTS idx_conv_campania ON conversiones (utm_campaign, creado_en DESC);
+
+   ALTER TABLE conversiones ENABLE ROW LEVEL SECURITY;
+   ```
+
 5. Pulsa **Run** (o `Cmd + Enter`).
 
 Debe responder `Success. No rows returned`. Eso es correcto: el script crea una
@@ -42,6 +63,15 @@ tabla, no devuelve filas.
 > **Cuidado:** este proyecto de Supabase está compartido con el sistema interno
 > de nutrición (tablas `meal_plan_*`, `nutricionista`, `patient`…). Ejecuta solo
 > este script y no toques otras tablas.
+
+> **Si sale el aviso "Snippets no longer save automatically":** ignóralo y pulsa
+> *Understood*. Guardar el snippet es distinto de ejecutar el SQL — `Run` corre
+> contra la base de datos, guardar solo conserva el texto en la barra lateral. No
+> hace falta guardarlo: la copia buena está en el repo.
+
+> **Si el Run falla o se queda colgado:** mira https://status.supabase.com antes
+> de asumir que hiciste algo mal. El script es idempotente (`IF NOT EXISTS`), así
+> que puedes reintentarlo entero sin duplicar nada.
 
 **Cómo comprobar que funcionó**
 
