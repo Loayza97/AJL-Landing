@@ -137,6 +137,8 @@ tocar código y política en el mismo commit.
 
 ## Tareas manuales pendientes (no son código)
 
+Guía paso a paso con las pantallas concretas: [`docs/setup-medicion.md`](../setup-medicion.md).
+
 - [ ] Correr `db/conversiones.sql` en el SQL Editor de Supabase.
 - [ ] **Verificar el dominio** `ajlnutricion.com` en Meta Business Manager. Es
       trámite y tarda; mejor hecho antes de necesitarlo.
