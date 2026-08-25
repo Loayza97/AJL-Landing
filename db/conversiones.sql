@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS conversiones (
   utm_source   TEXT,
   utm_medium   TEXT,
   utm_campaign TEXT,
+  utm_content  TEXT,          -- creatividad concreta, para A/B (ver docs/utms.md)
   path         TEXT,          -- ruta del sitio, sin query string
   creado_en    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -54,3 +55,16 @@ ALTER TABLE conversiones ENABLE ROW LEVEL SECURITY;
 --
 -- Qué sección de la landing convierte mejor:
 --   SELECT seccion, COUNT(*) FROM conversiones GROUP BY 1 ORDER BY 2 DESC;
+--
+-- Qué creatividad convierte mejor dentro de una campaña:
+--   SELECT utm_content, COUNT(*) FROM conversiones
+--   WHERE utm_campaign = 'lanzamiento-202609'
+--   GROUP BY 1 ORDER BY 2 DESC;
+--
+-- Embudo de checkout: cuántos preguntan vs cuántos mandan comprobante
+--   SELECT seccion, COUNT(*) FROM conversiones
+--   WHERE seccion LIKE 'checkout-%' GROUP BY 1 ORDER BY 2 DESC;
+--
+-- En hora de Lima (la tabla guarda UTC):
+--   SELECT creado_en AT TIME ZONE 'America/Lima' AS hora_lima, seccion, utm_source
+--   FROM conversiones ORDER BY creado_en DESC LIMIT 20;

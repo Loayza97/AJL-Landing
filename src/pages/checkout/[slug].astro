@@ -10,10 +10,18 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const plan = plans[slug];
 
-const waMsg = encodeURIComponent(
-  `Hola, te envío el comprobante del plan ${plan.name} (S/${plan.price}).`
-);
-const waLink = `https://wa.me/${contacto.whatsappNumber}?text=${waMsg}`;
+// Dos intenciones distintas, dos mensajes distintos. El del pie decía antes
+// "te envío el comprobante" bajo un título que pregunta "¿Tienes dudas antes de
+// pagar?", así que quien tenía una duda le escribía al asesor como si estuviera
+// pagando. También se miden por separado: mandar el comprobante está a un paso
+// de la venta, preguntar todavía no.
+const msgComprobante = `Hola, te envío el comprobante del plan ${plan.name} (S/${plan.price}).`;
+const msgDudas = `Hola, tengo una duda sobre el plan ${plan.name} (S/${plan.price}) antes de pagar.`;
+
+// href de respaldo para quien navegue sin JavaScript: el Layout lo reescribe
+// añadiéndole el origen de campaña.
+const waLinkComprobante = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(msgComprobante)}`;
+const waLinkDudas = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(msgDudas)}`;
 ---
 
 <Layout>
@@ -76,7 +84,15 @@ const waLink = `https://wa.me/${contacto.whatsappNumber}?text=${waMsg}`;
           <div class="step-body">
             <h3>Envía tu comprobante por WhatsApp</h3>
             <p>Solo necesitamos una captura de pantalla de tu pago.</p>
-            <a href={waLink} class="btn-primary wa-cta" target="_blank" rel="noopener noreferrer">
+            <a
+              href={waLinkComprobante}
+              class="btn-primary wa-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-wa-section="checkout-comprobante"
+              data-wa-pkg={plan.name}
+              data-wa-msg={msgComprobante}
+            >
               Enviar comprobante por WhatsApp →
             </a>
           </div>
@@ -114,7 +130,15 @@ const waLink = `https://wa.me/${contacto.whatsappNumber}?text=${waMsg}`;
 
       <footer class="checkout-footer">
         <p>¿Tienes dudas antes de pagar?</p>
-        <a href={waLink} target="_blank" rel="noopener noreferrer" class="checkout-help">
+        <a
+          href={waLinkDudas}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="checkout-help"
+          data-wa-section="checkout-dudas"
+          data-wa-pkg={plan.name}
+          data-wa-msg={msgDudas}
+        >
           Habla con un asesor por WhatsApp →
         </a>
       </footer>

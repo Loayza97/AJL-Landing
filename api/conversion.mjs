@@ -1,5 +1,6 @@
 // ─── Registro de conversiones propias · AJL Nutrición ───────────────────────
-// POST /api/conversion  { evento, seccion, paquete, utm_*, path }
+// POST /api/conversion  { evento, seccion, paquete, utm_source, utm_medium,
+//                          utm_campaign, utm_content, path }
 //
 // El clic a WhatsApp es la conversión real del negocio. Este endpoint la guarda
 // en nuestra propia base para no depender de que el visitante acepte cookies,
@@ -59,6 +60,7 @@ export default async function handler(req, res) {
     utm_source: limpiar(data.utm_source),
     utm_medium: limpiar(data.utm_medium),
     utm_campaign: limpiar(data.utm_campaign),
+    utm_content: limpiar(data.utm_content),
     path: path ? path.split('?')[0] : null,
   };
 

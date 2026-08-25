@@ -141,9 +141,48 @@ const businessSchema = {
     // ── Configuración ──────────────────────────────────────────────────────────
     const waNumber = WA_NUMBER;
     const params   = new URLSearchParams(window.location.search);
-    const utmSource   = params.get('utm_source');
-    const utmMedium   = params.get('utm_medium');
-    const utmCampaign = params.get('utm_campaign');
+
+    // ── Atribución que sobrevive la navegación interna ────────────────────────
+    // Los UTM llegan solo en la URL de aterrizaje. Quien entra por
+    // /?utm_source=ig, compara planes y convierte en /checkout/basico/ llegaba
+    // ahí con la URL limpia, y la conversión se registraba sin origen — justo el
+    // recorrido que más interesa medir. Se guardan en sessionStorage para que la
+    // atribución acompañe al visitante por todo el sitio.
+    //
+    // sessionStorage y no localStorage a propósito: dura lo que la pestaña, no
+    // sigue a nadie entre visitas, y lo que guarda es información de campaña,
+    // no de la persona. El registro de conversión sigue siendo anónimo.
+    //
+    // Si llega una URL con utm_source nuevo, sobrescribe (último toque dentro de
+    // la sesión): si alguien vuelve por otra campaña, gana la más reciente.
+    const UTM_KEY = 'ajl_utm';
+
+    function capturarUTM() {
+      const deLaUrl = {
+        utm_source:   params.get('utm_source'),
+        utm_medium:   params.get('utm_medium'),
+        utm_campaign: params.get('utm_campaign'),
+        utm_content:  params.get('utm_content'),
+      };
+
+      if (deLaUrl.utm_source) {
+        try { sessionStorage.setItem(UTM_KEY, JSON.stringify(deLaUrl)); } catch {}
+        return deLaUrl;
+      }
+
+      try {
+        const guardado = sessionStorage.getItem(UTM_KEY);
+        if (guardado) return JSON.parse(guardado);
+      } catch {}
+
+      return deLaUrl; // todos null
+    }
+
+    const utm = capturarUTM();
+    const utmSource   = utm.utm_source;
+    const utmMedium   = utm.utm_medium;
+    const utmCampaign = utm.utm_campaign;
+    const utmContent  = utm.utm_content;
 
     // ── Construye label de origen para el mensaje (solo si hay UTM) ──────────
     function getOriginLabel() {
@@ -214,8 +253,15 @@ const businessSchema = {
         const section = el.dataset.waSection;
         const pkgName = el.dataset.waPkg; // presente solo en CTAs de paquete
 
+        // data-wa-msg permite que un CTA traiga su propio texto (los de checkout
+        // dicen "te envío el comprobante", que no se puede perder). Sin él se usa
+        // el del paquete, y si tampoco hay, el genérico.
+        const customMsg = el.dataset.waMsg;
+
         let message = defaultMessage;
-        if (pkgName) {
+        if (customMsg) {
+          message = encodeURIComponent(origin ? `${customMsg} [${origin}]` : customMsg);
+        } else if (pkgName) {
           const pkgText = `Hola, me interesa el paquete ${pkgName} de AJL Nutrición.`;
           message = encodeURIComponent(origin ? `${pkgText} [${origin}]` : pkgText);
         }
@@ -248,6 +294,7 @@ const businessSchema = {
             utm_source: utmSource || null,
             utm_medium: utmMedium || null,
             utm_campaign: utmCampaign || null,
+            utm_content: utmContent || null,
             path: window.location.pathname,
           });
         });
