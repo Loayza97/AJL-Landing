@@ -7,6 +7,7 @@ import {
   OG_IMAGE,
   META_PIXEL_ID,
   GA4_ID,
+  WA_DEFAULT_MESSAGE,
 } from '../config.js';
 import CookieBanner from '../components/CookieBanner.astro';
 import { contacto } from '../data/contacto.js';
@@ -144,7 +145,7 @@ const businessSchema = {
   <CookieBanner />
 
   <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
-  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID }}>
+  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, WA_DEFAULT_MESSAGE }}>
     // ── Configuración ──────────────────────────────────────────────────────────
     const waNumber = WA_NUMBER;
     const params   = new URLSearchParams(window.location.search);
@@ -203,7 +204,7 @@ const businessSchema = {
     // ── Mensaje pre-llenado (≤200 chars visibles + UTM) ───────────────────────
     function buildMessage() {
       const origin = getOriginLabel();
-      const base   = 'Hola, me interesa la Evaluación Nutricional de S/80.';
+      const base   = WA_DEFAULT_MESSAGE;  // derivado de data/plans.js
       return encodeURIComponent(origin ? `${base} [${origin}]` : base);
     }
 
