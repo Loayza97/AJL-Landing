@@ -193,20 +193,16 @@ const businessSchema = {
     const utmCampaign = utm.utm_campaign;
     const utmContent  = utm.utm_content;
 
-    // ── Construye label de origen para el mensaje (solo si hay UTM) ──────────
-    function getOriginLabel() {
-      if (!utmSource) return null;
-      const parts = [`origen: ${utmSource}`];
-      if (utmMedium)   parts.push(utmMedium);
-      if (utmCampaign) parts.push(utmCampaign);
-      return parts.join(' / ');
-    }
-
-    // ── Mensaje pre-llenado (≤200 chars visibles + UTM) ───────────────────────
+    // ── Mensaje pre-llenado ───────────────────────────────────────────────────
+    // Sin etiqueta de origen. Antes se le pegaba "[origen: gbp / ficha /
+    // evergreen]" al final: eso lo manda EL CLIENTE, que no sabe qué es y lo lee
+    // como un código de sistema colado en su mensaje. La atribución no se pierde
+    // por quitarlo — utm_source/medium/campaign/content viajan igual a
+    // /api/conversion en cada clic (ver registrarConversion), que es la fuente de
+    // verdad del negocio. Lo único que cambia es que el asesor ya no ve el origen
+    // dentro del chat; lo ve en el panel de conversiones.
     function buildMessage() {
-      const origin = getOriginLabel();
-      const base   = WA_DEFAULT_MESSAGE;  // derivado de data/plans.js
-      return encodeURIComponent(origin ? `${base} [${origin}]` : base);
+      return encodeURIComponent(WA_DEFAULT_MESSAGE);
     }
 
     // ── Wrapper seguro para gtag ───────────────────────────────────────────────
@@ -256,7 +252,6 @@ const businessSchema = {
     // ── Inyecta URLs de WhatsApp en todos los CTAs ────────────────────────────
     function initWALinks() {
       const defaultMessage = buildMessage();
-      const origin         = getOriginLabel();
 
       document.querySelectorAll('[data-wa-section]').forEach(el => {
         const section = el.dataset.waSection;
@@ -269,10 +264,10 @@ const businessSchema = {
 
         let message = defaultMessage;
         if (customMsg) {
-          message = encodeURIComponent(origin ? `${customMsg} [${origin}]` : customMsg);
+          message = encodeURIComponent(customMsg);
         } else if (pkgName) {
           const pkgText = `Hola, me interesa el paquete ${pkgName} de AJL Nutrición.`;
-          message = encodeURIComponent(origin ? `${pkgText} [${origin}]` : pkgText);
+          message = encodeURIComponent(pkgText);
         }
 
         el.setAttribute('href', `https://wa.me/${waNumber}?text=${message}`);
