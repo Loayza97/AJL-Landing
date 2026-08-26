@@ -89,6 +89,13 @@ const businessSchema = {
   />
   <link rel="canonical" href={canonicalURL.href} />
 
+  <!-- Verificación de propiedad del dominio ante Meta (Business Settings →
+       Dominios). Debe estar en el <head> renderizado en el servidor: Meta no
+       la acepta si la inyecta JavaScript. No es un secreto —se sirve en el HTML
+       de todas las páginas— pero no la borres: si desaparece, la verificación
+       puede caerse y con ella la configuración de eventos de las campañas. -->
+  <meta name="facebook-domain-verification" content="2jrffv96lk21vxz1xjfn53dgb1qm4q" />
+
   <!-- Geo / local SEO -->
   <meta name="geo.region" content="PE-LIM" />
   <meta name="geo.placename" content="Lince, Lima, Perú" />
