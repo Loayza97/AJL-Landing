@@ -11,6 +11,12 @@ export const WA_NUMBER = '51919151237';
 // habría dicho uno y el mensaje de WhatsApp otro, que es peor que no decirlo.
 const EVALUACION = plans.evaluacion;
 
+// Nombre canónico de la primera consulta. La base operativa la ha registrado
+// como "diagnóstico", "Diagnostico" y "evaluación" indistintamente; se unificó
+// en "Evaluación" porque es como la llama la web y como la nombra el cliente.
+// Exportarlo evita que las etiquetas de analítica vuelvan a divergir.
+export const EVALUACION_NAME = EVALUACION.name;
+
 // Mensaje que el visitante envía al pulsar un CTA genérico de WhatsApp.
 //
 // SIN PRECIO, a propósito. Antes decía "me interesa la Evaluación Nutricional

@@ -8,6 +8,7 @@ import {
   META_PIXEL_ID,
   GA4_ID,
   WA_DEFAULT_MESSAGE,
+  EVALUACION_NAME,
 } from '../config.js';
 import CookieBanner from '../components/CookieBanner.astro';
 import { contacto } from '../data/contacto.js';
@@ -145,7 +146,7 @@ const businessSchema = {
   <CookieBanner />
 
   <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
-  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, WA_DEFAULT_MESSAGE }}>
+  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, WA_DEFAULT_MESSAGE, EVALUACION_NAME }}>
     // ── Configuración ──────────────────────────────────────────────────────────
     const waNumber = WA_NUMBER;
     const params   = new URLSearchParams(window.location.search);
@@ -290,7 +291,7 @@ const businessSchema = {
           // optimizar hacia PageView, o sea hacia gente que carga la página en
           // vez de gente que escribe.
           trackMeta('Lead', {
-            content_name: pkgName || 'Evaluación Nutricional',
+            content_name: pkgName || EVALUACION_NAME,
             content_category: section,
           });
 
