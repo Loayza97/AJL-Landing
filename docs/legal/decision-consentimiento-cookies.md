@@ -139,9 +139,8 @@ tocar código y política en el mismo commit.
 
 Guía paso a paso con las pantallas concretas: [`docs/setup-medicion.md`](../setup-medicion.md).
 
-- [ ] Correr `db/conversiones.sql` en el SQL Editor de Supabase.
-- [ ] **Verificar el dominio** `ajlnutricion.com` en Meta Business Manager. Es
-      trámite y tarda; mejor hecho antes de necesitarlo.
+- [x] Correr `db/conversiones.sql` en el SQL Editor de Supabase. *(25/08, más la migración `001-utm-content.sql`)*
+- [x] **Verificar el dominio** `ajlnutricion.com` en Meta Business Manager. *(25/08, por metaetiqueta en el Layout)*
 - [ ] Marcar `whatsapp_click` como **evento clave** en la interfaz de GA4, para
       que cuente como conversión en los informes.
 - [ ] Anotar en GA4 la fecha del cambio de medición (25/08/2026): las cifras

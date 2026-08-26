@@ -9,8 +9,8 @@ de terceros.
 
 | # | Tarea | Dónde | Tiempo | Urgencia |
 |---|---|---|---|---|
-| 1 | Crear la tabla `conversiones` | Supabase | 5 min | **Bloqueante** |
-| 2 | Verificar el dominio | Meta Business Manager | 10 min + espera | Antes de anunciar |
+| 1 | Crear la tabla `conversiones` | Supabase | 5 min | ~~Bloqueante~~ **Hecho 25/08** |
+| 2 | Verificar el dominio | Meta Business Manager | ~10 min | ~~Pendiente~~ **Hecho 25/08** |
 | 3 | Marcar `whatsapp_click` como evento clave | GA4 | 3 min | Cuando haya datos |
 | 4 | Anotar la fecha del corte | GA4 | 2 min | Cuando puedas |
 
@@ -110,45 +110,54 @@ FROM conversiones GROUP BY 1 ORDER BY 2 DESC;
 
 ## 2. Verificar el dominio en Meta Business Manager
 
+> **Hecho el 2026-08-25** por metaetiqueta. El dominio figura como *Verificado*
+> en Business Settings → Dominios. Se deja el procedimiento por si hay que
+> rehacerlo (cambio de dominio, portafolio nuevo, o si la verificación se cae).
+
 **Por qué importa.** Verificar el dominio le demuestra a Meta que
-`ajlnutricion.com` es tuyo. Sin eso, cuando empieces a anunciar no podrás
-decidir qué eventos tienen prioridad para los usuarios de iOS, y Meta puede
-limitar cómo se atribuyen tus conversiones. **Es trámite y puede tardar horas o
-días**, así que conviene tenerlo resuelto antes de necesitarlo, no el día que
-lances la primera campaña.
+`ajlnutricion.com` es tuyo. Sin eso, al anunciar no puedes decidir qué eventos
+tienen prioridad para los usuarios de iOS, y Meta puede limitar cómo se atribuyen
+tus conversiones.
+
+**Se usó la metaetiqueta, no el DNS.** La etiqueta se verifica en cuanto la
+página está desplegada; el registro TXT depende de propagación y puede tardar
+horas. La etiqueta vive en `src/layouts/Layout.astro`, dentro del `<head>`
+renderizado en el servidor — Meta **rechaza** la verificación si la inyecta
+JavaScript, y lo advierte en su propia pantalla.
 
 **Pasos**
 
-1. Entra a [business.facebook.com](https://business.facebook.com).
-2. Abre **Configuración del negocio** (el engranaje).
-3. En el menú lateral busca **Seguridad de marca** → **Dominios**.
-   Meta reorganiza este menú con frecuencia. Si no lo ves ahí, usa el buscador
-   de la configuración y escribe "dominios".
-4. Pulsa **Agregar** y escribe `ajlnutricion.com`
-   Sin `www` y sin `https://`: se verifica el dominio raíz, y eso cubre el `www`.
-5. Meta ofrece tres métodos. **Elige el registro TXT de DNS**, que es el más
-   limpio en tu caso porque ya gestionas el DNS y no requiere desplegar nada.
-6. Copia el valor TXT que te da Meta.
-7. Entra a [Namecheap](https://www.namecheap.com) → **Domain List** →
-   `ajlnutricion.com` → **Manage** → **Advanced DNS**.
-8. **Add New Record**:
-   - Type: `TXT Record`
-   - Host: `@`
-   - Value: el valor que copiaste de Meta
-   - TTL: Automatic
-9. Guarda, vuelve a Meta y pulsa **Verificar**.
+1. Ve directo a `https://business.facebook.com/settings/owned-domains`.
+   Es mucho más fiable que navegar el menú: Meta lo reorganiza a menudo, y desde
+   Business Suite (la vista de la página) no se llega de forma evidente.
+2. **Añadir** → escribe `ajlnutricion.com`, sin `www` y sin `https://`.
+   Se verifica el dominio raíz y eso cubre el `www`.
+3. En **Selecciona una opción**, elige *Añadir una metaetiqueta*.
+4. Copia el valor de `content="..."` y pídele a Claude que lo ponga en el
+   `<head>` del Layout. Es un commit de una línea; el deploy tarda ~45 s.
+5. Comprueba que está servida antes de verificar:
 
-> Si dice que no encuentra el registro, espera. El DNS tarda en propagar, a
-> veces algunas horas. Puedes comprobarlo desde tu terminal con:
-> `dig +short TXT ajlnutricion.com`
+   ```bash
+   curl -sSL -A "facebookexternalhit/1.1" https://ajlnutricion.com/ | grep facebook-domain-verification
+   ```
 
-> **No borres los registros TXT que ya existen.** Ahí viven la verificación de
-> Google Search Console y el SPF del correo. Añade uno nuevo, no reemplaces.
+   Ese user-agent es el rastreador real de Meta. Si la etiqueta sale aquí, el
+   lado del sitio está bien y cualquier fallo posterior es de su interfaz.
+6. **Baja hasta el final de los pasos y pulsa el botón «Verificar dominio» del
+   paso 4.** Este es el que cuesta encontrar: arriba de la pantalla hay un
+   enlace con el mismo nombre que **no** es el botón. Un solo clic, sin
+   seleccionar el texto (si lo seleccionas sale el globo de *Preguntar a Meta AI*
+   y no pasa nada).
 
-**Alternativa.** Si el DNS se te complica, el método de la **metaetiqueta**
-también sirve: Meta te da un `<meta name="facebook-domain-verification">` que va
-en el `<head>`. Eso sí es un cambio de código en `src/layouts/Layout.astro` —
-pídemelo y lo añado.
+> **No borres la metaetiqueta.** Si desaparece del `<head>`, la verificación
+> puede caerse y con ella la configuración de prioridad de eventos. Está
+> comentada en el código con esa advertencia. No es un secreto: se sirve en el
+> HTML público de todas las páginas.
+
+> **Si algún día falla:** Meta dice que puede tardar hasta 72 h en encontrar la
+> etiqueta. Antes de cambiar de método, recarga la pantalla y reintenta — suele
+> cachear el resultado del intento anterior. Cambiar a DNS no arregla un problema
+> de interfaz y es más lento.
 
 ---
 
