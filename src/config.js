@@ -11,8 +11,18 @@ export const WA_NUMBER = '51919151237';
 // habría dicho uno y el mensaje de WhatsApp otro, que es peor que no decirlo.
 const EVALUACION = plans.evaluacion;
 
-export const WA_DEFAULT_MESSAGE =
-  `Hola, me interesa la Evaluación Nutricional de S/${EVALUACION.price}.`;
+// Mensaje que el visitante envía al pulsar un CTA genérico de WhatsApp.
+//
+// SIN PRECIO, a propósito. Antes decía "me interesa la Evaluación Nutricional
+// de S/80", que se lee como "esto cuesta S/80" — y no es cierto: los S/80 se
+// acreditan contra el primer mes si contrata un plan (ver Evaluation.astro).
+// Repetir la cifra en boca del propio cliente consolidaba esa lectura falsa.
+//
+// Tampoco intenta explicar el descuento: este texto lo escribe EL CLIENTE.
+// Nadie manda un WhatsApp diciendo "la evaluación que se descuenta del primer
+// mes". La oferta se explica en la página y la remata el asesor; el mensaje
+// solo tiene que sonar a persona y decir a qué viene.
+export const WA_DEFAULT_MESSAGE = 'Hola, quiero agendar mi evaluación nutricional.';
 export const WA_FALLBACK_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_DEFAULT_MESSAGE)}`;
 
 export const SITE_TITLE = 'AJL Nutrición · Nutricionista en Lince, Lima · Sin dietas rígidas';
