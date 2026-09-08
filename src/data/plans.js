@@ -11,7 +11,7 @@ export const plans = {
     period: 'pago único',
     culqiLink: 'https://express.culqi.com/pago/CE455B801E',
     checkoutSummary: [
-      'Consulta personalizada de 20 a 30 minutos',
+      'Consulta personalizada de 30 minutos con el equipo de nutricionistas',
       'Diagnóstico completo de hábitos y composición corporal',
       'Dirección clara: qué, cómo y cuánto cambiar',
       'Los S/80 se descuentan del primer mes si decides continuar',
