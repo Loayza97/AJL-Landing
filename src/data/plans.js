@@ -146,7 +146,7 @@ export const featureGroups = [
       },
       {
         label: 'Sesiones grupales',
-        desc: '4 sesiones al mes en vivo. Espacio educativo donde trabajamos los fundamentos para sostener tus resultados por tu cuenta. Grabadas si no puedes asistir.',
+        desc: '2 sesiones por semana en vivo, 8 al mes. Espacio educativo donde trabajamos los fundamentos para sostener tus resultados por tu cuenta. Grabadas si no puedes asistir.',
         values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
       },
       {
