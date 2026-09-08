@@ -14,7 +14,7 @@ export const plans = {
       'Consulta personalizada de 30 minutos con el equipo de nutricionistas',
       'Diagnóstico completo de hábitos y composición corporal',
       'Dirección clara: qué, cómo y cuánto cambiar',
-      'Los S/80 se descuentan del primer mes si decides continuar',
+      'Los S/80 se descuentan de cualquier plan que adquieras el mismo día de tu evaluación',
     ],
   },
   basico: {
