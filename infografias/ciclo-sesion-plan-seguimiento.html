@@ -1,0 +1,137 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>AJL · El ciclo de tu plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.hoja{width:1660px;height:1800px;background:var(--crema);display:flex;flex-direction:column;
+padding:34px 40px 18px}
+
+.head{text-align:center;margin-bottom:6px}
+.head .kick{font-size:15px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--terra-osc)}
+.head h1{font-family:var(--head);font-weight:600;font-size:46px;color:var(--verde-osc);
+line-height:1.05;margin-top:7px}
+.head .sub{font-size:18px;color:var(--gris);line-height:1.5;margin:10px auto 0;max-width:78ch}
+.head .sub b{color:var(--verde-osc)}
+
+.lienzo{flex:1;position:relative;display:flex;justify-content:center;align-items:center;padding-bottom:74px}
+.rueda{position:relative;width:1400px;height:1400px}
+.rueda svg{position:absolute;inset:0;width:1400px;height:1400px}
+
+.blk{position:absolute;width:346px;transform:translate(-50%,-50%);color:#fff}
+.p1 h3, .p1 .dur{margin-left:18px}
+  .p3{width:330px}
+  .blk h3{font-family:var(--head);font-size:32px;font-weight:600;line-height:1.08;text-align:left}
+.p1 .dur{color:#BE6E42}
+.p2 .dur{color:#2F6E52}
+.p3 .dur{color:#173C2C}
+.blk .dur{display:inline-block;margin:6px 0 11px;background:#fff;
+padding:5px 15px;border-radius:99px;font-size:14.5px;font-weight:800;letter-spacing:.02em}
+.blk .como{background:rgba(0,0,0,.22);border-radius:10px;padding:10px 13px;margin-bottom:11px;
+font-size:15.6px;line-height:1.38;color:#fff;font-weight:500}
+.blk ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.blk li{font-size:17px;line-height:1.40;color:#fff;font-weight:500;padding-left:20px;position:relative}
+.blk li::before{content:'';position:absolute;left:0;top:9px;width:8px;height:8px;border-radius:50%;
+background:#fff;opacity:.85}
+.blk li b{color:#fff;font-weight:700}
+.blk .nota{margin-top:11px;background:rgba(0,0,0,.24);border-left:5px solid #fff;
+border-radius:8px;padding:10px 13px;font-size:15.6px;line-height:1.38;color:#fff;font-weight:600}
+
+.bdg{position:absolute;width:108px;height:108px;border-radius:50%;background:var(--crema);
+border:8px solid;transform:translate(-50%,-50%);display:grid;place-items:center;
+font-family:var(--head);font-size:38px;font-weight:700;box-shadow:0 6px 18px rgba(23,60,44,.18)}
+
+.arranca{position:absolute;transform:translate(-50%,-50%);background:#BE6E42;color:#fff;
+font-size:16px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+padding:9px 18px;border-radius:99px;white-space:nowrap;box-shadow:0 6px 16px rgba(23,60,44,.18)}
+.arranca::after{content:'';position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);
+border-left:9px solid transparent;border-right:9px solid transparent;border-top:13px solid #BE6E42}
+.nucleo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:182px;text-align:center}
+.nucleo b{display:block;font-family:var(--head);font-size:23px;font-weight:600;color:var(--verde-osc);line-height:1.1}
+.nucleo span{display:block;font-size:13px;color:var(--gris);line-height:1.35;margin-top:8px}
+
+.pie-strip{background:var(--verde-osc);border-radius:13px;padding:12px 24px;color:#fff;
+display:flex;align-items:center;gap:24px;flex-wrap:wrap;font-size:16px;justify-content:center}
+.pie-strip b{font-family:var(--head);font-size:19px;font-weight:600;flex:none}
+.pie-strip span{color:rgba(255,255,255,.88)}
+.pie-strip .sep{color:var(--terra);font-weight:700}
+.pie{display:flex;justify-content:space-between;align-items:center;padding-top:10px;
+margin-top:10px;border-top:1px solid rgba(23,60,44,.12);font-size:15px;color:var(--gris)}
+.pie b{color:var(--terra-osc)}
+.marca{font-family:var(--head);font-weight:700;font-size:22px;color:var(--verde-osc)}
+</style></head><body><div class="hoja">
+
+<div class="head">
+  <p class="kick">Cómo trabajamos</p>
+  <h1>No tienes que cambiar tu vida para ver cambios en tu cuerpo.</h1>
+  <p class="sub">Tu plan mantiene tus horarios y tus comidas de siempre, y te enseña a elegir en la calle.
+  <b>El plan se adapta a tu vida. No al revés.</b></p>
+</div>
+
+<div class="lienzo">
+  <div class="rueda">
+    <svg viewBox="0 0 1400 1400" xmlns="http://www.w3.org/2000/svg"><path d="M 723.7 20.4 A 680.0 680.0 0 0 1 1300.4 1019.2 L 1018.7 940.1 L 804.2 755.4 A 118.0 118.0 0 0 0 704.1 582.1 L 776.1 308.3 Z" fill="#2F6E52"/>
+<path d="M 1276.7 1060.3 A 680.0 680.0 0 0 1 123.3 1060.3 L 332.7 855.9 L 599.9 762.5 A 118.0 118.0 0 0 0 800.1 762.5 L 1001.1 961.8 Z" fill="#173C2C"/>
+<path d="M 99.6 1019.2 A 680.0 680.0 0 0 1 676.3 20.4 L 748.6 304.0 L 695.9 582.1 A 118.0 118.0 0 0 0 595.8 755.4 L 322.7 829.9 Z" fill="#BE6E42"/>
+<circle cx="700.0" cy="700.0" r="142" fill="#FBF7F1"/>
+<circle cx="700.0" cy="700.0" r="132" fill="#FBF7F1" stroke="rgba(23,60,44,.16)" stroke-width="3"/></svg>
+
+    <div class="blk p1" style="left:25.4%;top:35.8%">
+      <h3>Tu sesión</h3><span class="dur">60 min · presencial o virtual</span>
+      <ul>
+        <li><b>De dónde partes y a dónde vas.</b> Tu salud, lo que tomas, lo que te cae mal y tu objetivo.</li>
+        <li><b>Cuánto quema tu cuerpo.</b> Te pesamos, te tallamos y medimos tu grasa y tu músculo.</li>
+        <li><b>Cuánto gastas entrenando.</b> Qué deporte, cuántos días y cuánto rato de verdad.</li>
+        <li><b>Cómo es tu vida de verdad.</b> ¿Táper o menú? ¿Cena o lonche? ¿Oficina o casa? ¿Y el finde?</li>
+      </ul>
+      <p class="nota">De lo último depende que el plan te dure. Es la parte más larga de la sesión.</p>
+    </div>
+
+    <div class="blk p2" style="left:74.6%;top:35.8%">
+      <h3>Tu plan</h3><span class="dur">en 2 o 3 días</span>
+      <ul>
+        <li><b>Tus mismos horarios.</b> Comes a la hora que ya comes.</li>
+        <li><b>Una hoja para cada tipo de día tuyo.</b> Tu oficina no se parece a tu sábado.</li>
+        <li><b>Tus comidas, en la cantidad justa.</b> "1 taza de arroz". Sin gramos.</li>
+        <li><b>Si comes en la calle, qué pedir.</b> Cómo armar el menú sin salirte.</li>
+        <li><b>Tu lonche se queda.</b> Si tomas lonche, no te mandamos una cena.</li>
+        <li><b>Otras formas de resolver cada comida.</b> Y tu adicional si entrenas ese día.</li>
+      </ul>
+      <p class="nota">Lo que no te gusta o te cae mal no aparece, ni tachado. Y nunca vas a ver calorías.</p>
+    </div>
+
+    <div class="blk p3" style="left:50.0%;top:78.8%">
+      <h3>Tu seguimiento</h3><span class="dur">todo el mes</span>
+      <p class="como"><b>Cómo lo hacemos:</b> por WhatsApp, de lunes a sábado, con el equipo de nutricionistas.</p>
+      <ul>
+        <li><b>Tus dudas del día a día.</b> Una reunión larga, un viaje, una comida que no estaba. Nos escribes y te decimos qué hacer.</li>
+        <li><b>Fotos de tus comidas.</b> Vemos de verdad cómo vas cumpliendo, y te damos feedback cuando hace falta.</li>
+        <li><b>Alternativas nuevas de la calle.</b> Aparece un sitio o un antojo que no estaba: te decimos cómo encaja en tu día.</li>
+      </ul>
+      <p class="nota">Todo esto se revisa en tu siguiente sesión, y es lo que decide qué cambia del plan.</p>
+    </div>
+
+    <div class="bdg" style="left:92.1%;top:25.7%;border-color:#2F6E52;color:#2F6E52">02</div>
+    <div class="arranca" style="left:7.9%;top:17.2%">Empieza aquí</div>
+    <div class="bdg" style="left:50.0%;top:102.0%;border-color:#173C2C;color:#173C2C">03</div>
+    <div class="bdg" style="left:7.9%;top:25.7%;border-color:#BE6E42;color:#BE6E42">01</div>
+
+    <div class="nucleo"><b>Y vuelve<br>a empezar</b>
+      <span>Cada mes tu plan sabe un poco más de ti</span></div>
+  </div>
+</div>
+
+<div class="pie-strip"><b>Y además, todo el mes</b>
+  <span>2 clases en vivo por semana, grabadas si no puedes entrar</span><span class="sep">·</span>
+  <span>Grupo privado con otros pacientes</span><span class="sep">·</span>
+  <span>Nunca estás solo con el plan</span></div>
+
+<div class="pie"><span class="marca">AJL Nutrición</span>
+<span>El plan Básico es una sola sesión con su plan: el seguimiento empieza desde Acompañamiento.</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div>
+</div></body></html>

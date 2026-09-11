@@ -1,0 +1,77 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>3 · Llegas y te vas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.card{width:1080px;min-height:1350px;background:var(--crema);position:relative;
+display:flex;flex-direction:column;overflow:hidden}
+.marca{font-family:var(--head);font-weight:700;font-size:26px;color:var(--verde-osc);
+letter-spacing:.02em}
+.pie-marca{margin-top:auto;padding:26px 60px;display:flex;justify-content:space-between;
+align-items:center;border-top:1px solid rgba(23,60,44,.12);font-size:20px;color:var(--gris)}
+.pie-marca b{color:var(--terra-osc)}
+h1{font-family:var(--head);font-weight:600;color:var(--verde-osc);line-height:1.08}
+.kicker{font-size:19px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+color:var(--terra-osc)}
+
+.top{padding:56px 60px 26px;text-align:center}
+.top h1{font-size:60px;margin-top:12px}
+.duo{flex:1;display:grid;grid-template-rows:1fr auto 1fr;padding:0 60px 10px}
+.lado{padding:34px 40px;border-radius:26px}
+.lado--a{background:#fff;border:1px solid rgba(23,60,44,.10)}
+.lado--b{background:var(--verde-osc);color:#fff}
+.lado h2{font-family:var(--head);font-size:36px;font-weight:600;margin-bottom:18px;
+color:var(--verde-osc)}
+.lado--b h2{color:#fff}
+.lado ul{list-style:none;display:flex;flex-direction:column;gap:13px}
+.lado li{font-size:25px;line-height:1.35;padding-left:38px;position:relative;color:var(--gris)}
+.lado--b li{color:rgba(255,255,255,.94)}
+.lado--a li::before{content:'?';position:absolute;left:0;top:0;width:26px;height:26px;
+border-radius:50%;background:var(--terra-claro);color:var(--terra-osc);
+font-weight:800;font-size:17px;display:grid;place-items:center}
+.lado--b li::before{content:'';position:absolute;left:2px;top:9px;width:16px;height:9px;
+border-left:4px solid var(--terra);border-bottom:4px solid var(--terra);
+transform:rotate(-45deg)}
+.flecha{display:grid;place-items:center;padding:18px 0}
+.flecha span{font-size:40px;color:var(--terra-osc)}
+.flecha small{display:block;text-align:center;font-size:21px;color:var(--gris);
+font-weight:600;margin-top:2px}
+
+
+.extras{margin:26px 60px 34px;background:var(--terra-claro);border-radius:22px;padding:28px 34px}
+.extras h4{font-family:var(--head);font-size:27px;color:var(--terra-osc);margin-bottom:14px}
+.extras ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+.extras li{font-size:23px;color:var(--ink);line-height:1.35;padding-left:32px;position:relative}
+.extras li::before{content:'';position:absolute;left:0;top:9px;width:14px;height:8px;
+border-left:4px solid var(--terra-osc);border-bottom:4px solid var(--terra-osc);
+transform:rotate(-45deg)}
+.extras small{display:block;margin-top:12px;font-size:19px;color:var(--terra-osc);font-weight:600}
+</style></head><body><div class="card">
+<div class="top"><p class="kicker">Una cita de 60 minutos</p>
+<h1>Llegas con dudas.<br>Te vas con un camino.</h1></div>
+<div class="duo">
+  <div class="lado lado--a"><h2>Cómo llegas</h2><ul>
+    <li>No sabes cuánto tienes que comer</li>
+    <li>Ya probaste dietas y ninguna duró</li>
+    <li>Sientes culpa cada vez que sales a comer</li>
+    <li>No sabes si tu problema es grasa o músculo</li>
+  </ul></div>
+  <div class="flecha"><span>&#8595;</span><small>60 minutos después</small></div>
+  <div class="lado lado--b"><h2>Cómo te vas</h2><ul>
+    <li>Sabes tus números reales, medidos ese día</li>
+    <li>Sabes por qué fallaron las otras veces</li>
+    <li>Sabes qué va a pasar y qué te vamos a pedir</li>
+    <li>En 2 o 3 días tienes tu plan, hecho para tu vida</li>
+  </ul></div>
+</div><div class="extras"><h4>Y todas las semanas</h4><ul>
+<li>Nos escribes por WhatsApp de lunes a s&aacute;bado</li>
+<li>2 clases en vivo, y quedan grabadas</li>
+<li>Grupo privado con otros pacientes como t&uacute;</li>
+</ul><small>Seg&uacute;n el plan que elijas.</small></div><div class="pie-marca"><span class="marca">AJL Nutrición</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div></div></body></html>

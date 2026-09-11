@@ -1,0 +1,106 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>6 · No hacemos la misma consulta</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.card{width:1080px;min-height:1200px;background:var(--crema);display:flex;flex-direction:column}
+.top{padding:58px 60px 30px}
+.kicker{font-size:19px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--terra-osc)}
+h1{font-family:var(--head);font-weight:600;color:var(--verde-osc);font-size:60px;
+line-height:1.08;margin-top:14px}
+.top p{font-size:24px;color:var(--gris);margin-top:16px;line-height:1.45;max-width:44ch}
+
+.perfiles{padding:0 60px;display:flex;flex-direction:column;gap:14px}
+.perfil{background:#fff;border:1px solid rgba(23,60,44,.09);border-radius:22px;
+padding:26px 30px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.perfil .quien{border-right:2px solid var(--terra-claro);padding-right:22px}
+.perfil .et{font-size:16px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
+color:var(--terra-osc);margin-bottom:8px}
+.perfil h3{font-family:var(--head);font-size:28px;font-weight:600;color:var(--verde-osc);
+line-height:1.2;margin-bottom:7px}
+.perfil .dice{font-size:21px;color:var(--gris);line-height:1.35;font-style:italic}
+.perfil .et2{font-size:16px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;
+color:var(--gris);margin-bottom:8px}
+.perfil .cambia{font-size:22px;line-height:1.4;color:var(--ink)}
+.perfil .cambia b{color:var(--verde-osc)}
+
+.igual{margin:24px 60px 0;background:var(--verde-osc);border-radius:24px;padding:34px 38px;color:#fff}
+.igual h4{font-family:var(--head);font-size:32px;font-weight:600;margin-bottom:18px}
+.igual ul{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:13px 26px}
+.igual li{font-size:22px;line-height:1.35;color:rgba(255,255,255,.94);
+padding-left:34px;position:relative}
+.igual li::before{content:'';position:absolute;left:0;top:8px;width:15px;height:8px;
+border-left:4px solid var(--terra);border-bottom:4px solid var(--terra);transform:rotate(-45deg)}
+.igual .nota{margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.18);
+font-size:21px;color:var(--terra-claro);line-height:1.4}
+
+.pie-marca{margin-top:auto;padding:26px 60px;display:flex;justify-content:space-between;
+align-items:center;border-top:1px solid rgba(23,60,44,.12);font-size:20px;color:var(--gris)}
+.pie-marca b{color:var(--terra-osc)}
+.marca{font-family:var(--head);font-weight:700;font-size:26px;color:var(--verde-osc)}
+</style></head><body><div class="card">
+
+<div class="top">
+  <p class="kicker">Tu primera cita</p>
+  <h1>No hacemos la misma<br>consulta con todos.</h1>
+  <p>Dura una hora, y lo que pasa dentro depende de por qué llegaste.</p>
+</div>
+
+<div class="perfiles">
+
+  <div class="perfil">
+    <div class="quien"><p class="et">Si llegas así</p>
+      <h3>Ya probaste de todo</h3>
+      <p class="dice">"Bajo, y a los dos meses vuelvo a subir."</p></div>
+    <div><p class="et2">Lo que hacemos</p>
+      <p class="cambia">Le dedicamos buena parte de la hora a <b>qué probaste antes y en qué semana lo dejaste</b>. Ahí está la razón por la que se cayó.</p></div>
+  </div>
+
+  <div class="perfil">
+    <div class="quien"><p class="et">Si llegas así</p>
+      <h3>Tu trabajo no te deja</h3>
+      <p class="dice">"Como lo que hay, a la hora que puedo."</p></div>
+    <div><p class="et2">Lo que hacemos</p>
+      <p class="cambia">Vemos <b>tus horarios y dónde comes de verdad</b>. El plan sale con opciones de calle y de delivery, no con recetas para cocinar.</p></div>
+  </div>
+
+  <div class="perfil">
+    <div class="quien"><p class="et">Si llegas así</p>
+      <h3>Tus análisis salieron mal</h3>
+      <p class="dice">"El doctor me dijo que baje ya."</p></div>
+    <div><p class="et2">Lo que hacemos</p>
+      <p class="cambia">Trabajamos <b>con tus exámenes en la mano</b> y armamos el plan alrededor de lo que tu médico te pidió cuidar.</p></div>
+  </div>
+
+  <div class="perfil">
+    <div class="quien"><p class="et">Si llegas así</p>
+      <h3>Entrenas y no ves cambios</h3>
+      <p class="dice">"Voy al gym hace un año y sigo igual."</p></div>
+    <div><p class="et2">Lo que hacemos</p>
+      <p class="cambia">Revisamos <b>cómo comes alrededor de tu entrenamiento</b> y cuánto estás comiendo de menos sin darte cuenta.</p></div>
+  </div>
+
+</div>
+
+<div class="igual">
+  <h4>Lo que no cambia nunca</h4>
+  <ul>
+    <li>Una hora entera, solo sobre ti</li>
+    <li>Te pesamos y te tallamos</li>
+    <li>Te preguntamos cómo es tu día de verdad</li>
+    <li>Nadie te juzga por lo que comiste</li>
+    <li>Tú no cuentas calorías</li>
+    <li>En 2 o 3 días te llega tu plan</li>
+  </ul>
+  <p class="nota">Las otras medidas, como las de cintura o el porcentaje de grasa, las tomamos si en tu caso se pueden tomar. Te lo decimos ahí mismo.</p>
+</div>
+
+<div class="pie-marca"><span class="marca">AJL Nutrición</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div>
+</div></body></html>
