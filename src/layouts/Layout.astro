@@ -28,7 +28,11 @@ const ogImageURL = new URL(OG_IMAGE, SITE_ORIGIN);
 
 // Páginas de servicio (gracias, baja) no deben entrar al índice: son contenido
 // fino y duplicado que le baja la calidad media al dominio.
-const { noindex = false } = Astro.props;
+const {
+  noindex = false,
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+} = Astro.props;
 
 // Schema LocalBusiness (site-wide) — negocio, dirección, geo, horarios, catálogo.
 // Todo el NAP (dirección, teléfono, geo, horarios) sale de data/contacto.js para
@@ -84,7 +88,7 @@ const businessSchema = {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content={SITE_DESCRIPTION} />
+  <meta name="description" content={description} />
   <meta
     name="robots"
     content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}
@@ -107,15 +111,15 @@ const businessSchema = {
   <!-- Open Graph -->
   <meta property="og:type"        content="website" />
   <meta property="og:site_name"   content="AJL Nutrición" />
-  <meta property="og:title"       content={SITE_TITLE} />
-  <meta property="og:description" content={SITE_DESCRIPTION} />
+  <meta property="og:title"       content={title} />
+  <meta property="og:description" content={description} />
   <meta property="og:image"       content={ogImageURL.href} />
   <meta property="og:url"         content={canonicalURL.href} />
 
   <!-- Twitter / X -->
   <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content={SITE_TITLE} />
-  <meta name="twitter:description" content={SITE_DESCRIPTION} />
+  <meta name="twitter:title"       content={title} />
+  <meta name="twitter:description" content={description} />
   <meta name="twitter:image"       content={ogImageURL.href} />
 
   <!-- Fonts: Fraunces (titulares) + Inter (cuerpo) — identidad de marca AJL -->
@@ -127,7 +131,7 @@ const businessSchema = {
   />
 
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <title>{SITE_TITLE}</title>
+  <title>{title}</title>
 
   <!-- Schema: LocalBusiness (nutricionista en Lince, Lima) -->
   <script type="application/ld+json" set:html={JSON.stringify(businessSchema)} />

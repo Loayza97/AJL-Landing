@@ -1,0 +1,426 @@
+---
+// ─── «Así funciona»: el recorrido del paciente ───────────────────────────────
+// Fuente del contenido: PROMPT-FLUJOGRAMA-WEB (18-sep-2026). El texto de los
+// pasos es literal; no se reescribe aquí. Reglas que cumple y que hay que
+// respetar si se toca:
+//   - Sin precios (viven en Planes y cambian).
+//   - Sin plazos de entrega del plan, sin resultados/kilos, sin "colegiado",
+//     sin nombres de plan (Básico, Constancia…): los planes se identifican por
+//     cada cuánto nos vemos.
+//   - Un solo nombre para la cita: "sesión".
+//   - Una idea por paso, máximo 12 palabras por línea, el dibujo carga el peso.
+// Los pasos 4 y 5 son la bifurcación: solo existen en los planes con
+// acompañamiento. La sesión única termina en el 3.
+
+const steps = [
+  {
+    n: 1,
+    title: 'Tienes tu sesión de una hora.',
+    lines: ['En Lince o por videollamada. Te pesamos y medimos.'],
+    art: 'sesion',
+  },
+  {
+    n: 2,
+    title: 'Conversamos tu semana.',
+    lines: ['Dónde almuerzas, qué pasa el viernes, qué pasa el domingo.'],
+    art: 'semana',
+  },
+  {
+    n: 3,
+    title: 'Recibes tu plan en la app.',
+    lines: [
+      'Incluye todo lo que conversamos en tu sesión.',
+      'Desde que lo recibes corre tu mes.',
+    ],
+    art: 'plan',
+  },
+  {
+    n: 4,
+    title: 'Arranca tu acompañamiento.',
+    lines: [
+      'Escribes al equipo por WhatsApp de lunes a sábado.',
+      'Y hay dos clases en vivo por semana, si quieres entrar.',
+    ],
+    art: 'acompanamiento',
+  },
+  {
+    n: 5,
+    title: 'Nos volvemos a ver según tu plan.',
+    lines: [
+      'Cada mes, cada quince días o cada semana.',
+      'Ahí medimos y decides cómo sigues.',
+    ],
+    art: 'volver',
+  },
+];
+
+const base = steps.filter(s => s.n <= 3);
+const acompanados = steps.filter(s => s.n >= 4);
+---
+
+<section id="section-como-funciona" class="section hiw">
+  <div class="container">
+    <div class="hiw__head">
+      <p class="label">Así funciona</p>
+      <h2 class="title">Tu recorrido, paso a paso</h2>
+      <p class="hiw__entry">
+        Eliges tu plan, lo pagas y te mandamos el calendario.
+        <strong>Desde ahí:</strong>
+      </p>
+    </div>
+
+    <ol class="hiw__steps hiw__steps--base" aria-label="Pasos 1 a 3, en todos los planes">
+      {base.map(s => (
+        <li class="hiw-step">
+          <div class="hiw-step__art" aria-hidden="true">
+            {s.art === 'sesion' && (
+              <svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- mesa -->
+                <rect x="34" y="104" width="172" height="9" rx="4.5" class="f-osc" />
+                <rect x="48" y="113" width="8" height="34" rx="3" class="f-osc" />
+                <rect x="184" y="113" width="8" height="34" rx="3" class="f-osc" />
+                <!-- nutricionista -->
+                <circle cx="72" cy="52" r="15" class="f-verde" />
+                <path d="M44 104 C44 78 100 78 100 104 Z" class="f-verde" />
+                <!-- paciente presencial -->
+                <circle cx="176" cy="52" r="15" class="f-terra" />
+                <path d="M148 104 C148 78 204 78 204 104 Z" class="f-terra" />
+                <!-- balanza -->
+                <rect x="96" y="90" width="28" height="14" rx="3" class="f-white s-osc" />
+                <rect x="104" y="94" width="12" height="4" rx="1" class="f-terra" />
+                <!-- videollamada: pantalla en la mesa con una cara -->
+                <rect x="126" y="70" width="22" height="34" rx="3" class="f-white s-osc" />
+                <circle cx="137" cy="83" r="4" class="f-terra" />
+                <path d="M130 98 C130 91 144 91 144 98 Z" class="f-terra" />
+                <circle cx="131" cy="74" r="1.6" class="f-verde" />
+              </svg>
+            )}
+            {s.art === 'semana' && (
+              <svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- siete días, con lo que pasa en cada uno -->
+                <!-- L: oficina -->
+                <rect x="10" y="26" width="26" height="90" rx="6" class="f-claro" />
+                <rect x="16" y="44" width="14" height="30" rx="2" class="f-verde" />
+                <rect x="19" y="49" width="3" height="3" class="f-white" /><rect x="24" y="49" width="3" height="3" class="f-white" />
+                <rect x="19" y="56" width="3" height="3" class="f-white" /><rect x="24" y="56" width="3" height="3" class="f-white" />
+                <rect x="19" y="63" width="3" height="3" class="f-white" /><rect x="24" y="63" width="3" height="3" class="f-white" />
+                <!-- M: táper -->
+                <rect x="42" y="26" width="26" height="90" rx="6" class="f-claro" />
+                <rect x="47" y="54" width="16" height="14" rx="3" class="f-verde" />
+                <rect x="45" y="50" width="20" height="5" rx="2" class="f-osc" />
+                <!-- X: oficina -->
+                <rect x="74" y="26" width="26" height="90" rx="6" class="f-claro" />
+                <rect x="80" y="44" width="14" height="30" rx="2" class="f-verde" />
+                <rect x="83" y="49" width="3" height="3" class="f-white" /><rect x="88" y="49" width="3" height="3" class="f-white" />
+                <rect x="83" y="56" width="3" height="3" class="f-white" /><rect x="88" y="56" width="3" height="3" class="f-white" />
+                <rect x="83" y="63" width="3" height="3" class="f-white" /><rect x="88" y="63" width="3" height="3" class="f-white" />
+                <!-- J: restaurante (plato) -->
+                <rect x="106" y="26" width="26" height="90" rx="6" class="f-claro" />
+                <circle cx="119" cy="60" r="10" class="f-white s-osc" />
+                <circle cx="119" cy="60" r="5" class="f-terra" />
+                <!-- V: salida (copa) -->
+                <rect x="138" y="26" width="26" height="90" rx="6" class="f-pale" />
+                <path d="M143 48 L159 48 L151 62 Z" class="f-terra" />
+                <rect x="150" y="62" width="2" height="9" class="f-terra" />
+                <rect x="146" y="71" width="10" height="2" rx="1" class="f-terra" />
+                <!-- S: descanso (sol) -->
+                <rect x="170" y="26" width="26" height="90" rx="6" class="f-pale" />
+                <circle cx="183" cy="58" r="7" class="f-terra" />
+                <path d="M183 45v-4M183 75v-4M170 58h-4M200 58h-4M174 49l-3-3M195 70l-3-3M174 67l-3 3M195 46l-3 3" class="s-terra" />
+                <!-- D: casa -->
+                <rect x="202" y="26" width="26" height="90" rx="6" class="f-pale" />
+                <path d="M205 60 L215 50 L225 60 Z" class="f-terra" />
+                <rect x="208" y="60" width="14" height="12" class="f-terra" />
+                <rect x="213" y="65" width="4" height="7" class="f-white" />
+                <!-- puntos de día -->
+                <circle cx="23" cy="132" r="3" class="f-verde" /><circle cx="55" cy="132" r="3" class="f-verde" />
+                <circle cx="87" cy="132" r="3" class="f-verde" /><circle cx="119" cy="132" r="3" class="f-verde" />
+                <circle cx="151" cy="132" r="3" class="f-terra" /><circle cx="183" cy="132" r="3" class="f-terra" />
+                <circle cx="215" cy="132" r="3" class="f-terra" />
+              </svg>
+            )}
+            {s.art === 'plan' && (
+              <svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- hojas de otros tipos de día, detrás -->
+                <g transform="rotate(-10 60 84)">
+                  <rect x="30" y="34" width="60" height="100" rx="8" class="f-claro" />
+                  <rect x="40" y="46" width="14" height="24" rx="2" class="f-verde" />
+                  <rect x="43" y="50" width="3" height="3" class="f-white" /><rect x="48" y="50" width="3" height="3" class="f-white" />
+                  <rect x="43" y="56" width="3" height="3" class="f-white" /><rect x="48" y="56" width="3" height="3" class="f-white" />
+                  <rect x="40" y="80" width="40" height="6" rx="3" class="f-verde-op" />
+                  <rect x="40" y="92" width="32" height="6" rx="3" class="f-verde-op" />
+                  <rect x="40" y="104" width="36" height="6" rx="3" class="f-verde-op" />
+                </g>
+                <g transform="rotate(10 180 84)">
+                  <rect x="150" y="34" width="60" height="100" rx="8" class="f-pale" />
+                  <circle cx="167" cy="56" r="7" class="f-terra" />
+                  <path d="M167 44v-3M167 68v-3M155 56h-3M179 56h-3" class="s-terra" />
+                  <rect x="160" y="80" width="40" height="6" rx="3" class="f-terra-op" />
+                  <rect x="160" y="92" width="30" height="6" rx="3" class="f-terra-op" />
+                  <rect x="160" y="104" width="36" height="6" rx="3" class="f-terra-op" />
+                </g>
+                <!-- teléfono con el plan del día -->
+                <rect x="82" y="8" width="76" height="144" rx="12" class="f-osc" />
+                <rect x="88" y="16" width="64" height="128" rx="8" class="f-white" />
+                <rect x="108" y="20" width="24" height="3" rx="1.5" class="f-claro" />
+                <!-- pestañas: hoy resaltada -->
+                <rect x="94" y="30" width="18" height="8" rx="4" class="f-verde" />
+                <rect x="115" y="30" width="14" height="8" rx="4" class="f-claro" />
+                <rect x="132" y="30" width="14" height="8" rx="4" class="f-claro" />
+                <!-- comidas como tarjetas -->
+                <rect x="94" y="46" width="52" height="24" rx="5" class="f-claro" />
+                <circle cx="102" cy="53" r="3" class="f-terra" />
+                <rect x="108" y="51" width="26" height="4" rx="2" class="f-verde" />
+                <rect x="100" y="60" width="38" height="4" rx="2" class="f-verde-op" />
+                <rect x="94" y="76" width="52" height="24" rx="5" class="f-claro" />
+                <circle cx="102" cy="83" r="3" class="f-terra" />
+                <rect x="108" y="81" width="30" height="4" rx="2" class="f-verde" />
+                <rect x="100" y="90" width="34" height="4" rx="2" class="f-verde-op" />
+                <rect x="94" y="106" width="52" height="24" rx="5" class="f-claro" />
+                <circle cx="102" cy="113" r="3" class="f-terra" />
+                <rect x="108" y="111" width="22" height="4" rx="2" class="f-verde" />
+                <rect x="100" y="120" width="40" height="4" rx="2" class="f-verde-op" />
+              </svg>
+            )}
+          </div>
+          <span class="hiw-step__num" aria-hidden="true">{s.n}</span>
+          <h3 class="hiw-step__title"><span class="sr-only">Paso {s.n}: </span>{s.title}</h3>
+          {s.lines.map(l => <p class="hiw-step__line">{l}</p>)}
+        </li>
+      ))}
+    </ol>
+
+    <!-- La bifurcación: de aquí en adelante solo los planes con acompañamiento -->
+    <div class="hiw__fork" role="presentation">
+      <span class="hiw__fork-line"></span>
+      <span class="hiw__fork-tag">Solo planes con acompañamiento</span>
+      <span class="hiw__fork-line"></span>
+    </div>
+
+    <ol class="hiw__steps hiw__steps--acomp" start="4" aria-label="Pasos 4 y 5, solo en planes con acompañamiento">
+      {acompanados.map(s => (
+        <li class="hiw-step hiw-step--acomp">
+          <div class="hiw-step__art" aria-hidden="true">
+            {s.art === 'acompanamiento' && (
+              <svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- chat con el equipo -->
+                <path d="M14 36 h84 a10 10 0 0 1 10 10 v26 a10 10 0 0 1 -10 10 h-58 l-14 12 v-12 h-12 a10 10 0 0 1 -10 -10 v-26 a10 10 0 0 1 10 -10 z" class="f-wa" />
+                <rect x="22" y="48" width="56" height="5" rx="2.5" class="f-white" />
+                <rect x="22" y="58" width="40" height="5" rx="2.5" class="f-white" />
+                <rect x="22" y="68" width="48" height="5" rx="2.5" class="f-white" />
+                <path d="M46 96 h64 a9 9 0 0 1 9 9 v18 a9 9 0 0 1 -9 9 h-10 v10 l-12 -10 h-42 a9 9 0 0 1 -9 -9 v-18 a9 9 0 0 1 9 -9 z" class="f-claro" />
+                <rect x="54" y="106" width="44" height="5" rx="2.5" class="f-verde" />
+                <rect x="54" y="116" width="30" height="5" rx="2.5" class="f-verde-op" />
+                <!-- clase en vivo: gente, no una app -->
+                <rect x="138" y="28" width="90" height="60" rx="8" class="f-osc" />
+                <circle cx="150" cy="40" r="4" class="f-terra" />
+                <circle cx="166" cy="58" r="8" class="f-white" />
+                <path d="M152 88 C152 74 180 74 180 88 Z" class="f-white" />
+                <circle cx="198" cy="58" r="8" class="f-white" />
+                <path d="M184 88 C184 74 212 74 212 88 Z" class="f-white" />
+                <!-- quienes entran -->
+                <circle cx="156" cy="112" r="9" class="f-verde" />
+                <path d="M140 146 C140 128 172 128 172 146 Z" class="f-verde" />
+                <circle cx="184" cy="112" r="9" class="f-terra" />
+                <path d="M168 146 C168 128 200 128 200 146 Z" class="f-terra" />
+                <circle cx="212" cy="112" r="9" class="f-verde" />
+                <path d="M196 146 C196 128 228 128 228 146 Z" class="f-verde" />
+              </svg>
+            )}
+            {s.art === 'volver' && (
+              <svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- el ciclo que vuelve a empezar -->
+                <path d="M104 30 A50 50 0 1 1 58 62" class="s-verde-w" fill="none" />
+                <path d="M46 46 L60 68 L36 64 Z" class="f-verde" />
+                <!-- las sesiones sobre el ciclo -->
+                <circle cx="154" cy="80" r="7" class="f-white s-verde" />
+                <circle cx="104" cy="130" r="7" class="f-white s-verde" />
+                <!-- la persona, en el centro, decide -->
+                <circle cx="104" cy="66" r="14" class="f-terra" />
+                <path d="M80 112 C80 88 128 88 128 112 Z" class="f-terra" />
+                <path d="M122 92 L166 64" class="s-terra-w" />
+                <!-- las opciones: elige una -->
+                <rect x="172" y="52" width="40" height="14" rx="7" class="f-osc" />
+                <path d="M180 59 L185 64 L194 54" class="s-white" fill="none" />
+                <rect x="172" y="78" width="40" height="14" rx="7" class="f-white s-osc" />
+                <rect x="172" y="104" width="40" height="14" rx="7" class="f-white s-osc" />
+              </svg>
+            )}
+          </div>
+          <span class="hiw-step__num" aria-hidden="true">{s.n}</span>
+          <h3 class="hiw-step__title"><span class="sr-only">Paso {s.n}: </span>{s.title}</h3>
+          {s.lines.map(l => <p class="hiw-step__line">{l}</p>)}
+        </li>
+      ))}
+    </ol>
+
+    <p class="hiw__foot">La sesión única incluye los pasos 1 al 3.</p>
+
+    <div class="hiw__cta">
+      <a href="#section-packages" class="btn-primary" data-cta="hiw_primary">Ver los planes →</a>
+    </div>
+  </div>
+</section>
+
+<style>
+.hiw {
+  background: var(--crema);
+}
+
+.hiw__head {
+  max-width: 640px;
+  margin-bottom: 2.5rem;
+}
+
+.hiw__entry {
+  margin-top: 1rem;
+  font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+  color: var(--ink);
+  line-height: 1.6;
+}
+.hiw__entry strong { color: var(--verde-osc); }
+
+/* Los pasos */
+.hiw__steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.hiw-step {
+  position: relative;
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.hiw-step__art {
+  background: var(--verde-claro);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.hiw-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 180px;
+  margin-inline: auto;
+}
+
+.hiw-step__num {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--verde-osc);
+  color: var(--white);
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.15rem;
+  box-shadow: 0 4px 12px rgba(23, 60, 44, 0.25);
+}
+
+.hiw-step__title {
+  font-size: clamp(1.2rem, 2.6vw, 1.4rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--verde-osc);
+  margin-bottom: 0.5rem;
+}
+
+.hiw-step__line {
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--gris);
+}
+.hiw-step__line + .hiw-step__line { margin-top: 0.35rem; }
+
+/* La bifurcación */
+.hiw__fork {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-block: 1.75rem;
+}
+.hiw__fork-line {
+  flex: 1;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--dorado) 0 8px, transparent 8px 16px);
+}
+.hiw__fork-tag {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--dorado-osc);
+  background: var(--dorado-claro);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  text-align: center;
+}
+
+.hiw-step--acomp {
+  border: 2px solid var(--dorado-claro);
+}
+.hiw-step--acomp .hiw-step__num {
+  background: var(--dorado);
+}
+.hiw-step--acomp .hiw-step__art {
+  background: var(--dorado-claro);
+}
+
+.hiw__foot {
+  margin-top: 1.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--verde-osc);
+}
+
+.hiw__cta {
+  margin-top: 2rem;
+}
+
+/* Colores de los dibujos (heredan de la paleta) */
+.f-osc      { fill: var(--verde-osc); }
+.f-verde    { fill: var(--verde); }
+.f-verde-op { fill: rgba(47, 110, 82, 0.35); }
+.f-claro    { fill: var(--verde-claro); }
+.f-terra    { fill: var(--dorado); }
+.f-terra-op { fill: rgba(214, 138, 92, 0.4); }
+.f-pale     { fill: var(--dorado-claro); }
+.f-white    { fill: #fff; }
+.f-wa       { fill: #25D366; }
+.s-osc      { stroke: var(--verde-osc); stroke-width: 2; }
+.s-verde    { stroke: var(--verde); stroke-width: 3; }
+.s-verde-w  { stroke: var(--verde); stroke-width: 7; stroke-linecap: round; }
+.s-terra    { stroke: var(--dorado); stroke-width: 2.5; stroke-linecap: round; }
+.s-terra-w  { stroke: var(--dorado); stroke-width: 8; stroke-linecap: round; }
+.s-white    { stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Tablet y escritorio: 1-3 en una fila, 4-5 en la fila del acompañamiento */
+@media (min-width: 720px) {
+  .hiw__steps--base  { grid-template-columns: repeat(3, 1fr); }
+  .hiw__steps--acomp { grid-template-columns: repeat(2, 1fr); max-width: 66.6%; }
+  .hiw-step__art { padding: 1rem 1.25rem; }
+}
+@media (min-width: 720px) and (max-width: 959px) {
+  .hiw__steps--acomp { max-width: none; }
+}
+</style>

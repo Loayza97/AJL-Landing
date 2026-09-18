@@ -3,9 +3,18 @@
 // Muro de clips verticales reales en un carrusel con scroll-snap.
 // Click-to-play + carga diferida: al inicio solo se bajan las miniaturas.
 import { testimonios } from '../data/testimonios.js';
+
+// variant = 'landing': carrusel en escritorio; en móvil, tres miniaturas y un
+//   botón a /testimonios. Los clips verticales a pantalla completa empujaban
+//   los planes muy abajo y la mayoría no llegaba a verlos.
+// variant = 'page': la página /testimonios, con todos los clips en cuadrícula.
+const { variant = 'landing' } = Astro.props;
+const isPage = variant === 'page';
+const preview = testimonios.slice(0, 3);
+const restantes = testimonios.length - preview.length;
 ---
 
-<section id="section-testimonials" class="section bg-gray">
+<section id="section-testimonials" class:list={["section bg-gray", isPage ? "vt--page" : "vt--landing"]}>
   <div class="container">
     <div class="vt-head">
       <div>
@@ -18,10 +27,12 @@ import { testimonios } from '../data/testimonios.js';
           parte de los <strong>+800 pacientes</strong> que ya pasaron por el método.
         </p>
       </div>
-      <div class="vt-nav" aria-hidden="true">
-        <button class="vt-arrow" data-dir="-1" type="button" aria-label="Anterior">‹</button>
-        <button class="vt-arrow" data-dir="1" type="button" aria-label="Siguiente">›</button>
-      </div>
+      {!isPage && (
+        <div class="vt-nav" aria-hidden="true">
+          <button class="vt-arrow" data-dir="-1" type="button" aria-label="Anterior">‹</button>
+          <button class="vt-arrow" data-dir="1" type="button" aria-label="Siguiente">›</button>
+        </div>
+      )}
     </div>
 
     <div class="vt-scroller" role="list">
@@ -49,7 +60,21 @@ import { testimonios } from '../data/testimonios.js';
       ))}
     </div>
 
-    <p class="vt-hint" aria-hidden="true">Desliza para ver más →</p>
+    {!isPage && <p class="vt-hint" aria-hidden="true">Desliza para ver más →</p>}
+
+    {!isPage && (
+      <div class="vt-mobile">
+        <a href="/testimonios/" class="vt-mobile__strip" aria-label="Ver todos los testimonios">
+          {preview.map(t => (
+            <img class="vt-mobile__thumb" src={t.poster} alt="" loading="lazy" width="90" height="160" />
+          ))}
+          {restantes > 0 && <span class="vt-mobile__more">+{restantes}</span>}
+        </a>
+        <a href="/testimonios/" class="btn-primary vt-mobile__cta" data-cta="testimonios_ver">
+          Ver los testimonios →
+        </a>
+      </div>
+    )}
 
     <p class="t-disclaimer">
       Testimonios reales grabados por pacientes. Los resultados dependen de la
@@ -181,10 +206,57 @@ import { testimonios } from '../data/testimonios.js';
   .vt-hint { display: none; }
 }
 
+/* Bloque compacto para móvil (solo en la landing) */
+.vt-mobile { display: none; }
+
+.vt-mobile__strip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+.vt-mobile__thumb {
+  width: 90px;
+  height: auto;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  flex: 0 0 auto;
+}
+.vt-mobile__more {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--verde-osc);
+  margin-left: 0.25rem;
+}
+.vt-mobile__cta { width: 100%; }
+
 @media (max-width: 700px) {
   .vt-head { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
   .vt-nav { display: none; } /* en móvil se navega con el dedo */
   .vt-card { flex-basis: 70vw; max-width: 280px; }
+
+  /* Landing en móvil: miniaturas + botón en vez del carrusel */
+  .vt--landing .vt-scroller,
+  .vt--landing .vt-hint { display: none; }
+  .vt--landing .vt-mobile { display: block; }
+}
+
+/* Página /testimonios: cuadrícula con todos los clips */
+.vt--page .vt-scroller {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  overflow: visible;
+  scroll-snap-type: none;
+  margin-inline: 0;
+  padding-inline: 0;
+}
+.vt--page .vt-card { flex: initial; max-width: none; }
+@media (max-width: 700px) {
+  .vt--page .vt-scroller { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }
 </style>
 

@@ -150,6 +150,11 @@ const includes = [
 .eval-card__cta {
   width: 100%;
   margin-bottom: 0.5rem;
+  /* El texto puede partirse: con nowrap, en pantallas de 390px el botón
+     ensanchaba la tarjeta más que la ventana y la página se desplazaba
+     de lado. */
+  white-space: normal;
+  text-align: center;
 }
 
 .eval-card__slots {
