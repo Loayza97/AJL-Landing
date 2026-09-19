@@ -1,407 +1,412 @@
 ---
-// ─── Sección 4: Planes (tabla comparativa) ──────────────────────────────────
-// Fusiona Packages + PlanDetails en un solo bloque sin duplicar info.
-// Desktop: matriz comparativa con filas expandibles (descripción de cada feature).
-// Móvil: cards apiladas. Ambas se generan desde monthlyPlans + featureGroups.
+// ─── Planes: modelo C (18-sep-2026) ─────────────────────────────────────────
+// Réplica web del banner de precios (02-comercial/banner-precios-modelo-c,
+// paleta arena y ocre). Misma estructura que el banner, de arriba abajo:
+// titular · bloque de acompañamiento (dos ilustraciones + tabla) · sesión
+// única · lo que incluye todo plan · formas de pago.
+//
+// Reglas de contenido que no se deben romper (README del banner):
+//   - Sin nombres de plan: «1 sesión al mes», «2 sesiones al mes», «4 sesiones
+//     al mes». Columnas «1 mes» y «3 meses».
+//   - «El que recomendamos» aparece una sola vez.
+//   - Bajo el total del paquete solo el equivalente mensual. Nada tachado, sin
+//     porcentajes ni cifra de ahorro.
+//   - La sesión única es «Compra única», nunca «/mes».
+//   - Ninguna cifra sobre fondo oscuro (las imágenes se leen por OCR).
+//   - No usar: «sesión de estrategia», plazos de entrega, «platos concretos»,
+//     «soporte prioritario», «24/7», «colegiado», «el más elegido».
+import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data/plans.js';
 
-import { monthlyPlans, featureGroups } from '../data/plans.js';
-
-// Renderiza el valor de una celda: número, ✓, — o ★
-function cellMark(value) {
-  if (value === true)   return { text: '✓', cls: 'on' };
-  if (value === 'star') return { text: '★', cls: 'star' };
-  if (value === false || value == null) return { text: '—', cls: 'off' };
-  return { text: value, cls: 'num' }; // número
-}
+const calFor = { 1: 'cal1', 2: 'cal2', 4: 'cal4' };
 ---
 
-<section id="section-packages" class="section bg-white" aria-label="Planes de nutrición">
-  <div class="container">
-    <p class="label">Asesoría nutricional</p>
-    <h2 class="title" style="margin-bottom: 0.75rem;">Elige tu nivel de acompañamiento</h2>
-    <p class="subtitle" style="margin-bottom: 3rem;">
-      Todos los planes usan el mismo método. La diferencia es la frecuencia con la que
-      nos acompañamos. Toca el <strong>?</strong> de cada servicio para ver qué incluye.
-    </p>
+<section id="section-packages" class="section plans" aria-label="Planes de nutrición">
+  <!-- Ilustraciones e iconos del banner, tal cual -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+    <symbol id="team" viewBox="0 0 200 140"><path d="M12 92C-8 44 43 12 83 22S142 0 177 28s32 85-5 97-137 17-160-33Z" fill="#eee3f4"/>
+      <path d="M15 130v-22c0-25 53-25 53 0v22" fill="#b4cbbb"/><path d="M129 130v-24c0-25 56-25 56 0v24" fill="#d4bfde"/>
+      <ellipse cx="42" cy="63" rx="21" ry="27" fill="#71564b"/><ellipse cx="43" cy="67" rx="16" ry="22" fill="#e4b798"/>
+      <path d="M23 61c0-29 42-37 42 2-10-6-17-12-19-21-4 10-13 17-23 19Z" fill="#71564b"/>
+      <ellipse cx="156" cy="63" rx="23" ry="28" fill="#73624e"/><ellipse cx="155" cy="68" rx="17" ry="23" fill="#c99472"/>
+      <path d="M136 54c12 2 19-2 25-12 0 11 7 16 15 19l-4-27-29-5Z" fill="#73624e"/>
+      <path d="M60 140v-30c0-38 77-38 77 0v30" fill="#fbfaf4" stroke="#c4bdce" stroke-width="2"/>
+      <ellipse cx="99" cy="49" rx="27" ry="34" fill="#554944"/><ellipse cx="99" cy="56" rx="20" ry="27" fill="#f0c7ac"/>
+      <path d="M74 49c17-2 32-10 35-23 5 15 9 21 16 24l-6-33-32-3Z" fill="#554944"/>
+      <path d="m86 87 13 15 13-15M99 102v37" fill="none" stroke="#b4aaae" stroke-width="2"/>
+      <g fill="#64514b"><circle cx="92" cy="56" r="1.7"/><circle cx="107" cy="56" r="1.7"/><circle cx="37" cy="68" r="1.5"/><circle cx="49" cy="68" r="1.5"/><circle cx="150" cy="68" r="1.5"/><circle cx="162" cy="68" r="1.5"/></g>
+      <g stroke="#956b60" stroke-width="2" fill="none" stroke-linecap="round"><path d="M93 67q6 5 12 0M38 79q5 4 10 0M150 79q6 4 11-1"/></g>
+      <path d="M139 7h37q12 0 12 12v9q0 10-10 10h-10l-10 8v-8h-19q-11 0-11-10v-9q0-12 11-12Z" fill="#fffaf0" stroke="#c4bdb0" stroke-width="2"/>
+      <path d="M143 21h28M143 28h16" stroke="#a39b8e" stroke-width="3" stroke-linecap="round"/></symbol>
+    <symbol id="lesson" viewBox="0 0 200 140"><path d="M18 47C21 2 86-3 120 16s76 10 72 60-30 58-80 57S14 99 18 47Z" fill="#e3ebdb"/>
+      <rect x="15" y="20" width="170" height="102" rx="12" fill="#fffdf8" stroke="#799197" stroke-width="3"/>
+      <rect x="25" y="30" width="110" height="80" rx="6" fill="#e9f0f2"/>
+      <path d="M53 108V87c0-27 53-27 53 0v21" fill="#c4b3d4"/><ellipse cx="80" cy="53" rx="17" ry="23" fill="#65524b"/>
+      <ellipse cx="80" cy="57" rx="14" ry="19" fill="#edc09d"/><path d="M65 51c10-2 16-7 19-14 1 10 8 12 11 13" fill="#65524b"/>
+      <path d="m105 89 15-14 1-17" fill="none" stroke="#edc09d" stroke-width="9" stroke-linecap="round"/>
+      <circle cx="150" cy="43" r="8" fill="#e5bf9e"/><path d="M140 65c0-17 21-17 21 0" fill="#bdd3be"/>
+      <circle cx="150" cy="84" r="8" fill="#cf9778"/><path d="M140 106c0-17 21-17 21 0" fill="#d3bfdc"/>
+      <path d="M87 123v9M61 134h55" stroke="#799197" stroke-width="4" stroke-linecap="round"/>
+      <path d="M153 16h31v18h-31Z" fill="#f6e7bd"/><circle cx="160" cy="25" r="3" fill="#a89a58"/><path d="M169 25h9" stroke="#a89a58" stroke-width="2"/></symbol>
+    <symbol id="i-session" viewBox="0 0 80 80"><g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="22" cy="24" r="9"/><circle cx="58" cy="24" r="9"/><path d="M8 59V48c0-14 28-14 28 0v11M44 59V48c0-14 28-14 28 0v11M34 15l7-7h21v9H46l-6 7v-9"/></g></symbol>
+    <symbol id="i-app" viewBox="0 0 80 80"><g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><rect x="21" y="5" width="39" height="68" rx="7"/><path d="M33 13h15M35 63h11M33 32l4 4 9-11M33 45h17M33 51h12"/></g></symbol>
+    <symbol id="i-closed" viewBox="0 0 80 80"><g fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 17h38q9 0 9 9v40H25q-9 0-9-9ZM16 53h47M26 27h24M26 36h18"/><path d="m39 65 6 6 12-13"/></g></symbol>
+    <!-- Mini calendarios: marcado 1, 2 o 4 veces -->
+    <symbol id="cal-base" viewBox="0 0 166 140"><rect x="3" y="8" width="159" height="128" rx="12" fill="#fffef9" stroke="currentColor" stroke-width="4"/><path d="M4 36h157M40 2v17M125 2v17" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <g fill="#d5cdd6">{[50,72,94,116].map(y => [21,40.5,60,79.5,99,118.5,138].map(x => <circle cx={x} cy={y} r="3.2"/>))}</g></symbol>
+    <symbol id="cal1" viewBox="0 0 166 140"><use href="#cal-base"/><circle cx="40.5" cy="72" r="8.5" fill="currentColor"/></symbol>
+    <symbol id="cal2" viewBox="0 0 166 140"><use href="#cal-base"/><circle cx="40.5" cy="72" r="8.5" fill="currentColor"/><circle cx="40.5" cy="116" r="8.5" fill="currentColor"/></symbol>
+    <symbol id="cal4" viewBox="0 0 166 140"><use href="#cal-base"/><circle cx="40.5" cy="50" r="8.5" fill="currentColor"/><circle cx="40.5" cy="72" r="8.5" fill="currentColor"/><circle cx="40.5" cy="94" r="8.5" fill="currentColor"/><circle cx="40.5" cy="116" r="8.5" fill="currentColor"/></symbol>
+  </defs></svg>
 
-    <!-- ───────── Desktop: matriz comparativa ───────── -->
-    <div class="matrix" role="table" aria-label="Comparación de planes">
-      <!-- Encabezado de planes -->
-      <div class="mrow mrow--head" role="row">
-        <div class="cell cell--rowlabel" role="columnheader"></div>
-        {monthlyPlans.map(p => (
-          <div class={`cell cell--plan${p.highlight ? ' hl' : ''}`} role="columnheader">
-            {p.badge && <span class={`mbadge${p.highlight ? ' mbadge--gold' : ''}`}>{p.badge}</span>}
-            <span class="mplan-name">{p.name}</span>
-            <span class="mplan-tagline">{p.tagline}</span>
-          </div>
-        ))}
+  <div class="container plans__inner">
+    <p class="label">Planes</p>
+    <h2 class="title plans__title">Estamos contigo durante todo el proceso</h2>
+
+    <!-- Con acompañamiento continuo -->
+    <div class="acc">
+      <h3 class="acc__title">Con acompañamiento continuo</h3>
+
+      <div class="bens">
+        <div class="ben">
+          <svg class="illo" viewBox="0 0 200 140" aria-hidden="true"><use href="#team"/></svg>
+          <h4>Un equipo de nutricionistas respondiéndote</h4>
+        </div>
+        <div class="ben">
+          <svg class="illo" viewBox="0 0 200 140" aria-hidden="true"><use href="#lesson"/></svg>
+          <h4>2 clases grupales en vivo por semana</h4>
+        </div>
       </div>
 
-      <!-- Precio -->
-      <div class="mrow mrow--price" role="row">
-        <div class="cell cell--rowlabel" role="rowheader">Precio</div>
-        {monthlyPlans.map(p => (
-          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
-            <span class="mprice">S/{p.price}</span><span class="mprice-per">/mes</span>
-          </div>
-        ))}
-      </div>
+      <div class="rows" role="table" aria-label="Precios por frecuencia de sesiones">
+        <div class="rows__head" role="row">
+          <span role="columnheader">Sesión individual</span>
+          <span role="columnheader">1 mes</span>
+          <span role="columnheader">3 meses</span>
+          <span role="columnheader"><span class="sr-only">Elegir</span></span>
+        </div>
 
-      <!-- Frecuencia -->
-      <div class="mrow" role="row">
-        <div class="cell cell--rowlabel" role="rowheader">Frecuencia</div>
         {monthlyPlans.map(p => (
-          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
-            <span class="mfreq">{p.freq}</span>
-          </div>
-        ))}
-      </div>
+          <div class:list={['row', { 'row--star': p.highlight }]} role="row">
+            {p.badge && <span class="row__tag">✦ {p.badge}</span>}
 
-      <!-- Grupos de features -->
-      {featureGroups.map(group => (
-        <>
-          <div class="mgroup" role="row">{group.group}</div>
-          {group.rows.map(row => (
-            <div class="mrow mrow--feat" role="row">
-              <div class="cell cell--rowlabel" role="rowheader">
-                <span class="feat-label">{row.label}</span>
-                <details class="feat-info">
-                  <summary class="feat-q" aria-label={`Qué incluye: ${row.label}`}>?</summary>
-                  <div class="feat-pop">{row.desc}</div>
-                </details>
-              </div>
-              {monthlyPlans.map(p => {
-                const m = cellMark(row.values[p.id]);
-                return (
-                  <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
-                    <span class={`mark mark--${m.cls}`}>{m.text}</span>
-                  </div>
-                );
-              })}
+            <div class="row__name" role="rowheader">
+              <svg class="cal" aria-hidden="true"><use href={`#${calFor[p.sessionsPerMonth]}`}/></svg>
+              <span>{p.name}</span>
             </div>
-          ))}
-        </>
-      ))}
 
-      <!-- Programas (multi-mes) -->
-      <div class="mrow mrow--programs" role="row">
-        <div class="cell cell--rowlabel" role="rowheader">Programas</div>
-        {monthlyPlans.map(p => (
-          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
-            {p.programs ? (
-              <ul class="mprog">
-                {p.programs.map(pr => (
-                  <li><strong>{pr.label}</strong> {pr.total} <span>({pr.perMes})</span></li>
-                ))}
-              </ul>
-            ) : (
-              <span class="mprog-note">{p.programsNote}</span>
-            )}
-          </div>
-        ))}
-      </div>
+            <div class="row__cell" role="cell">
+              <span class="row__cap">1 mes</span>
+              <span class="pr"><span class="cu">S/</span>{p.price}</span>
+            </div>
 
-      <!-- CTA -->
-      <div class="mrow mrow--cta" role="row">
-        <div class="cell cell--rowlabel" role="cell"></div>
-        {monthlyPlans.map(p => (
-          <div class={`cell${p.highlight ? ' hl' : ''}`} role="cell">
-            <a
-              href={`/checkout/${p.id}`}
-              class={`mcta${p.highlight ? ' mcta--gold' : ''}`}
-              data-section="paquetes"
-              data-pkg={p.name}
-              aria-label={`Quiero el plan ${p.name}`}
-            >
-              Quiero este →
-            </a>
+            <div class="row__cell row__cell--dash" role="cell">
+              <span class="row__cap">3 meses</span>
+              <span class="pr"><span class="cu">S/</span>{p.programs[0].total.replace('S/', '')}</span>
+              <span class="eq">{p.programs[0].perMes}</span>
+            </div>
+
+            <div class="row__cta" role="cell">
+              <a
+                href={`/checkout/${p.id}`}
+                class:list={['pbtn', { 'pbtn--star': p.highlight }]}
+                data-section="paquetes"
+                data-pkg={p.name}
+                aria-label={`Quiero ${p.name}`}
+              >
+                Quiero este →
+              </a>
+            </div>
           </div>
         ))}
       </div>
     </div>
 
-    <!-- ───────── Móvil: cards apiladas ───────── -->
-    <div class="plan-cards">
-      {monthlyPlans.map(p => (
-        <article class={`pcard${p.highlight ? ' pcard--hl' : ''}`}>
-          {p.badge && <span class={`mbadge${p.highlight ? ' mbadge--gold' : ''}`}>{p.badge}</span>}
-          <h3 class="pcard-name">{p.name}</h3>
-          <p class="pcard-tagline">{p.tagline}</p>
-          <div class="pcard-price"><span>S/{p.price}</span>/mes · {p.freq}</div>
+    <!-- Una sola sesión -->
+    <div class="single">
+      <svg class="ico" aria-hidden="true"><use href="#i-closed"/></svg>
+      <div class="single__text">
+        <h4>{singlePlan.name}</h4>
+        <p>{singlePlan.tagline}.</p>
+      </div>
+      <div class="single__price">
+        <span class="pr pr--mut"><span class="cu">S/</span>{singlePlan.price}</span>
+        <span>Compra única</span>
+      </div>
+      <a
+        href={`/checkout/${singlePlan.id}`}
+        class="pbtn pbtn--ghost"
+        data-section="paquetes"
+        data-pkg={singlePlan.name}
+        aria-label="Quiero una sola sesión"
+      >
+        Quiero esta →
+      </a>
+    </div>
 
-          <ul class="pcard-feats">
-            {featureGroups.flatMap(g => g.rows).map(row => {
-              const m = cellMark(row.values[p.id]);
-              const included = m.cls !== 'off';
-              return (
-                <li class={included ? '' : 'pcard-feat--off'}>
-                  <span class="pcard-mark">{m.cls === 'num' ? `${m.text}×` : (included ? '✓' : '—')}</span>
-                  {row.label}
-                </li>
-              );
-            })}
-          </ul>
-
-          {p.programs && (
-            <ul class="pcard-prog">
-              {p.programs.map(pr => (
-                <li><strong>{pr.label}:</strong> {pr.total} ({pr.perMes})</li>
-              ))}
-            </ul>
-          )}
-
-          <a
-            href={`/checkout/${p.id}`}
-            class={`mcta${p.highlight ? ' mcta--gold' : ''}`}
-            data-section="paquetes"
-            data-pkg={p.name}
-            aria-label={`Quiero el plan ${p.name}`}
-          >
-            Quiero este →
-          </a>
-        </article>
+    <!-- Lo que incluye todo plan -->
+    <div class="incl">
+      {includedInAll.map(i => (
+        <div class="incl__item">
+          <svg class="ico" aria-hidden="true"><use href={`#i-${i.icon}`}/></svg>
+          <div>
+            <h4>{i.title}</h4>
+            <p>{i.desc}</p>
+          </div>
+        </div>
       ))}
     </div>
 
-    <!-- Puente hacia la Evaluación (para indecisos) -->
-    <div class="packages-note">
-      <p>
-        ¿No sabes cuál elegir? La <strong>Evaluación Nutricional de S/80</strong>,
-        más abajo, es una consulta previa que define el plan correcto para tu caso.
-      </p>
+    <!-- Formas de pago -->
+    <div class="pay">
+      <p class="pay__label">Formas de pago</p>
+      <ul class="pills">
+        {paymentMethods.map(m => (
+          <li class:list={['pill', `pill--${m.id}`]}>
+            <span class="pill__w"><span aria-hidden="true">{m.icon}</span> {m.label}</span>
+            {m.note && <em>{m.note}</em>}
+          </li>
+        ))}
+      </ul>
     </div>
   </div>
 </section>
 
 <style>
-.bg-white { background: var(--white); }
-
-/* ───────── Matriz (desktop) ───────── */
-.matrix {
-  --cols: 1.7fr repeat(4, 1fr);
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  overflow: visible; /* permite que el popover de "?" se vea fuera de la tabla */
+/* Paleta arena y ocre del banner, solo dentro de esta sección */
+.plans {
+  --ink: #33291C; --paper: #F7F2E8; --rule: #D3B87A; --single: #EBE8E0; --muted: #7A6B57;
+  --acc: #F1E5DB; --card: #FFFCF6; --card-bd: #E6D5AE;
+  --star: #F5E6BE; --star-bd: #A8792B; --star-rule: #D3B87A; --incl: #EDE7DA;
+  --yape: #6f2c91; --yape-bg: #f1e6f8; --yape-bd: #cdb3e2;
+  --cal: #B08D4A; --cal-star: #8A6A1F; --ocre: #A8792B;
+  background: var(--paper);
+  color: var(--ink);
+  /* Menos aire que el resto de secciones: arriba viene testimonios, que ya
+     cierra con su propio respiro, y la tabla es densa por sí sola. */
+  padding-block: clamp(3rem, 6vw, 4.5rem);
 }
 
-.plan-cards { display: none; }
-
-.mrow {
-  display: grid;
-  grid-template-columns: var(--cols);
-  align-items: center;
-  column-gap: 0.5rem;
-}
-
-.cell {
-  padding: 0.85rem 1rem;
-  text-align: center;
-  font-size: 0.9rem;
-}
-
-.cell--rowlabel {
-  text-align: left;
-  font-weight: 600;
-  color: var(--gray-dark);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Columna recomendada destacada (continua porque no hay gap vertical) */
-.cell.hl { background: var(--gold-pale); }
-
-/* Encabezado de planes */
-.mrow--head { border-bottom: 1px solid #eee; }
-.cell--plan {
+.plans__inner {
+  max-width: 880px;
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  padding-block: 1.25rem;
+  gap: 1.25rem;
 }
-.cell--plan.hl { border-top: 3px solid var(--gold); }
 
-.mbadge {
-  align-self: center;
-  font-size: 0.6rem;
+.plans .label { color: var(--ocre); margin-bottom: 0; }
+.plans__title { color: var(--ink); margin-bottom: 0.75rem; max-width: 20ch; }
+
+.plans h3, .plans h4, .plans p { margin: 0; }
+
+/* Precios: Arial bold, «S/» al 60 %, como el banner */
+.pr {
+  font-family: Arial, 'Helvetica Neue', sans-serif;
   font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: #888;
-  border: 1px solid #ccc;
-  border-radius: 20px;
-  padding: 0.1rem 0.6rem;
-  margin-bottom: 0.25rem;
+  font-size: clamp(1.75rem, 3.2vw, 2.1rem);
+  letter-spacing: -0.035em;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
-.mbadge--gold { background: var(--gold); color: #fff; border-color: var(--gold); }
+.pr .cu { font-size: 0.6em; letter-spacing: -0.02em; margin-right: 2px; }
+.pr--mut { color: var(--muted); font-size: clamp(1.5rem, 2.6vw, 1.8rem); }
+.eq { display: block; font-size: 0.9rem; color: var(--muted); margin-top: 0.3rem; white-space: nowrap; }
 
-.mplan-name { font-size: 1.1rem; font-weight: 900; color: var(--black); letter-spacing: -0.3px; }
-.mplan-tagline { font-size: 0.72rem; color: var(--gray-mid); }
-
-/* Precio / frecuencia */
-.mrow--price { border-bottom: 1px solid #f0f0f0; }
-.mprice { font-size: 1.6rem; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
-.mprice-per { font-size: 0.72rem; color: var(--gray-mid); }
-.mfreq {
-  display: inline-block;
-  font-size: 0.66rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--gold); border: 1px solid var(--gold); border-radius: 20px; padding: 0.15rem 0.6rem;
+/* Bloque de acompañamiento */
+.acc {
+  background: var(--acc);
+  border-radius: 22px;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
+.acc__title { font-size: clamp(1.2rem, 2.4vw, 1.5rem); font-weight: 700; letter-spacing: -0.02em; }
 
-/* Grupo */
-.mgroup {
-  background: #fafafa;
-  font-size: 0.66rem;
+.bens {
+  display: grid;
+  grid-template-columns: 1.12fr 1fr;
+  gap: 1.5rem;
+  padding-inline: 0.25rem;
+}
+.ben { display: flex; flex-direction: column; gap: 0.5rem; }
+.illo { width: 112px; height: 78px; display: block; }
+.ben h4 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; max-width: 22ch; }
+
+/* Filas de precios */
+.rows {
+  background: var(--card);
+  border: 1px solid var(--card-bd);
+  border-radius: 16px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.rows__head,
+.row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1.25fr auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+.rows__head {
+  padding: 0.25rem 1rem 0;
+  font-size: 0.9rem;
   font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--gold);
-  padding: 0.7rem 1rem;
-  border-block: 1px solid #f0f0f0;
+  color: var(--muted);
 }
-
-/* Filas de feature (tabla limpia + popover en el "?") */
-.mrow--feat { border-bottom: 1px solid #f3f3f3; }
-.mrow--feat:hover { background: #fcfcfc; }
-
-.feat-label { line-height: 1.35; }
-
-/* "?" como disparador del popover */
-.feat-info { position: relative; display: inline-flex; }
-.feat-q {
-  list-style: none;
-  cursor: pointer;
-  flex-shrink: 0;
-  width: 17px; height: 17px;
-  border-radius: 50%;
-  border: 1px solid #ccc;
-  color: #999;
-  font-size: 0.62rem;
-  font-weight: 700;
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: all var(--transition);
+.row {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--card-bd);
+  border-radius: 12px;
+  padding: 1rem 1rem;
 }
-.feat-q::-webkit-details-marker { display: none; }
-.feat-q:hover { border-color: var(--gold); color: var(--gold); }
-.feat-info[open] .feat-q { background: var(--gold); border-color: var(--gold); color: var(--black); }
-
-.feat-pop {
+.row--star {
+  background: var(--star);
+  border: 2px solid var(--star-bd);
+  margin-top: 0.6rem;
+  padding-top: 1.35rem;
+}
+.row__tag {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  width: 280px;
-  max-width: 70vw;
-  background: var(--white);
-  border: 1px solid #e5e5e5;
-  border-radius: 8px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.16);
-  padding: 0.85rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 400;
-  color: var(--gray-dark);
-  line-height: 1.6;
-  text-align: left;
-  z-index: 30;
-}
-.feat-pop::before {
-  content: '';
-  position: absolute;
-  top: -5px; left: 4px;
-  width: 9px; height: 9px;
-  background: var(--white);
-  border-left: 1px solid #e5e5e5;
-  border-top: 1px solid #e5e5e5;
-  transform: rotate(45deg);
-}
-
-/* Marcas */
-.mark--on   { color: var(--gold); font-weight: 900; }
-.mark--star { color: var(--gold); font-weight: 900; }
-.mark--off  { color: #ccc; }
-.mark--num  { font-weight: 900; color: var(--black); font-size: 1rem; }
-
-/* Programas */
-.mrow--programs { border-top: 1px solid #eee; border-bottom: 1px solid #eee; }
-.mprog { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.72rem; color: var(--gray-dark); }
-.mprog strong { color: var(--black); }
-.mprog span { color: var(--gold); }
-.mprog-note { font-size: 0.72rem; color: var(--gray-mid); font-style: italic; }
-
-/* CTA */
-.mrow--cta { padding-block: 0.25rem; }
-.mcta {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 100%;
-  padding: 0.7rem 0.5rem;
-  background: var(--gray-light);
-  color: var(--verde-osc);
-  font-weight: 700; font-size: 0.82rem;
+  top: 0; left: 0.9rem;
+  transform: translateY(-55%);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  background: var(--ocre);
+  color: #fff9f2;
   border-radius: 999px;
-  min-height: 44px;
-  transition: background var(--transition), color var(--transition);
+  padding: 0.4rem 0.8rem;
+  white-space: nowrap;
 }
-.mcta:hover { background: var(--gold); color: #fff; }
-.mcta--gold { background: var(--gold); color: #fff; }
-.mcta--gold:hover { background: var(--gold-dark); }
-
-/* Nota Evaluación */
-.packages-note {
-  margin-top: 2rem;
-  padding: 1.5rem 2rem;
-  background: var(--gray-light);
-  border-radius: 10px;
-  text-align: center;
+.row__name {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
-.packages-note p { font-size: 0.92rem; color: var(--gray-dark); line-height: 1.65; }
+.cal { width: 34px; height: 29px; flex: none; color: var(--cal); }
+.row--star .cal { color: var(--cal-star); }
 
-/* ───────── Cards (móvil) ───────── */
-@media (max-width: 860px) {
-  .matrix { display: none; }
-  .plan-cards { display: grid; gap: 1rem; }
+.row__cell { display: flex; flex-direction: column; min-width: 0; }
+.row__cell--dash { border-left: 2px dashed var(--rule); padding-left: 0.9rem; }
+.row--star .row__cell--dash { border-left-color: var(--star-rule); }
+.row__cap { display: none; font-size: 0.75rem; font-weight: 700; color: var(--muted); margin-bottom: 0.3rem; }
 
-  .pcard {
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
+.pbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  border: 2px solid var(--ocre);
+  color: var(--ocre);
+  background: transparent;
+  transition: background var(--transition), color var(--transition), transform var(--transition);
+}
+.pbtn:hover { background: var(--ocre); color: #fff9f2; transform: translateY(-1px); }
+.pbtn--star { background: var(--ocre); color: #fff9f2; }
+.pbtn--star:hover { background: #8A6A1F; border-color: #8A6A1F; }
+.pbtn--ghost { border-color: var(--muted); color: var(--muted); }
+.pbtn--ghost:hover { background: var(--muted); color: #fff; }
+
+/* Una sola sesión */
+.single {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+  background: var(--single);
+  color: var(--muted);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+}
+.ico { width: 30px; height: 30px; display: block; flex: none; color: #8f7a9d; }
+.single__text h4 { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+.single__text p { font-size: 0.95rem; margin-top: 0.15rem; }
+.single__price { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
+.single__price span:last-child { font-size: 0.9rem; white-space: nowrap; }
+
+/* Lo incluido */
+.incl {
+  background: var(--incl);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: grid;
+  grid-template-columns: 1fr 1.18fr;
+  gap: 1.25rem;
+}
+.incl__item { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.incl__item h4 { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; }
+.incl__item p { font-size: 0.9rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* Formas de pago */
+.pay { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.25rem; }
+.pay__label {
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase;
+  text-align: center; color: var(--muted);
+}
+.pills { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.6rem; }
+.pill {
+  flex: 1 1 0;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 0.7rem 0.75rem;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 0.15rem;
+}
+.pill__w { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; }
+.pill em { font-style: normal; font-size: 0.85rem; color: var(--muted); }
+.pill--yape { background: var(--yape-bg); border-color: var(--yape-bd); }
+.pill--yape .pill__w { color: var(--yape); }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Móvil: cada fila se vuelve tarjeta; los precios lado a lado con su rótulo */
+@media (max-width: 720px) {
+  .rows__head { display: none; }
+  .row {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "name name"
+      "m1   m3"
+      "cta  cta";
+    gap: 0.9rem 0.75rem;
   }
-  .pcard--hl { border-color: var(--gold); box-shadow: 0 4px 20px rgba(212,168,67,0.12); }
+  .row__name { grid-area: name; }
+  .row__cell:not(.row__cell--dash) { grid-area: m1; }
+  .row__cell--dash { grid-area: m3; }
+  .row__cta { grid-area: cta; }
+  .row__cap { display: block; }
+  .pbtn { width: 100%; }
 
-  .pcard .mbadge { align-self: flex-start; margin-bottom: 0; }
-  .pcard-name { font-size: 1.25rem; font-weight: 900; letter-spacing: -0.3px; }
-  .pcard-tagline { font-size: 0.8rem; color: var(--gray-mid); margin-top: -0.4rem; }
-  .pcard-price { font-size: 0.9rem; color: var(--gray-dark); }
-  .pcard-price span { font-size: 1.8rem; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
-
-  .pcard-feats { display: flex; flex-direction: column; gap: 0.4rem; margin-top: 0.5rem; }
-  .pcard-feats li { font-size: 0.85rem; color: var(--gray-dark); display: flex; gap: 0.5rem; }
-  .pcard-feat--off { opacity: 0.4; }
-  .pcard-mark { color: var(--gold); font-weight: 900; flex-shrink: 0; width: 18px; }
-  .pcard-feat--off .pcard-mark { color: #bbb; }
-
-  .pcard-prog {
-    display: flex; flex-direction: column; gap: 0.2rem;
-    font-size: 0.78rem; color: var(--gray-dark);
-    border-top: 1px solid #eee; padding-top: 0.6rem; margin-top: 0.3rem;
+  .single {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "ico text"
+      "price price"
+      "cta cta";
   }
-  .pcard-prog strong { color: var(--black); }
+  .single .ico { grid-area: ico; }
+  .single__text { grid-area: text; }
+  .single__price { grid-area: price; flex-direction: row; align-items: baseline; gap: 0.6rem; }
+  .single .pbtn { grid-area: cta; }
 
-  .pcard .mcta { margin-top: 0.5rem; }
+  .bens { grid-template-columns: 1fr; gap: 1rem; }
+  .ben { flex-direction: row; align-items: center; gap: 0.9rem; }
+  .incl { grid-template-columns: 1fr; }
+  .pills { flex-wrap: wrap; }
+  .pill { flex-basis: calc(50% - 0.3rem); }
 }
 </style>
-
-<script>
-  // Solo un popover "?" abierto a la vez + cerrar al clic afuera.
-  const infos = Array.from(document.querySelectorAll('.feat-info'));
-  infos.forEach(d => {
-    d.addEventListener('toggle', () => {
-      if (d.open) infos.forEach(o => { if (o !== d) o.open = false; });
-    });
-  });
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.feat-info')) infos.forEach(o => { o.open = false; });
-  });
-</script>

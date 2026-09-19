@@ -17,148 +17,114 @@ export const plans = {
       'Los S/80 se descuentan de cualquier plan que adquieras el mismo día de tu evaluación',
     ],
   },
+  // ─── Modelo C (18-sep-2026) ─────────────────────────────────────────────────
+  // Los planes NO llevan nombre de cara al paciente: se identifican por cada
+  // cuánto nos vemos. Los ids se conservan (URLs de checkout, anuncios,
+  // analítica); lo que cambia es `name`. Columnas: 1 mes y 3 meses; bajo el
+  // total del paquete va solo el equivalente mensual, sin tachados ni ahorro.
+  // Fuente: 02-comercial/motor-comercial/.../ROADMAP-CHOKEPOINTS-AJL.md, Decisión 1.B.
   basico: {
     id: 'basico',
-    name: 'Básico',
-    tagline: 'Claridad en una sesión',
+    name: 'Una sola sesión',
+    tagline: 'Sin acompañamiento continuo',
     price: 250,
-    period: 'mes',
+    period: 'compra única',
     culqiLink: 'https://express.culqi.com/pago/D1100F369A',
-    freq: 'Única',
+    sessionsPerMonth: 1,
+    single: true,
     badge: null,
     highlight: false,
     programs: null,
-    programsNote: 'Pago único, sin permanencia',
     checkoutSummary: [
-      '1 sesión de estrategia (60 min)',
-      'Plan nutricional adaptado a tu rutina',
-      'Pago único, sin permanencia',
+      'Una sesión de 1 hora, en Lince o por videollamada',
+      'Tu plan en la app, con todo lo que conversamos en tu sesión',
+      'Compra única, sin acompañamiento continuo',
     ],
   },
   acompanamiento: {
     id: 'acompanamiento',
-    name: 'Acompañamiento',
-    tagline: 'Tu primer paso con soporte',
+    name: '1 sesión al mes',
+    tagline: 'Con acompañamiento continuo',
     price: 320,
     period: 'mes',
     culqiLink: 'https://express.culqi.com/pago/DD1BE52C10',
-    freq: 'Mensual',
+    sessionsPerMonth: 1,
+    single: false,
     badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/900', perMes: 'S/300/mes' },
+      { label: '3 meses', total: 'S/810', perMes: 'S/270 al mes' },
     ],
-    programsNote: null,
     checkoutSummary: [
-      '1 sesión de estrategia + plan personalizado',
-      'Seguimiento por WhatsApp y soporte nutricional',
-      'Sesiones grupales semanales y comunidad privada',
+      'Una sesión de 1 hora al mes, en Lince o por videollamada',
+      'Tu plan en la app, con todo lo que conversamos en tu sesión',
+      'Un equipo de nutricionistas respondiéndote por WhatsApp',
+      '2 clases grupales en vivo por semana',
     ],
   },
   constancia: {
     id: 'constancia',
-    name: 'Constancia',
-    tagline: 'Acompañamiento continuo',
+    name: '2 sesiones al mes',
+    tagline: 'Con acompañamiento continuo',
     price: 440,
     period: 'mes',
     culqiLink: 'https://express.culqi.com/pago/D4E12ED399',
-    freq: 'Quincenal',
-    badge: 'Recomendado',
+    sessionsPerMonth: 2,
+    single: false,
+    badge: 'El que recomendamos',
     highlight: true,
     programs: [
-      { label: '3 meses', total: 'S/1,250', perMes: 'S/417/mes' },
-      { label: '6 meses', total: 'S/2,400', perMes: 'S/400/mes' },
+      { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes' },
     ],
-    programsNote: null,
     checkoutSummary: [
-      'Estrategia + plan + sesión de seguimiento quincenal',
-      'Soporte WhatsApp continuo y sesiones grupales',
-      'Comunidad privada y revisión de progreso',
+      'Dos sesiones al mes, en Lince o por videollamada',
+      'Tu plan en la app, con todo lo que conversamos en tu sesión',
+      'Un equipo de nutricionistas respondiéndote por WhatsApp',
+      '2 clases grupales en vivo por semana',
     ],
   },
   transformacion: {
     id: 'transformacion',
-    name: 'Transformación',
-    tagline: 'Acompañamiento total, semanal',
+    name: '4 sesiones al mes',
+    tagline: 'Con acompañamiento continuo',
     price: 600,
     period: 'mes',
     culqiLink: 'https://express.culqi.com/pago/8F6B63FDF7',
-    freq: 'Semanal',
-    badge: 'Más completo',
+    sessionsPerMonth: 4,
+    single: false,
+    badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/1,700', perMes: 'S/567/mes' },
-      { label: '6 meses', total: 'S/3,200', perMes: 'S/533/mes' },
+      { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes' },
     ],
-    programsNote: null,
     checkoutSummary: [
-      '2 sesiones de estrategia + planes nutricionales',
-      'Sesiones de seguimiento semanales',
-      'Atención prioritaria y comunidad privada',
+      'Cuatro sesiones al mes, en Lince o por videollamada',
+      'Tu plan en la app, con todo lo que conversamos en tu sesión',
+      'Un equipo de nutricionistas respondiéndote por WhatsApp',
+      '2 clases grupales en vivo por semana',
     ],
   },
 };
 
-// Planes mensuales en orden de columna (de menor a mayor acompañamiento).
+// Planes con acompañamiento continuo, de menor a mayor frecuencia.
 export const monthlyPlans = [
-  plans.basico,
   plans.acompanamiento,
   plans.constancia,
   plans.transformacion,
 ];
 
-// ─── Matriz de features (fuente única para la tabla comparativa) ────────────
-// value: número (string) → se muestra tal cual · true → ✓ · false → —
-//        'star' → ★ (incluido + destacado)
-export const featureGroups = [
-  {
-    group: 'Sesiones individuales',
-    rows: [
-      {
-        label: 'Sesión de estrategia',
-        desc: 'Evaluación física y revisión de tus patrones de alimentación, costumbres y tipos de día. Estructuramos tu plan a partir de cómo comes y cómo vives · 60 min.',
-        values: { basico: '1', acompanamiento: '1', constancia: '1', transformacion: '2' },
-      },
-      {
-        label: 'Plan nutricional personalizado',
-        desc: 'Distribución de tu alimentación a lo largo del día, con porciones y opciones adaptadas a tu rutina, tus horarios y lo que tienes disponible.',
-        values: { basico: '1', acompanamiento: '1', constancia: '1', transformacion: '2' },
-      },
-      {
-        label: 'Sesión de seguimiento',
-        desc: 'Revisamos avances, cómo te sientes y qué hábitos estás sosteniendo. Buscamos estrategias para que el plan se cumpla, no cambiarlo a la primera · Virtual, 30 min.',
-        values: { basico: false, acompanamiento: false, constancia: '1', transformacion: '2' },
-      },
-      {
-        label: 'Sesión de logros',
-        desc: 'Medición de composición corporal (bioimpedancia, cinta métrica, plicómetro) + revisión de hábitos. Exclusiva para pacientes nuevos, incluida en tu primer mes.',
-        values: { basico: false, acompanamiento: false, constancia: true, transformacion: true },
-      },
-    ],
-  },
-  {
-    group: 'Acompañamiento continuo',
-    rows: [
-      {
-        label: 'Seguimiento por WhatsApp',
-        desc: 'Para las decisiones del día a día: qué comer fuera de casa, cómo resolver una comida improvisada, qué hacer cuando el plan no calza con tu día · L-V 9am-6pm, S 9am-1pm.',
-        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
-      },
-      {
-        label: 'Sesiones grupales',
-        desc: '2 sesiones por semana en vivo, 8 al mes. Espacio educativo donde trabajamos los fundamentos para sostener tus resultados por tu cuenta. Grabadas si no puedes asistir.',
-        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
-      },
-      {
-        label: 'Comunidad exclusiva',
-        desc: 'Grupo privado donde compartes el proceso con otras personas en tu misma situación: recetas, experiencias y motivación entre quienes te entienden.',
-        values: { basico: false, acompanamiento: true, constancia: true, transformacion: true },
-      },
-      {
-        label: 'Atención prioritaria',
-        desc: 'Prioridad en todo: agendamiento de sesiones, entrega de planes y respuesta por WhatsApp. El mismo método, con atención preferente en cada contacto.',
-        values: { basico: false, acompanamiento: false, constancia: false, transformacion: 'star' },
-      },
-    ],
-  },
+// La sesión suelta, fuera del bloque de acompañamiento.
+export const singlePlan = plans.basico;
+
+// Lo que incluye cualquier plan, con o sin acompañamiento.
+export const includedInAll = [
+  { icon: 'session', title: 'Una sesión de 1 hora', desc: 'En Lince o por videollamada' },
+  { icon: 'app',     title: 'Tu plan en la app',    desc: 'Con todo lo que conversamos en tu sesión' },
+];
+
+// Formas de pago. La tarjeta lleva recargo porque la pasarela cobra comisión.
+export const paymentMethods = [
+  { id: 'yape',          label: 'Yape',          icon: '📱', note: null },
+  { id: 'transferencia', label: 'Transferencia', icon: '🏦', note: null },
+  { id: 'tarjeta',       label: 'Tarjeta',       icon: '💳', note: '5% de recargo' },
 ];

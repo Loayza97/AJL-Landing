@@ -10,6 +10,14 @@ export function getStaticPaths() {
 const { slug } = Astro.params;
 const plan = plans[slug];
 
+// La tarjeta lleva 5 % de recargo (comisión de la pasarela). El link de Culqi
+// ya cobra ese monto; aquí se muestra el mismo número para que el botón no
+// diga una cifra y la pasarela otra.
+const CARD_SURCHARGE = 0.05;
+const cardRaw = plan.price * (1 + CARD_SURCHARGE);
+// Sin redondear: Culqi cobra S/262.50, no S/263. Si sale entero, sin decimales.
+const cardPrice = Number.isInteger(cardRaw) ? String(cardRaw) : cardRaw.toFixed(2);
+
 // Dos intenciones distintas, dos mensajes distintos. El del pie decía antes
 // "te envío el comprobante" bajo un título que pregunta "¿Tienes dudas antes de
 // pagar?", así que quien tenía una duda le escribía al asesor como si estuviera
@@ -71,8 +79,9 @@ const waLinkDudas = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURICo
               <li class="pay-card">
                 <strong>Pago con tarjeta:</strong>
                 <a href={plan.culqiLink} target="_blank" rel="noopener noreferrer" class="culqi-link">
-                  Pagar S/{plan.price} con tarjeta →
+                  Pagar S/{cardPrice} con tarjeta →
                 </a>
+                <span class="pay-note">Incluye el 5% de recargo por tarjeta.</span>
               </li>
             </ul>
           </div>
@@ -147,6 +156,13 @@ const waLinkDudas = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURICo
 </Layout>
 
 <style>
+.pay-note {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--gray-mid);
+  margin-top: 0.35rem;
+}
+
 .checkout {
   background: var(--gray-light);
   min-height: 100vh;
