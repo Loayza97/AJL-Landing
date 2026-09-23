@@ -7,6 +7,7 @@ import {
   OG_IMAGE,
   META_PIXEL_ID,
   GA4_ID,
+  CLARITY_ID,
   WA_DEFAULT_MESSAGE,
   EVALUACION_NAME,
 } from '../config.js';
@@ -150,7 +151,7 @@ const businessSchema = {
   <CookieBanner />
 
   <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
-  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, WA_DEFAULT_MESSAGE, EVALUACION_NAME }}>
+  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, CLARITY_ID, WA_DEFAULT_MESSAGE, EVALUACION_NAME }}>
     // ── Configuración ──────────────────────────────────────────────────────────
     const waNumber = WA_NUMBER;
     const params   = new URLSearchParams(window.location.search);
@@ -425,6 +426,27 @@ const businessSchema = {
       window.fbq('track', 'PageView');
     }
 
+    // ── Microsoft Clarity ─────────────────────────────────────────────────────
+    // Mapas de calor y grabación de sesiones. Base legal: consentimiento, igual
+    // que el píxel: grabar lo que hace alguien en pantalla no cabe en "medición
+    // agregada", así que sin aceptar no se carga. Los campos de formulario van
+    // enmascarados por defecto en Clarity; no los desenmascares en el panel.
+    let clarityCargado = false;
+    function cargarClarity() {
+      if (clarityCargado || !CLARITY_ID) return;
+      // Fuera del checkout: ahí hay datos de pago y los términos de Clarity
+      // prohíben enviarle información financiera.
+      if (location.pathname.startsWith('/checkout')) return;
+      clarityCargado = true;
+
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", CLARITY_ID);
+      window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+    }
+
     // Sube GA4 a medición completa y enciende la publicidad.
     function aplicarConsentimiento() {
       if (typeof window.gtag === 'function') {
@@ -437,6 +459,7 @@ const businessSchema = {
         window.gtag('set', 'ads_data_redaction', false);
       }
       cargarMetaPixel();
+      cargarClarity();
     }
 
     // ── Banner de consentimiento ───────────────────────────────────────────────
@@ -475,7 +498,7 @@ const businessSchema = {
     }
 
     // Arranque. GA4 siempre, en estado denegado (medición agregada sin cookies);
-    // el píxel solo con consentimiento explícito. No esperamos a
+    // el píxel y Clarity solo con consentimiento explícito. No esperamos a
     // DOMContentLoaded: cuanto antes se dispare el PageView, menos visitas se
     // pierden por rebote temprano.
     iniciarGA4();

@@ -52,3 +52,5 @@ export const OG_IMAGE = '/og-image.jpg';
 // (ver el gate en layouts/Layout.astro); nunca en el <head> a secas.
 export const META_PIXEL_ID = '982472270539383';
 export const GA4_ID = 'G-SQ5K6KFXT3';
+// Microsoft Clarity (mapas de calor y grabación de sesiones). Vacío = no se carga.
+export const CLARITY_ID = 'yn0l9f2ft2';
