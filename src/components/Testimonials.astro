@@ -262,6 +262,22 @@ const restantes = testimonios.length - preview.length;
 </style>
 
 <script>
+  // Orden al azar en cada visita (Fisher-Yates) para que el muro no se vea
+  // siempre igual. Las miniaturas de móvil toman los tres primeros ya mezclados.
+  const wall = document.querySelector('.vt-scroller');
+  if (wall) {
+    const cards = [...wall.children];
+    for (let i = cards.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
+    cards.forEach(c => wall.appendChild(c));
+    const posters = cards.map(c => c.querySelector('.vt-player')?.getAttribute('poster'));
+    document.querySelectorAll('.vt-mobile__thumb').forEach((img, i) => {
+      if (posters[i]) img.setAttribute('src', posters[i]);
+    });
+  }
+
   // Click-to-play: carga el video solo al pulsar; pausa los demás.
   document.querySelectorAll('.vt-card').forEach(card => {
     const video = card.querySelector('.vt-player');

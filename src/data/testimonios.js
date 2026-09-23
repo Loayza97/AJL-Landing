@@ -11,4 +11,11 @@ export const testimonios = [
   { slug: 'kiabell',          name: 'Kiabell Lino',          role: 'Paciente AJL Nutrición', src: '/testimonios/kiabell.mp4',          poster: '/testimonios/kiabell.jpg' },
   { slug: 'maria-escajadillo', name: 'María Escajadillo',     role: 'Paciente AJL Nutrición', src: '/testimonios/maria-escajadillo.mp4', poster: '/testimonios/maria-escajadillo.jpg' },
   { slug: 'maria-guadalupe',  name: 'María Guadalupe Estela', role: 'Paciente AJL Nutrición', src: '/testimonios/maria-guadalupe.mp4',  poster: '/testimonios/maria-guadalupe.jpg' },
+  { slug: 'jose-terrones',    name: 'José Terrones',         role: 'Paciente AJL Nutrición', src: '/testimonios/jose-terrones.mp4',    poster: '/testimonios/jose-terrones.jpg' },
+  { slug: 'lucia',            name: 'Lucía Sifuentes',       role: 'Paciente AJL Nutrición', src: '/testimonios/lucia.mp4',            poster: '/testimonios/lucia.jpg' },
+  { slug: 'pareja-risco',     name: 'Pareja Gonzalez Risco', role: 'Pacientes AJL Nutrición', src: '/testimonios/pareja-risco.mp4',    poster: '/testimonios/pareja-risco.jpg' },
+  { slug: 'tantalean',        name: 'Pareja Tantaleán Daza', role: 'Pacientes AJL Nutrición', src: '/testimonios/tantalean.mp4',       poster: '/testimonios/tantalean.jpg' },
+  { slug: 'alessandra',       name: 'Alessandra Morales',    role: 'Paciente AJL Nutrición', src: '/testimonios/alessandra.mp4',      poster: '/testimonios/alessandra.jpg' },
+  { slug: 'carla',            name: 'Carla Ramírez',         role: 'Paciente AJL Nutrición', src: '/testimonios/carla.mp4',           poster: '/testimonios/carla.jpg' },
+  { slug: 'carolina',         name: 'Carolina Wimpón',       role: 'Paciente AJL Nutrición', src: '/testimonios/carolina.mp4',        poster: '/testimonios/carolina.jpg' },
 ];
