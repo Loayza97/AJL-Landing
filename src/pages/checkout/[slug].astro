@@ -49,7 +49,7 @@ const waLinkDudas = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURICo
 
         <ul class="checkout-summary">
           {plan.checkoutSummary.map(item => (
-            <li><span class="check">✓</span> {item}</li>
+            <li><span class="check">✓</span> {item.split(/\*\*(.+?)\*\*/).map((t, i) => i % 2 ? <strong>{t}</strong> : t)}</li>
           ))}
         </ul>
       </header>

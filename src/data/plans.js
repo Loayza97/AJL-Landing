@@ -76,11 +76,13 @@ export const plans = {
     programs: [
       { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes' },
     ],
+    firstMonthEval: true,
     checkoutSummary: [
       'Dos sesiones al mes, en Lince o por videollamada',
       'Tu plan en la app, con todo lo que conversamos en tu sesión',
       'Un equipo de nutricionistas respondiéndote por WhatsApp',
       '2 clases grupales en vivo por semana',
+      '**+ 1 evaluación el primer mes**: al cierre del primer mes medimos tu avance y decides cómo sigues',
     ],
   },
   transformacion: {
@@ -97,11 +99,13 @@ export const plans = {
     programs: [
       { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes' },
     ],
+    firstMonthEval: true,
     checkoutSummary: [
       'Cuatro sesiones al mes, en Lince o por videollamada',
       'Tu plan en la app, con todo lo que conversamos en tu sesión',
       'Un equipo de nutricionistas respondiéndote por WhatsApp',
       '2 clases grupales en vivo por semana',
+      '**+ 1 evaluación el primer mes**: al cierre del primer mes medimos tu avance y decides cómo sigues',
     ],
   },
 };
@@ -116,10 +120,12 @@ export const monthlyPlans = [
 // La sesión suelta, fuera del bloque de acompañamiento.
 export const singlePlan = plans.basico;
 
-// Lo que incluye cualquier plan, con o sin acompañamiento.
+// Lo que incluye el acompañamiento continuo (banner v2, 25-sep-2026).
 export const includedInAll = [
-  { icon: 'session', title: 'Una sesión de 1 hora', desc: 'En Lince o por videollamada' },
-  { icon: 'app',     title: 'Tu plan en la app',    desc: 'Con todo lo que conversamos en tu sesión' },
+  { icon: 'chat',  text: 'Un equipo de nutricionistas respondiéndote' },
+  { icon: 'group', text: '2 clases grupales en vivo por semana' },
+  { icon: 'cal',   text: 'Sesiones presenciales en Lince o virtuales' },
+  { icon: 'phone', text: 'Tu plan en la app, con todo lo que conversamos en tu sesión' },
 ];
 
 // Formas de pago. La tarjeta lleva recargo porque la pasarela cobra comisión.
