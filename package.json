@@ -9,12 +9,15 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test": "node --test \"server/**/*.test.mjs\"",
+    "smoke": "node scripts/smoke-api.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
-    "astro": "^4.16.19"
+    "astro": "^4.16.19",
+    "wrangler": "^4.143.0"
   }
 }

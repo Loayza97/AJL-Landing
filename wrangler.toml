@@ -1,0 +1,6 @@
+# Cloudflare Pages · landing AJL Nutrición
+# Build: `npm run build` (Astro) → dist/. Las funciones viven en functions/.
+name = "ajl-landing"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
