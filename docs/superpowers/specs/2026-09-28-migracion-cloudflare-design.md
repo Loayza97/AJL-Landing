@@ -26,7 +26,7 @@
    - `/api/reclamaciones`
 
    Dependencias: `@supabase/supabase-js` (compatible con Workers) y `crypto.randomBytes` → `crypto.getRandomValues` (Web Crypto). Resend se llama por `fetch`.
-2. **Configuración.** `vercel.json` se reemplaza por `public/_headers` con `Cache-Control: no-store` para `/api/*`. URLs limpias y barra final las resuelve Pages por defecto con la salida en carpetas de Astro; se verifica en la prueba.
+2. **Configuración.** `vercel.json` se reemplaza por `wrangler.toml`. El `Cache-Control: no-store` de `/api/*` va en el código de las funciones, porque en Cloudflare `public/_headers` solo aplica a archivos estáticos (corregido al escribir el plan). URLs limpias y barra final las resuelve Pages por defecto con la salida en carpetas de Astro; se verifica en la prueba.
 3. **Se borran** `api/` y `vercel.json` recién después del corte exitoso (ver Reversión).
 4. **Comentarios que nombran Vercel** (`src/layouts/Layout.astro:20`, `astro.config.mjs`) se actualizan a Cloudflare.
 
