@@ -16,7 +16,7 @@
 //   - Tipografía Montserrat 400–800 (reemplazo web de Gilroy), sin serifas.
 import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data/plans.js';
 
-// Detalle del ícono «i»: lo mismo que dice el checkout de cada plan.
+// Detalle del ícono «i» (mismo `checkoutSummary` que el checkout).
 const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
 ---
 
@@ -182,15 +182,16 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
 .ap-incluye svg { width: 34px; height: 34px; flex: none; color: var(--gold-ink); }
 
 /* Tabla de planes */
-.ap-tabla { display: flex; flex-direction: column; margin-top: 4px; }
+.ap-tabla { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
 /* Columnas de precio iguales y números alineados arriba: el de 1 mes y el de
    3 meses arrancan a la misma altura; «S/… al mes» cuelga debajo. */
 .ap-cab, .ap-fila { display: grid; grid-template-columns: 1.6fr 1fr 1fr 150px; align-items: start; column-gap: 12px; }
 .ap-cab { align-items: center; }
-.ap-cab { font-size: 14px; font-weight: 700; padding: 0 14px 10px; border-bottom: 1px solid var(--hair); }
+.ap-cab { font-size: 14px; font-weight: 700; padding: 0 15px; }
 .ap-cab span:not(:first-child) { text-align: center; }
-.ap-fila { position: relative; padding: 16px 14px; border-bottom: 1px solid var(--hair); }
-.ap-fila--star { border: 1.5px solid var(--gold); border-radius: 10px; margin: 14px 0 4px; padding-top: 22px; }
+/* Cada plan es una tarjeta; la recomendada lleva el borde dorado */
+.ap-fila { position: relative; padding: 18px 14px; border: 1px solid var(--hair); border-radius: 10px; }
+.ap-fila--star { border: 1.5px solid var(--gold); margin-top: 10px; padding-top: 24px; }
 .ap-tag { position: absolute; top: 0; left: 14px; transform: translateY(-50%); font-size: 12px; font-weight: 700; color: #fff; background: var(--gold-ink); border-radius: 99px; padding: 4px 11px; white-space: nowrap; }
 .ap-plan { display: flex; flex-direction: column; gap: 4px; }
 .ap-k { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); }
@@ -210,7 +211,7 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
 .ap-nota b { color: var(--ink); }
 
 /* Una sola sesión */
-.ap-sola { display: grid; grid-template-columns: 1.7fr 1.95fr 150px; align-items: center; column-gap: 12px; padding: 16px 14px; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.ap-sola { display: grid; grid-template-columns: 1.7fr 1.95fr 150px; align-items: center; column-gap: 12px; padding: 18px 14px; border: 1px solid var(--hair); border-radius: 10px; }
 .ajl-planes .ap-sola h4 { font-size: 17px; font-weight: 700; color: #5C5C5C; }
 .ajl-planes .ap-sola p { font-size: 14px; color: var(--muted); margin-top: 2px; }
 .ap-sola .ap-pr { color: #5C5C5C; }
@@ -268,9 +269,6 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
   .ap-pop::before { display: none; }
   .ap-pr { font-size: 25px; }
   /* Cada paquete en su propia tarjeta; la recomendada conserva el borde dorado */
-  .ap-tabla { gap: 14px; }
-  .ap-fila { border: 1px solid var(--hair); border-radius: 10px; }
-  .ap-fila--star { border: 1.5px solid var(--gold); margin: 10px 0 0; padding-top: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pbtn, .ap-pop { transition: none; }

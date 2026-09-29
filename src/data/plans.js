@@ -11,9 +11,8 @@ export const plans = {
     period: 'pago único',
     culqiLink: 'https://express.culqi.com/pago/CE455B801E',
     checkoutSummary: [
-      'Consulta personalizada de 30 minutos con el equipo de nutricionistas',
+      'Evaluación personalizada de 30 minutos con el equipo de nutricionistas',
       'Diagnóstico completo de hábitos y composición corporal',
-      'Dirección clara: qué, cómo y cuánto cambiar',
       'Los S/80 se descuentan de cualquier plan que adquieras el mismo día de tu evaluación',
     ],
   },
@@ -35,10 +34,12 @@ export const plans = {
     badge: null,
     highlight: false,
     programs: null,
+    // Lo que incluye: globo «i» de la tabla y resumen del checkout.
+    // Fuente: PACK-KOC, handoff §14 (07-sep).
     checkoutSummary: [
-      'Una sesión de 1 hora, en Lince o por videollamada',
-      'Tu plan en la app, con todo lo que conversamos en tu sesión',
-      'Compra única, sin acompañamiento continuo',
+      '1 sesión de 60 min, en Lince o por videollamada',
+      'Tu plan nutricional en la app',
+      'Sin seguimiento después de la sesión',
     ],
   },
   acompanamiento: {
@@ -55,11 +56,13 @@ export const plans = {
     programs: [
       { label: '3 meses', total: 'S/810', perMes: 'S/270 al mes' },
     ],
+    // Lo que incluye: globo «i» de la tabla y resumen del checkout.
+    // Fuente: PACK-KOC, handoff §14 (07-sep).
     checkoutSummary: [
-      'Una sesión de 1 hora al mes, en Lince o por videollamada',
-      'Tu plan en la app, con todo lo que conversamos en tu sesión',
-      'Un equipo de nutricionistas respondiéndote por WhatsApp',
-      '2 clases grupales en vivo por semana',
+      '1 sesión de 60 min al mes, en Lince o por videollamada',
+      'Tu plan nutricional en la app',
+      'Equipo de nutricionistas por WhatsApp (L–V 9–18 h, S 9–13 h)',
+      '2 clases grupales en vivo por semana y comunidad',
     ],
   },
   constancia: {
@@ -77,12 +80,15 @@ export const plans = {
       { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes' },
     ],
     firstMonthEval: true,
+    // Lo que incluye: globo «i» de la tabla y resumen del checkout.
+    // Fuente: PACK-KOC, handoff §14 (07-sep).
     checkoutSummary: [
-      'Dos sesiones al mes, en Lince o por videollamada',
-      'Tu plan en la app, con todo lo que conversamos en tu sesión',
-      'Un equipo de nutricionistas respondiéndote por WhatsApp',
-      '2 clases grupales en vivo por semana',
-      '**+ 1 evaluación el primer mes**: al cierre del primer mes medimos tu avance y decides cómo sigues',
+      '1 sesión de 60 min al mes, en Lince o por videollamada',
+      '1 control virtual de 30 min a mitad de mes',
+      '**+ 1 evaluación el primer mes, sin costo adicional**: un control más para medir tu avance y decidir cómo sigues',
+      'Tu plan nutricional en la app',
+      'Equipo de nutricionistas por WhatsApp (L–V 9–18 h, S 9–13 h)',
+      '2 clases grupales en vivo por semana y comunidad',
     ],
   },
   transformacion: {
@@ -100,12 +106,16 @@ export const plans = {
       { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes' },
     ],
     firstMonthEval: true,
+    // Lo que incluye: globo «i» de la tabla y resumen del checkout.
+    // Fuente: PACK-KOC, handoff §14 (07-sep).
     checkoutSummary: [
-      'Cuatro sesiones al mes, en Lince o por videollamada',
-      'Tu plan en la app, con todo lo que conversamos en tu sesión',
-      'Un equipo de nutricionistas respondiéndote por WhatsApp',
-      '2 clases grupales en vivo por semana',
-      '**+ 1 evaluación el primer mes**: al cierre del primer mes medimos tu avance y decides cómo sigues',
+      '2 sesiones de 60 min al mes, en Lince o por videollamada',
+      '2 controles virtuales de 30 min al mes',
+      '**+ 1 evaluación el primer mes, sin costo adicional**: un control más para medir tu avance y decidir cómo sigues',
+      '2 planes nutricionales en la app',
+      'Equipo de nutricionistas por WhatsApp (L–V 9–18 h, S 9–13 h)',
+      '2 clases grupales en vivo por semana y comunidad',
+      'Atención prioritaria',
     ],
   },
 };
