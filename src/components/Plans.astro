@@ -15,6 +15,9 @@
 //   - Clases pbtn / data-section / data-pkg / aria-label: las usa la medición.
 //   - Tipografía Montserrat 400–800 (reemplazo web de Gilroy), sin serifas.
 import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data/plans.js';
+
+// Detalle del ícono «i»: lo mismo que dice el checkout de cada plan.
+const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
 ---
 
 <section id="section-packages" class="ajl-planes" aria-label="Planes de nutrición">
@@ -49,7 +52,16 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
           {p.badge && <span class="ap-tag">✦ {p.badge}</span>}
           <div class="ap-plan" role="rowheader">
             <span class="ap-k">Acompañamiento continuo</span>
-            <b>+ {p.name}</b>
+            <span class="ap-nom">
+              <b>+ {p.name}</b>
+              <span class="ap-info">
+                <button type="button" class="ap-i" aria-label={`Qué incluye ${p.name}`} aria-expanded="false">i</button>
+                <span class="ap-pop" role="tooltip">
+                  <span class="ap-pop-t">Qué incluye</span>
+                  <ul>{detalle(p.checkoutSummary).map(t => <li set:html={t} />)}</ul>
+                </span>
+              </span>
+            </span>
             {p.firstMonthEval && <span class="ap-eval">+ 1 evaluación el primer mes</span>}
           </div>
           <div class="ap-precio" role="cell">
@@ -77,7 +89,19 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
     <p class="ap-nota"><b>La evaluación:</b> al cierre del primer mes medimos tu avance y decides cómo sigues.</p>
 
     <div class="ap-sola">
-      <div><h4>{singlePlan.name}</h4><p>{singlePlan.tagline}.</p></div>
+      <div>
+        <span class="ap-nom">
+          <h4>{singlePlan.name}</h4>
+          <span class="ap-info">
+            <button type="button" class="ap-i" aria-label="Qué incluye una sola sesión" aria-expanded="false">i</button>
+            <span class="ap-pop" role="tooltip">
+              <span class="ap-pop-t">Qué incluye</span>
+              <ul>{detalle(singlePlan.checkoutSummary).map(t => <li set:html={t} />)}</ul>
+            </span>
+          </span>
+        </span>
+        <p>{singlePlan.tagline}.</p>
+      </div>
       <div class="ap-precio">
         <span class="ap-pr"><span class="ap-cu">S/</span>{singlePlan.price}</span>
         <span class="ap-eq">Compra única</span>
@@ -103,6 +127,30 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
     </div>
   </div>
 </section>
+
+<script>
+  // Ícono «i»: en escritorio abre al pasar el mouse (CSS); el clic o toque lo
+  // deja abierto hasta tocar afuera o apretar Esc.
+  const cerrar = (salvo?: Element) =>
+    document.querySelectorAll('.ap-info.is-open').forEach(el => {
+      if (el === salvo) return;
+      el.classList.remove('is-open');
+      el.querySelector('.ap-i')?.setAttribute('aria-expanded', 'false');
+    });
+  document.querySelectorAll<HTMLButtonElement>('.ap-i').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const box = btn.parentElement!;
+      cerrar(box);
+      const abierto = box.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', String(abierto));
+    });
+  });
+  document.addEventListener('click', e => {
+    if (!(e.target as Element).closest('.ap-pop')) cerrar();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrar(); });
+</script>
 
 <style>
 /* Paleta blanco y oro del banner v2, solo dentro de esta sección */
@@ -181,6 +229,25 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
 .ap-pills span { border: 1px solid #CFCFCF; border-radius: 10px; padding: 9px 18px; font-size: 15px; font-weight: 700; text-align: center; }
 .ap-pills em { display: block; font-style: normal; font-size: 12px; font-weight: 500; color: var(--muted); }
 
+/* Ícono «i» con el detalle de cada plan */
+.ap-nom { display: inline-flex; align-items: center; gap: 8px; }
+.ap-info { position: relative; display: inline-flex; }
+.ap-i { width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 1.5px solid var(--gold-ink); background: transparent; color: var(--gold-ink); font: italic 700 11px/1 Georgia, serif; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.ap-i::before { content: ""; position: absolute; inset: -13px; }
+.ap-i:hover, .ap-info.is-open .ap-i { background: var(--gold-ink); color: #fff; }
+.ap-i:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.ap-pop { position: absolute; z-index: 20; top: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: min(300px, calc(100vw - 32px)); background: var(--ink); color: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.18); text-align: left; opacity: 0; visibility: hidden; transition: opacity .15s ease, visibility .15s; }
+.ap-pop::before { content: ""; position: absolute; top: -6px; left: 50%; margin-left: -6px; border: 6px solid transparent; border-top: 0; border-bottom-color: var(--ink); }
+.ap-pop-t { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.ap-pop ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.ap-pop li { position: relative; padding-left: 16px; font-size: 13.5px; font-weight: 500; line-height: 1.4; letter-spacing: 0; }
+.ap-pop li::before { content: "✓"; position: absolute; left: 0; color: var(--gold); font-weight: 700; }
+.ap-pop b { font-weight: 700; font-size: inherit; letter-spacing: 0; }
+.ap-info.is-open .ap-pop { opacity: 1; visibility: visible; }
+@media (hover: hover) {
+  .ap-info:hover .ap-pop, .ap-i:focus-visible + .ap-pop { opacity: 1; visibility: visible; }
+}
+
 /* Celular: cada plan se vuelve un bloque */
 @media (max-width: 640px) {
   .ap-inner { padding: 40px 16px; }
@@ -194,6 +261,11 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
   .ap-lbl { display: block; margin-bottom: 4px; }
   .ap-fila .ap-precio { padding-top: 0; }
   .ap-fila .ap-cta { margin-top: 0; }
+  /* En celular el globo ocupa el ancho de la tarjeta para no salirse de la pantalla */
+  .ap-plan, .ap-sola > div:first-child { position: relative; }
+  .ap-info { position: static; }
+  .ap-pop { left: 0; right: 0; width: auto; transform: none; top: calc(100% + 8px); }
+  .ap-pop::before { display: none; }
   .ap-pr { font-size: 25px; }
   /* Cada paquete en su propia tarjeta; la recomendada conserva el borde dorado */
   .ap-tabla { gap: 14px; }
@@ -201,7 +273,7 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
   .ap-fila--star { border: 1.5px solid var(--gold); margin: 10px 0 0; padding-top: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pbtn { transition: none; }
+  .pbtn, .ap-pop { transition: none; }
   .pbtn:hover { transform: none; }
 }
 </style>
