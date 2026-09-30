@@ -45,6 +45,12 @@ check('confirm sin token → 302 invalido', async () => {
   const r = await hop('/api/newsletter-confirm');
   return r.status === 302 && r.headers.get('location').endsWith('/newsletter/gracias/?estado=invalido');
 });
+// Si PUBLIC_SITE_URL no llega a la función, redirige al dominio por defecto
+// y los links de los correos salen apuntando a otro sitio.
+check('las funciones leen PUBLIC_SITE_URL de este entorno', async () => {
+  const r = await hop('/api/newsletter-confirm');
+  return new URL(r.headers.get('location')).host === new URL(BASE).host;
+});
 check('baja con token falso consulta Supabase → 302 invalido', async () => {
   const r = await hop('/api/newsletter-unsubscribe?token=smoke-no-existe');
   return r.status === 302 && r.headers.get('location').endsWith('/newsletter/baja/?estado=invalido');
