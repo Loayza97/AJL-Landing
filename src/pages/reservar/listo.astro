@@ -1,0 +1,63 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/reservar.css';
+---
+<Layout noindex title="Tu reserva · AJL Nutrición">
+  <main class="rs">
+    <section id="listo" aria-live="polite">
+      <h1>Estamos confirmando tu pago…</h1>
+      <p class="rs-lead">Esto toma unos segundos. No cierres esta página.</p>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  const raiz = document.getElementById('listo');
+  const q = new URLSearchParams(location.search);
+  const token = q.get('r');
+  const paymentId = q.get('payment_id');
+  const soles = (c) => `S/${(c / 100).toLocaleString('es-PE', { maximumFractionDigits: 2 })}`;
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  function pintar(d) {
+    if (d.estado === 'confirmada') {
+      raiz.innerHTML = `
+        <h1>Listo${d.nombre ? `, ${esc(d.nombre)}` : ''}. Tu primera sesión está reservada.</h1>
+        <div class="rs-resumen"><div>${esc(d.etiqueta)}</div><div>${d.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${esc(d.nutricionista?.nombre)}</div><div>${esc(d.titulo)} · ${soles(d.monto_centimos)}</div></div>
+        <a class="rs-btn" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Agregar a mi calendario</a>
+        <p class="rs-nota">Te enviamos la invitación y la confirmación a tu correo. Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`;
+      try {
+        const clave = `ajl_compra_${token}`;
+        if (!sessionStorage.getItem(clave)) {
+          sessionStorage.setItem(clave, '1');
+          if (typeof window.gtag === 'function') window.gtag('event', 'purchase', { transaction_id: token, currency: 'PEN', value: d.monto_centimos / 100, items: [{ item_name: d.titulo }] });
+          if (typeof window.fbq === 'function') window.fbq('track', 'Purchase', { currency: 'PEN', value: d.monto_centimos / 100, content_name: d.titulo });
+        }
+      } catch {}
+      return true;
+    }
+    if (d.estado === 'pagada_sin_hora') {
+      raiz.innerHTML = `<h1>Tu pago está confirmado.</h1><p class="rs-lead">La hora que elegiste se ocupó mientras pagabas. No tienes que pagar de nuevo.</p><a class="rs-btn" href="/reservar/reubicar/?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Elegir otra hora</a>`;
+      return true;
+    }
+    if (d.ultimo_pago === 'rejected' || d.estado === 'expirada') {
+      const vigente = d.estado !== 'expirada';
+      raiz.innerHTML = `<h1>El pago no se completó.</h1><p class="rs-lead">${vigente ? 'Tu horario sigue guardado unos minutos. Puedes intentar con otro medio de pago.' : 'Se venció el tiempo para pagar. Elige tu hora de nuevo.'}</p><a class="rs-btn" href="/reservar/${vigente ? `?r=${encodeURIComponent(token)}` : ''}" style="text-align:center;text-decoration:none">${vigente ? 'Intentar de nuevo' : 'Elegir mi hora'}</a>`;
+      return true;
+    }
+    return false;
+  }
+
+  async function consultar(intento) {
+    const extra = paymentId && intento === 0 ? `&payment_id=${encodeURIComponent(paymentId)}` : '';
+    try {
+      const r = await fetch(`/api/reservas/estado?r=${encodeURIComponent(token)}${extra}`);
+      if (r.ok && pintar(await r.json())) return;
+    } catch {}
+    if (intento < 40) setTimeout(() => consultar(intento + 1), 3000);
+    else raiz.innerHTML = '<h1>Estamos confirmando tu pago.</h1><p class="rs-lead">Apenas Mercado Pago lo confirme te llegará un correo. Si tienes dudas, escríbenos por WhatsApp.</p>';
+  }
+
+  if (token) consultar(0);
+  else raiz.innerHTML = '<h1>No encontramos tu reserva.</h1><p class="rs-lead"><a href="/reservar/">Empezar de nuevo</a></p>';
+</script>

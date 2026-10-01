@@ -1,0 +1,86 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { plans, monthlyPlans } from '../../data/plans.js';
+import { NOVEDADES_TEXTO } from '../../data/condiciones.js';
+import '../../styles/reservar.css';
+
+const catalogo = {};
+for (const p of monthlyPlans) {
+  const prog = p.programs[0];
+  catalogo[p.id] = { nombre: p.name, mensual: true, precio: p.price, total3m: prog.totalSoles, perMes3m: prog.perMes,
+    perMes3mSoles: Math.round(prog.totalSoles / 3) };
+}
+catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
+catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
+---
+<Layout noindex title="Reserva tu primera sesión · AJL Nutrición">
+  <main class="rs">
+    <script is:inline type="application/json" id="catalogo" set:html={JSON.stringify(catalogo)} />
+
+    <section class="rs-paso" data-paso="p1" hidden>
+      <div class="rs-progreso"><span>Paso 1 de 4</span></div>
+      <h1>¿Cómo quieres que te acompañemos?</h1>
+      <p class="rs-lead">Todos incluyen tu plan en la app, el equipo por WhatsApp y 2 clases en vivo por semana.</p>
+      {monthlyPlans.map((p) => (
+        <button type="button" class:list={['rs-op', { 'rs-op--star': p.highlight }]} data-producto={p.id}>
+          {p.badge && <span class="rs-badge">{p.badge}</span>}
+          <b>Acompañamiento continuo + {p.name}</b>
+          <span class="rs-precio">{p.programs[0].total}</span> <small>3 meses · {p.programs[0].perMes}</small>
+        </button>
+      ))}
+      <p class="rs-nota">Clases en vivo: miércoles con el equipo, domingos con Alejandro. Tus sesiones 1 a 1 son con una nutricionista del equipo.</p>
+      <div class="rs-secundario">
+        <button type="button" class="rs-op" data-producto="basico"><b>{plans.basico.name}, sin acompañamiento</b><small>S/{plans.basico.price}</small></button>
+        <button type="button" class="rs-op" data-producto="evaluacion"><b>¿Prefieres que te evaluemos antes?</b><small>{plans.evaluacion.name} · S/{plans.evaluacion.price}</small></button>
+      </div>
+    </section>
+
+    <section class="rs-paso" data-paso="p2" hidden>
+      <button type="button" class="rs-volver" data-volver="p1">‹ Cambiar acompañamiento</button>
+      <div class="rs-progreso"><span>Paso 2 de 4</span></div>
+      <h1>¿Por cuánto tiempo?</h1>
+      <p class="rs-lead" id="p2-plan"></p>
+      <button type="button" class="rs-op rs-op--star" id="p2-3m" data-duracion="3"><span class="rs-badge">El que recomendamos</span><b>3 meses</b><span class="rs-precio"></span> <small></small></button>
+      <button type="button" class="rs-op" id="p2-1m" data-duracion="1"><b>Mes a mes</b><span class="rs-precio"></span> <small></small></button>
+      <p class="rs-nota">Con el de 3 meses, tu plazo corre desde que recibes tu plan y, si viajas, lo congelas 1 semana. No necesitas agendar todo ahora. Pagas con tarjeta o con Yape, sin recargo.</p>
+    </section>
+
+    <section class="rs-paso" data-paso="p3" hidden>
+      <button type="button" class="rs-volver" data-volver="p1">‹ Volver</button>
+      <div class="rs-progreso"><span>Paso 3 de 4</span></div>
+      <h1>Elige tu primera sesión</h1>
+      <p class="rs-lead">Tu nutricionista te acompaña durante todo tu plan. Tus siguientes citas las agendas cuando quieras.</p>
+      <div id="p3-selector"></div>
+      <p class="rs-error" id="p3-error" role="alert"></p>
+    </section>
+
+    <section class="rs-paso" data-paso="p4" hidden>
+      <button type="button" class="rs-volver" data-volver="p3">‹ Cambiar hora</button>
+      <div class="rs-progreso"><span>Paso 4 de 4</span><span>Guardamos tu horario · <span class="rs-reloj" id="p4-reloj"></span></span></div>
+      <h1>¿A nombre de quién?</h1>
+      <div class="rs-resumen" id="p4-resumen"></div>
+      <form id="p4-form" novalidate>
+        <label for="f-nombre">Nombre y apellido</label>
+        <input type="text" id="f-nombre" autocomplete="name" required>
+        <label for="f-whatsapp">WhatsApp · aquí te escribimos si hace falta</label>
+        <input type="tel" id="f-whatsapp" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" required>
+        <label for="f-email">Correo · aquí llega tu invitación</label>
+        <input type="email" id="f-email" autocomplete="email" required>
+        <div id="p4-dni" hidden>
+          <label for="f-dni">DNI · para tu comprobante (compras de más de S/700)</label>
+          <input type="text" id="f-dni" inputmode="numeric" maxlength="8">
+        </div>
+        <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <a href="/condiciones/" target="_blank" rel="noopener">condiciones del servicio</a> y he leído la <a href="/privacidad/" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+        <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
+        <p class="rs-nota">Mover tu cita es gratis hasta 48 h antes; después cuesta S/80.</p>
+        <p class="rs-aviso" id="p4-yape" hidden>¿Pagarás con Yape? Revisa tu límite en la app: este monto puede superarlo. Con tarjeta no hay límite.</p>
+        <button type="submit" class="rs-btn" id="p4-pagar">Pagar</button>
+        <p class="rs-error" id="p4-error" role="alert"></p>
+      </form>
+    </section>
+  </main>
+</Layout>
+
+<script>
+  import '../../scripts/reservar.js';
+</script>

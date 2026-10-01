@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/reservar.css';
+---
+<Layout noindex title="Elige tu nueva hora · AJL Nutrición">
+  <main class="rs">
+    <h1>Elige tu hora</h1>
+    <p class="rs-lead">Tu pago ya está confirmado. Solo falta la hora.</p>
+    <div id="selector"></div>
+    <p class="rs-error" id="error" role="alert"></p>
+  </main>
+</Layout>
+
+<script>
+  import { montarSelector } from '../../scripts/selector-horas.js';
+  const token = new URLSearchParams(location.search).get('r');
+  const error = document.getElementById('error');
+
+  (async () => {
+    const r = await fetch(`/api/reservas/estado?r=${encodeURIComponent(token)}`);
+    const d = await r.json();
+    if (!r.ok || d.estado !== 'pagada_sin_hora') {
+      location.href = `/reservar/listo/?r=${encodeURIComponent(token)}`;
+      return;
+    }
+    const selector = montarSelector(document.getElementById('selector'), {
+      producto: d.producto, duracion: d.duracion_meses,
+      onElegir: async (eleccion) => {
+        error.textContent = 'Guardando tu hora…';
+        const res = await fetch('/api/reservas/reubicar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, ...eleccion }) });
+        const out = await res.json();
+        if (!res.ok) { error.textContent = out.error || 'Esa hora ya no está disponible.'; selector.recargar(); return; }
+        location.href = `/reservar/listo/?r=${encodeURIComponent(token)}`;
+      },
+    });
+  })();
+</script>
