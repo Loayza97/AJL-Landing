@@ -17,7 +17,7 @@ import { contacto } from '../data/contacto.js';
 // Origen canónico del sitio. Se define UNA vez en astro.config.mjs (`site`) y
 // todo lo absoluto —canonical, OG, schema— se deriva de ahí, para que el día
 // que cambie el dominio no queden URLs sueltas apuntando al anterior.
-// Debe coincidir con el dominio primario configurado en Vercel: hoy es el www.
+// Debe coincidir con el dominio primario del sitio en Cloudflare Pages: hoy es el www.
 const SITE_ORIGIN = (Astro.site ?? new URL('https://www.ajlnutricion.com')).origin;
 
 // Canonical por página (evita que checkout canonicalice al home)

@@ -142,14 +142,15 @@ Registrar internamente:
 
 ---
 
-## Anexo — Procesadores actuales (a 2026-05-26)
+## Anexo — Procesadores actuales (a 2026-09-30)
 
 Para referencia, esta es la lista de procesadores activos hoy. Actualizar
 cuando se agreguen/quiten.
 
 | Proveedor | Servicio | País | Datos | DPA | Agregado |
 |---|---|---|---|---|---|
-| Vercel | Hosting y serverless functions | EE.UU. | Todos los del libro + tráfico web | Standard DPA en setup | 2026-05-22 |
+| Vercel | Hosting y serverless functions | EE.UU. | Todos los del libro + tráfico web | Standard DPA en setup | 2026-05-22 · retirado (pendiente de borrar el proyecto) |
+| Cloudflare | Hosting y funciones del sitio | EE.UU. (red global) | Todos los del libro y newsletter + tráfico web | DPA estándar de Cloudflare (Customer DPA, incluye SCC) | 2026-09-30 |
 | Supabase | Base de datos del libro | Brasil (São Paulo) | Datos del libro de reclamaciones | DPA estándar | 2026-05-22 |
 | Resend | Envío de emails transaccionales | EE.UU. | Email + nombre + contenido reclamo | DPA estándar | 2026-05-22 |
 | ImprovMX | Reenvío de correos entrantes | Francia / EE.UU. | Contenido de correos a reclamos@ | DPA estándar | 2026-05-26 |
