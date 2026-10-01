@@ -1,7 +1,7 @@
 # Reserva y pago en la web · V1
 
 **Fecha:** 2026-10-01 · **Estado:** diseño aprobado por Joaquín, por partes (1 a 4)
-**Fuente:** el handoff de Alejandro del 30-sep (mockup P1–P8, decisiones D1–D7, horarios de nutricionistas), guardado fuera del repo en `~/ajl/reservas-handoff/` porque este repo es público. Donde el handoff se contradice, manda lo que se decidió en esta conversación y queda anotado abajo.
+**Fuente:** el handoff de Alejandro del 30-sep y su **complemento v2 del 1-oct** (que manda sobre el primero), guardados fuera del repo en `~/ajl/reservas-handoff/` porque este repo es público. Donde se contradicen con lo decidido con Joaquín, queda anotado abajo.
 
 ## Objetivo
 
@@ -28,11 +28,13 @@ Que el paciente elija su acompañamiento, su duración y su primera hora, pague 
 | Orden del flujo | Elige hora **antes** de pagar (manda el handoff sobre la idea previa de pagar primero) |
 | Disponibilidad | Horarios semanales por nutricionista (archivo del repo) menos lo ocupado en Google Calendar menos las reservas web |
 | Consultorio | Uno solo en Lince: una sesión presencial a la vez. Las videollamadas pueden ir en paralelo, cada una con su nutricionista |
-| Tope diario | Opción A: máximo **3 primeras sesiones por día**, todos los canales. Plan o sesión única = 1; evaluación = 0,5. Se permite reservar si `suma + peso ≤ 3` |
+| Tope diario | Opción A: máximo **3 primeras sesiones por día**, todos los canales. Plan o sesión única = 1; evaluación = 0,5. Se permite reservar si `suma + peso ≤ 3`. Todo **configurable** (número, peso de la evaluación y un máximo de horas al día, apagado), porque Alejandro aún debe aclarar cómo se leen sus topes («3 citas por día», «5 horas de operación L-V», «30 min cuentan como 1/2») |
 | Datos del paciente | Nombre, WhatsApp, correo; DNI si el total supera S/700 |
 | Medios de pago | Solo Mercado Pago: tarjeta, Yape, dinero en cuenta. PagoEfectivo excluido. Una sola cuota hasta decidir D2. Sin recargo |
 | Transferencia | No en V1. Quien insista escribe por WhatsApp. Se mide cuántos lo piden |
-| Infraestructura | Dentro de la landing, en Cloudflare Pages + D1. Sin Supabase para este sistema |
+| Infraestructura | Dentro de la landing, en Cloudflare Pages + D1. Sin Supabase para este sistema. El complemento de Alejandro dice «Cloudflare y Supabase»; Joaquín decidió D1 el 1-oct |
+| Modalidad sin definir | Los turnos sin modalidad (`null`) se ofrecen presencial y por video, como pide el complemento |
+| Antiabuso | Como máximo 2 horas apartadas a la vez por persona (huella SHA-256 de IP y fecha, que se borra al terminar la retención) |
 | Google Calendar | Gmail normal (`alejandro.loayza.jordan@gmail.com`, calendario «AlejandroJLoayza Nutrición»). Sin Workspace: se usa OAuth con autorización única de Alejandro |
 | Condiciones del servicio | Las redacta Claude con las decisiones de Alejandro; se publican y, si un abogado las revisa después, se ajustan |
 
@@ -55,10 +57,10 @@ Que el paciente elija su acompañamiento, su duración y su primera hora, pague 
 
 | Nutricionista | Apodos | Ventanas |
 |---|---|---|
-| Nico | nico | L, M, J presencial 11–20; V video 11–20; X y S presencial 11–20 **alternados cada dos semanas** |
-| Paola | paola | L video 14–20; X, V presencial 14–20; S presencial 10–19 |
-| Jussara | jussara, yuyu | L–V presencial 10–17; S presencial 9–13 |
-| Paolo | paolo | L, M presencial 14–20; J presencial 10–17; V video 14–20; **S pendiente** (no se ofrece) |
+| Nico | nico | L, M, J presencial 11–20; V video 11–20; X 11–20 y S **9–18** sin modalidad definida, **alternados cada dos semanas** |
+| Paola | paola | L video 14–20; X, V presencial 14–20; S 10–19 sin modalidad definida |
+| Jussara | jussara, yuyu | L–V 10–17 y S 9–13, sin modalidad definida |
+| Paolo | paolo | L, M presencial 14–20; J 10–17 sin modalidad definida; **V y S alternados sin semanas definidas: no se ofrecen** |
 
 Alternancia de Nico: viene el **miércoles 7-oct-2026** y no el sábado 10-oct; la semana siguiente al revés, y así. (Referencia: el miércoles 30-sep no vino.)
 
@@ -169,9 +171,16 @@ pagos(id, reserva_id, mp_payment_id UNIQUE, estado, monto_centimos, metodo, crea
 
 ## Pendientes conocidos (no bloquean V1)
 
-- Sábado de Paolo.
+- Qué semanas trabaja Paolo el viernes y cuáles el sábado.
+- Modalidad de los turnos sin definir.
+- Cómo se leen los topes de Alejandro (equipo o por nutricionista, las 5 horas, la evaluación).
+- D5: si la sesión perdida se recupera pagando S/80 (las condiciones no lo prometen).
+- Plazo y congelamiento del mes a mes.
+- Confirmación por WhatsApp (requiere plantilla aprobada por Meta).
+- Orden de las pantallas, tras probar el demo de Alejandro.
+- Chatwoot es V2: hasta entonces el equipo marca a mano como cliente a quien paga en la web.
 - D2: costo de las cuotas sin intereses.
-- Precios de 6 meses.
+- Paquete de 6 meses: Alejandro lo quiere visible (D7.2); Joaquín lo dejó para después de V1.
 - Que Alejandro confirme el tope opción A.
 - Apodos de Nico, Paola y Paolo, si los hay.
 - Fotos reales del equipo.

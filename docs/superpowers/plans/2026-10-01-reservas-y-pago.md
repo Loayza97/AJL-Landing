@@ -15,7 +15,10 @@
 - Todo vive en la rama `reservas-pago` hasta el lanzamiento (Task 11). Push a `main` publica en producción.
 - Repo **público**: nunca poner secretos ni IDs privados en archivos versionados. Los secretos van con `npx wrangler pages secret put <NOMBRE> --project-name ajl-landing [--env preview]`, nunca editando la tabla del panel de Cloudflare (eso deja los valores vacíos).
 - Zona horaria del negocio: `America/Lima`, UTC−5 fijo. Se guarda en UTC: `inicio_utc` con el formato exacto `YYYY-MM-DDTHH:00:00Z`, el resto con `Date#toISOString()`.
-- Tope: **3 primeras sesiones por día** (`TOPE_PRIMERAS = 3`). Peso: plan o sesión única = 1; evaluación = 0,5. Se reserva si `suma + peso ≤ 3`.
+- Tope: **3 primeras sesiones por día** (`TOPE_PRIMERAS = 3`). Peso: plan o sesión única = 1; evaluación = `PESO_EVALUACION` (0,5). Se reserva si `suma + peso ≤ 3`. Todo configurable en `server/reservas/constantes.mjs`, porque Alejandro aún debe aclarar cómo se leen sus topes (complemento del 1-oct). `MAX_HORAS_DIA` (las «5 horas de operación») existe pero está apagado (`null`).
+- Turnos con modalidad sin definir (`modalidad: null` en `nutricionistas.js`) se ofrecen en ambas modalidades. Paolo alterna viernes y sábado sin semanas definidas: no se ofrecen hasta definirlo.
+- Antiabuso: como máximo `MAX_RETENCIONES = 2` horas apartadas a la vez por persona, identificada por una huella `SHA-256(IP|fecha)` que se borra con los datos de contacto.
+- Fuente de Alejandro: handoff v2 y `COMPLEMENTO-al-paquete-del-30-sep.md` en `~/ajl/reservas-handoff/` (fuera del repo). Base de datos: D1 (decisión de Joaquín, 1-oct), no Supabase.
 - Un solo consultorio: una presencial por hora. Video en paralelo por nutricionista.
 - Retención: 15 min al elegir hora; al pagar se extiende a `creado_en + 30 min`.
 - Ventana de reserva: desde mañana (`desdeDias = 1`) hasta 21 días (`hastaDias = 21`).
@@ -167,6 +170,7 @@ CREATE TABLE reservas (
   calendario_pendiente       INTEGER NOT NULL DEFAULT 0,
   acepto_condiciones_version TEXT,
   novedades_optin            INTEGER NOT NULL DEFAULT 0,
+  huella                     TEXT,
   creado_en                  TEXT NOT NULL,
   actualizado_en             TEXT NOT NULL
 );
@@ -178,6 +182,7 @@ CREATE UNIQUE INDEX reservas_nutricionista_hora ON reservas (nutricionista_id, i
   WHERE estado IN ('apartada', 'pagando', 'confirmada');
 
 CREATE INDEX reservas_fecha_estado ON reservas (fecha_lima, estado);
+CREATE INDEX reservas_huella ON reservas (huella, estado);
 
 CREATE TABLE pagos (
   id             TEXT PRIMARY KEY,
@@ -301,14 +306,14 @@ git commit -m "reservas: esquema D1 con índices anti-choque y D1 de prueba"
 
 **Interfaces:**
 - Produces:
-  - `TOPE_PRIMERAS = 3`, `DESDE_DIAS = 1`, `HASTA_DIAS = 21`
+  - `TOPE_PRIMERAS = 3`, `DESDE_DIAS = 1`, `HASTA_DIAS = 21`, `RETENCION_MIN = 15`, `RETENCION_MAX_MIN = 30`, `PESO_EVALUACION = 0.5`, `MAX_HORAS_DIA = null`, `MAX_RETENCIONES = 2`
   - `fechaLima(date: Date): 'YYYY-MM-DD'`
   - `inicioUtc(fecha, hora: number): 'YYYY-MM-DDTHH:00:00Z'`
   - `sumarDias(fecha, n): fecha`
   - `diaSemana(fecha): 0..6` (0 = domingo)
   - `diasEntre(a, b): number`
   - `etiquetaLima(iso): string`
-  - `nutricionistas: Array<{ id, nombre, apodos: string[], foto: string|null, ventanas: Array<{ dia, modalidad, desde, hasta, cadaDosSemanas?: 'YYYY-MM-DD' }> }>`
+  - `nutricionistas: Array<{ id, nombre, apodos: string[], foto: string|null, ventanas: Array<{ dia, modalidad: 'presencial'|'video'|null, desde, hasta, cadaDosSemanas?: 'YYYY-MM-DD' }> }>` (`null` = ambas)
   - `CONDICIONES_VERSION`, `NOVEDADES_TEXTO`
   - `cotizar(producto, duracion): { titulo, monto_centimos, duracion_meses, peso, requiereDni } | null`
 
@@ -399,6 +404,9 @@ export const DESDE_DIAS = 1;    // no se reserva para el mismo día
 export const HASTA_DIAS = 21;   // hasta tres semanas adelante
 export const RETENCION_MIN = 15;
 export const RETENCION_MAX_MIN = 30;
+export const PESO_EVALUACION = 0.5; // «cuentan como 1/2»: lectura pendiente de Alejandro
+export const MAX_HORAS_DIA = null;  // «5 horas de operación L-V»: apagado hasta que se aclare
+export const MAX_RETENCIONES = 2;   // horas apartadas a la vez por persona
 ```
 
 `server/reservas/tiempo.mjs`:
@@ -445,20 +453,24 @@ export function etiquetaLima(iso) {
 `src/data/nutricionistas.js`:
 
 ```js
-// ─── Equipo y horarios de atención (handoff de Alejandro, 30-sep-2026) ──────
+// ─── Equipo y horarios de atención (handoff v2 de Alejandro, 1-oct-2026) ────
 // Fuente única de la agenda web. Horas en formato 24 h, hora de Lima; `hasta`
 // es la hora en que termina la última cita. Las presenciales además se recortan
 // al horario del consultorio (ver HORARIO_CLINICA en disponibilidad.mjs).
+//
+// `modalidad: null`: Alejandro no la indicó todavía. Se ofrece presencial y por
+// video (el consultorio único sigue mandando para las presenciales).
 //
 // `apodos`: cómo nombra el equipo a cada una en el calendario. Un evento de día
 // completo que contenga cualquiera de estas palabras la saca ese día.
 //
 // `cadaDosSemanas`: una fecha en la que esa ventana SÍ aplica; aplica también
-// cada 14 días antes y después. Nico: viene el miércoles 7-oct-2026 y el
-// sábado 3-oct-2026 (el miércoles 30-sep no vino).
+// cada 14 días antes y después. Nico alterna miércoles y sábado: viene el
+// miércoles 7-oct-2026 y el sábado 3-oct-2026 (el miércoles 30-sep no vino).
 //
-// Paolo: su sábado («alternativo a viernes») está pendiente de aclarar, así que
-// no se ofrece. Mejor perder horas que vender una que no atiende.
+// Paolo alterna viernes y sábado, pero falta definir qué semanas: hasta
+// entonces no se ofrece ninguno de los dos. Mejor perder horas que vender una
+// que no atiende.
 
 export const nutricionistas = [
   {
@@ -469,10 +481,10 @@ export const nutricionistas = [
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 11, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 11, hasta: 20 },
-      { dia: 'miercoles', modalidad: 'presencial', desde: 11, hasta: 20, cadaDosSemanas: '2026-10-07' },
+      { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-07' },
       { dia: 'jueves', modalidad: 'presencial', desde: 11, hasta: 20 },
       { dia: 'viernes', modalidad: 'video', desde: 11, hasta: 20 },
-      { dia: 'sabado', modalidad: 'presencial', desde: 11, hasta: 20, cadaDosSemanas: '2026-10-03' },
+      { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-10-03' },
     ],
   },
   {
@@ -484,7 +496,7 @@ export const nutricionistas = [
       { dia: 'lunes', modalidad: 'video', desde: 14, hasta: 20 },
       { dia: 'miercoles', modalidad: 'presencial', desde: 14, hasta: 20 },
       { dia: 'viernes', modalidad: 'presencial', desde: 14, hasta: 20 },
-      { dia: 'sabado', modalidad: 'presencial', desde: 10, hasta: 19 },
+      { dia: 'sabado', modalidad: null, desde: 10, hasta: 19 },
     ],
   },
   {
@@ -493,12 +505,12 @@ export const nutricionistas = [
     apodos: ['jussara', 'yuyu'],
     foto: null,
     ventanas: [
-      { dia: 'lunes', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'martes', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'miercoles', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'jueves', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'viernes', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'sabado', modalidad: 'presencial', desde: 9, hasta: 13 },
+      { dia: 'lunes', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'martes', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'miercoles', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'viernes', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'sabado', modalidad: null, desde: 9, hasta: 13 },
     ],
   },
   {
@@ -509,8 +521,7 @@ export const nutricionistas = [
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 14, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20 },
-      { dia: 'jueves', modalidad: 'presencial', desde: 10, hasta: 17 },
-      { dia: 'viernes', modalidad: 'video', desde: 14, hasta: 20 },
+      { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
     ],
   },
 ];
@@ -545,6 +556,7 @@ En `src/data/plans.js`, añadir `totalSoles` a cada programa de 3 meses:
 // misma fuente que pinta la web). El servidor cotiza siempre: nunca confía en
 // un monto que mande el navegador.
 import { plans } from '../../src/data/plans.js';
+import { PESO_EVALUACION } from './constantes.mjs';
 
 const MENSUALES = new Set(['acompanamiento', 'constancia', 'transformacion']);
 const DNI_DESDE_CENTIMOS = 70000; // boleta con DNI si el total supera S/700
@@ -563,7 +575,7 @@ export function cotizar(producto, duracion) {
     return null;
   }
   if (duracion !== 1) return null;
-  if (producto === 'evaluacion') return armar(plan.name, plan.price, 1, 0.5);
+  if (producto === 'evaluacion') return armar(plan.name, plan.price, 1, PESO_EVALUACION);
   if (producto === 'basico') return armar(plan.name, plan.price, 1, 1);
   return null;
 }
@@ -594,7 +606,7 @@ git commit -m "reservas: tiempo en Lima, equipo con horarios y catálogo cotizab
   - `normalizar(texto): string`
   - `ausenciasDelDia(eventos, fecha, nutricionistas): { ausentes: Set<string>, cerrada: boolean }`
   - `primerasManuales(eventos, fecha): number`
-  - `horasLibres({ fecha, modalidad, peso, nutricionistas, eventos, reservas, ahora, filtroNutricionista = null, tope = 3, desdeDias = 1, hastaDias = 21 }): Array<{ inicio, hora: 'HH:00', nutricionista_id }>`
+  - `horasLibres({ fecha, modalidad, peso, nutricionistas, eventos, reservas, ahora, filtroNutricionista = null, tope = 3, desdeDias = 1, hastaDias = 21, maxHorasDia = null }): Array<{ inicio, hora: 'HH:00', nutricionista_id }>`
 - Formas de entrada:
   - **Evento normalizado:** `{ titulo, todoElDia, desde, hasta, propio, bloquea }`. En los de día completo, `desde`/`hasta` son fechas `YYYY-MM-DD` y `hasta` es exclusiva. En los demás son ISO con zona.
   - **Reserva activa:** `{ inicio_utc, fecha_lima, nutricionista_id, modalidad, peso_tope }`.
@@ -624,21 +636,30 @@ test('martes presencial: de 10:00 a 19:00, recortado al consultorio', () => {
   assert.equal(r[0].inicio, '2026-10-06T15:00:00Z');
 });
 
-test('Nico alterna: miércoles 7 sí, miércoles 14 no; sábado 10 no, sábado 17 sí y cierra a las 19', () => {
+test('Nico alterna: miércoles 7 sí, miércoles 14 no; sábado 10 no, sábado 17 sí de 9 a 18', () => {
   const nico = (fecha) => horasLibres({ ...base, fecha, modalidad: 'presencial', filtroNutricionista: 'nico' });
   assert.equal(horas(nico('2026-10-07'))[0], '11:00');
   assert.deepEqual(nico('2026-10-14'), []);
   assert.deepEqual(nico('2026-10-10'), []);
-  assert.deepEqual(horas(nico('2026-10-17')), ['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00']);
+  assert.deepEqual(horas(nico('2026-10-17')), ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']);
 });
 
-test('Paolo no se ofrece los sábados', () => {
-  assert.deepEqual(horasLibres({ ...base, fecha: '2026-10-10', modalidad: 'presencial', filtroNutricionista: 'paolo' }), []);
+test('Paolo no se ofrece viernes ni sábado mientras su alternancia no esté definida', () => {
+  for (const fecha of ['2026-10-09', '2026-10-10']) {
+    for (const modalidad of ['presencial', 'video']) {
+      assert.deepEqual(horasLibres({ ...base, fecha, modalidad, filtroNutricionista: 'paolo' }), [], `${fecha} ${modalidad}`);
+    }
+  }
 });
 
-test('viernes por video: Nico desde las 11, Paolo desde las 14', () => {
+test('modalidad sin definir se ofrece en ambas: Jussara también por video', () => {
+  const v = horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' });
+  assert.deepEqual(horas(v), ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']);
+});
+
+test('viernes por video: Jussara desde las 10, Nico hasta las 19', () => {
   const r = horasLibres({ ...base, fecha: '2026-10-09', modalidad: 'video' });
-  assert.equal(r[0].hora, '11:00');
+  assert.equal(r[0].hora, '10:00');
   assert.equal(r.at(-1).hora, '19:00');
 });
 
@@ -653,7 +674,15 @@ test('consultorio único: una presencial ocupa la hora para todas, pero no el vi
 test('nutricionista ocupada por video: la hora se le asigna a otra', () => {
   const reservas = [reserva({ inicio_utc: '2026-10-09T20:00:00Z', fecha_lima: '2026-10-09', nutricionista_id: 'nico', modalidad: 'video' })];
   const r = horasLibres({ ...base, reservas, fecha: '2026-10-09', modalidad: 'video' });
-  assert.equal(r.find((h) => h.hora === '15:00').nutricionista_id, 'paolo');
+  assert.equal(r.find((h) => h.hora === '15:00').nutricionista_id, 'jussara');
+});
+
+test('máximo de horas al día, si se activa: con 5 horas tomadas no se ofrece nada', () => {
+  const reservas = ['14', '15', '16'].map((h, i) => reserva({ inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: `n${i}`, peso_tope: 0 }));
+  const eventos = [conHora('Control', '2026-10-06T17:00:00-05:00', '2026-10-06T19:00:00-05:00')];
+  assert.deepEqual(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial', maxHorasDia: 5 }), []);
+  assert.ok(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial', maxHorasDia: 6 }).length > 0);
+  assert.ok(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
 });
 
 test('eventos con hora del calendario bloquean la hora; los transparentes y los propios no', () => {
@@ -770,10 +799,20 @@ export function primerasManuales(eventos, fecha) {
     && normalizar(ev.titulo).trim().startsWith('1ra')).length;
 }
 
+// Horas ya tomadas ese día: cada reserva web ocupa 1 h y los eventos manuales
+// con hora, su duración. Solo se usa si MAX_HORAS_DIA está activo.
+function horasOcupadas(eventos, delDia, fecha) {
+  const manuales = eventos
+    .filter((ev) => !ev.todoElDia && !ev.propio && ev.bloquea && fechaLima(new Date(ev.desde)) === fecha)
+    .reduce((s, ev) => s + (Date.parse(ev.hasta) - Date.parse(ev.desde)) / HORA_MS, 0);
+  return delDia.length + manuales;
+}
+
 function ventanaCubre(nutricionista, fecha, modalidad, hora) {
   const dow = diaSemana(fecha);
   return nutricionista.ventanas.some((v) => {
-    if (v.dia !== DIAS[dow] || v.modalidad !== modalidad) return false;
+    if (v.dia !== DIAS[dow]) return false;
+    if (v.modalidad && v.modalidad !== modalidad) return false; // null = ambas
     if (v.cadaDosSemanas && Math.abs(diasEntre(v.cadaDosSemanas, fecha)) % 14 !== 0) return false;
     let desde = v.desde;
     let hasta = v.hasta;
@@ -789,7 +828,7 @@ function ventanaCubre(nutricionista, fecha, modalidad, hora) {
 
 export function horasLibres({
   fecha, modalidad, peso, nutricionistas, eventos, reservas, ahora,
-  filtroNutricionista = null, tope = 3, desdeDias = 1, hastaDias = 21,
+  filtroNutricionista = null, tope = 3, desdeDias = 1, hastaDias = 21, maxHorasDia = null,
 }) {
   const distancia = diasEntre(fechaLima(ahora), fecha);
   if (distancia < desdeDias || distancia > hastaDias) return [];
@@ -800,6 +839,7 @@ export function horasLibres({
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
   const suma = delDia.reduce((s, r) => s + r.peso_tope, 0) + primerasManuales(eventos, fecha);
   if (suma + peso > tope) return [];
+  if (maxHorasDia !== null && horasOcupadas(eventos, delDia, fecha) >= maxHorasDia) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;
   const libres = [];
@@ -829,7 +869,7 @@ export function horasLibres({
 - [ ] **Step 4: Correr**
 
 Run: `npm test`
-Expected: PASS, 54 pruebas.
+Expected: PASS, 56 pruebas.
 
 - [ ] **Step 5: Commit**
 
@@ -848,7 +888,7 @@ git commit -m "reservas: motor de disponibilidad (consultorio, ausencias, tope, 
 **Interfaces:**
 - Consumes: `d1DePrueba` (Task 1).
 - Produces (todas `async`, `db` es D1 o D1 de prueba, `ahora: Date`):
-  - `crearRetencion(db, { id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima, modalidad, primerasManuales, tope, ahora, minutos = 15 })` → `{ ok: true, retencion_hasta } | { ok: false, motivo: 'ocupada' | 'tope' }`
+  - `crearRetencion(db, { id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima, modalidad, primerasManuales, tope, ahora, minutos = 15, huella = null, maxRetenciones = 2 })` → `{ ok: true, retencion_hasta } | { ok: false, motivo: 'ocupada' | 'tope' | 'limite' }`
   - `reservasActivasEntre(db, desdeFecha, hastaFechaExclusiva, ahora)` → filas `{ id, inicio_utc, fecha_lima, nutricionista_id, modalidad, peso_tope }`
   - `reservaPorToken(db, token)` y `reservaPorId(db, id)` → fila de reserva con `nombre, whatsapp, email, dni` del cliente, o `null`
   - `guardarDatosYPagar(db, { reserva, cliente: { nombre, whatsapp, email, dni }, condicionesVersion, novedades, ahora })` → `{ ok: true, retencion_hasta } | { ok: false, motivo: 'vencida' }`
@@ -860,7 +900,7 @@ git commit -m "reservas: motor de disponibilidad (consultorio, ausencias, tope, 
   - `guardarEvento(db, id, eventId, meetUrl, ahora)`
   - `marcarCalendarioPendiente(db, id, ahora)`
   - `reubicar(db, { id, nutricionista_id, inicio_utc, fecha_lima, modalidad, primerasManuales, tope, ahora })` → `{ ok: true } | { ok: false, motivo: 'ocupada' | 'tope' }`
-  - `purgarNoPagadas(db, ahora, dias = 30)`
+  - `purgarNoPagadas(db, ahora, dias = 30)`: borra los datos de contacto de las no pagadas con más de `dias`, y la `huella` de toda reserva cuya retención ya terminó.
 
 - [ ] **Step 1: Pruebas que fallan**
 
@@ -910,6 +950,15 @@ test('tope: la cuarta primera sesión del día no entra; con 2,5 entra una evalu
   await ret(db2, { inicio_utc: '2026-10-06T15:00:00Z', nutricionista_id: 'b' });
   assert.equal((await ret(db2, { inicio_utc: '2026-10-06T16:00:00Z', nutricionista_id: 'c', peso_tope: 0.5, primerasManuales: 0 })).ok, true);
   assert.deepEqual(await ret(db2, { inicio_utc: '2026-10-06T22:00:00Z', peso_tope: 0.5, primerasManuales: 0 }), { ok: true, retencion_hasta: mas(15).toISOString() });
+});
+
+test('límite de retenciones por huella: la tercera a la vez no entra; vencidas no cuentan', async () => {
+  const db = d1DePrueba();
+  const h = (hora, extra = {}) => ret(db, { inicio_utc: `2026-10-06T${hora}:00:00Z`, nutricionista_id: `n${hora}`, huella: 'abc', maxRetenciones: 2, ...extra });
+  assert.equal((await h('14')).ok, true);
+  assert.equal((await h('15')).ok, true);
+  assert.deepEqual(await h('16'), { ok: false, motivo: 'limite' });
+  assert.equal((await h('16', { ahora: mas(16) })).ok, true);
 });
 
 test('las primeras manuales del calendario cuentan para el tope', async () => {
@@ -989,6 +1038,13 @@ test('purgar borra datos de contacto de reservas no pagadas con más de 30 días
   await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
   assert.equal((await repo.reservaPorToken(db, 'tnp')).nombre, null);
 });
+
+test('purgar borra la huella apenas termina la retención', async () => {
+  const db = d1DePrueba();
+  await ret(db, { token: 'th', huella: 'abc' });
+  await repo.purgarNoPagadas(db, mas(16));
+  assert.equal((await repo.reservaPorToken(db, 'th')).huella, null);
+});
 ```
 
 - [ ] **Step 2: Ver que falla**
@@ -1019,14 +1075,23 @@ const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni
 export async function crearRetencion(db, r) {
   const ahoraIso = r.ahora.toISOString();
   const hasta = new Date(r.ahora.getTime() + (r.minutos ?? 15) * MIN).toISOString();
+  const huella = r.huella ?? null;
+  if (huella) {
+    // Antiabuso: nadie aparta más de N horas a la vez sin pagar.
+    const { n } = await db.prepare(
+      `SELECT COUNT(*) AS n FROM reservas
+       WHERE huella = ?1 AND estado IN ('apartada', 'pagando') AND retencion_hasta >= ?2`,
+    ).bind(huella, ahoraIso).first();
+    if (n >= (r.maxRetenciones ?? 2)) return { ok: false, motivo: 'limite' };
+  }
   const insertar = db.prepare(
     `INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
-       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, creado_en, actualizado_en)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?12, ?12
+       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12
      WHERE (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
             WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella);
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
     if (res.meta.changes === 0) return { ok: false, motivo: 'tope' };
@@ -1133,7 +1198,11 @@ export async function reubicar(db, r) {
 
 export const purgarNoPagadas = (db, ahora, dias = 30) => {
   const limite = new Date(ahora.getTime() - dias * 86400000).toISOString();
-  return db.prepare(
+  const sinHuella = db.prepare(
+    `UPDATE reservas SET huella = NULL
+     WHERE huella IS NOT NULL AND (estado NOT IN ('apartada', 'pagando') OR retencion_hasta < ?1)`,
+  ).bind(ahora.toISOString());
+  return db.batch([sinHuella, db.prepare(
     `UPDATE clientes SET nombre = NULL, whatsapp = NULL, email = NULL, dni = NULL
      WHERE nombre IS NOT NULL
        AND id IN (SELECT cliente_id FROM reservas WHERE cliente_id IS NOT NULL AND (
@@ -1141,14 +1210,14 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
              OR (estado IN ('apartada', 'pagando') AND retencion_hasta < ?1)))
        AND id NOT IN (SELECT cliente_id FROM reservas
              WHERE cliente_id IS NOT NULL AND estado IN ('confirmada', 'pagada_sin_hora'))`,
-  ).bind(limite).run();
+  ).bind(limite)]);
 };
 ```
 
 - [ ] **Step 4: Correr**
 
 Run: `npm test`
-Expected: PASS, 66 pruebas.
+Expected: PASS, 70 pruebas.
 
 - [ ] **Step 5: Commit**
 
@@ -1651,7 +1720,7 @@ export function icsDeReserva({ uid, titulo, inicioUtc, finUtc, ubicacion, descri
 - [ ] **Step 4: Correr**
 
 Run: `npm test`
-Expected: PASS, 78 pruebas (incluidas las de newsletter y reclamaciones, que siguen usando `makeDeps`).
+Expected: PASS, 82 pruebas (incluidas las de newsletter y reclamaciones, que siguen usando `makeDeps`).
 
 - [ ] **Step 5: Commit**
 
@@ -1911,7 +1980,7 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
 - [ ] **Step 4: Correr**
 
 Run: `npm test`
-Expected: PASS, 86 pruebas.
+Expected: PASS, 90 pruebas.
 
 - [ ] **Step 5: Commit**
 
@@ -1931,7 +2000,7 @@ git commit -m "reservas: confirmación idempotente del pago, pago tardío y cale
 - Consumes: todo lo anterior; `json`, `readJson`, `siteUrl` (`server/http.mjs`); `randomToken` (`server/tokens.mjs`).
 - Produces (handlers `(request, env, deps) => Promise<Response>`):
   - `handleHoras`: GET `?desde&modalidad&producto&duracion[&nutricionista]` → `{ ok, dias: [{ fecha, horas: [{ inicio, hora, nutricionista_id }] }], nutricionistas: [{ id, nombre, foto }] }`
-  - `handleApartar`: POST `{ producto, duracion, modalidad, inicio, nutricionista? }` → `{ ok, token, retencion_hasta, titulo, monto_centimos, requiere_dni, inicio, etiqueta, modalidad, nutricionista: { id, nombre } }`. Si la hora se ocupó o se llenó el tope: 409 `{ ok: false, motivo }`.
+  - `handleApartar`: POST `{ producto, duracion, modalidad, inicio, nutricionista? }` → `{ ok, token, retencion_hasta, titulo, monto_centimos, requiere_dni, inicio, etiqueta, modalidad, nutricionista: { id, nombre } }`. Si la hora se ocupó o se llenó el tope: 409 `{ ok: false, motivo }`. Si la persona ya tiene 2 horas apartadas: 429.
   - `handlePagar`: POST `{ token, nombre, whatsapp, email, dni?, acepto, novedades }` → `{ ok, url }`. Datos inválidos: 400. Retención vencida: 410.
   - `handleEstado`: GET `?r=token[&payment_id]` → `vista(reserva)`.
   - `handleWebhookMp`: POST, firma obligatoria. Responde 200, 401, 500 o 503.
@@ -2005,6 +2074,16 @@ test('apartar dos veces la misma hora presencial: la segunda da 409', async () =
   const r = await apartar(d);
   assert.equal(r.status, 409);
   assert.equal((await r.json()).motivo, 'ocupada');
+});
+
+test('apartar más de 2 horas a la vez desde la misma IP: 429', async () => {
+  const d = deps();
+  const desde = (inicio) => handleApartar(new Request('https://x.test/api/reservas/apartar', { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' },
+    body: JSON.stringify({ producto: 'constancia', duracion: 3, modalidad: 'presencial', inicio }) }), env, d);
+  assert.equal((await desde('2026-10-06T15:00:00Z')).status, 200);
+  assert.equal((await desde('2026-10-06T16:00:00Z')).status, 200);
+  assert.equal((await desde('2026-10-06T17:00:00Z')).status, 429);
 });
 
 test('apartar una hora que no se ofrece da 409', async () => {
@@ -2104,12 +2183,12 @@ export function makeReservasDeps(env) {
 // POST /api/reservas/webhook-mp aviso firmado de Mercado Pago
 // GET  /api/reservas/ics        archivo para «Agregar a mi calendario»
 // POST /api/reservas/reubicar   nueva hora para quien pagó y perdió la suya
-import { json, readJson, siteUrl } from '../http.mjs';
+import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
 import { inicioUtc, sumarDias, fechaLima, etiquetaLima } from '../reservas/tiempo.mjs';
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
-import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS } from '../reservas/constantes.mjs';
+import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
 import { firmaValida } from '../reservas/mercadopago.mjs';
@@ -2127,6 +2206,14 @@ const MSJ_TOPE = 'Ese día ya no tiene cupos para primeras sesiones. Elige otro 
 
 const nutriValida = (deps, id) => !id || deps.nutricionistas.some((n) => n.id === id);
 
+// Huella para el límite de retenciones: la IP no se guarda, solo un hash que
+// cambia cada día y se borra cuando termina la retención.
+async function huellaDe(request, fecha) {
+  const datos = new TextEncoder().encode(`${clientIp(request) || 'sin-ip'}|${fecha}`);
+  const hash = await crypto.subtle.digest('SHA-256', datos);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function contexto(deps, desde, dias) {
   const eventos = await deps.google.listarEventos(inicioUtc(desde, 0), inicioUtc(sumarDias(desde, dias), 0));
   const reservas = await repo.reservasActivasEntre(deps.db, desde, sumarDias(desde, dias), deps.ahora());
@@ -2135,7 +2222,8 @@ async function contexto(deps, desde, dias) {
 
 function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro }) {
   return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
-    ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS });
+    ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
+    maxHorasDia: MAX_HORAS_DIA });
 }
 
 export function vista(r, deps, ultimo = null) {
@@ -2199,7 +2287,11 @@ export async function handleApartar(request, env, deps) {
       id: crypto.randomUUID(), token, producto: d.producto, duracion_meses: precio.duracion_meses, monto_centimos: precio.monto_centimos,
       peso_tope: precio.peso, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha, modalidad: d.modalidad,
       primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora,
+      huella: await huellaDe(request, fechaLima(ahora)), maxRetenciones: MAX_RETENCIONES,
     });
+    if (!res.ok && res.motivo === 'limite') {
+      return bad(429, 'Ya tienes horas apartadas. Termina tu pago o espera unos minutos.', { motivo: 'limite' });
+    }
     if (!res.ok) return bad(409, res.motivo === 'tope' ? MSJ_TOPE : MSJ_OCUPADA, { motivo: res.motivo });
     repo.purgarNoPagadas(deps.db, ahora).catch((e) => console.error('purga', e));
     const n = deps.nutricionistas.find((x) => x.id === hora.nutricionista_id);
@@ -2399,7 +2491,7 @@ export const onRequest = ({ request, env }) => handleReubicar(request, env, make
 - [ ] **Step 4: Correr**
 
 Run: `npm test`
-Expected: PASS, 98 pruebas.
+Expected: PASS, 103 pruebas.
 
 Run: `npx wrangler pages functions build --outdir /tmp/fnbuild-reservas`
 Expected: compila sin errores (las funciones empaquetan `src/data/*.js`).
@@ -2755,7 +2847,7 @@ catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: p
       <p class="rs-lead" id="p2-plan"></p>
       <button type="button" class="rs-op rs-op--star" id="p2-3m" data-duracion="3"><span class="rs-badge">El que recomendamos</span><b>3 meses</b><span class="rs-precio"></span> <small></small></button>
       <button type="button" class="rs-op" id="p2-1m" data-duracion="1"><b>Mes a mes</b><span class="rs-precio"></span> <small></small></button>
-      <p class="rs-nota">Tu plazo corre desde que recibes tu plan: 3 meses, y si viajas lo congelas 1 semana. No necesitas agendar todo ahora. Pagas con tarjeta o con Yape, sin recargo.</p>
+      <p class="rs-nota">Con el de 3 meses, tu plazo corre desde que recibes tu plan y, si viajas, lo congelas 1 semana. No necesitas agendar todo ahora. Pagas con tarjeta o con Yape, sin recargo.</p>
     </section>
 
     <section class="rs-paso" data-paso="p3" hidden>
@@ -2968,10 +3060,10 @@ import { CONDICIONES_VERSION } from '../data/condiciones.js';
       <p>Al comprar eliges tu primera sesión. Las siguientes las coordinas con tu nutricionista cuando quieras, dentro del plazo de tu plan. Buscamos que la misma nutricionista te acompañe todo el plan; si prefieres cambiar, nos lo pides.</p>
 
       <h2>5. Plazo de tu plan</h2>
-      <p>El plazo empieza cuando recibes tu plan. El paquete de 3 meses se usa en 3 meses y puedes congelarlo 1 semana, por ejemplo si viajas. El plan mes a mes se usa en el mes. Las sesiones que no agendes dentro del plazo no se acumulan.</p>
+      <p>El plazo empieza cuando recibes tu plan. El paquete de 3 meses se usa en 3 meses y puedes congelarlo 1 semana, por ejemplo si viajas. Las sesiones que no agendes dentro del plazo no se acumulan.</p>
 
       <h2>6. Mover o cancelar una cita</h2>
-      <p>Mover una cita es gratis si nos avisas hasta 48 horas antes, según la disponibilidad del equipo. Si nos avisas con menos de 48 horas o no vienes, esa sesión se pierde; puedes recuperarla pagando S/80. Si hubo una razón de fuerza mayor, cuéntanos: el equipo puede exonerarte.</p>
+      <p>Mover una cita es gratis si nos avisas hasta 48 horas antes, según la disponibilidad del equipo. Moverla con menos de 48 horas cuesta S/80. Si no vienes a tu cita, esa sesión se pierde, salvo que el equipo decida exonerarte; si hubo una razón de fuerza mayor, cuéntanos.</p>
 
       <h2>7. Si no podemos atenderte</h2>
       <p>Si AJL no puede prestarte el servicio, te devolvemos lo que no usaste. Si pagaste y la hora que elegiste se ocupó mientras pagabas, eliges otra hora sin volver a pagar; si ninguna te acomoda, te devolvemos el pago completo.</p>
@@ -3018,7 +3110,7 @@ En `public/privacidad/index.html`:
 ```html
       <h3>2.6. Datos de tu reserva</h3>
 
-      <p>Para reservar tu primera sesión desde la web recolectamos tu <strong>nombre</strong>, tu <strong>WhatsApp</strong>, tu <strong>correo</strong> y, si el total supera S/700, tu <strong>DNI</strong> para el comprobante. Registramos además el plan elegido, la fecha, hora y modalidad de tu sesión, la nutricionista asignada, la versión de las condiciones que aceptaste y, si la marcas, tu autorización para recibir novedades. Tu nombre y tu correo van en la invitación de Google Calendar que te enviamos. Si no completas el pago, borramos tus datos de contacto a los 30 días.</p>
+      <p>Para reservar tu primera sesión desde la web recolectamos tu <strong>nombre</strong>, tu <strong>WhatsApp</strong>, tu <strong>correo</strong> y, si el total supera S/700, tu <strong>DNI</strong> para el comprobante. Registramos además el plan elegido, la fecha, hora y modalidad de tu sesión, la nutricionista asignada, la versión de las condiciones que aceptaste y, si la marcas, tu autorización para recibir novedades. Para evitar que alguien aparte horas sin pagar, mientras tu hora está apartada guardamos una huella técnica derivada de tu IP (no la IP misma), que borramos apenas termina ese plazo. Tu nombre y tu correo van en la invitación de Google Calendar que te enviamos. Si no completas el pago, borramos tus datos de contacto a los 30 días.</p>
 ```
 
 5. En la tabla de la sección 3, antes de la fila de comunicaciones comerciales:
