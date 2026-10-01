@@ -66,7 +66,7 @@
     <section class="priv-card">
       <h1>Política de Privacidad</h1>
       <p class="meta">
-        Última actualización: <strong>30 de septiembre de 2026</strong> · Versión 1.3<br>
+        Última actualización: <strong>1 de octubre de 2026</strong> · Versión 1.4<br>
         Adecuada a la <strong>Ley N° 29733, Ley de Protección de Datos Personales</strong>, y su Reglamento aprobado por el <strong>Decreto Supremo N° 016-2024-JUS</strong>.
       </p>
 
@@ -163,7 +163,7 @@
         <li>Páginas visitadas y tiempo de permanencia.</li>
         <li>Origen del tráfico (UTM: red social, campaña).</li>
         <li>Dispositivo, sistema operativo y navegador.</li>
-        <li>Eventos de interacción (clics en CTA, scroll hasta secciones específicas, inicio de checkout).</li>
+        <li>Eventos de interacción (clics en CTA, scroll hasta secciones específicas, inicio de checkout y compra completada).</li>
         <li>Identificadores de cookies y/o píxeles asignados por Meta, Google y Microsoft.</li>
       </ul>
 
@@ -171,11 +171,15 @@
 
       <h3>2.4. Datos de pago</h3>
 
-      <p>Si decidís contratar un plan o la Evaluación Nutricional, no recolectamos tus datos de tarjeta. El pago con tarjeta se procesa íntegramente en la infraestructura de <strong>Culqi</strong>, cumpliendo el estándar PCI-DSS. Los datos bancarios para pago por Yape, BCP o CCI los compartís voluntariamente con nuestro asesor por WhatsApp, fuera de este sitio.</p>
+      <p>Si contratas un plan o la Evaluación desde la web, el pago se procesa en la plataforma de <strong>Mercado Pago</strong>: tus datos de tarjeta o de Yape no pasan por nuestros servidores. De Mercado Pago recibimos solo la confirmación del pago (número de operación, monto, medio usado y estado). Si pagas por otro canal, como un enlace de pago o una transferencia coordinada por WhatsApp, esos datos se tratan fuera de este sitio.</p>
 
       <h3>2.5. Datos del newsletter</h3>
 
       <p>Si te suscribes al boletín para recibir un cupón de descuento, recolectamos tu <strong>correo electrónico</strong> y el registro de tu consentimiento (texto aceptado, fecha y hora). Al enviar el formulario también registramos tu <strong>dirección IP</strong>, <strong>User-Agent</strong> y el <strong>origen</strong> (campaña/UTM) con fines de auditoría y prevención de abuso. Usamos <strong>doble confirmación (opt-in)</strong>: solo quedas suscrito tras confirmar desde el enlace que te enviamos por correo. Puedes <strong>darte de baja</strong> en cualquier momento desde el enlace incluido en cada correo; al hacerlo dejamos de enviarte comunicaciones comerciales.</p>
+
+      <h3>2.6. Datos de tu reserva</h3>
+
+      <p>Para reservar tu primera sesión desde la web recolectamos tu <strong>nombre</strong>, tu <strong>WhatsApp</strong>, tu <strong>correo</strong> y, si el total supera S/700, tu <strong>DNI</strong> para el comprobante. Registramos además el plan elegido, la fecha, hora y modalidad de tu sesión, la nutricionista asignada, la versión de las condiciones que aceptaste y, si la marcas, tu autorización para recibir novedades. Para evitar que alguien aparte horas sin pagar, mientras tu hora está apartada guardamos una huella técnica calculada a partir de tu IP y la fecha (no la IP misma), que borramos apenas termina ese plazo. Tu nombre y tu correo van en la invitación de Google Calendar que te enviamos. Si no completas el pago, borramos tus datos de contacto a los 30 días.</p>
 
       <!-- ── 3. Finalidades y base legal ─────────────────────────────────── -->
       <h2 id="s3"><span class="num">3.</span>Finalidades y base legal del tratamiento</h2>
@@ -228,8 +232,18 @@
             <td>Tu consentimiento al aceptar las cookies</td>
           </tr>
           <tr>
+            <td>Gestionar tu reserva y tu pago, y enviarte la confirmación e invitación de tu sesión</td>
+            <td>2.4 y 2.6</td>
+            <td>Ejecución del contrato que celebras con nosotros</td>
+          </tr>
+          <tr>
+            <td>Emitir tu comprobante de pago</td>
+            <td>Nombre, DNI, monto</td>
+            <td>Cumplimiento de obligación legal (normativa tributaria)</td>
+          </tr>
+          <tr>
             <td>Enviarte comunicaciones comerciales (newsletter, ofertas)</td>
-            <td>Email</td>
+            <td>Email (newsletter o casilla de novedades al reservar)</td>
             <td>Tu consentimiento previo y expreso (opt-in separado)</td>
           </tr>
         </tbody>
@@ -251,7 +265,7 @@
             <td>Cloudflare, Inc.</td>
             <td>Hosting del sitio y ejecución del backend (funciones del Libro de Reclamaciones, newsletter y registro de conversiones)</td>
             <td>Estados Unidos (infraestructura global)</td>
-            <td>Datos del formulario en tránsito, IP, User-Agent, logs técnicos</td>
+            <td>Datos del formulario en tránsito, IP, User-Agent, logs técnicos; datos de reservas (2.6) guardados en su base de datos D1</td>
           </tr>
           <tr>
             <td>Supabase Inc.</td>
@@ -276,6 +290,18 @@
             <td>Procesamiento de pagos con tarjeta</td>
             <td>Perú</td>
             <td>Datos de tarjeta (no pasan por nuestros servidores)</td>
+          </tr>
+          <tr>
+            <td>Mercado Pago</td>
+            <td>Procesamiento de pagos de la web (tarjeta, Yape, dinero en cuenta)</td>
+            <td>Perú y países donde opera su infraestructura</td>
+            <td>Datos de pago (no pasan por nuestros servidores), nombre y correo del pagador</td>
+          </tr>
+          <tr>
+            <td>Google LLC (Google Calendar)</td>
+            <td>Agenda del equipo e invitación de tu sesión</td>
+            <td>Estados Unidos</td>
+            <td>Nombre, correo, fecha, hora y modalidad de tu sesión</td>
           </tr>
           <tr>
             <td>Meta Platforms, Inc.</td>
@@ -318,6 +344,8 @@
         <li><strong>Datos del Libro de Reclamaciones:</strong> los conservamos por <strong>tres (3) años</strong> contados desde la fecha de presentación del reclamo, plazo razonable para atender eventuales fiscalizaciones de INDECOPI conforme a la Ley N° 29571.</li>
         <li><strong>Datos de auditoría (IP, User-Agent):</strong> mismo plazo que el reclamo asociado.</li>
         <li><strong>Datos de analítica (cookies de Meta Pixel y GA4):</strong> según las políticas de retención de cada proveedor (Meta: hasta 180 días; GA4: hasta 14 meses por defecto; Microsoft Clarity: grabaciones de sesión hasta 30 días y datos agregados de mapas de calor hasta 13 meses).</li>
+        <li><strong>Datos de reservas pagadas:</strong> mientras dure tu acompañamiento y, después, el plazo que exige la normativa tributaria para sustentar los comprobantes.</li>
+        <li><strong>Reservas no pagadas:</strong> borramos tus datos de contacto a los 30 días.</li>
         <li><strong>Datos de marketing (newsletter):</strong> mientras mantengas tu suscripción activa. Puedes darte de baja en cualquier momento desde el pie de cada correo.</li>
       </ul>
 
@@ -410,7 +438,7 @@
       <!-- ── 11. Marketing ─────────────────────────────────── -->
       <h2 id="s11"><span class="num">11.</span>Marketing y comunicaciones comerciales</h2>
 
-      <p>Eventualmente podríamos enviarte comunicaciones comerciales (newsletter, lanzamientos de planes, contenido educativo en nutrición). Estas comunicaciones se enviarán <strong>únicamente con tu consentimiento previo y expreso</strong>, otorgado en un acto separado del envío del formulario del Libro de Reclamaciones.</p>
+      <p>Eventualmente podríamos enviarte comunicaciones comerciales (newsletter, lanzamientos de planes, contenido educativo en nutrición). Estas comunicaciones se enviarán <strong>únicamente con tu consentimiento previo y expreso</strong>, otorgado en un acto separado: la suscripción al newsletter o la casilla opcional de novedades al reservar, nunca junto con el Libro de Reclamaciones.</p>
 
       <p>Puedes darte de baja en cualquier momento desde el enlace incluido al pie de cada correo, o escribiéndonos a <a href="mailto:reclamos@ajlnutricion.com">reclamos@ajlnutricion.com</a>.</p>
 
