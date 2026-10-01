@@ -54,7 +54,7 @@ export const plans = {
     badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/810', perMes: 'S/270 al mes' },
+      { label: '3 meses', total: 'S/810', perMes: 'S/270 al mes', totalSoles: 810 },
     ],
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
     // Fuente: PACK-KOC, handoff §14 (07-sep).
@@ -77,7 +77,7 @@ export const plans = {
     badge: 'El que recomendamos',
     highlight: true,
     programs: [
-      { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes' },
+      { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes', totalSoles: 1080 },
     ],
     firstMonthEval: true,
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
@@ -103,7 +103,7 @@ export const plans = {
     badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes' },
+      { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes', totalSoles: 1530 },
     ],
     firstMonthEval: true,
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
