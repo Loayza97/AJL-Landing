@@ -19,4 +19,18 @@ PUBLIC_SITE_URL = "https://www.ajlnutricion.com"
 FROM_EMAIL = "reclamos@ajlnutricion.com"
 NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
 NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
-PUBLIC_SITE_URL = "https://migracion-cloudflare.ajl-landing.pages.dev"
+PUBLIC_SITE_URL = "https://reservas-pago.ajl-landing.pages.dev"
+
+# Base de reservas (Cloudflare D1). El preview usa su propia base para que las
+# pruebas nunca toquen reservas reales. Los bindings no se heredan entre entornos.
+[[d1_databases]]
+binding = "DB"
+database_name = "ajl-reservas"
+database_id = "a363626b-b9c3-4988-b5f4-2ec804f585d7"
+migrations_dir = "db/d1"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "ajl-reservas-preview"
+database_id = "b239d868-0fa7-446f-b442-b45fe38bca58"
+migrations_dir = "db/d1"

@@ -2,9 +2,10 @@
   "name": "ajl-nutricion",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Landing page de AJL Nutrición + Libro de Reclamaciones",
   "engines": {
-    "node": ">=18.14.0"
+    "node": ">=22.5.0"
   },
   "scripts": {
     "dev": "astro dev",
