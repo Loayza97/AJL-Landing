@@ -45,7 +45,7 @@ Que el paciente elija su acompañamiento, su duración y su primera hora, pague 
 - Horarios de nutricionistas en `src/data/nutricionistas.js` (nombres, apodos, foto, ventanas por día y modalidad, alternancias).
 - Servicios externos: Mercado Pago Checkout Pro, Google Calendar API (OAuth con refresh token guardado como secreto), Resend.
 - Zona horaria del negocio: `America/Lima` (UTC−5, sin horario de verano). Se guarda en UTC.
-- Secretos nuevos (vía `wrangler pages secret put`): `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`. Texto en `wrangler.toml`: `GOOGLE_CALENDAR_ID`.
+- Secretos nuevos (vía `wrangler pages secret put`): `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` (secreto y no texto porque el repo es público; el preview apunta a un calendario de pruebas y a su propia base D1, corregido al escribir el plan).
 
 ## Disponibilidad
 
