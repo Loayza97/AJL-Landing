@@ -88,15 +88,23 @@ export const ultimoPago = (db, reservaId) => db.prepare(
   'SELECT estado FROM pagos WHERE reserva_id = ?1 ORDER BY creado_en DESC LIMIT 1',
 ).bind(reservaId).first();
 
+export const otroPagoAprobado = (db, reservaId, mpPaymentId) => db.prepare(
+  `SELECT mp_payment_id FROM pagos WHERE reserva_id = ?1 AND estado = 'approved' AND mp_payment_id <> ?2`,
+).bind(reservaId, mpPaymentId).first();
+
 export async function confirmarReserva(db, { id, fecha_lima, primerasManuales, tope, ahora }) {
+  const ahoraIso = ahora.toISOString();
   try {
-    const res = await db.prepare(
+    // Expirar primero, en la misma transacción: si otra retención de esa hora
+    // ya venció pero nadie la marcó todavía, no puede seguir bloqueando el
+    // índice único ni contando para el tope del día.
+    const [, res] = await db.batch([expirar(db, ahoraIso), db.prepare(
       `UPDATE reservas SET estado = 'confirmada', retencion_hasta = NULL, actualizado_en = ?2
        WHERE id = ?1 AND (
          estado IN ('apartada', 'pagando')
          OR (estado = 'expirada' AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
                WHERE fecha_lima = ?3 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?4 <= ?5))`,
-    ).bind(id, ahora.toISOString(), fecha_lima, primerasManuales, tope).run();
+    ).bind(id, ahoraIso, fecha_lima, primerasManuales, tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, id);
     return { ok: false, motivo: actual?.estado === 'confirmada' ? 'ya_confirmada' : 'tope' };
@@ -121,15 +129,17 @@ export const marcarCalendarioPendiente = (db, id, ahora) => db.prepare(
 ).bind(id, ahora.toISOString()).run();
 
 export async function reubicar(db, r) {
+  const ahoraIso = r.ahora.toISOString();
   try {
-    const res = await db.prepare(
+    // Mismo cuidado que en confirmarReserva: expirar antes de comprobar la
+    // hora de destino, para que un cupo vencido sin marcar no la bloquee.
+    const [, res] = await db.batch([expirar(db, ahoraIso), db.prepare(
       `UPDATE reservas SET nutricionista_id = ?2, inicio_utc = ?3, fecha_lima = ?4, modalidad = ?5,
          estado = 'confirmada', google_event_id = NULL, meet_url = NULL, actualizado_en = ?6
        WHERE id = ?1 AND estado = 'pagada_sin_hora'
          AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
               WHERE fecha_lima = ?4 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?7 <= ?8`,
-    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, r.ahora.toISOString(),
-      r.primerasManuales, r.tope).run();
+    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.primerasManuales, r.tope)]);
     return res.meta.changes === 1 ? { ok: true } : { ok: false, motivo: 'tope' };
   } catch (e) {
     if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'ocupada' };

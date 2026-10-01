@@ -81,7 +81,14 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
     monto_centimos: montoPagado, metodo: pago.payment_method_id || null, ahora: deps.ahora() });
 
   if (pago.status !== 'approved') return { estado: r.estado, pago: pago.status };
-  if (r.estado === 'confirmada' || r.estado === 'pagada_sin_hora') return { estado: r.estado };
+  if (r.estado === 'confirmada' || r.estado === 'pagada_sin_hora') {
+    const otro = await repo.otroPagoAprobado(deps.db, r.id, String(pago.id));
+    if (otro) {
+      await alertaEquipo(deps, env, 'Pago duplicado: devolver',
+        `${r.nombre} (${r.whatsapp}) pagó dos veces la reserva ${r.id}: pagos ${otro.mp_payment_id} y ${pago.id}. Devuelve uno desde Mercado Pago.`);
+    }
+    return { estado: r.estado };
+  }
   if (pago.currency_id !== 'PEN' || montoPagado !== r.monto_centimos) {
     await alertaEquipo(deps, env, 'Pago con monto distinto',
       `Reserva ${r.id}: Mercado Pago cobró ${pago.transaction_amount} ${pago.currency_id}; se esperaba ${r.monto_centimos / 100} PEN. Pago ${pago.id}.`);
@@ -111,6 +118,12 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
     return sinHora(deps, env, r);
   }
   r = await repo.reservaPorId(deps.db, r.id);
-  await finalizarConfirmacion(deps, env, r);
+  try {
+    await finalizarConfirmacion(deps, env, r);
+  } catch (e) {
+    console.error('finalizarConfirmacion', e);
+    await alertaEquipo(deps, env, 'Reserva confirmada sin aviso',
+      `Reserva ${r.id} quedó confirmada pero falló el aviso: ${e.message}. Revisa el calendario y escríbele al paciente.`);
+  }
   return { estado: 'confirmada' };
 }

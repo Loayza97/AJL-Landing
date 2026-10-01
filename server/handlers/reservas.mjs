@@ -116,7 +116,7 @@ export async function handleApartar(request, env, deps) {
       return bad(429, 'Ya tienes horas apartadas. Termina tu pago o espera unos minutos.', { motivo: 'limite' });
     }
     if (!res.ok) return bad(409, res.motivo === 'tope' ? MSJ_TOPE : MSJ_OCUPADA, { motivo: res.motivo });
-    repo.purgarNoPagadas(deps.db, ahora).catch((e) => console.error('purga', e));
+    deps.enSegundoPlano?.(repo.purgarNoPagadas(deps.db, ahora).catch((e) => console.error('purga', e)));
     const n = deps.nutricionistas.find((x) => x.id === hora.nutricionista_id);
     return json(200, {
       ok: true, token, retencion_hasta: res.retencion_hasta, titulo: precio.titulo, monto_centimos: precio.monto_centimos,
@@ -155,6 +155,7 @@ export async function handlePagar(request, env, deps) {
     const pref = await deps.mp.crearPreferencia({
       reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email, nombre,
       venceEn: new Date(res.retencion_hasta), ahora, urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`,
+      urlNotificacion: `${siteUrl(env)}/api/reservas/webhook-mp`,
     });
     await repo.guardarPreferencia(deps.db, r.id, pref.id, ahora);
     return json(200, { ok: true, url: pref.init_point });

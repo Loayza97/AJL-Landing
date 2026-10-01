@@ -87,6 +87,21 @@ const businessSchema = {
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <!-- El token de reserva y el payment_id de Mercado Pago llegan por la URL de
+       retorno; sacarlos de ahí antes que nada evita que queden en el historial
+       o se los lleve cualquier script de analítica que lea location.href. -->
+  <script is:inline>
+    if (location.pathname.startsWith('/reservar/')) {
+      try {
+        const q = new URLSearchParams(location.search);
+        const r = q.get('r');
+        const paymentId = q.get('payment_id');
+        if (r) sessionStorage.setItem('ajl_reserva_r', r);
+        if (paymentId) sessionStorage.setItem('ajl_reserva_payment_id', paymentId);
+        if (r || paymentId) history.replaceState(null, '', location.pathname);
+      } catch {}
+    }
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={description} />

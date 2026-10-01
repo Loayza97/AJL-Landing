@@ -92,11 +92,37 @@ test('si Google falla tras el pago: queda confirmada, marcada pendiente y el equ
   assert.match(correos.find((c) => c.to === 'equipo@x.pe').html, /a mano/);
 });
 
+test('si falla el aviso de la confirmación (correo caído): igual queda confirmada y el equipo recibe una alerta', async () => {
+  const { db, deps, correos } = await preparar({ pagos: { 555: aprobado() } });
+  const original = deps.sendEmail;
+  deps.sendEmail = async (m) => (m.to === 'ana@x.pe' ? Promise.reject(new Error('Resend caído')) : original(m));
+  assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
+  const r = await repo.reservaPorId(db, 'r1');
+  assert.equal(r.estado, 'confirmada');
+  assert.equal(r.google_event_id, 'ev1');
+  assert.equal(correos.filter((c) => c.to === 'ana@x.pe').length, 0);
+  const alerta = correos.find((c) => c.subject?.includes('Reserva confirmada sin aviso'));
+  assert.ok(alerta);
+  assert.equal(alerta.to, 'equipo@x.pe');
+  assert.match(alerta.html, /Reserva r1 quedó confirmada pero falló el aviso/);
+});
+
 test('pago de otra reserva o desconocida: no toca nada', async () => {
   const { db, deps } = await preparar({ pagos: { 9: aprobado({ id: 9, external_reference: 'otra' }) } });
   assert.deepEqual(await procesarPago(deps, env, '9'), { estado: 'desconocido' });
   assert.deepEqual(await procesarPago(deps, env, '9', { reservaId: 'r1' }), { estado: 'desconocido' });
   assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'pagando');
+});
+
+test('pago duplicado de una reserva ya confirmada: alerta al equipo una sola vez', async () => {
+  const { deps, correos } = await preparar({ pagos: { 555: aprobado(), 556: aprobado({ id: 556 }) } });
+  assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
+  assert.deepEqual(await procesarPago(deps, env, '556'), { estado: 'confirmada' });
+  const alertas = correos.filter((c) => c.subject?.includes('Pago duplicado'));
+  assert.equal(alertas.length, 1);
+  assert.equal(alertas[0].to, 'equipo@x.pe');
+  assert.match(alertas[0].html, /pagos 555 y 556/);
+  assert.match(alertas[0].html, /reserva r1/);
 });
 
 test('aprobado tarde con la hora tomada, procesado dos veces a la vez: un solo correo al paciente', async () => {

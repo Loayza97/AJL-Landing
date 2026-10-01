@@ -70,12 +70,21 @@ test('apartar más de 2 horas a la vez desde la misma IP: 429', async () => {
   assert.equal((await desde('2026-10-06T17:00:00Z')).status, 429);
 });
 
+test('apartar: la purga de reservas no pagadas se manda a enSegundoPlano cuando existe', async () => {
+  const programadas = [];
+  const d = deps({ enSegundoPlano: (p) => programadas.push(p) });
+  assert.equal((await apartar(d)).status, 200);
+  assert.equal(programadas.length, 1);
+  await programadas[0]; // no debe lanzar
+});
+
 test('apartar una hora que no se ofrece da 409', async () => {
   assert.equal((await apartar(deps(), { inicio: '2026-10-06T03:00:00Z' })).status, 409);
 });
 
 test('pagar: valida datos, exige DNI arriba de S/700 y aceptar condiciones', async () => {
-  const d = deps();
+  let pedido;
+  const d = deps({ mp: { crearPreferencia: async (p) => { pedido = p; return { id: 'pref', init_point: 'https://mp/pagar' }; } } });
   const { token } = await (await apartar(d)).json();
   const pagar = (o) => handlePagar(post('/api/reservas/pagar', { ...datos, token, ...o }), env, d);
   assert.equal((await pagar({ email: 'malo' })).status, 400);
@@ -84,6 +93,7 @@ test('pagar: valida datos, exige DNI arriba de S/700 y aceptar condiciones', asy
   const ok = await pagar({});
   assert.equal(ok.status, 200);
   assert.deepEqual(await ok.json(), { ok: true, url: 'https://mp/pagar' });
+  assert.equal(pedido.urlNotificacion, 'https://www.ajlnutricion.com/api/reservas/webhook-mp');
 });
 
 test('pagar con token inexistente: 404', async () => {

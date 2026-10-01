@@ -64,7 +64,7 @@ function abrirP4(reserva) {
   $('#p4-resumen').innerHTML = '';
   const linea = (t) => { const p = document.createElement('div'); p.textContent = t; $('#p4-resumen').append(p); };
   linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}`);
-  linea(`${reserva.etiqueta} · ${reserva.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${reserva.nutricionista.nombre}`);
+  linea(`${reserva.etiqueta} · ${reserva.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
   $('#p4-dni').hidden = !reserva.requiere_dni;
   $('#f-dni').required = reserva.requiere_dni;
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
@@ -134,8 +134,12 @@ async function retomar(token) {
   return false;
 }
 
+function leerGuardado(clave) {
+  try { return sessionStorage.getItem(clave); } catch { return null; }
+}
+
 (async () => {
-  const token = params.get('r');
+  const token = params.get('r') || leerGuardado('ajl_reserva_r');
   if (token && await retomar(token)) return;
   const plan = params.get('plan');
   if (plan && catalogo[plan]) elegirProducto(plan);

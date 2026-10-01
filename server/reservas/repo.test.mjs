@@ -99,6 +99,34 @@ test('confirmar una expirada cuya hora ya tomó otro: ocupada', async () => {
   assert.deepEqual(res, { ok: false, motivo: 'ocupada' });
 });
 
+test('confirmar una expirada cuyo cupo ocupaba otra retención también vencida y sin marcar: ya no da ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'A', token: 'tA', nutricionista_id: 'na', inicio_utc: '2026-10-06T17:00:00Z', ahora: t0 });
+  // B toma la misma hora y nutricionista una vez que A ya venció: el propio
+  // crearRetencion de B la expira al pasar, como parte de su propia inserción.
+  await ret(db, { id: 'B', token: 'tB', nutricionista_id: 'na', inicio_utc: '2026-10-06T17:00:00Z', ahora: mas(16) });
+  assert.equal((await repo.reservaPorId(db, 'A')).estado, 'expirada');
+  // Pasa el tiempo: B también vence, pero nadie volvió a barrer la tabla (no
+  // hubo ninguna otra retención nueva que disparara el expirar de B).
+  const res = await repo.confirmarReserva(db, { id: 'A', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 99, ahora: mas(32) });
+  assert.deepEqual(res, { ok: true });
+  assert.equal((await repo.reservaPorId(db, 'B')).estado, 'expirada');
+});
+
+test('reubicar a una hora que tenía una retención vencida y sin marcar: ya no da ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'B', token: 'tB', nutricionista_id: 'paola', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07', ahora: t0 });
+  await ret(db, { id: 'R', token: 'tR' });
+  await repo.marcarSinHora(db, 'R', mas(1));
+  const res = await repo.reubicar(db, { id: 'R', nutricionista_id: 'paola', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07',
+    modalidad: 'presencial', primerasManuales: 0, tope: 99, ahora: mas(20) });
+  assert.deepEqual(res, { ok: true });
+  const r = await repo.reservaPorId(db, 'R');
+  assert.equal(r.estado, 'confirmada');
+  assert.equal(r.nutricionista_id, 'paola');
+  assert.equal((await repo.reservaPorId(db, 'B')).estado, 'expirada');
+});
+
 test('registrarPago es idempotente por mp_payment_id', async () => {
   const db = d1DePrueba();
   await ret(db, { id: 'pg' });

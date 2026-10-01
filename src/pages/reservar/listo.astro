@@ -14,8 +14,10 @@ import '../../styles/reservar.css';
 <script>
   const raiz = document.getElementById('listo');
   const q = new URLSearchParams(location.search);
-  const token = q.get('r');
-  const paymentId = q.get('payment_id');
+  const leerGuardado = (clave) => { try { return sessionStorage.getItem(clave); } catch { return null; } };
+  const token = q.get('r') || leerGuardado('ajl_reserva_r');
+  const paymentId = q.get('payment_id') || leerGuardado('ajl_reserva_payment_id');
+  try { sessionStorage.removeItem('ajl_reserva_payment_id'); } catch {}
   const soles = (c) => `S/${(c / 100).toLocaleString('es-PE', { maximumFractionDigits: 2 })}`;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -26,20 +28,24 @@ import '../../styles/reservar.css';
         <div class="rs-resumen"><div>${esc(d.etiqueta)}</div><div>${d.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${esc(d.nutricionista?.nombre)}</div><div>${esc(d.titulo)} · ${soles(d.monto_centimos)}</div></div>
         <a class="rs-btn" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Agregar a mi calendario</a>
         <p class="rs-nota">Te enviamos la invitación y la confirmación a tu correo. Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`;
-      try {
-        const clave = `ajl_compra_${token}`;
-        if (!sessionStorage.getItem(clave)) {
+      (async () => {
+        try {
+          const clave = `ajl_compra_${token}`;
+          if (sessionStorage.getItem(clave)) return;
           sessionStorage.setItem(clave, '1');
-          if (typeof window.gtag === 'function') window.gtag('event', 'purchase', { transaction_id: token, currency: 'PEN', value: d.monto_centimos / 100, items: [{ item_name: d.titulo }] });
+          const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+          const transactionId = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+          if (typeof window.gtag === 'function') window.gtag('event', 'purchase', { transaction_id: transactionId, currency: 'PEN', value: d.monto_centimos / 100, items: [{ item_name: d.titulo }] });
           if (typeof window.fbq === 'function') window.fbq('track', 'Purchase', { currency: 'PEN', value: d.monto_centimos / 100, content_name: d.titulo });
-        }
-      } catch {}
+        } catch {}
+      })();
       return true;
     }
     if (d.estado === 'pagada_sin_hora') {
       raiz.innerHTML = `<h1>Tu pago está confirmado.</h1><p class="rs-lead">La hora que elegiste se ocupó mientras pagabas. No tienes que pagar de nuevo.</p><a class="rs-btn" href="/reservar/reubicar/?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Elegir otra hora</a>`;
       return true;
     }
+    if (d.ultimo_pago === 'pending' || d.ultimo_pago === 'in_process') return false;
     if (d.ultimo_pago === 'rejected' || d.estado === 'expirada') {
       const vigente = d.estado !== 'expirada';
       raiz.innerHTML = `<h1>El pago no se completó.</h1><p class="rs-lead">${vigente ? 'Tu horario sigue guardado unos minutos. Puedes intentar con otro medio de pago.' : 'Se venció el tiempo para pagar. Elige tu hora de nuevo.'}</p><a class="rs-btn" href="/reservar/${vigente ? `?r=${encodeURIComponent(token)}` : ''}" style="text-align:center;text-decoration:none">${vigente ? 'Intentar de nuevo' : 'Elegir mi hora'}</a>`;

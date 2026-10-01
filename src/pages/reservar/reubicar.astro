@@ -13,7 +13,8 @@ import '../../styles/reservar.css';
 
 <script>
   import { montarSelector } from '../../scripts/selector-horas.js';
-  const token = new URLSearchParams(location.search).get('r');
+  const leerGuardado = (clave) => { try { return sessionStorage.getItem(clave); } catch { return null; } };
+  const token = new URLSearchParams(location.search).get('r') || leerGuardado('ajl_reserva_r');
   const error = document.getElementById('error');
 
   (async () => {

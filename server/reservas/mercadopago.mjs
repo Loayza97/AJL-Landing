@@ -10,7 +10,7 @@ export function isoLima(fecha) {
 export function crearMp(env, fetchImpl = fetch) {
   const auth = { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` };
 
-  async function crearPreferencia({ reservaId, titulo, montoCentimos, email, nombre, venceEn, ahora, urlRetorno }) {
+  async function crearPreferencia({ reservaId, titulo, montoCentimos, email, nombre, venceEn, ahora, urlRetorno, urlNotificacion }) {
     const cuerpo = {
       items: [{ id: reservaId, title: titulo, quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
       payer: { name: nombre, email },
@@ -22,6 +22,7 @@ export function crearMp(env, fetchImpl = fetch) {
       expiration_date_from: isoLima(ahora),
       expiration_date_to: isoLima(venceEn),
       statement_descriptor: 'AJLNUTRICION',
+      notification_url: urlNotificacion,
     };
     const r = await fetchImpl(`${API}/checkout/preferences`, {
       method: 'POST',

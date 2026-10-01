@@ -12,13 +12,15 @@ test('crearPreferencia: un ítem en soles, una cuota, sin efectivo, con vencimie
   const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'pref1', init_point: 'https://mp/pay' })); };
   const mp = crearMp({ MP_ACCESS_TOKEN: 'TEST-1' }, f);
   const r = await mp.crearPreferencia({ reservaId: 'r1', titulo: '2 sesiones al mes · 3 meses', montoCentimos: 108000, email: 'a@x.pe',
-    nombre: 'Ana', venceEn: new Date('2026-10-05T15:30:00Z'), ahora: new Date('2026-10-05T15:00:00Z'), urlRetorno: 'https://w/reservar/listo/?r=t' });
+    nombre: 'Ana', venceEn: new Date('2026-10-05T15:30:00Z'), ahora: new Date('2026-10-05T15:00:00Z'), urlRetorno: 'https://w/reservar/listo/?r=t',
+    urlNotificacion: 'https://w/api/reservas/webhook-mp' });
   assert.deepEqual(r, { id: 'pref1', init_point: 'https://mp/pay' });
   assert.equal(pedido.url, 'https://api.mercadopago.com/checkout/preferences');
   assert.equal(pedido.init.headers.Authorization, 'Bearer TEST-1');
   const c = JSON.parse(pedido.init.body);
   assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
   assert.equal(c.external_reference, 'r1');
+  assert.equal(c.notification_url, 'https://w/api/reservas/webhook-mp');
   assert.deepEqual(c.payment_methods, { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 1 });
   assert.equal(c.expires, true);
   assert.equal(c.expiration_date_to, '2026-10-05T10:30:00.000-05:00');
