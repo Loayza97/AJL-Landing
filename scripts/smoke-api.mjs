@@ -1,10 +1,14 @@
 // Smoke no destructivo del sitio y de /api.
-// Uso: node scripts/smoke-api.mjs https://www.ajlnutricion.com
+// Uso: node scripts/smoke-api.mjs <url-base> [host-esperado]
+//   host-esperado: el host de PUBLIC_SITE_URL de ese entorno. Por defecto, el
+//   de la URL base. Contra el alias de producción (ajl-landing.pages.dev) va
+//   www.ajlnutricion.com, porque producción redirige siempre al dominio real.
 // Sigue a mano las redirecciones de barra final (301/308) y se detiene en la
 // primera que no lo sea, para poder comparar 302 y 404 entre Vercel y Cloudflare.
 
 const BASE = (process.argv[2] || '').replace(/\/$/, '');
 if (!BASE) { console.error('Falta la URL base'); process.exit(2); }
+const HOST_ESPERADO = process.argv[3] || new URL(BASE).host;
 
 async function hop(path, init = {}) {
   let url = BASE + path;
@@ -49,7 +53,7 @@ check('confirm sin token → 302 invalido', async () => {
 // y los links de los correos salen apuntando a otro sitio.
 check('las funciones leen PUBLIC_SITE_URL de este entorno', async () => {
   const r = await hop('/api/newsletter-confirm');
-  return new URL(r.headers.get('location')).host === new URL(BASE).host;
+  return new URL(r.headers.get('location')).host === HOST_ESPERADO;
 });
 check('baja con token falso consulta Supabase → 302 invalido', async () => {
   const r = await hop('/api/newsletter-unsubscribe?token=smoke-no-existe');
