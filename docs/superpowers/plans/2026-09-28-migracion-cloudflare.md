@@ -1361,7 +1361,7 @@ git push
 
 Esto publica en Vercel (que sigue siendo producción, con `api/` intacto) y en Cloudflare (`ajl-landing.pages.dev`). La política v1.3 queda visible desde aquí.
 
-Run: `npm run smoke -- https://ajl-landing.pages.dev` y `npm run smoke -- https://www.ajlnutricion.com`
+Run: `npm run smoke -- https://ajl-landing.pages.dev www.ajlnutricion.com` y `npm run smoke -- https://www.ajlnutricion.com`
 Expected: `16/16 OK` en ambos (el primero valida las variables de **Production** de Cloudflare antes del corte).
 
 - [ ] **Step 2: Dominio personalizado en Pages (Joaquín)**

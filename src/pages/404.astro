@@ -1,0 +1,26 @@
+---
+// Sin un 404.html en la raíz, Cloudflare Pages trata el sitio como SPA y
+// responde la home con estado 200 a cualquier URL inexistente.
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout noindex title="Página no encontrada · AJL Nutrición">
+  <main class="np">
+    <div class="container">
+      <section class="np-card">
+        <h1>No encontramos esta página</h1>
+        <p class="np-lead">Puede que el enlace esté mal escrito o que la página ya no exista.</p>
+        <a class="np-back" href="/">← Volver al inicio</a>
+      </section>
+    </div>
+  </main>
+
+  <style>
+    .np { min-height: 60vh; display: flex; align-items: center; padding-block: clamp(2rem, 6vw, 5rem); }
+    .np .container { max-width: 560px; text-align: center; }
+    .np-card { background: #fff; border: 1px solid #e6e2d9; border-radius: 18px; padding: clamp(28px, 6vw, 48px); box-shadow: var(--shadow); }
+    .np-card h1 { color: var(--verde-osc); font-size: clamp(1.5rem, 4vw, 2rem); margin-bottom: .75rem; }
+    .np-lead { color: var(--gris); line-height: 1.6; margin-bottom: 1.5rem; }
+    .np-back { display: inline-block; font-size: .9rem; color: var(--dorado-osc); font-weight: 600; }
+  </style>
+</Layout>

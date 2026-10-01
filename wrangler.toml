@@ -1,0 +1,22 @@
+# Cloudflare Pages · landing AJL Nutrición
+# Build: `npm run build` (Astro) → dist/. Las funciones viven en functions/.
+name = "ajl-landing"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Variables de texto. Con wrangler.toml, Pages las toma SOLO de aquí: las de
+# tipo Text del panel se ignoran. Los Secret (SUPABASE_URL, SUPABASE_SERVICE_KEY,
+# RESEND_API_KEY) siguen en el panel, y nunca van aquí: el repo es público.
+[vars]
+FROM_EMAIL = "reclamos@ajlnutricion.com"
+NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
+NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
+PUBLIC_SITE_URL = "https://www.ajlnutricion.com"
+
+# vars no se hereda entre entornos: el preview repite todas.
+[env.preview.vars]
+FROM_EMAIL = "reclamos@ajlnutricion.com"
+NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
+NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
+PUBLIC_SITE_URL = "https://migracion-cloudflare.ajl-landing.pages.dev"
