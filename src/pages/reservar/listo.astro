@@ -18,6 +18,8 @@ import '../../styles/reservar.css';
   const token = q.get('r') || leerGuardado('ajl_reserva_r');
   const paymentId = q.get('payment_id') || leerGuardado('ajl_reserva_payment_id');
   try { sessionStorage.removeItem('ajl_reserva_payment_id'); } catch {}
+  // Mercado Pago devuelve payment_id=null cuando la persona vuelve sin pagar.
+  const pagoReal = /^\d+$/.test(paymentId || '');
   const soles = (c) => `S/${(c / 100).toLocaleString('es-PE', { maximumFractionDigits: 2 })}`;
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -46,6 +48,11 @@ import '../../styles/reservar.css';
       return true;
     }
     if (d.ultimo_pago === 'pending' || d.ultimo_pago === 'in_process') return false;
+    // Volvió de Mercado Pago sin pagar («Volver a la tienda»): no hay pago que esperar.
+    if (!pagoReal && !d.ultimo_pago && ['apartada', 'pagando'].includes(d.estado)) {
+      raiz.innerHTML = `<h1>No completaste el pago.</h1><p class="rs-lead">Tu horario sigue guardado unos minutos. Puedes volver a intentarlo.</p><a class="rs-btn" href="/reservar/?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Volver a pagar</a>`;
+      return true;
+    }
     if (d.ultimo_pago === 'rejected' || d.estado === 'expirada') {
       const vigente = d.estado !== 'expirada';
       raiz.innerHTML = `<h1>El pago no se completó.</h1><p class="rs-lead">${vigente ? 'Tu horario sigue guardado unos minutos. Puedes intentar con otro medio de pago.' : 'Se venció el tiempo para pagar. Elige tu hora de nuevo.'}</p><a class="rs-btn" href="/reservar/${vigente ? `?r=${encodeURIComponent(token)}` : ''}" style="text-align:center;text-decoration:none">${vigente ? 'Intentar de nuevo' : 'Elegir mi hora'}</a>`;
@@ -55,7 +62,7 @@ import '../../styles/reservar.css';
   }
 
   async function consultar(intento) {
-    const extra = paymentId && intento === 0 ? `&payment_id=${encodeURIComponent(paymentId)}` : '';
+    const extra = pagoReal && intento === 0 ? `&payment_id=${encodeURIComponent(paymentId)}` : '';
     try {
       const r = await fetch(`/api/reservas/estado?r=${encodeURIComponent(token)}${extra}`);
       if (r.ok && pintar(await r.json())) return;

@@ -87,6 +87,18 @@ function abrirP4(reserva) {
   });
 }
 
+// WhatsApp con código de país: «Otro» deja que la persona escriba el +código.
+function telefonoCompleto() {
+  const numero = $('#f-whatsapp').value.replace(/[^\d+]/g, '');
+  const codigo = $('#f-pais').value;
+  if (!codigo || numero.startsWith('+')) return numero;
+  return `+${codigo}${numero.replace(/^0+/, '')}`;
+}
+
+$('#f-pais').addEventListener('change', () => {
+  $('#f-whatsapp').placeholder = $('#f-pais').value === '51' ? '9__ ___ ___' : ($('#f-pais').value ? 'Tu número' : '+código y número');
+});
+
 async function pagar(e) {
   e.preventDefault();
   const boton = $('#p4-pagar');
@@ -96,7 +108,7 @@ async function pagar(e) {
     const r = await fetch('/api/reservas/pagar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        token: estado.reserva.token, nombre: $('#f-nombre').value, whatsapp: $('#f-whatsapp').value, email: $('#f-email').value,
+        token: estado.reserva.token, nombre: $('#f-nombre').value, whatsapp: telefonoCompleto(), email: $('#f-email').value,
         dni: $('#f-dni').value, acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
       }),
     });

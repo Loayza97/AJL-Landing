@@ -37,3 +37,7 @@
 .sel-hora:hover { border-color: var(--dorado); }
 .sel-hora small { display: block; color: var(--gris); font-size: .75rem; }
 .sel-msg { grid-column: 1 / -1; color: var(--gris); }
+
+.rs-tel { display: flex; gap: 8px; }
+.rs-tel select { flex: 0 0 auto; max-width: 46%; border: 1.5px solid #e6e2d9; border-radius: 12px; padding: 12px 8px; font: inherit; background: #fff; }
+.rs-tel input { flex: 1; min-width: 0; }

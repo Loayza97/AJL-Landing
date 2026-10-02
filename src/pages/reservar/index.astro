@@ -12,6 +12,15 @@ for (const p of monthlyPlans) {
 }
 catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
+
+// Código de país del WhatsApp. Perú primero; luego los países desde donde más
+// escriben pacientes y vecinos. Quien no esté aquí elige «Otro» y escribe +código.
+const PAISES = [
+  ['🇵🇪', 'Perú', '51'], ['🇺🇸', 'EE.UU.', '1'], ['🇪🇸', 'España', '34'], ['🇨🇱', 'Chile', '56'],
+  ['🇦🇷', 'Argentina', '54'], ['🇨🇴', 'Colombia', '57'], ['🇪🇨', 'Ecuador', '593'], ['🇧🇴', 'Bolivia', '591'],
+  ['🇲🇽', 'México', '52'], ['🇻🇪', 'Venezuela', '58'], ['🇧🇷', 'Brasil', '55'], ['🇮🇹', 'Italia', '39'],
+  ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
+];
 ---
 <Layout noindex title="Reserva tu primera sesión · AJL Nutrición">
   <main class="rs">
@@ -63,7 +72,12 @@ catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: p
         <label for="f-nombre">Nombre y apellido</label>
         <input type="text" id="f-nombre" autocomplete="name" required>
         <label for="f-whatsapp">WhatsApp · aquí te escribimos si hace falta</label>
-        <input type="tel" id="f-whatsapp" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" required>
+        <div class="rs-tel">
+          <select id="f-pais" aria-label="Código de país">
+            {PAISES.map(([bandera, nombre, codigo]) => <option value={codigo}>{bandera} {nombre} +{codigo}</option>)}
+          </select>
+          <input type="tel" id="f-whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="9__ ___ ___" required>
+        </div>
         <label for="f-email">Correo · aquí llega tu invitación</label>
         <input type="email" id="f-email" autocomplete="email" required>
         <div id="p4-dni" hidden>
