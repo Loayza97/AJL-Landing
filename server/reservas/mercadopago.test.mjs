@@ -20,6 +20,8 @@ test('crearPreferencia: un ítem en soles, una cuota, sin efectivo, con vencimie
   const c = JSON.parse(pedido.init.body);
   assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
   assert.equal(c.external_reference, 'r1');
+  // Sin payer: el correo del paciente no debe atar el pago a su cuenta de Mercado Pago.
+  assert.equal(c.payer, undefined);
   assert.equal(c.notification_url, 'https://w/api/reservas/webhook-mp');
   assert.deepEqual(c.payment_methods, { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 1 });
   assert.equal(c.expires, true);

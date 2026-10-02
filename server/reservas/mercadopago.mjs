@@ -10,10 +10,9 @@ export function isoLima(fecha) {
 export function crearMp(env, fetchImpl = fetch) {
   const auth = { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` };
 
-  async function crearPreferencia({ reservaId, titulo, montoCentimos, email, nombre, venceEn, ahora, urlRetorno, urlNotificacion }) {
+  async function crearPreferencia({ reservaId, titulo, montoCentimos, venceEn, ahora, urlRetorno, urlNotificacion }) {
     const cuerpo = {
       items: [{ id: reservaId, title: titulo, quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
-      payer: { name: nombre, email },
       external_reference: reservaId,
       back_urls: { success: urlRetorno, pending: urlRetorno, failure: urlRetorno },
       auto_return: 'approved',
