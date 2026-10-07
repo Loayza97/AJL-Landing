@@ -23,7 +23,7 @@ test('crearPreferencia: un ítem en soles, una cuota, sin efectivo, con vencimie
   // Sin payer: el correo del paciente no debe atar el pago a su cuenta de Mercado Pago.
   assert.equal(c.payer, undefined);
   assert.equal(c.notification_url, 'https://w/api/reservas/webhook-mp');
-  assert.deepEqual(c.payment_methods, { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 1 });
+  assert.deepEqual(c.payment_methods, { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 12 });
   assert.equal(c.expires, true);
   assert.equal(c.expiration_date_to, '2026-10-05T10:30:00.000-05:00');
   assert.equal(c.back_urls.success, 'https://w/reservar/listo/?r=t');

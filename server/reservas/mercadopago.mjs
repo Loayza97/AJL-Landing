@@ -16,7 +16,7 @@ export function crearMp(env, fetchImpl = fetch) {
       external_reference: reservaId,
       back_urls: { success: urlRetorno, pending: urlRetorno, failure: urlRetorno },
       auto_return: 'approved',
-      payment_methods: { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 1 },
+      payment_methods: { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 12 },
       expires: true,
       expiration_date_from: isoLima(ahora),
       expiration_date_to: isoLima(venceEn),
