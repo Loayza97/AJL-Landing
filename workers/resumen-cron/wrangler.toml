@@ -1,0 +1,12 @@
+# Worker aparte: Cloudflare Pages no corre tareas programadas.
+# Despliegue: npx wrangler deploy --config workers/resumen-cron/wrangler.toml
+# Secreto: npx wrangler secret put RESUMEN_TOKEN --config workers/resumen-cron/wrangler.toml
+name = "ajl-resumen-cron"
+main = "index.js"
+compatibility_date = "2026-10-01"
+
+[triggers]
+crons = ["0 13 * * *"] # 13:00 UTC = 8:00 en Lima
+
+[vars]
+RESUMEN_URL = "https://www.ajlnutricion.com/api/reservas/resumen-diario"
