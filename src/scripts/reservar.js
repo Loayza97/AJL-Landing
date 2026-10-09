@@ -83,7 +83,9 @@ function horaApartada() {
   if (estado.reserva?.token) return estado.reserva.token;
   try {
     const g = JSON.parse(localStorage.getItem(CLAVE_APARTADA) || 'null');
-    return g && Date.parse(g.hasta) > Date.now() ? g.token : null;
+    if (g && Date.parse(g.hasta) > Date.now()) return g.token;
+    localStorage.removeItem(CLAVE_APARTADA);
+    return null;
   } catch { return null; }
 }
 

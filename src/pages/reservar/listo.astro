@@ -25,6 +25,8 @@ import '../../styles/reservar.css';
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function pintar(d) {
+    // Pagada: ya no hay hora apartada que soltar; se borra el código guardado.
+    if (['confirmada', 'pagada_sin_hora'].includes(d.estado)) { try { localStorage.removeItem('ajl_reserva_apartada'); } catch {} }
     if (d.estado === 'confirmada') {
       raiz.innerHTML = `
         <h1>Listo${d.nombre ? `, ${esc(d.nombre)}` : ''}. Tu primera sesión está reservada.</h1>
