@@ -81,6 +81,7 @@
 .rs label small { font-weight: 400; color: var(--muted); }
 .rs input[type=text], .rs input[type=email], .rs input[type=tel], .rs input[type=date], .rs select { width: 100%; border: 1px solid #CFCFCF; border-radius: 10px; padding: 12px; font: inherit; background: var(--paper); color: var(--ink); }
 .rs-dos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rs-fecha { display: grid; grid-template-columns: 1fr 1.6fr 1.2fr; gap: 8px; }
 .rs-tel, .rs-doc { display: flex; gap: 8px; }
 .rs-tel select { width: auto; max-width: 45%; }
 .rs-doc select { width: auto; max-width: 50%; }

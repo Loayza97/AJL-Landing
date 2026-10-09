@@ -128,6 +128,13 @@ $('#f-pais').addEventListener('change', () => {
   $('#f-whatsapp').placeholder = $('#f-pais').value === '51' ? '9__ ___ ___' : ($('#f-pais').value ? 'Tu número' : '+código y número');
 });
 
+// AAAA-MM-DD a partir de las tres listas; vacío si falta alguna (el validador
+// lo rechaza, y también un 31 de febrero).
+function fechaNacimiento() {
+  const [d, m, a] = ['#f-nac-dia', '#f-nac-mes', '#f-nac-anio'].map((s) => $(s).value);
+  return d && m && a ? `${a}-${m}-${d}` : '';
+}
+
 $('#f-tipo-doc').addEventListener('change', () => {
   const dni = $('#f-tipo-doc').value === 'dni';
   $('#f-doc').inputMode = dni ? 'numeric' : 'text';
@@ -142,7 +149,7 @@ async function pagar(e) {
   const datos = {
     token: estado.reserva.token, nombres: $('#f-nombres').value, apellido_paterno: $('#f-paterno').value,
     apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto(), email: $('#f-email').value,
-    fecha_nacimiento: $('#f-nacimiento').value, tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
+    fecha_nacimiento: fechaNacimiento(), tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
     acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
   };
   const previa = validarDatos(datos, hoyEnLima(new Date()));

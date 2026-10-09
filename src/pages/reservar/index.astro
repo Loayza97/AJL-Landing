@@ -21,6 +21,13 @@ const PAISES = [
   ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
 ];
 
+// Fecha de nacimiento en tres listas: más fácil que un calendario que abre en
+// el año actual. Años de los 10 a los 100 años (lo que acepta validar-datos.js).
+const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ANIO = new Date().getFullYear();
+const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
+
 const VENTANAS = [
   ['condiciones', 'Condiciones del servicio', RESUMEN_CONDICIONES, '/condiciones/'],
   ['privacidad', 'Política de privacidad', RESUMEN_PRIVACIDAD, '/privacidad/'],
@@ -106,17 +113,27 @@ const VENTANAS = [
         </div>
         <label for="f-email">Correo · aquí llega tu invitación</label>
         <input type="email" id="f-email" autocomplete="email" required>
-        <div class="rs-dos">
-          <div><label for="f-nacimiento">Fecha de nacimiento</label><input type="date" id="f-nacimiento" autocomplete="bday" min="1920-01-01" required></div>
-          <div>
-            <label for="f-doc">Documento · para tu comprobante</label>
-            <div class="rs-doc">
-              <select id="f-tipo-doc" aria-label="Tipo de documento">
-                <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
-              </select>
-              <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
-            </div>
-          </div>
+        <label for="f-nac-dia" id="l-nacimiento">Fecha de nacimiento</label>
+        <div class="rs-fecha" role="group" aria-labelledby="l-nacimiento">
+          <select id="f-nac-dia" aria-label="Día" autocomplete="bday-day" required>
+            <option value="">Día</option>
+            {DIAS.map((d) => <option value={String(d).padStart(2, '0')}>{d}</option>)}
+          </select>
+          <select id="f-nac-mes" aria-label="Mes" autocomplete="bday-month" required>
+            <option value="">Mes</option>
+            {MESES.map((m, i) => <option value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          </select>
+          <select id="f-nac-anio" aria-label="Año" autocomplete="bday-year" required>
+            <option value="">Año</option>
+            {ANIOS.map((a) => <option value={String(a)}>{a}</option>)}
+          </select>
+        </div>
+        <label for="f-doc">Documento · para tu comprobante</label>
+        <div class="rs-doc">
+          <select id="f-tipo-doc" aria-label="Tipo de documento">
+            <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+          </select>
+          <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
         </div>
         <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
         <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
