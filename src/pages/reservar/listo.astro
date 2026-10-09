@@ -12,6 +12,7 @@ import '../../styles/reservar.css';
 </Layout>
 
 <script>
+  import { formatoSoles } from '../../data/duraciones.js';
   const raiz = document.getElementById('listo');
   const q = new URLSearchParams(location.search);
   const leerGuardado = (clave) => { try { return sessionStorage.getItem(clave); } catch { return null; } };
@@ -20,7 +21,7 @@ import '../../styles/reservar.css';
   try { sessionStorage.removeItem('ajl_reserva_payment_id'); } catch {}
   // Mercado Pago devuelve payment_id=null cuando la persona vuelve sin pagar.
   const pagoReal = /^\d+$/.test(paymentId || '');
-  const soles = (c) => `S/${(c / 100).toLocaleString('es-PE', { maximumFractionDigits: 2 })}`;
+  const soles = (c) => formatoSoles(Math.round(c / 100));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   function pintar(d) {
