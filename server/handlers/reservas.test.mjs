@@ -19,7 +19,8 @@ function deps(extra = {}) {
 const get = (ruta) => new Request(`https://x.test${ruta}`);
 const post = (ruta, cuerpo, headers = {}) => new Request(`https://x.test${ruta}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(cuerpo) });
 const apartar = (d, o = {}) => handleApartar(post('/api/reservas/apartar', { producto: 'constancia', duracion: 3, modalidad: 'presencial', inicio: '2026-10-06T17:00:00Z', ...o }), env, d);
-const datos = { nombre: 'Ana Pérez', whatsapp: '987 654 321', email: 'ana@x.pe', dni: '12345678', acepto: true, novedades: false };
+const datos = { nombres: 'Ana', apellido_paterno: 'Pérez', apellido_materno: '', whatsapp: '987 654 321', email: 'ana@x.pe',
+  fecha_nacimiento: '1990-05-04', tipo_documento: 'dni', documento: '12345678', acepto: true, novedades: false };
 
 test('horas: 7 días y el equipo, sin datos privados', async () => {
   const r = await handleHoras(get('/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3'), env, deps());
@@ -82,18 +83,23 @@ test('apartar una hora que no se ofrece da 409', async () => {
   assert.equal((await apartar(deps(), { inicio: '2026-10-06T03:00:00Z' })).status, 409);
 });
 
-test('pagar: valida datos, exige DNI arriba de S/700 y aceptar condiciones', async () => {
+test('pagar: valida datos, exige documento y aceptar condiciones; guarda el detalle', async () => {
   let pedido;
   const d = deps({ mp: { crearPreferencia: async (p) => { pedido = p; return { id: 'pref', init_point: 'https://mp/pagar' }; } } });
   const { token } = await (await apartar(d)).json();
   const pagar = (o) => handlePagar(post('/api/reservas/pagar', { ...datos, token, ...o }), env, d);
   assert.equal((await pagar({ email: 'malo' })).status, 400);
-  assert.equal((await pagar({ dni: '' })).status, 400);
+  assert.equal((await pagar({ documento: '' })).status, 400);
+  assert.equal((await pagar({ fecha_nacimiento: '' })).status, 400);
   assert.equal((await pagar({ acepto: false })).status, 400);
   const ok = await pagar({});
   assert.equal(ok.status, 200);
   assert.deepEqual(await ok.json(), { ok: true, url: 'https://mp/pagar' });
   assert.equal(pedido.urlNotificacion, 'https://www.ajlnutricion.com/api/reservas/webhook-mp');
+  assert.equal(pedido.nombre, 'Ana Pérez');
+  const c = await d.db.prepare('SELECT * FROM clientes').first();
+  assert.deepEqual([c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento, c.dni],
+    ['Ana', 'Pérez', null, '1990-05-04', 'dni', '12345678']);
 });
 
 test('pagar con token inexistente: 404', async () => {

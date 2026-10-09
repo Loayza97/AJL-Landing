@@ -18,10 +18,10 @@ import { firmaValida } from '../reservas/mercadopago.mjs';
 import { icsDeReserva } from '../reservas/ics.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
+import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const MODALIDADES = new Set(['presencial', 'video']);
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
 const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
@@ -135,25 +135,19 @@ export async function handlePagar(request, env, deps) {
   const r = await repo.reservaPorToken(deps.db, String(d.token || ''));
   if (!r) return bad(404, 'No encontramos tu reserva. Vuelve a elegir tu hora.');
   const precio = cotizar(r.producto, r.duracion_meses);
-  const nombre = String(d.nombre || '').trim();
-  const email = String(d.email || '').trim().toLowerCase();
-  const whatsapp = String(d.whatsapp || '').replace(/[^\d+]/g, '');
-  const dni = String(d.dni || '').trim();
-  if (nombre.length < 3 || nombre.length > 120) return bad(400, 'Escribe tu nombre y apellido.');
-  if (!EMAIL.test(email)) return bad(400, 'Revisa tu correo.');
-  if (!/^\+?\d{9,15}$/.test(whatsapp)) return bad(400, 'Revisa tu número de WhatsApp.');
-  if (precio.requiereDni && !/^\d{8}$/.test(dni)) return bad(400, 'Escribe tu DNI (8 dígitos) para tu comprobante.');
-  if (d.acepto !== true) return bad(400, 'Para continuar, acepta las condiciones del servicio.');
+  const v = validarDatos(d, hoyEnLima(deps.ahora()));
+  if (!v.ok) return bad(400, v.error);
+  const { cliente } = v;
 
   const ahora = deps.ahora();
   const res = await repo.guardarDatosYPagar(deps.db, {
-    reserva: r, cliente: { nombre, whatsapp, email, dni: precio.requiereDni ? dni : null },
+    reserva: r, cliente,
     condicionesVersion: CONDICIONES_VERSION, novedades: d.novedades === true, ahora,
   });
   if (!res.ok) return bad(410, 'Se venció el tiempo para pagar. Elige tu hora de nuevo.', { motivo: 'vencida' });
   try {
     const pref = await deps.mp.crearPreferencia({
-      reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email, nombre,
+      reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email: cliente.email, nombre: cliente.nombre,
       venceEn: new Date(res.retencion_hasta), ahora, urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`,
       urlNotificacion: `${siteUrl(env)}/api/reservas/webhook-mp`,
     });
