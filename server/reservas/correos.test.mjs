@@ -12,6 +12,20 @@ test('los correos escapan lo que escribe el paciente', () => {
   assert.match(c.html, /a mano/);
 });
 
+test('correo al equipo: muestra el tipo de documento y la fecha de nacimiento', () => {
+  const ce = correoEquipoConfirmada({ nombre: 'Ana', whatsapp: '+51', email: 'a@x.pe', dni: 'X0012345', tipo_documento: 'ce',
+    fecha_nacimiento: '1990-02-28', titulo: 'T', etiqueta: 'E', modalidad: 'video', nutricionista: 'Nico', monto: 1080,
+    calendarioPendiente: false, novedades: false });
+  assert.match(ce.html, /CE X0012345/);
+  assert.match(ce.html, /Fecha de nacimiento: 1990-02-28/);
+
+  const sinTipo = correoEquipoConfirmada({ nombre: 'Ana', whatsapp: '+51', email: 'a@x.pe', dni: '12345678', tipo_documento: undefined,
+    fecha_nacimiento: undefined, titulo: 'T', etiqueta: 'E', modalidad: 'video', nutricionista: 'Nico', monto: 1080,
+    calendarioPendiente: false, novedades: false });
+  assert.match(sinTipo.html, /DNI 12345678/);
+  assert.ok(!sinTipo.html.includes('Fecha de nacimiento'));
+});
+
 test('confirmación por video incluye el Meet; presencial, la dirección', () => {
   const v = correoConfirmacion({ nombre: 'Ana', titulo: 'T', etiqueta: 'jueves', modalidad: 'video', direccion: 'Lince', meet: 'https://meet/x', nutricionista: 'Nico', urlIcs: 'https://i' });
   assert.match(v.html, /https:\/\/meet\/x/);

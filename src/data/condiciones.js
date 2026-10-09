@@ -18,6 +18,6 @@ export const RESUMEN_PRIVACIDAD = [
   { t: 'Qué datos pedimos', d: 'Nombres, apellidos, WhatsApp, correo, fecha de nacimiento y documento de identidad.' },
   { t: 'Para qué', d: 'Para gestionar tu reserva y tu pago, enviarte la confirmación, emitir tu comprobante y preparar tu primera sesión.' },
   { t: 'Si no completas tu pago', d: 'Podemos escribirte por WhatsApp para ayudarte con tu reserva. Si no pagas, borramos tus datos de contacto a los 30 días.' },
-  { t: 'Con quién se comparten', d: 'Mercado Pago procesa el pago y Google Calendar guarda tu cita. Tus datos de tarjeta no pasan por nosotros.' },
+  { t: 'Con quién se comparten', d: 'Mercado Pago procesa el pago, Google Calendar guarda tu cita y usamos proveedores para alojar el sitio y enviar correos (Cloudflare y Resend). Tus datos de tarjeta no pasan por nosotros.' },
   { t: 'Tus derechos', d: 'Puedes pedir acceder, corregir o eliminar tus datos escribiendo a reclamos@ajlnutricion.com.' },
 ];

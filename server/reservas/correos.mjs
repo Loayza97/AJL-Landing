@@ -11,6 +11,9 @@ const marco = (cuerpo) => `
 
 const boton = (href, texto) => `<p style="margin:24px 0"><a href="${esc(href)}" style="background:#D68A5C;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:999px;display:inline-block">${esc(texto)}</a></p>`;
 
+const ETIQUETA_DOCUMENTO = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
+const etiquetaDocumento = (tipo) => ETIQUETA_DOCUMENTO[tipo] || 'DNI';
+
 export function correoConfirmacion({ nombre, titulo, etiqueta, modalidad, direccion, meet, nutricionista, urlIcs }) {
   const donde = modalidad === 'video'
     ? (meet ? `Por videollamada: <a href="${esc(meet)}">${esc(meet)}</a>` : 'Por videollamada: el enlace llega en la invitación de Google Calendar.')
@@ -33,9 +36,10 @@ export function correoEquipoConfirmada(d) {
     html: marco(`
       <h2 style="color:#BE6E42">Reserva pagada en la web</h2>
       ${d.calendarioPendiente ? '<p style="color:#b00020"><strong>No se pudo crear el evento en el calendario: créalo a mano.</strong></p>' : ''}
-      <p><strong>${esc(d.nombre)}</strong> · ${esc(d.whatsapp)} · ${esc(d.email)}${d.dni ? ` · DNI ${esc(d.dni)}` : ''}</p>
+      <p><strong>${esc(d.nombre)}</strong> · ${esc(d.whatsapp)} · ${esc(d.email)}${d.dni ? ` · ${etiquetaDocumento(d.tipo_documento)} ${esc(d.dni)}` : ''}</p>
       <p>${esc(d.titulo)} · S/${esc(d.monto)}</p>
       <p>${esc(d.etiqueta)} · ${d.modalidad === 'video' ? 'Videollamada' : 'Presencial'} · ${esc(d.nutricionista)}</p>
+      ${d.fecha_nacimiento ? `<p>Fecha de nacimiento: ${esc(d.fecha_nacimiento)}</p>` : ''}
       <p>Novedades por correo: ${d.novedades ? 'sí' : 'no'}</p>
       <p>Emitir el comprobante de pago.</p>`),
   };

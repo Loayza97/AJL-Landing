@@ -62,7 +62,8 @@ export async function finalizarConfirmacion(deps, env, r) {
     }),
     deps.sendEmail({
       from: remitente(env), to: env.NOTIFICATION_EMAIL,
-      ...correoEquipoConfirmada({ nombre: r.nombre, whatsapp: r.whatsapp, email: r.email, dni: r.dni, titulo, etiqueta,
+      ...correoEquipoConfirmada({ nombre: r.nombre, whatsapp: r.whatsapp, email: r.email, dni: r.dni,
+        tipo_documento: r.tipo_documento, fecha_nacimiento: r.fecha_nacimiento, titulo, etiqueta,
         modalidad: r.modalidad, nutricionista: nutricionista.nombre, monto: r.monto_centimos / 100,
         calendarioPendiente: pendiente, novedades: Boolean(r.novedades_optin) }),
     }),

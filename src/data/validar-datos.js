@@ -4,7 +4,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const NOMBRE = /^(?=.*\p{L})[\p{L}\p{M}' .-]{2,60}$/u;
 const DOCUMENTO = { dni: /^\d{8}$/, ce: /^[A-Z0-9]{9,12}$/, pasaporte: /^[A-Z0-9]{6,12}$/ };
 
-const limpio = (s) => String(s ?? '').trim().replace(/\s+/g, ' ');
+const limpio = (s) => String(s ?? '').trim().replace(/\s+/g, ' ').replace(/[’ʼ‘]/g, "'");
 const mal = (error) => ({ ok: false, error });
 
 export const hoyEnLima = (fecha) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(fecha);
@@ -39,7 +39,7 @@ export function validarDatos(d, hoyLima) {
   if (anios < 10 || anios > 100) return mal('Revisa tu fecha de nacimiento.');
   const tipo = String(d.tipo_documento ?? '');
   if (!Object.hasOwn(DOCUMENTO, tipo)) return mal('Elige tu tipo de documento.');
-  const documento = String(d.documento ?? '').replace(/\s+/g, '').toUpperCase();
+  const documento = String(d.documento ?? '').replace(/[\s.-]+/g, '').toUpperCase();
   if (!DOCUMENTO[tipo].test(documento)) {
     return mal(tipo === 'dni' ? 'Escribe tu DNI (8 dígitos).' : 'Revisa el número de tu documento.');
   }

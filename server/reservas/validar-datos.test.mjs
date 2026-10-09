@@ -40,6 +40,12 @@ test('documento: DNI 8 dígitos; CE y pasaporte con letras', () => {
   assert.equal(v({ tipo_documento: 'licencia', documento: '12345678' }).ok, false);
 });
 
+test('documento: se limpian espacios, puntos y guiones antes de validar', () => {
+  assert.equal(v({ documento: '12.345.678' }).cliente.dni, '12345678');
+  assert.equal(v({ documento: '12345678-9' }).ok, false);
+  assert.equal(v({ tipo_documento: 'pasaporte', documento: 'AB-123456' }).cliente.dni, 'AB123456');
+});
+
 test('fecha de nacimiento: real, entre 10 y 100 años', () => {
   assert.equal(v({ fecha_nacimiento: '1990-02-30' }).ok, false);
   assert.equal(v({ fecha_nacimiento: '04/05/1990' }).ok, false);
@@ -49,6 +55,12 @@ test('fecha de nacimiento: real, entre 10 y 100 años', () => {
   assert.equal(v({ fecha_nacimiento: '1926-10-09' }).ok, true); // 100
   assert.equal(v({ fecha_nacimiento: '1925-10-08' }).ok, false); // 101
   assert.equal(v({ fecha_nacimiento: '2030-01-01' }).ok, false);
+});
+
+test('apóstrofo tipográfico se normaliza al guardar', () => {
+  const r = v({ apellido_paterno: 'O’Brien' });
+  assert.equal(r.ok, true);
+  assert.equal(r.cliente.apellido_paterno, "O'Brien");
 });
 
 test('correo, WhatsApp y aceptación', () => {
