@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { plans, monthlyPlans } from '../../data/plans.js';
 import { duracionesDe } from '../../data/duraciones.js';
-import { NOVEDADES_TEXTO } from '../../data/condiciones.js';
+import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
 
 const catalogo = {};
@@ -19,6 +19,11 @@ const PAISES = [
   ['🇦🇷', 'Argentina', '54'], ['🇨🇴', 'Colombia', '57'], ['🇪🇨', 'Ecuador', '593'], ['🇧🇴', 'Bolivia', '591'],
   ['🇲🇽', 'México', '52'], ['🇻🇪', 'Venezuela', '58'], ['🇧🇷', 'Brasil', '55'], ['🇮🇹', 'Italia', '39'],
   ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
+];
+
+const VENTANAS = [
+  ['condiciones', 'Condiciones del servicio', RESUMEN_CONDICIONES, '/condiciones/'],
+  ['privacidad', 'Política de privacidad', RESUMEN_PRIVACIDAD, '/privacidad/'],
 ];
 ---
 <Layout noindex title="Reserva tu primera sesión · AJL Nutrición">
@@ -86,8 +91,12 @@ const PAISES = [
       <h1>¿A nombre de quién?</h1>
       <div class="rs-resumen" id="p4-resumen"></div>
       <form id="p4-form" novalidate>
-        <label for="f-nombre">Nombre y apellido</label>
-        <input type="text" id="f-nombre" autocomplete="name" required>
+        <label for="f-nombres">Nombres</label>
+        <input type="text" id="f-nombres" autocomplete="given-name" maxlength="60" required>
+        <div class="rs-dos">
+          <div><label for="f-paterno">Apellido paterno</label><input type="text" id="f-paterno" autocomplete="family-name" maxlength="60" required></div>
+          <div><label for="f-materno">Apellido materno <small>(si tienes)</small></label><input type="text" id="f-materno" maxlength="60"></div>
+        </div>
         <label for="f-whatsapp">WhatsApp · aquí te escribimos si hace falta</label>
         <div class="rs-tel">
           <select id="f-pais" aria-label="Código de país">
@@ -97,18 +106,41 @@ const PAISES = [
         </div>
         <label for="f-email">Correo · aquí llega tu invitación</label>
         <input type="email" id="f-email" autocomplete="email" required>
-        <div id="p4-dni" hidden>
-          <label for="f-dni">DNI · para tu comprobante (compras de más de S/700)</label>
-          <input type="text" id="f-dni" inputmode="numeric" maxlength="8">
+        <div class="rs-dos">
+          <div><label for="f-nacimiento">Fecha de nacimiento</label><input type="date" id="f-nacimiento" autocomplete="bday" min="1920-01-01" required></div>
+          <div>
+            <label for="f-doc">Documento · para tu comprobante</label>
+            <div class="rs-doc">
+              <select id="f-tipo-doc" aria-label="Tipo de documento">
+                <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+              </select>
+              <input type="text" id="f-doc" inputmode="numeric" maxlength="12" required>
+            </div>
+          </div>
         </div>
-        <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <a href="/condiciones/" target="_blank" rel="noopener">condiciones del servicio</a> y he leído la <a href="/privacidad/" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+        <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
         <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
         <p class="rs-nota">Mover tu cita es gratis hasta 48 h antes; después cuesta S/80.</p>
         <p class="rs-aviso" id="p4-yape" hidden>¿Pagarás con Yape? Revisa tu límite en la app: este monto puede superarlo. Con tarjeta no hay límite.</p>
         <button type="submit" class="rs-btn" id="p4-pagar">Pagar</button>
+        <p class="rs-cuotas">Con tarjeta de crédito, en hasta 12 cuotas</p>
         <p class="rs-error" id="p4-error" role="alert"></p>
       </form>
     </section>
+
+    {VENTANAS.map(([id, titulo, puntos, ruta]) => (
+      <dialog class="rs-modal" id={`ventana-${id}`} aria-labelledby={`ventana-${id}-t`}>
+        <div class="rs-modal-cab">
+          <h2 id={`ventana-${id}-t`}>{titulo}</h2>
+          <button type="button" class="rs-cerrar" data-cerrar aria-label="Cerrar">×</button>
+        </div>
+        <div class="rs-modal-cuerpo">
+          {puntos.map((p) => <div><b>{p.t}</b><p>{p.d}</p></div>)}
+          <p>Versión completa: <a href={ruta} target="_blank" rel="noopener">ajlnutricion.com{ruta}</a></p>
+        </div>
+        <button type="button" class="rs-btn" data-cerrar>Entendido, volver a mis datos</button>
+      </dialog>
+    ))}
   </main>
 </Layout>
 

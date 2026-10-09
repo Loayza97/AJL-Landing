@@ -3,6 +3,7 @@
 // el servidor; esta página solo guía.
 import { montarSelector } from './selector-horas.js';
 import { formatoSoles } from '../data/duraciones.js';
+import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
 
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
@@ -95,8 +96,6 @@ function abrirP4(reserva) {
   const linea = (t) => { const p = document.createElement('div'); p.textContent = t; $('#p4-resumen').append(p); };
   linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}`);
   linea(`${reserva.etiqueta} · ${reserva.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
-  $('#p4-dni').hidden = !reserva.requiere_dni;
-  $('#f-dni').required = reserva.requiere_dni;
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
   $('#p4-pagar').textContent = `Pagar ${soles(reserva.monto_centimos)}`;
   $('#p4-error').textContent = '';
@@ -129,18 +128,29 @@ $('#f-pais').addEventListener('change', () => {
   $('#f-whatsapp').placeholder = $('#f-pais').value === '51' ? '9__ ___ ___' : ($('#f-pais').value ? 'Tu número' : '+código y número');
 });
 
+$('#f-tipo-doc').addEventListener('change', () => {
+  const dni = $('#f-tipo-doc').value === 'dni';
+  $('#f-doc').inputMode = dni ? 'numeric' : 'text';
+  $('#f-doc').maxLength = dni ? 8 : 12;
+});
+
 async function pagar(e) {
   e.preventDefault();
   const boton = $('#p4-pagar');
   boton.disabled = true;
   $('#p4-error').textContent = '';
+  const datos = {
+    token: estado.reserva.token, nombres: $('#f-nombres').value, apellido_paterno: $('#f-paterno').value,
+    apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto(), email: $('#f-email').value,
+    fecha_nacimiento: $('#f-nacimiento').value, tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
+    acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
+  };
+  const previa = validarDatos(datos, hoyEnLima(new Date()));
+  if (!previa.ok) { $('#p4-error').textContent = previa.error; boton.disabled = false; return; }
   try {
     const r = await fetch('/api/reservas/pagar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        token: estado.reserva.token, nombre: $('#f-nombre').value, whatsapp: telefonoCompleto(), email: $('#f-email').value,
-        dni: $('#f-dni').value, acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
-      }),
+      body: JSON.stringify(datos),
     });
     const d = await r.json();
     if (r.status === 410) { abrirP3(d.error); return; }
@@ -153,6 +163,10 @@ async function pagar(e) {
 }
 
 document.addEventListener('click', (e) => {
+  const abrir = e.target.closest('[data-ventana]');
+  if (abrir) { e.preventDefault(); document.getElementById(`ventana-${abrir.dataset.ventana}`).showModal(); return; }
+  const cerrar = e.target.closest('[data-cerrar]');
+  if (cerrar) { cerrar.closest('dialog').close(); return; }
   const b = e.target.closest('[data-producto],[data-duracion],[data-volver]');
   if (!b) return;
   if (b.dataset.producto) elegirProducto(b.dataset.producto);
