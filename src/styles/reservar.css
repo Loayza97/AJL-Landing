@@ -101,7 +101,7 @@
 .rs-modal-cab { display: flex; justify-content: space-between; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--hair); }
 .rs-modal-cab h2 { margin: 0; font-family: inherit; letter-spacing: -.02em; color: var(--ink); font-size: 1.2rem; font-weight: 800; }
 .rs-cerrar { width: 40px; height: 40px; border-radius: 50%; border: 0; background: #F2F2F2; color: var(--ink); font-size: 1.3rem; cursor: pointer; flex: none; }
-.rs-modal-cuerpo { flex: 1; min-height: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.rs-modal-cuerpo { flex: 1 1 auto; min-height: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
 .rs-modal-cuerpo p { margin: 4px 0 0; font-size: .9rem; line-height: 1.5; color: #3A3A3A; }
 .rs-modal > .rs-btn { flex: none; width: calc(100% - 44px); margin: 0 22px 18px; }
 
