@@ -65,6 +65,7 @@
 .sel-modalidad button[aria-pressed=true], .sel-nutris button[aria-pressed=true], .sel-dias button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
 .sel-semana { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
 .sel-dias { display: flex; gap: 6px; overflow-x: auto; flex: 1; padding-bottom: 4px; }
+.sel-dias button { flex: none; white-space: nowrap; border-radius: 12px; padding: 8px 12px; }
 .sel-dias button:disabled { opacity: .35; cursor: default; }
 .sel-prev, .sel-next { border: 0; background: none; font-size: 1.4rem; cursor: pointer; color: var(--ink); }
 .sel-prev:disabled, .sel-next:disabled { opacity: .3; cursor: default; }
