@@ -220,3 +220,16 @@ test('marcarResumen es una sola vez por fecha', async () => {
   await repo.desmarcarResumen(db, '2026-10-09');
   assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), true);
 });
+
+test('liberarRetencion suelta una hora apartada o en pago, pero nunca una confirmada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'l1', token: 'tl1', huella: 'h' });
+  assert.equal(await repo.liberarRetencion(db, 'tl1', mas(1)), true);
+  const r = await repo.reservaPorToken(db, 'tl1');
+  assert.deepEqual([r.estado, r.huella], ['expirada', null]);
+  await ret(db, { id: 'l2', token: 'tl2', inicio_utc: '2026-10-06T18:00:00Z' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada' WHERE id = 'l2'").run();
+  assert.equal(await repo.liberarRetencion(db, 'tl2', mas(1)), false);
+  assert.equal((await repo.reservaPorToken(db, 'tl2')).estado, 'confirmada');
+  assert.equal(await repo.liberarRetencion(db, 'no-existe', mas(1)), false);
+});

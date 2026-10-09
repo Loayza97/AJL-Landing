@@ -192,3 +192,13 @@ export async function marcarResumen(db, fecha, ahora) {
 }
 
 export const desmarcarResumen = (db, fecha) => db.prepare('DELETE FROM resumenes_enviados WHERE fecha = ?1').bind(fecha).run();
+
+// Suelta la hora que la misma persona tenía apartada (quien tiene el token es
+// su dueño) para que cambiar de hora no gaste el límite de retenciones.
+export async function liberarRetencion(db, token, ahora) {
+  const r = await db.prepare(
+    `UPDATE reservas SET estado = 'expirada', huella = NULL, actualizado_en = ?2
+     WHERE token = ?1 AND estado IN ('apartada', 'pagando')`,
+  ).bind(token, ahora.toISOString()).run();
+  return r.meta.changes === 1;
+}

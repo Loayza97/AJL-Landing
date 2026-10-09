@@ -172,3 +172,18 @@ test('resumen diario: si el correo falla, se puede reintentar el mismo día', as
   falla = false;
   assert.deepEqual(await (await llamar()).json(), { ok: true, enviados: 1 });
 });
+
+test('apartar con liberar suelta la hora anterior: cambiar de hora no gasta el límite ni bloquea la misma hora', async () => {
+  const d = deps();
+  const desde = (inicio, liberar) => handleApartar(new Request('https://x.test/api/reservas/apartar', { method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': '9.9.9.9' },
+    body: JSON.stringify({ producto: 'constancia', duracion: 3, modalidad: 'presencial', inicio, liberar }) }), env, d);
+  let anterior = (await (await desde('2026-10-06T15:00:00Z')).json()).token;
+  for (const h of ['16', '17', '15']) {
+    const r = await desde(`2026-10-06T${h}:00:00Z`, anterior);
+    assert.equal(r.status, 200, h);
+    anterior = (await r.json()).token;
+  }
+  const { n } = await d.db.prepare("SELECT COUNT(*) AS n FROM reservas WHERE estado = 'apartada'").first();
+  assert.equal(n, 1);
+});

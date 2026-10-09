@@ -104,6 +104,8 @@ export async function handleApartar(request, env, deps) {
   const ahora = deps.ahora();
   const fecha = fechaLima(new Date(d.inicio));
   try {
+    // Si eligió otra hora en la misma visita, primero se suelta la anterior.
+    if (typeof d.liberar === 'string' && d.liberar) await repo.liberarRetencion(deps.db, d.liberar, ahora);
     const ctx = await contexto(deps, fecha, 1);
     const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: precio.peso, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });

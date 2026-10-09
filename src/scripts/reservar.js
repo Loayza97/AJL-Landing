@@ -76,15 +76,30 @@ function abrirP3(mensaje = '') {
   estado.selector = montarSelector($('#p3-selector'), { producto: estado.producto, duracion: estado.duracion, onElegir: apartar });
 }
 
+// La hora apartada se recuerda en el navegador hasta que vence su plazo, para
+// soltarla si la persona elige otra (también si cerró la pestaña y volvió).
+const CLAVE_APARTADA = 'ajl_reserva_apartada';
+function horaApartada() {
+  if (estado.reserva?.token) return estado.reserva.token;
+  try {
+    const g = JSON.parse(localStorage.getItem(CLAVE_APARTADA) || 'null');
+    return g && Date.parse(g.hasta) > Date.now() ? g.token : null;
+  } catch { return null; }
+}
+
 async function apartar(eleccion) {
   $('#p3-error').textContent = 'Apartando tu hora…';
   try {
     const r = await fetch('/api/reservas/apartar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, ...eleccion }),
+      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, ...eleccion, liberar: horaApartada() }),
     });
     const d = await r.json();
     if (!r.ok) { $('#p3-error').textContent = d.error || 'Esa hora ya no está disponible.'; estado.selector.recargar(); return; }
+    try {
+      // 30 minutos: el plazo máximo para pagar una vez enviados los datos.
+      localStorage.setItem(CLAVE_APARTADA, JSON.stringify({ token: d.token, hasta: new Date(Date.now() + 30 * 60000).toISOString() }));
+    } catch {}
     abrirP4(d);
   } catch {
     $('#p3-error').textContent = 'No pudimos apartar la hora. Revisa tu conexión e intenta de nuevo.';
