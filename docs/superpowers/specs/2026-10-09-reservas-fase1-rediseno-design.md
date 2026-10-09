@@ -21,6 +21,7 @@ Llevar a la web el flujo rediseñado con el equipo (lienzo "Reservas AJL · fluj
 | Pantalla 1 | Igual que el tablero "1 · Elige tu acompañamiento": sin precios, botón "Elegir y ver precios" | Joaquín, 2026-10-09 |
 | Colores | Los de la tabla de precios de la web (`src/components/Plans.astro`): tinta `#111111`, dorado `#C9A24B`, dorado tinta `#9C7A2B`, papel `#FFFFFF`, gris `#6B6B6B`, línea `#E4E4E4`, fuente Montserrat | Joaquín, 2026-10-09 |
 | Cuotas | Hasta 12 con tarjeta de crédito, con interés del banco; AJL paga la comisión de contado | Ya en `fa32a22` |
+| Contacto a quien no paga | Sin aviso en la pantalla 4; va en la política de privacidad y en el resumen de la ventana de privacidad | Joaquín, 2026-10-09 |
 | Sesión de 30 min | "2ª control de 30 min" sin promesa de plan | Romi, 2026-10-05 (pendiente alinear con Alejandro; solo cambia un texto) |
 
 ## Precios (fuente única `src/data/plans.js`)
@@ -44,7 +45,7 @@ Llevar a la web el flujo rediseñado con el equipo (lienzo "Reservas AJL · fluj
 1. **Elige tu acompañamiento.** Banda "Todos incluyen tu seguimiento entre sesiones" (plan en la app, equipo por WhatsApp, 2 clases en vivo por semana). Tres tarjetas con lo que incluye cada una; las de 2 y 4 sesiones con "De regalo: evaluación de cierre del primer mes"; la de 2 sesiones marcada "Recomendado". Abajo, "Sin seguimiento continuo": una sola sesión y "¿Prefieres que te evaluemos antes?". Ningún precio en esta pantalla.
 2. **¿Por cuánto tiempo?** Tres tarjetas: Mes a mes, 3 meses (Recomendado, al centro), 6 meses. En 3 y 6 meses: precio normal por mes tachado, precio por mes del paquete, "S/X en total · puedes pagarlo en cuotas", "Si viajas, puedes congelarlo N semana(s)" y la etiqueta de ahorro. Debajo, "Así son tus consultas cada mes" según el plan y la nota de cuotas. En pantallas angostas las tarjetas se apilan con 3 meses primero.
 3. **Elige con quién y cuándo.** El selector actual, sin cambios de lógica, con los colores nuevos.
-4. **¿A nombre de quién?** Campos obligatorios: nombres, apellido paterno, apellido materno, WhatsApp con país, correo, fecha de nacimiento, DNI. Resumen del plan con total y "Con tarjeta de crédito, en hasta 12 cuotas". "Condiciones del servicio" y "política de privacidad" abren una ventana encima (resumen en 5 puntos y link a la versión completa) sin perder lo escrito ni el horario. Aviso: "Si no completas tu pago, te escribiremos por WhatsApp para ayudarte con tu reserva." Casilla de novedades opcional, como hoy.
+4. **¿A nombre de quién?** Campos obligatorios: nombres, apellido paterno, apellido materno, WhatsApp con país, correo, fecha de nacimiento, DNI. Resumen del plan con total y "Con tarjeta de crédito, en hasta 12 cuotas". "Condiciones del servicio" y "política de privacidad" abren una ventana encima (resumen en 5 puntos y link a la versión completa) sin perder lo escrito ni el horario. No hay aviso visible de que escribiremos a quien no pague: eso lo dicen la política de privacidad y su resumen en la ventana (decisión de Joaquín, 2026-10-09). Casilla de novedades opcional, como hoy.
 5. **Mercado Pago.** Sin cambios.
 6. **Listo.** Sin cambios.
 
