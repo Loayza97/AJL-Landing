@@ -2,12 +2,41 @@
 // → P4 datos → Mercado Pago. Montos, disponibilidad y vencimientos los decide
 // el servidor; esta página solo guía.
 import { montarSelector } from './selector-horas.js';
+import { formatoSoles } from '../data/duraciones.js';
 
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
-const soles = (c) => `S/${(c / 100).toLocaleString('es-PE', { maximumFractionDigits: 2 })}`;
+const soles = (c) => formatoSoles(Math.round(c / 100));
 const estado = { producto: null, duracion: null, reserva: null, reloj: null, selector: null };
 const params = new URLSearchParams(location.search);
+
+const h = (tag, cls, texto) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (texto != null) e.textContent = texto;
+  return e;
+};
+
+function tarjetaDuracion(o, precioMes) {
+  const b = h('button', o.meses === 3 ? 'rs-dur rs-dur--star' : 'rs-dur');
+  b.type = 'button';
+  b.dataset.duracion = String(o.meses);
+  if (o.meses === 3) b.append(h('span', 'rs-badge', 'Recomendado'));
+  b.append(h('b', 'rs-dur-t', o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`));
+  const precio = h('span', 'rs-dur-p');
+  if (o.ahorro) precio.append(h('s', null, formatoSoles(precioMes)));
+  precio.append(h('strong', null, formatoSoles(o.porMes)), h('small', null, 'al mes'));
+  b.append(precio);
+  if (o.meses === 1) {
+    b.append(h('span', 'rs-dur-d', 'Pagas cada mes, sin compromiso'));
+  } else {
+    b.append(h('span', 'rs-dur-d', `${formatoSoles(o.total)} en total · puedes pagarlo en cuotas`));
+    b.append(h('span', 'rs-dur-d', `Si viajas, puedes congelarlo ${o.congelarSemanas} ${o.congelarSemanas === 1 ? 'semana' : 'semanas'}`));
+    b.append(h('span', 'rs-ahorro', `Ahorras ${formatoSoles(o.ahorro)} (${o.ahorroPct}%)`));
+  }
+  b.append(h('span', 'rs-btn rs-dur-cta', 'Elegir'));
+  return b;
+}
 
 function irA(paso) {
   document.querySelectorAll('.rs-paso').forEach((s) => { s.hidden = s.dataset.paso !== paso; });
@@ -25,11 +54,12 @@ function elegirProducto(id) {
   estado.producto = id;
   const plan = catalogo[id];
   if (plan.mensual) {
-    $('#p2-plan').textContent = plan.nombre;
-    $('#p2-3m').querySelector('.rs-precio').textContent = `S/${plan.total3m.toLocaleString('es-PE')}`;
-    $('#p2-3m').querySelector('small').textContent = plan.perMes3m;
-    $('#p2-1m').querySelector('.rs-precio').textContent = `S/${plan.precio}`;
-    $('#p2-1m').querySelector('small').textContent = `son S/${plan.precio - plan.perMes3mSoles} más cada mes`;
+    $('#p2-plan').textContent = `${plan.nombre}, con tu plan y tu seguimiento entre sesiones.`;
+    const precioMes = plan.duraciones[0].porMes;
+    $('#p2-opciones').replaceChildren(...plan.duraciones.map((o) => tarjetaDuracion(o, precioMes)));
+    const caja = $('#p2-consultas');
+    caja.replaceChildren(h('b', null, 'Así son tus consultas cada mes'), ...plan.consultas.map((t) => h('span', null, t)));
+    if (plan.regalo) caja.append(h('span', 'rs-regalo', 'De regalo: evaluación de cierre del primer mes'));
     irA('p2');
   } else {
     estado.duracion = 1;

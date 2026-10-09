@@ -1,14 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { plans, monthlyPlans } from '../../data/plans.js';
+import { duracionesDe } from '../../data/duraciones.js';
 import { NOVEDADES_TEXTO } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
 
 const catalogo = {};
 for (const p of monthlyPlans) {
-  const prog = p.programs[0];
-  catalogo[p.id] = { nombre: p.name, mensual: true, precio: p.price, total3m: prog.totalSoles, perMes3m: prog.perMes,
-    perMes3mSoles: Math.round(prog.totalSoles / 3) };
+  catalogo[p.id] = { nombre: p.name, mensual: true, duraciones: duracionesDe(p.id), consultas: p.consultasMes, regalo: !!p.firstMonthEval };
 }
 catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
@@ -29,18 +28,36 @@ const PAISES = [
     <section class="rs-paso" data-paso="p1" hidden>
       <div class="rs-progreso"><span>Paso 1 de 4</span></div>
       <h1>¿Cómo quieres que te acompañemos?</h1>
-      <p class="rs-lead">Todos incluyen tu plan en la app, el equipo por WhatsApp y 2 clases en vivo por semana.</p>
-      {monthlyPlans.map((p) => (
-        <button type="button" class:list={['rs-op', { 'rs-op--star': p.highlight }]} data-producto={p.id}>
-          {p.badge && <span class="rs-badge">{p.badge}</span>}
-          <b>Acompañamiento continuo + {p.name}</b>
-          <span class="rs-precio">{p.programs[0].total}</span> <small>3 meses · {p.programs[0].perMes}</small>
-        </button>
-      ))}
-      <p class="rs-nota">Clases en vivo: miércoles con el equipo, domingos con Alejandro. Tus sesiones 1 a 1 son con una nutricionista del equipo.</p>
-      <div class="rs-secundario">
-        <button type="button" class="rs-op" data-producto="basico"><b>{plans.basico.name}, sin acompañamiento</b><small>S/{plans.basico.price}</small></button>
-        <button type="button" class="rs-op" data-producto="evaluacion"><b>¿Prefieres que te evaluemos antes?</b><small>{plans.evaluacion.name} · S/{plans.evaluacion.price}</small></button>
+      <p class="rs-lead">Elige cada cuánto te vemos. Entre sesión y sesión, nunca te quedas solo.</p>
+      <div class="rs-bloque">
+        <p class="rs-k">Planes con seguimiento continuo</p>
+        <div class="rs-incluye">
+          <b>Todos incluyen tu seguimiento entre sesiones</b>
+          <ul>
+            <li><b>Tu plan en la app</b><span>Ajustado a tu día a día, con opciones para comer fuera.</span></li>
+            <li><b>Equipo por WhatsApp</b><span>Nutricionistas que te responden entre sesiones.</span></li>
+            <li><b>2 clases en vivo por semana</b><span>Miércoles con el equipo, domingos con Alejandro.</span></li>
+          </ul>
+        </div>
+        <div class="rs-planes">
+          {monthlyPlans.map((p) => (
+            <article class:list={['rs-plan', { 'rs-plan--star': p.highlight }]}>
+              <header><b>{p.name}</b>{p.highlight && <span class="rs-badge">Recomendado</span>}</header>
+              <ul class="rs-lista">
+                <li>{p.sessionsPerMonth === 1 ? '1 sesión' : `${p.sessionsPerMonth} sesiones`} al mes con tu nutricionista</li>
+                <li>Tu plan ajustado a tu día a día</li>
+                <li>Tu seguimiento entre sesiones</li>
+              </ul>
+              {p.firstMonthEval && <p class="rs-regalo">De regalo: evaluación de cierre del primer mes</p>}
+              <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir y ver precios</button>
+            </article>
+          ))}
+        </div>
+      </div>
+      <p class="rs-k">Sin seguimiento continuo</p>
+      <div class="rs-sueltas">
+        <button type="button" class="rs-suelta" data-producto="basico"><span><b>Una sola sesión</b><small>Tu sesión y tu plan, sin seguimiento</small></span><span class="rs-ir">Elegir ›</span></button>
+        <button type="button" class="rs-suelta" data-producto="evaluacion"><span><b>¿Prefieres que te evaluemos antes?</b><small>Se descuenta si eliges un plan ese día</small></span><span class="rs-ir">Elegir ›</span></button>
       </div>
     </section>
 
@@ -49,9 +66,9 @@ const PAISES = [
       <div class="rs-progreso"><span>Paso 2 de 4</span></div>
       <h1>¿Por cuánto tiempo?</h1>
       <p class="rs-lead" id="p2-plan"></p>
-      <button type="button" class="rs-op rs-op--star" id="p2-3m" data-duracion="3"><span class="rs-badge">El que recomendamos</span><b>3 meses</b><span class="rs-precio"></span> <small></small></button>
-      <button type="button" class="rs-op" id="p2-1m" data-duracion="1"><b>Mes a mes</b><span class="rs-precio"></span> <small></small></button>
-      <p class="rs-nota">Con el de 3 meses, tu plazo corre desde que recibes tu plan y, si viajas, lo congelas 1 semana. No necesitas agendar todo ahora. Pagas con tarjeta o con Yape, sin recargo. Con tarjeta de crédito puedes pagar en cuotas.</p>
+      <div class="rs-duraciones" id="p2-opciones"></div>
+      <div class="rs-consultas" id="p2-consultas"></div>
+      <p class="rs-nota">Tu plazo empieza cuando recibes tu plan, no cuando pagas. No necesitas agendar todo ahora: eliges la primera cita y las demás las coordinas con tu nutricionista. Pagas con tarjeta o con Yape, sin recargo. Con tarjeta de crédito puedes pagar en hasta 12 cuotas; si hay intereses, los cobra tu banco.</p>
     </section>
 
     <section class="rs-paso" data-paso="p3" hidden>
