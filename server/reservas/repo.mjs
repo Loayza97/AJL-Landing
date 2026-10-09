@@ -169,3 +169,26 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
              WHERE cliente_id IS NOT NULL AND estado IN ('confirmada', 'pagada_sin_hora'))`,
   ).bind(limite)]);
 };
+
+// Quienes dejaron sus datos y no pagaron: su plazo para pagar venció dentro de
+// la ventana y esa persona (por correo) no tiene ninguna reserva pagada.
+export async function noPagadasEntre(db, desdeIso, hastaIso) {
+  const { results } = await db.prepare(
+    `SELECT r.id, r.producto, r.duracion_meses, r.inicio_utc, r.modalidad, r.nutricionista_id, c.nombre, c.whatsapp, c.email
+     FROM reservas r JOIN clientes c ON c.id = r.cliente_id
+     WHERE c.nombre IS NOT NULL AND r.estado IN ('apartada', 'pagando', 'expirada')
+       AND r.retencion_hasta >= ?1 AND r.retencion_hasta < ?2
+       AND NOT EXISTS (SELECT 1 FROM reservas r2 JOIN clientes c2 ON c2.id = r2.cliente_id
+                       WHERE c2.email = c.email AND r2.estado IN ('confirmada', 'pagada_sin_hora'))
+     ORDER BY r.retencion_hasta`,
+  ).bind(desdeIso, hastaIso).all();
+  return results;
+}
+
+export async function marcarResumen(db, fecha, ahora) {
+  const r = await db.prepare('INSERT INTO resumenes_enviados (fecha, enviado_en) VALUES (?1, ?2) ON CONFLICT (fecha) DO NOTHING')
+    .bind(fecha, ahora.toISOString()).run();
+  return r.meta.changes === 1;
+}
+
+export const desmarcarResumen = (db, fecha) => db.prepare('DELETE FROM resumenes_enviados WHERE fecha = ?1').bind(fecha).run();

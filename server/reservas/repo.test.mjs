@@ -195,3 +195,28 @@ test('purgar también borra las columnas nuevas; una reserva vieja sin ellas sig
   await db.prepare("UPDATE reservas SET cliente_id = 'viejo' WHERE id = 'v'").run();
   assert.equal((await repo.reservaPorToken(db, 'tv')).nombre, 'Ana Pérez');
 });
+
+test('noPagadasEntre: con datos y vencidas en la ventana; excluye a quien pagó después', async () => {
+  const db = d1DePrueba();
+  // Cada una en otro día: el tope es de 3 primeras sesiones por día.
+  const pagando = async (id, dia, email) => {
+    await ret(db, { id, token: `t${id}`, inicio_utc: `2026-10-${dia}T17:00:00Z`, fecha_lima: `2026-10-${dia}` });
+    await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, `t${id}`), cliente: { ...cliente, email }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  };
+  await pagando('a', '06', 'a@x.pe');
+  await pagando('b', '07', 'b@x.pe');
+  await ret(db, { id: 'sin', token: 'tsin', inicio_utc: '2026-10-08T17:00:00Z', fecha_lima: '2026-10-08' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada' WHERE id = 'b'").run();
+  await pagando('b2', '09', 'b@x.pe');
+  const filas = await repo.noPagadasEntre(db, t0.toISOString(), mas(24 * 60).toISOString());
+  assert.deepEqual(filas.map((f) => f.id), ['a']);
+  assert.equal(filas[0].whatsapp, '+51987654321');
+});
+
+test('marcarResumen es una sola vez por fecha', async () => {
+  const db = d1DePrueba();
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), true);
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), false);
+  await repo.desmarcarResumen(db, '2026-10-09');
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), true);
+});

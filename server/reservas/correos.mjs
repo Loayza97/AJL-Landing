@@ -54,3 +54,19 @@ export function correoSinHora({ nombre, urlReubicar }) {
 export function correoEquipoAlerta({ asunto, detalle }) {
   return { subject: `Reservas web: ${asunto}`, html: marco(`<h2 style="color:#b00020">${esc(asunto)}</h2><p>${esc(detalle)}</p>`) };
 }
+
+export function correoResumenNoPagadas({ fecha, personas }) {
+  const n = personas.length;
+  const filas = personas.map((p) => {
+    const wa = `https://wa.me/${String(p.whatsapp).replace(/\D/g, '')}`;
+    return `<li style="margin-bottom:12px"><strong>${esc(p.nombre)}</strong> · <a href="${esc(wa)}">${esc(p.whatsapp)}</a><br>
+      ${esc(p.titulo)} · ${esc(p.etiqueta)} · ${p.modalidad === 'video' ? 'Videollamada' : 'Presencial'} · ${esc(p.nutricionista)}</li>`;
+  }).join('');
+  return {
+    subject: `Reservas web: ${n} ${n === 1 ? 'persona no completó' : 'personas no completaron'} el pago (${fecha})`,
+    html: marco(`
+      <h2 style="color:#9C7A2B">Dejaron sus datos y no pagaron</h2>
+      <p>En las últimas 24 horas. Escríbeles por WhatsApp para ayudarles con su reserva; sus datos se borran a los 30 días.</p>
+      <ul style="padding-left:18px">${filas}</ul>`),
+  };
+}

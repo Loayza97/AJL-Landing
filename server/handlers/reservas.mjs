@@ -6,11 +6,13 @@
 // POST /api/reservas/webhook-mp aviso firmado de Mercado Pago
 // GET  /api/reservas/ics        archivo para «Agregar a mi calendario»
 // POST /api/reservas/reubicar   nueva hora para quien pagó y perdió la suya
+// POST /api/reservas/resumen-diario  correo diario al equipo con quienes no pagaron (cron)
 import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
 import { inicioUtc, sumarDias, fechaLima, etiquetaLima } from '../reservas/tiempo.mjs';
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
+import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
@@ -238,4 +240,40 @@ export async function handleReubicar(request, env, deps) {
     console.error('reubicar', e);
     return bad(503, 'No pudimos guardar tu nueva hora. Intenta en un momento.');
   }
+}
+
+// Comparación de tokens en tiempo constante.
+async function mismoToken(a, b) {
+  const [x, y] = await Promise.all([a, b].map((s) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))));
+  const u = new Uint8Array(x);
+  const w = new Uint8Array(y);
+  let dif = 0;
+  for (let i = 0; i < u.length; i++) dif |= u[i] ^ w[i];
+  return dif === 0;
+}
+
+export async function handleResumenDiario(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Resumen sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  const ahora = deps.ahora();
+  const fecha = fechaLima(ahora);
+  const filas = await repo.noPagadasEntre(deps.db, new Date(ahora.getTime() - 86400000).toISOString(), ahora.toISOString());
+  const unicas = [...new Map(filas.map((f) => [f.email, f])).values()];
+  if (!unicas.length) return json(200, { ok: true, enviados: 0 });
+  if (!(await repo.marcarResumen(deps.db, fecha, ahora))) return json(200, { ok: true, enviados: 0, repetido: true });
+  const personas = unicas.map((f) => ({
+    nombre: f.nombre, whatsapp: f.whatsapp, titulo: cotizar(f.producto, f.duracion_meses)?.titulo ?? f.producto,
+    etiqueta: etiquetaLima(f.inicio_utc), modalidad: f.modalidad,
+    nutricionista: deps.nutricionistas.find((x) => x.id === f.nutricionista_id)?.nombre ?? 'el equipo',
+  }));
+  const enviado = await deps.sendEmail({
+    from: env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>', to: env.NOTIFICATION_EMAIL,
+    ...correoResumenNoPagadas({ fecha, personas }),
+  });
+  if (!enviado) {
+    await repo.desmarcarResumen(deps.db, fecha);
+    return bad(503, 'No se pudo enviar el resumen');
+  }
+  return json(200, { ok: true, enviados: personas.length });
 }

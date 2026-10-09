@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
-import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs } from './reservas.mjs';
+import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario } from './reservas.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
-const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec' };
+const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok' };
 function deps(extra = {}) {
   const pagos = {};
   return {
@@ -141,4 +141,34 @@ test('webhook firmado procesa el pago', async () => {
 test('webhook de otro tipo se ignora con 200; sin secreto configurado, 503', async () => {
   assert.equal((await handleWebhookMp(post('/api/reservas/webhook-mp?type=merchant_order&data.id=1', {}), env, deps())).status, 200);
   assert.equal((await handleWebhookMp(post('/api/reservas/webhook-mp?type=payment&data.id=1', {}), { ...env, MP_WEBHOOK_SECRET: '' }, deps())).status, 503);
+});
+
+test('resumen diario: token, una sola vez por día y solo con alguien que avisar', async () => {
+  const enviados = [];
+  const d = deps({ sendEmail: async (m) => { enviados.push(m); return true; } });
+  const llamar = (auth) => handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: auth ? { Authorization: auth } : {} }), env, d);
+  assert.equal((await llamar()).status, 401);
+  assert.equal((await llamar('Bearer otro')).status, 401);
+  assert.deepEqual(await (await llamar('Bearer tok')).json(), { ok: true, enviados: 0 });
+  const ap = await (await apartar(d)).json();
+  await handlePagar(post('/api/reservas/pagar', { ...datos, token: ap.token }), env, d);
+  const d2 = { ...d, ahora: () => new Date(t0.getTime() + 2 * 3600000) };
+  const llamar2 = () => handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), env, d2);
+  assert.deepEqual(await (await llamar2()).json(), { ok: true, enviados: 1 });
+  assert.deepEqual(await (await llamar2()).json(), { ok: true, enviados: 0, repetido: true });
+  assert.equal(enviados.length, 1);
+  assert.equal(enviados[0].to, 'equipo@x.pe');
+  assert.equal((await handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), { ...env, RESUMEN_TOKEN: '' }, d2)).status, 503);
+});
+
+test('resumen diario: si el correo falla, se puede reintentar el mismo día', async () => {
+  let falla = true;
+  const d = deps({ sendEmail: async () => !falla });
+  const ap = await (await apartar(d)).json();
+  await handlePagar(post('/api/reservas/pagar', { ...datos, token: ap.token }), env, d);
+  const d2 = { ...d, ahora: () => new Date(t0.getTime() + 2 * 3600000) };
+  const llamar = () => handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), env, d2);
+  assert.equal((await llamar()).status, 503);
+  falla = false;
+  assert.deepEqual(await (await llamar()).json(), { ok: true, enviados: 1 });
 });

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { correoConfirmacion, correoEquipoConfirmada } from './correos.mjs';
+import { correoConfirmacion, correoEquipoConfirmada, correoResumenNoPagadas } from './correos.mjs';
 import { icsDeReserva } from './ics.mjs';
 import { crearSendEmail } from '../correo.mjs';
 
@@ -31,4 +31,14 @@ test('ics con horas UTC y texto escapado', () => {
 test('sendEmail devuelve false si la red falla, sin lanzar', async () => {
   const send = crearSendEmail({ RESEND_API_KEY: 'k' }, async () => { throw new Error('red'); });
   assert.equal(await send({ from: 'a', to: 'b', subject: 's', html: 'h' }), false);
+});
+
+test('resumen de no pagados: escapa nombres y arma el link de WhatsApp', () => {
+  const c = correoResumenNoPagadas({ fecha: '2026-10-09', personas: [
+    { nombre: '<b>Ana</b>', whatsapp: '+51987654321', titulo: '2 sesiones al mes · 6 meses', etiqueta: 'martes 6 de octubre · 12:00', modalidad: 'presencial', nutricionista: 'Nico' },
+  ] });
+  assert.match(c.subject, /1 persona/);
+  assert.ok(!c.html.includes('<b>Ana</b>'));
+  assert.ok(c.html.includes('&lt;b&gt;Ana&lt;/b&gt;'));
+  assert.ok(c.html.includes('https://wa.me/51987654321'));
 });
