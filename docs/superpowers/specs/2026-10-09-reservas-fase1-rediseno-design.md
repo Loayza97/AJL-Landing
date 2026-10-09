@@ -45,14 +45,14 @@ Llevar a la web el flujo rediseñado con el equipo (lienzo "Reservas AJL · fluj
 1. **Elige tu acompañamiento.** Banda "Todos incluyen tu seguimiento entre sesiones" (plan en la app, equipo por WhatsApp, 2 clases en vivo por semana). Tres tarjetas con lo que incluye cada una; las de 2 y 4 sesiones con "De regalo: evaluación de cierre del primer mes"; la de 2 sesiones marcada "Recomendado". Abajo, "Sin seguimiento continuo": una sola sesión y "¿Prefieres que te evaluemos antes?". Ningún precio en esta pantalla.
 2. **¿Por cuánto tiempo?** Tres tarjetas: Mes a mes, 3 meses (Recomendado, al centro), 6 meses. En 3 y 6 meses: precio normal por mes tachado, precio por mes del paquete, "S/X en total · puedes pagarlo en cuotas", "Si viajas, puedes congelarlo N semana(s)" y la etiqueta de ahorro. Debajo, "Así son tus consultas cada mes" según el plan y la nota de cuotas. En pantallas angostas las tarjetas se apilan con 3 meses primero.
 3. **Elige con quién y cuándo.** El selector actual, sin cambios de lógica, con los colores nuevos.
-4. **¿A nombre de quién?** Campos obligatorios: nombres, apellido paterno, apellido materno, WhatsApp con país, correo, fecha de nacimiento, DNI. Resumen del plan con total y "Con tarjeta de crédito, en hasta 12 cuotas". "Condiciones del servicio" y "política de privacidad" abren una ventana encima (resumen en 5 puntos y link a la versión completa) sin perder lo escrito ni el horario. No hay aviso visible de que escribiremos a quien no pague: eso lo dicen la política de privacidad y su resumen en la ventana (decisión de Joaquín, 2026-10-09). Casilla de novedades opcional, como hoy.
+4. **¿A nombre de quién?** Campos obligatorios: nombres, apellido paterno, WhatsApp con país, correo, fecha de nacimiento y documento (tipo DNI, Carné de Extranjería o Pasaporte, más su número). Apellido materno opcional: hay pacientes extranjeros sin segundo apellido. Resumen del plan con total y "Con tarjeta de crédito, en hasta 12 cuotas". "Condiciones del servicio" y "política de privacidad" abren una ventana encima (resumen en 5 puntos y link a la versión completa) sin perder lo escrito ni el horario. No hay aviso visible de que escribiremos a quien no pague: eso lo dicen la política de privacidad y su resumen en la ventana (decisión de Joaquín, 2026-10-09). Casilla de novedades opcional, como hoy.
 5. **Mercado Pago.** Sin cambios.
 6. **Listo.** Sin cambios.
 
 ## Validación en el servidor (`handlePagar`)
 
-- Nombres y cada apellido: 2 a 60 caracteres, al menos una letra.
-- DNI: siempre, 8 dígitos.
+- Nombres y apellido paterno: 2 a 60 caracteres, al menos una letra; se aceptan tildes, ñ, apóstrofo, guion y espacios. Apellido materno: vacío o con la misma regla.
+- Documento: siempre. DNI 8 dígitos; Carné de Extranjería 9 a 12 letras o dígitos; Pasaporte 6 a 12 letras o dígitos.
 - Fecha de nacimiento: `AAAA-MM-DD` válida, no futura, edad entre 10 y 100 años en la zona de Lima.
 - WhatsApp, correo y aceptación: como hoy.
 - El navegador valida lo mismo para avisar antes, pero el servidor es el que decide.
@@ -66,10 +66,12 @@ ALTER TABLE clientes ADD COLUMN nombres TEXT;
 ALTER TABLE clientes ADD COLUMN apellido_paterno TEXT;
 ALTER TABLE clientes ADD COLUMN apellido_materno TEXT;
 ALTER TABLE clientes ADD COLUMN fecha_nacimiento TEXT;
+ALTER TABLE clientes ADD COLUMN tipo_documento TEXT;
 CREATE TABLE resumenes_enviados (fecha TEXT PRIMARY KEY, enviado_en TEXT NOT NULL);
 ```
 
-- `clientes.nombre` se sigue llenando con el nombre completo ("Nombres Paterno Materno"), así correos, calendario y Mercado Pago no cambian.
+- `clientes.dni` guarda el número del documento y `tipo_documento` dice cuál es (`dni`, `ce`, `pasaporte`).
+- `clientes.nombre` se sigue llenando con el nombre completo ("Nombres Paterno Materno", sin el materno si no lo hay), así correos, calendario y Mercado Pago no cambian.
 - La purga de no pagados a los 30 días borra también las columnas nuevas.
 - Se aplica primero en `ajl-reservas-preview` y, al lanzar, en `ajl-reservas`.
 
@@ -83,11 +85,11 @@ CREATE TABLE resumenes_enviados (fecha TEXT PRIMARY KEY, enviado_en TEXT NOT NUL
 ## Textos legales (código y política dicen lo mismo)
 
 - `condiciones.astro`: plazos de 3 y 6 meses, congelar 1 y 2 semanas, cuotas con interés del banco. Sube `CONDICIONES_VERSION` a `2026-10-09`.
-- `public/privacidad/index.html` 2.6 y tablas: nombres y apellidos, fecha de nacimiento (para preparar la primera sesión), DNI siempre (comprobante), el contacto por WhatsApp a quien no completa el pago dentro de los 30 días y el resumen interno al equipo. Sube a versión 1.5.
+- `public/privacidad/index.html` 2.6 y tablas: nombres y apellidos, fecha de nacimiento (para preparar la primera sesión), documento de identidad siempre (comprobante), el contacto por WhatsApp a quien no completa el pago dentro de los 30 días y el resumen interno al equipo. Sube a versión 1.5.
 
 ## Pruebas
 
-- Unitarias (`node --test`): precios y ahorro de cada plan y duración; `cotizar` rechaza duraciones inválidas; validación de cada campo con sus bordes (fecha 29 de febrero, edad 9 y 101 años, DNI de 7 dígitos); migración aplicada sobre la base de prueba; purga de columnas nuevas; resumen: elige bien a quién incluir, excluye a quien pagó después, no repite en el mismo día, rechaza sin token.
+- Unitarias (`node --test`): precios y ahorro de cada plan y duración; `cotizar` rechaza duraciones inválidas; validación de cada campo con sus bordes (fecha 29 de febrero, edad 9 y 101 años, DNI de 7 dígitos, pasaporte con letras, apellido con tilde y apóstrofo, materno vacío); migración aplicada sobre la base de prueba; purga de columnas nuevas; resumen: elige bien a quién incluir, excluye a quien pagó después, no repite en el mismo día, rechaza sin token.
 - Construcción: `npm run build` sin errores.
 - Punta a punta en `https://reservas-pago.ajl-landing.pages.dev`: paquete de 6 meses pagado en 3 cuotas con el comprador de prueba; reserva confirmada, evento en el calendario, 3 correos; una reserva sin pagar aparece en el resumen al llamarlo a mano. Revisión visual en celular y computadora.
 - Producción solo después, con autorización de Joaquín.
