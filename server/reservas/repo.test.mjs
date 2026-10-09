@@ -12,6 +12,11 @@ const ret = (db, o = {}) => repo.crearRetencion(db, {
   primerasManuales: 0, tope: 3, ahora: t0, ...o,
 });
 
+const cliente = {
+  nombre: 'Ana Lucía Pérez Núñez', nombres: 'Ana Lucía', apellido_paterno: 'Pérez', apellido_materno: 'Núñez',
+  fecha_nacimiento: '1990-05-04', tipo_documento: 'dni', dni: '12345678', whatsapp: '+51987654321', email: 'a@x.pe',
+};
+
 test('retención nueva queda apartada 15 minutos', async () => {
   const db = d1DePrueba();
   const r = await ret(db, { id: 'a', token: 'ta' });
@@ -153,7 +158,7 @@ test('purgar borra datos de contacto de reservas no pagadas con más de 30 días
   const db = d1DePrueba();
   await ret(db, { id: 'np', token: 'tnp' });
   const r = await repo.reservaPorToken(db, 'tnp');
-  await repo.guardarDatosYPagar(db, { reserva: r, cliente: { nombre: 'Ana', whatsapp: '+51987654321', email: 'a@x.pe', dni: null }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  await repo.guardarDatosYPagar(db, { reserva: r, cliente: { ...cliente, nombre: 'Ana' }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
   await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
   assert.equal((await repo.reservaPorToken(db, 'tnp')).nombre, null);
 });
@@ -163,4 +168,30 @@ test('purgar borra la huella apenas termina la retención', async () => {
   await ret(db, { token: 'th', huella: 'abc' });
   await repo.purgarNoPagadas(db, mas(16));
   assert.equal((await repo.reservaPorToken(db, 'th')).huella, null);
+});
+
+test('guardarDatosYPagar guarda nombres, apellidos, nacimiento y documento', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'g', token: 'tg' });
+  const r = await repo.reservaPorToken(db, 'tg');
+  await repo.guardarDatosYPagar(db, { reserva: r, cliente, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  const c = await db.prepare('SELECT * FROM clientes').first();
+  assert.equal(c.nombre, 'Ana Lucía Pérez Núñez');
+  assert.equal(c.apellido_materno, 'Núñez');
+  assert.equal(c.fecha_nacimiento, '1990-05-04');
+  assert.equal(c.tipo_documento, 'dni');
+  assert.equal((await repo.reservaPorToken(db, 'tg')).estado, 'pagando');
+});
+
+test('purgar también borra las columnas nuevas; una reserva vieja sin ellas sigue leyéndose', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'p2', token: 'tp2' });
+  await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, 'tp2'), cliente, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
+  const c = await db.prepare('SELECT * FROM clientes').first();
+  assert.deepEqual([c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento, c.dni], [null, null, null, null, null, null]);
+  await db.prepare("INSERT INTO clientes (id, nombre, creado_en) VALUES ('viejo', 'Ana Pérez', 'x')").run();
+  await ret(db, { id: 'v', token: 'tv', inicio_utc: '2026-10-06T19:00:00Z' });
+  await db.prepare("UPDATE reservas SET cliente_id = 'viejo' WHERE id = 'v'").run();
+  assert.equal((await repo.reservaPorToken(db, 'tv')).nombre, 'Ana Pérez');
 });

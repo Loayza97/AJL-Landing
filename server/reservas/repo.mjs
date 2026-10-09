@@ -10,7 +10,7 @@ const expirar = (db, ahoraIso) => db.prepare(
    WHERE estado IN ('apartada', 'pagando') AND retencion_hasta < ?1`,
 ).bind(ahoraIso);
 
-const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni
+const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento
   FROM reservas r LEFT JOIN clientes c ON c.id = r.cliente_id`;
 
 export async function crearRetencion(db, r) {
@@ -59,11 +59,16 @@ export async function guardarDatosYPagar(db, { reserva, cliente, condicionesVers
   const ahoraIso = ahora.toISOString();
   const hasta = new Date(Date.parse(reserva.creado_en) + 30 * MIN).toISOString();
   const clienteId = reserva.cliente_id || crypto.randomUUID();
+  const c = cliente;
+  const campos = [c.nombre ?? null, c.whatsapp ?? null, c.email ?? null, c.dni ?? null, c.nombres ?? null, c.apellido_paterno ?? null, c.apellido_materno ?? null,
+    c.fecha_nacimiento ?? null, c.tipo_documento ?? null];
   const guardarCliente = reserva.cliente_id
-    ? db.prepare('UPDATE clientes SET nombre = ?2, whatsapp = ?3, email = ?4, dni = ?5 WHERE id = ?1')
-      .bind(clienteId, cliente.nombre, cliente.whatsapp, cliente.email, cliente.dni)
-    : db.prepare('INSERT INTO clientes (id, nombre, whatsapp, email, dni, creado_en) VALUES (?1, ?2, ?3, ?4, ?5, ?6)')
-      .bind(clienteId, cliente.nombre, cliente.whatsapp, cliente.email, cliente.dni, ahoraIso);
+    ? db.prepare(`UPDATE clientes SET nombre = ?2, whatsapp = ?3, email = ?4, dni = ?5, nombres = ?6,
+        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1`)
+      .bind(clienteId, ...campos)
+    : db.prepare(`INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno,
+        fecha_nacimiento, tipo_documento, creado_en) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
+      .bind(clienteId, ...campos, ahoraIso);
   const actualizar = db.prepare(
     `UPDATE reservas SET cliente_id = ?1, estado = 'pagando', retencion_hasta = ?2,
        acepto_condiciones_version = ?3, novedades_optin = ?4, actualizado_en = ?5
@@ -154,7 +159,8 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
      WHERE huella IS NOT NULL AND (estado NOT IN ('apartada', 'pagando') OR retencion_hasta < ?1)`,
   ).bind(ahora.toISOString());
   return db.batch([sinHuella, db.prepare(
-    `UPDATE clientes SET nombre = NULL, whatsapp = NULL, email = NULL, dni = NULL
+    `UPDATE clientes SET nombre = NULL, whatsapp = NULL, email = NULL, dni = NULL, nombres = NULL,
+       apellido_paterno = NULL, apellido_materno = NULL, fecha_nacimiento = NULL, tipo_documento = NULL
      WHERE nombre IS NOT NULL
        AND id IN (SELECT cliente_id FROM reservas WHERE cliente_id IS NOT NULL AND (
              (estado IN ('expirada', 'cancelada') AND actualizado_en < ?1)

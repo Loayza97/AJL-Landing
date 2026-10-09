@@ -2,11 +2,15 @@
 // (índices parciales, INSERT … SELECT, ON CONFLICT) se comporta igual; aquí
 // solo se imita la forma de la API que usan los módulos.
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 export function d1DePrueba() {
   const sqlite = new DatabaseSync(':memory:');
-  sqlite.exec(readFileSync(new URL('../../db/d1/0001_reservas.sql', import.meta.url), 'utf8'));
+  // Todas las migraciones, en orden, como las aplica D1.
+  const dir = new URL('../../db/d1/', import.meta.url);
+  for (const f of readdirSync(dir).filter((x) => x.endsWith('.sql')).sort()) {
+    sqlite.exec(readFileSync(new URL(f, dir), 'utf8'));
+  }
 
   const plano = (fila) => (fila ? { ...fila } : null);
   function sentencia(sql, params = []) {

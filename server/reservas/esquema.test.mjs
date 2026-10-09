@@ -40,3 +40,14 @@ test('batch revierte todo si una sentencia falla', async () => {
   await assert.rejects(db.batch([ok, malo]));
   assert.equal(await db.prepare('SELECT id FROM clientes').first(), null);
 });
+
+test('migración 0002: columnas nuevas de clientes y tabla de resúmenes', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO clientes (id, nombre, nombres, apellido_paterno, apellido_materno, fecha_nacimiento, tipo_documento, dni, creado_en)
+    VALUES ('c', 'Ana Pérez', 'Ana', 'Pérez', NULL, '1990-05-04', 'ce', 'X12345678', 'x')`).run();
+  const c = await db.prepare('SELECT * FROM clientes').first();
+  assert.equal(c.fecha_nacimiento, '1990-05-04');
+  assert.equal(c.tipo_documento, 'ce');
+  await db.prepare("INSERT INTO resumenes_enviados (fecha, enviado_en) VALUES ('2026-10-09', 'x')").run();
+  await assert.rejects(db.prepare("INSERT INTO resumenes_enviados (fecha, enviado_en) VALUES ('2026-10-09', 'y')").run(), /UNIQUE|PRIMARY/);
+});
