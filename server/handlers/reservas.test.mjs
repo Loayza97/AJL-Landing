@@ -32,7 +32,7 @@ test('horas: 7 días y el equipo, sin datos privados', async () => {
 
 test('horas: parámetros inválidos dan 400', async () => {
   for (const q of ['desde=hoy&modalidad=presencial&producto=constancia&duracion=3', 'desde=2026-10-06&modalidad=casa&producto=constancia&duracion=3',
-    'desde=2026-10-06&modalidad=video&producto=constancia&duracion=6', 'desde=2026-10-06&modalidad=video&producto=constancia&duracion=3&nutricionista=zzz']) {
+    'desde=2026-10-06&modalidad=video&producto=constancia&duracion=12', 'desde=2026-10-06&modalidad=video&producto=constancia&duracion=3&nutricionista=zzz']) {
     assert.equal((await handleHoras(get(`/api/reservas/horas?${q}`), env, deps())).status, 400, q);
   }
 });
