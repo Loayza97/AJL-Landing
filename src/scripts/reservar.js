@@ -31,7 +31,8 @@ function tarjetaDuracion(o, precioMes) {
   if (o.meses === 1) {
     b.append(h('span', 'rs-dur-d', 'Pagas cada mes, sin compromiso'));
   } else {
-    b.append(h('span', 'rs-dur-d', `${formatoSoles(o.total)} en total · puedes pagarlo en cuotas`));
+    b.append(h('span', 'rs-dur-d', `${formatoSoles(o.total)} en total`));
+    b.append(h('span', 'rs-dur-cuotas', 'Puedes pagarlo en cuotas'));
     b.append(h('span', 'rs-dur-d', `Si viajas, puedes congelarlo ${o.congelarSemanas} ${o.congelarSemanas === 1 ? 'semana' : 'semanas'}`));
     b.append(h('span', 'rs-ahorro', `Ahorras ${formatoSoles(o.ahorro)} (${o.ahorroPct}%)`));
   }
