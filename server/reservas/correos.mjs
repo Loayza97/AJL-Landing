@@ -70,7 +70,7 @@ export function correoResumenNoPagadas({ fecha, personas }) {
     subject: `Reservas web: ${n} ${n === 1 ? 'persona no completó' : 'personas no completaron'} el pago (${fecha})`,
     html: marco(`
       <h2 style="color:#9C7A2B">Dejaron sus datos y no pagaron</h2>
-      <p>En las últimas 24 horas. Escríbeles por WhatsApp para ayudarles con su reserva; sus datos se borran a los 30 días.</p>
+      <p>Desde el resumen anterior. Escríbeles por WhatsApp para ayudarles con su reserva; sus datos se borran a los 30 días.</p>
       <ul style="padding-left:18px">${filas}</ul>`),
   };
 }

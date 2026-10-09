@@ -78,7 +78,7 @@ CREATE TABLE resumenes_enviados (fecha TEXT PRIMARY KEY, enviado_en TEXT NOT NUL
 ## Resumen diario de quienes no pagaron
 
 - Endpoint `POST /api/reservas/resumen-diario`, protegido con el encabezado `Authorization: Bearer <RESUMEN_TOKEN>` (secreto nuevo en Cloudflare Pages, producción y preview).
-- Junta las reservas que dejaron datos y no se pagaron en las últimas 24 horas (estado `expirada`, o `apartada`/`pagando` con plazo vencido, con cliente), sin las de personas que luego sí pagaron con el mismo correo. Manda un correo a `NOTIFICATION_EMAIL` con nombre, WhatsApp, plan, duración, hora elegida y un link `wa.me`. Si no hay nadie, no manda nada.
+- Junta las reservas que dejaron datos y no se pagaron desde el último resumen enviado (como máximo 30 días atrás, para que ningún día se pierda si el cron no corre o el correo falla) (estado `expirada`, o `apartada`/`pagando` con plazo vencido, con cliente), sin las de personas que luego sí pagaron con el mismo correo. Manda un correo a `NOTIFICATION_EMAIL` con nombre, WhatsApp, plan, duración, hora elegida y un link `wa.me`. Si no hay nadie, no manda nada.
 - Idempotente por fecha de Lima en `resumenes_enviados`: llamarlo dos veces el mismo día manda un solo correo.
 - Lo dispara un Worker aparte con cron (`workers/resumen-cron/`, `wrangler.toml` propio, `0 13 * * *` = 8:00 Lima) que solo hace el POST con el token. Se despliega con `wrangler deploy`.
 

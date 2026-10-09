@@ -202,3 +202,10 @@ export async function liberarRetencion(db, token, ahora) {
   ).bind(token, ahora.toISOString()).run();
   return r.meta.changes === 1;
 }
+
+// Momento del último resumen enviado: el siguiente mira desde ahí, así ningún
+// día se pierde aunque el cron no corra o el correo falle.
+export async function ultimoResumen(db) {
+  const r = await db.prepare('SELECT MAX(enviado_en) AS en FROM resumenes_enviados').first();
+  return r?.en ?? null;
+}

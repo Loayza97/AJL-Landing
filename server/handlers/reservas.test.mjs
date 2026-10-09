@@ -155,7 +155,7 @@ test('resumen diario: token, una sola vez por día y solo con alguien que avisar
   const d2 = { ...d, ahora: () => new Date(t0.getTime() + 2 * 3600000) };
   const llamar2 = () => handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), env, d2);
   assert.deepEqual(await (await llamar2()).json(), { ok: true, enviados: 1 });
-  assert.deepEqual(await (await llamar2()).json(), { ok: true, enviados: 0, repetido: true });
+  assert.deepEqual(await (await llamar2()).json(), { ok: true, enviados: 0 }); // nadie nuevo desde el último envío
   assert.equal(enviados.length, 1);
   assert.equal(enviados[0].to, 'equipo@x.pe');
   assert.equal((await handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), { ...env, RESUMEN_TOKEN: '' }, d2)).status, 503);
@@ -186,4 +186,20 @@ test('apartar con liberar suelta la hora anterior: cambiar de hora no gasta el l
   }
   const { n } = await d.db.prepare("SELECT COUNT(*) AS n FROM reservas WHERE estado = 'apartada'").first();
   assert.equal(n, 1);
+});
+
+test('resumen diario: si un día no se envió, el siguiente incluye lo acumulado desde el último envío', async () => {
+  const enviados = [];
+  const d = deps({ sendEmail: async (m) => { enviados.push(m); return true; } });
+  const llamar = (horas) => handleResumenDiario(new Request('https://x.test/api/reservas/resumen-diario', { method: 'POST', headers: { Authorization: 'Bearer tok' } }),
+    env, { ...d, ahora: () => new Date(t0.getTime() + horas * 3600000) });
+  // Primer envío (día 1) sin nadie pendiente: no deja marca.
+  // Una persona deja datos y no paga; su plazo vence a las 15:30 del día 1.
+  const ap = await (await apartar(d)).json();
+  await handlePagar(post('/api/reservas/pagar', { ...datos, token: ap.token }), env, d);
+  // El cron no corre el día 2; corre recién el día 3 (más de 24 h después del vencimiento).
+  assert.deepEqual(await (await llamar(50)).json(), { ok: true, enviados: 1 });
+  // El día 4 no la repite: el último envío marca desde dónde mirar.
+  assert.deepEqual(await (await llamar(74)).json(), { ok: true, enviados: 0 });
+  assert.equal(enviados.length, 1);
 });

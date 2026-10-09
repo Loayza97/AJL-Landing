@@ -260,7 +260,11 @@ export async function handleResumenDiario(request, env, deps) {
   if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
   const ahora = deps.ahora();
   const fecha = fechaLima(ahora);
-  const filas = await repo.noPagadasEntre(deps.db, new Date(ahora.getTime() - 86400000).toISOString(), ahora.toISOString());
+  // Desde el último envío; como máximo 30 días atrás (después se borran los datos).
+  const tope = new Date(ahora.getTime() - 30 * 86400000).toISOString();
+  const ultimo = await repo.ultimoResumen(deps.db);
+  const desde = ultimo && ultimo > tope ? ultimo : tope;
+  const filas = await repo.noPagadasEntre(deps.db, desde, ahora.toISOString());
   const unicas = [...new Map(filas.map((f) => [f.email, f])).values()];
   if (!unicas.length) return json(200, { ok: true, enviados: 0 });
   if (!(await repo.marcarResumen(deps.db, fecha, ahora))) return json(200, { ok: true, enviados: 0, repetido: true });
