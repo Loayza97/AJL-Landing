@@ -144,9 +144,9 @@ export const includedInAll = [
   { icon: 'phone', text: 'Tu plan en la app, con todo lo que conversamos en tu sesión' },
 ];
 
-// Formas de pago. La tarjeta lleva recargo porque la pasarela cobra comisión.
+// Formas de pago. Sin recargo por tarjeta en ningún canal (D7.1, 30-sep-2026).
 export const paymentMethods = [
   { id: 'yape',          label: 'Yape',          icon: '📱', note: null },
   { id: 'transferencia', label: 'Transferencia', icon: '🏦', note: null },
-  { id: 'tarjeta',       label: 'Tarjeta',       icon: '💳', note: '5% de recargo' },
+  { id: 'tarjeta',       label: 'Tarjeta',       icon: '💳', note: null },
 ];

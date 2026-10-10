@@ -1,0 +1,2 @@
+/checkout/:slug/ /reservar/?plan=:slug 301
+/checkout/:slug /reservar/?plan=:slug 301

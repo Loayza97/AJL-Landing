@@ -81,7 +81,7 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
           </div>
           <div class="ap-cta" role="cell">
             <a
-              href={`/checkout/${p.id}`}
+              href={`/reservar/?plan=${p.id}`}
               class:list={['pbtn', { 'pbtn--star': p.highlight }]}
               data-section="paquetes"
               data-pkg={p.name}
@@ -114,7 +114,7 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
       </div>
       <div class="ap-cta">
         <a
-          href={`/checkout/${singlePlan.id}`}
+          href={`/reservar/?plan=${singlePlan.id}`}
           class="pbtn pbtn--ghost"
           data-section="paquetes"
           data-pkg={singlePlan.name}
