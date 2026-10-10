@@ -1,0 +1,235 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { d1DePrueba } from './d1-prueba.mjs';
+import * as repo from './repo.mjs';
+
+const t0 = new Date('2026-10-05T15:00:00Z');
+const mas = (min) => new Date(t0.getTime() + min * 60000);
+let n = 0;
+const ret = (db, o = {}) => repo.crearRetencion(db, {
+  id: `r${++n}`, token: `t${n}`, producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
+  nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial',
+  primerasManuales: 0, tope: 3, ahora: t0, ...o,
+});
+
+const cliente = {
+  nombre: 'Ana Lucía Pérez Núñez', nombres: 'Ana Lucía', apellido_paterno: 'Pérez', apellido_materno: 'Núñez',
+  fecha_nacimiento: '1990-05-04', tipo_documento: 'dni', dni: '12345678', whatsapp: '+51987654321', email: 'a@x.pe',
+};
+
+test('retención nueva queda apartada 15 minutos', async () => {
+  const db = d1DePrueba();
+  const r = await ret(db, { id: 'a', token: 'ta' });
+  assert.deepEqual(r, { ok: true, retencion_hasta: mas(15).toISOString() });
+  assert.equal((await repo.reservaPorToken(db, 'ta')).estado, 'apartada');
+});
+
+test('segunda retención presencial a la misma hora: ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db);
+  assert.deepEqual(await ret(db, { nutricionista_id: 'jussara' }), { ok: false, motivo: 'ocupada' });
+});
+
+test('una retención vencida se libera al intentar otra', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'viejo' });
+  assert.deepEqual((await ret(db, { ahora: mas(16) })).ok, true);
+  assert.equal((await repo.reservaPorId(db, 'viejo')).estado, 'expirada');
+});
+
+test('tope: la cuarta primera sesión del día no entra; con 2,5 entra una evaluación', async () => {
+  const db = d1DePrueba();
+  for (const h of ['14', '15', '16']) await ret(db, { inicio_utc: `2026-10-06T${h}:00:00Z`, nutricionista_id: `n${h}` });
+  assert.deepEqual(await ret(db, { inicio_utc: '2026-10-06T22:00:00Z' }), { ok: false, motivo: 'tope' });
+  const db2 = d1DePrueba();
+  await ret(db2, { inicio_utc: '2026-10-06T14:00:00Z', nutricionista_id: 'a' });
+  await ret(db2, { inicio_utc: '2026-10-06T15:00:00Z', nutricionista_id: 'b' });
+  assert.equal((await ret(db2, { inicio_utc: '2026-10-06T16:00:00Z', nutricionista_id: 'c', peso_tope: 0.5, primerasManuales: 0 })).ok, true);
+  assert.deepEqual(await ret(db2, { inicio_utc: '2026-10-06T22:00:00Z', peso_tope: 0.5, primerasManuales: 0 }), { ok: true, retencion_hasta: mas(15).toISOString() });
+});
+
+test('límite de retenciones por huella: la tercera a la vez no entra; vencidas no cuentan', async () => {
+  const db = d1DePrueba();
+  const h = (hora, extra = {}) => ret(db, { inicio_utc: `2026-10-06T${hora}:00:00Z`, nutricionista_id: `n${hora}`, huella: 'abc', maxRetenciones: 2, ...extra });
+  assert.equal((await h('14')).ok, true);
+  assert.equal((await h('15')).ok, true);
+  assert.deepEqual(await h('16'), { ok: false, motivo: 'limite' });
+  assert.equal((await h('16', { ahora: mas(16) })).ok, true);
+});
+
+test('las primeras manuales del calendario cuentan para el tope', async () => {
+  const db = d1DePrueba();
+  assert.deepEqual(await ret(db, { primerasManuales: 3 }), { ok: false, motivo: 'tope' });
+});
+
+test('guardar datos extiende la retención a 30 minutos desde que se creó', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'p', token: 'tp' });
+  const r = await repo.reservaPorToken(db, 'tp');
+  const res = await repo.guardarDatosYPagar(db, {
+    reserva: r, cliente: { nombre: 'Ana Pérez', whatsapp: '+51987654321', email: 'ana@x.pe', dni: '12345678' },
+    condicionesVersion: '2026-10-01', novedades: true, ahora: mas(10),
+  });
+  assert.deepEqual(res, { ok: true, retencion_hasta: mas(30).toISOString() });
+  const despues = await repo.reservaPorToken(db, 'tp');
+  assert.equal(despues.estado, 'pagando');
+  assert.equal(despues.nombre, 'Ana Pérez');
+  assert.equal(despues.novedades_optin, 1);
+});
+
+test('guardar datos con la retención vencida: vencida', async () => {
+  const db = d1DePrueba();
+  await ret(db, { token: 'tv' });
+  const r = await repo.reservaPorToken(db, 'tv');
+  const res = await repo.guardarDatosYPagar(db, {
+    reserva: r, cliente: { nombre: 'Ana', whatsapp: '+51987654321', email: 'a@x.pe', dni: null },
+    condicionesVersion: 'v', novedades: false, ahora: mas(20),
+  });
+  assert.deepEqual(res, { ok: false, motivo: 'vencida' });
+});
+
+test('confirmar desde pagando; confirmar dos veces avisa ya_confirmada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'c' });
+  const args = { id: 'c', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 3, ahora: mas(5) };
+  assert.deepEqual(await repo.confirmarReserva(db, args), { ok: true });
+  assert.deepEqual(await repo.confirmarReserva(db, args), { ok: false, motivo: 'ya_confirmada' });
+});
+
+test('confirmar una expirada cuya hora ya tomó otro: ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'tarde' });
+  await ret(db, { id: 'otro', nutricionista_id: 'jussara', ahora: mas(16) });
+  const res = await repo.confirmarReserva(db, { id: 'tarde', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 3, ahora: mas(20) });
+  assert.deepEqual(res, { ok: false, motivo: 'ocupada' });
+});
+
+test('confirmar una expirada cuyo cupo ocupaba otra retención también vencida y sin marcar: ya no da ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'A', token: 'tA', nutricionista_id: 'na', inicio_utc: '2026-10-06T17:00:00Z', ahora: t0 });
+  // B toma la misma hora y nutricionista una vez que A ya venció: el propio
+  // crearRetencion de B la expira al pasar, como parte de su propia inserción.
+  await ret(db, { id: 'B', token: 'tB', nutricionista_id: 'na', inicio_utc: '2026-10-06T17:00:00Z', ahora: mas(16) });
+  assert.equal((await repo.reservaPorId(db, 'A')).estado, 'expirada');
+  // Pasa el tiempo: B también vence, pero nadie volvió a barrer la tabla (no
+  // hubo ninguna otra retención nueva que disparara el expirar de B).
+  const res = await repo.confirmarReserva(db, { id: 'A', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 99, ahora: mas(32) });
+  assert.deepEqual(res, { ok: true });
+  assert.equal((await repo.reservaPorId(db, 'B')).estado, 'expirada');
+});
+
+test('reubicar a una hora que tenía una retención vencida y sin marcar: ya no da ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'B', token: 'tB', nutricionista_id: 'paola', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07', ahora: t0 });
+  await ret(db, { id: 'R', token: 'tR' });
+  await repo.marcarSinHora(db, 'R', mas(1));
+  const res = await repo.reubicar(db, { id: 'R', nutricionista_id: 'paola', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07',
+    modalidad: 'presencial', primerasManuales: 0, tope: 99, ahora: mas(20) });
+  assert.deepEqual(res, { ok: true });
+  const r = await repo.reservaPorId(db, 'R');
+  assert.equal(r.estado, 'confirmada');
+  assert.equal(r.nutricionista_id, 'paola');
+  assert.equal((await repo.reservaPorId(db, 'B')).estado, 'expirada');
+});
+
+test('registrarPago es idempotente por mp_payment_id', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'pg' });
+  const p = { reserva_id: 'pg', mp_payment_id: '999', estado: 'pending', monto_centimos: 108000, metodo: 'yape', ahora: t0 };
+  await repo.registrarPago(db, p);
+  await repo.registrarPago(db, { ...p, estado: 'approved' });
+  const filas = await db.prepare('SELECT estado FROM pagos').all();
+  assert.deepEqual(filas.results, [{ estado: 'approved' }]);
+  assert.deepEqual(await repo.ultimoPago(db, 'pg'), { estado: 'approved' });
+});
+
+test('reubicar una pagada sin hora la deja confirmada en la nueva hora', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 's' });
+  await repo.marcarSinHora(db, 's', mas(1));
+  const res = await repo.reubicar(db, { id: 's', nutricionista_id: 'paola', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: mas(2) });
+  assert.deepEqual(res, { ok: true });
+  const r = await repo.reservaPorId(db, 's');
+  assert.equal(r.estado, 'confirmada');
+  assert.equal(r.nutricionista_id, 'paola');
+});
+
+test('purgar borra datos de contacto de reservas no pagadas con más de 30 días', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'np', token: 'tnp' });
+  const r = await repo.reservaPorToken(db, 'tnp');
+  await repo.guardarDatosYPagar(db, { reserva: r, cliente: { ...cliente, nombre: 'Ana' }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
+  assert.equal((await repo.reservaPorToken(db, 'tnp')).nombre, null);
+});
+
+test('purgar borra la huella apenas termina la retención', async () => {
+  const db = d1DePrueba();
+  await ret(db, { token: 'th', huella: 'abc' });
+  await repo.purgarNoPagadas(db, mas(16));
+  assert.equal((await repo.reservaPorToken(db, 'th')).huella, null);
+});
+
+test('guardarDatosYPagar guarda nombres, apellidos, nacimiento y documento', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'g', token: 'tg' });
+  const r = await repo.reservaPorToken(db, 'tg');
+  await repo.guardarDatosYPagar(db, { reserva: r, cliente, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  const c = await db.prepare('SELECT * FROM clientes').first();
+  assert.equal(c.nombre, 'Ana Lucía Pérez Núñez');
+  assert.equal(c.apellido_materno, 'Núñez');
+  assert.equal(c.fecha_nacimiento, '1990-05-04');
+  assert.equal(c.tipo_documento, 'dni');
+  assert.equal((await repo.reservaPorToken(db, 'tg')).estado, 'pagando');
+});
+
+test('purgar también borra las columnas nuevas; una reserva vieja sin ellas sigue leyéndose', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'p2', token: 'tp2' });
+  await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, 'tp2'), cliente, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
+  const c = await db.prepare('SELECT * FROM clientes').first();
+  assert.deepEqual([c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento, c.dni], [null, null, null, null, null, null]);
+  await db.prepare("INSERT INTO clientes (id, nombre, creado_en) VALUES ('viejo', 'Ana Pérez', 'x')").run();
+  await ret(db, { id: 'v', token: 'tv', inicio_utc: '2026-10-06T19:00:00Z' });
+  await db.prepare("UPDATE reservas SET cliente_id = 'viejo' WHERE id = 'v'").run();
+  assert.equal((await repo.reservaPorToken(db, 'tv')).nombre, 'Ana Pérez');
+});
+
+test('noPagadasEntre: con datos y vencidas en la ventana; excluye a quien pagó después', async () => {
+  const db = d1DePrueba();
+  // Cada una en otro día: el tope es de 3 primeras sesiones por día.
+  const pagando = async (id, dia, email) => {
+    await ret(db, { id, token: `t${id}`, inicio_utc: `2026-10-${dia}T17:00:00Z`, fecha_lima: `2026-10-${dia}` });
+    await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, `t${id}`), cliente: { ...cliente, email }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  };
+  await pagando('a', '06', 'a@x.pe');
+  await pagando('b', '07', 'b@x.pe');
+  await ret(db, { id: 'sin', token: 'tsin', inicio_utc: '2026-10-08T17:00:00Z', fecha_lima: '2026-10-08' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada' WHERE id = 'b'").run();
+  await pagando('b2', '09', 'b@x.pe');
+  const filas = await repo.noPagadasEntre(db, t0.toISOString(), mas(24 * 60).toISOString());
+  assert.deepEqual(filas.map((f) => f.id), ['a']);
+  assert.equal(filas[0].whatsapp, '+51987654321');
+});
+
+test('marcarResumen es una sola vez por fecha', async () => {
+  const db = d1DePrueba();
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), true);
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), false);
+  await repo.desmarcarResumen(db, '2026-10-09');
+  assert.equal(await repo.marcarResumen(db, '2026-10-09', t0), true);
+});
+
+test('liberarRetencion suelta una hora apartada o en pago, pero nunca una confirmada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'l1', token: 'tl1', huella: 'h' });
+  assert.equal(await repo.liberarRetencion(db, 'tl1', mas(1)), true);
+  const r = await repo.reservaPorToken(db, 'tl1');
+  assert.deepEqual([r.estado, r.huella], ['expirada', null]);
+  await ret(db, { id: 'l2', token: 'tl2', inicio_utc: '2026-10-06T18:00:00Z' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada' WHERE id = 'l2'").run();
+  assert.equal(await repo.liberarRetencion(db, 'tl2', mas(1)), false);
+  assert.equal((await repo.reservaPorToken(db, 'tl2')).estado, 'confirmada');
+  assert.equal(await repo.liberarRetencion(db, 'no-existe', mas(1)), false);
+});

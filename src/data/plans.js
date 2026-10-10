@@ -19,9 +19,9 @@ export const plans = {
   // ─── Modelo C (18-sep-2026) ─────────────────────────────────────────────────
   // Los planes NO llevan nombre de cara al paciente: se identifican por cada
   // cuánto nos vemos. Los ids se conservan (URLs de checkout, anuncios,
-  // analítica); lo que cambia es `name`. Columnas: 1 mes y 3 meses; bajo el
-  // total del paquete va solo el equivalente mensual, sin tachados ni ahorro.
-  // Fuente: 02-comercial/motor-comercial/.../ROADMAP-CHOKEPOINTS-AJL.md, Decisión 1.B.
+  // analítica); lo que cambia es `name`. Columnas: 1, 3 y 6 meses (hoja
+  // «Paquetes por permanencia», 2026-10-09). En la landing, bajo cada total va
+  // su equivalente mensual, sin tachados; el ahorro se muestra solo en /reservar.
   basico: {
     id: 'basico',
     name: 'Una sola sesión',
@@ -54,8 +54,10 @@ export const plans = {
     badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/810', perMes: 'S/270 al mes' },
+      { label: '3 meses', months: 3, total: 'S/810', perMes: 'S/270 al mes', totalSoles: 810 },
+      { label: '6 meses', months: 6, total: 'S/1.500', perMes: 'S/250 al mes', totalSoles: 1500 },
     ],
+    consultasMes: ['1 sesión de 60 min · recibes o actualizas tu plan'],
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
     // Fuente: PACK-KOC, handoff §14 (07-sep).
     checkoutSummary: [
@@ -77,8 +79,10 @@ export const plans = {
     badge: 'El que recomendamos',
     highlight: true,
     programs: [
-      { label: '3 meses', total: 'S/1.080', perMes: 'S/360 al mes' },
+      { label: '3 meses', months: 3, total: 'S/1.080', perMes: 'S/360 al mes', totalSoles: 1080 },
+      { label: '6 meses', months: 6, total: 'S/1.950', perMes: 'S/325 al mes', totalSoles: 1950 },
     ],
+    consultasMes: ['1ª sesión de 60 min · recibes o actualizas tu plan', '2ª control de 30 min'],
     firstMonthEval: true,
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
     // Fuente: PACK-KOC, handoff §14 (07-sep).
@@ -103,8 +107,10 @@ export const plans = {
     badge: null,
     highlight: false,
     programs: [
-      { label: '3 meses', total: 'S/1.530', perMes: 'S/510 al mes' },
+      { label: '3 meses', months: 3, total: 'S/1.530', perMes: 'S/510 al mes', totalSoles: 1530 },
+      { label: '6 meses', months: 6, total: 'S/2.808', perMes: 'S/468 al mes', totalSoles: 2808 },
     ],
+    consultasMes: ['1ª y 3ª sesión de 60 min · recibes o actualizas tu plan', '2ª y 4ª control de 30 min'],
     firstMonthEval: true,
     // Lo que incluye: globo «i» de la tabla y resumen del checkout.
     // Fuente: PACK-KOC, handoff §14 (07-sep).
@@ -138,9 +144,9 @@ export const includedInAll = [
   { icon: 'phone', text: 'Tu plan en la app, con todo lo que conversamos en tu sesión' },
 ];
 
-// Formas de pago. La tarjeta lleva recargo porque la pasarela cobra comisión.
+// Formas de pago. Sin recargo por tarjeta en ningún canal (D7.1, 30-sep-2026).
 export const paymentMethods = [
   { id: 'yape',          label: 'Yape',          icon: '📱', note: null },
   { id: 'transferencia', label: 'Transferencia', icon: '🏦', note: null },
-  { id: 'tarjeta',       label: 'Tarjeta',       icon: '💳', note: '5% de recargo' },
+  { id: 'tarjeta',       label: 'Tarjeta',       icon: '💳', note: null },
 ];

@@ -1,0 +1,166 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { plans, monthlyPlans } from '../../data/plans.js';
+import { duracionesDe } from '../../data/duraciones.js';
+import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
+import '../../styles/reservar.css';
+
+const catalogo = {};
+for (const p of monthlyPlans) {
+  catalogo[p.id] = { nombre: p.name, mensual: true, duraciones: duracionesDe(p.id), consultas: p.consultasMes, regalo: !!p.firstMonthEval };
+}
+catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
+catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
+
+// Código de país del WhatsApp. Perú primero; luego los países desde donde más
+// escriben pacientes y vecinos. Quien no esté aquí elige «Otro» y escribe +código.
+const PAISES = [
+  ['🇵🇪', 'Perú', '51'], ['🇺🇸', 'EE.UU.', '1'], ['🇪🇸', 'España', '34'], ['🇨🇱', 'Chile', '56'],
+  ['🇦🇷', 'Argentina', '54'], ['🇨🇴', 'Colombia', '57'], ['🇪🇨', 'Ecuador', '593'], ['🇧🇴', 'Bolivia', '591'],
+  ['🇲🇽', 'México', '52'], ['🇻🇪', 'Venezuela', '58'], ['🇧🇷', 'Brasil', '55'], ['🇮🇹', 'Italia', '39'],
+  ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
+];
+
+// Fecha de nacimiento en tres listas: más fácil que un calendario que abre en
+// el año actual. Años de los 10 a los 100 años (lo que acepta validar-datos.js).
+const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ANIO = new Date().getFullYear();
+const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
+
+const VENTANAS = [
+  ['condiciones', 'Condiciones del servicio', RESUMEN_CONDICIONES, '/condiciones/'],
+  ['privacidad', 'Política de privacidad', RESUMEN_PRIVACIDAD, '/privacidad/'],
+];
+---
+<Layout noindex title="Reserva tu primera sesión · AJL Nutrición">
+  <main class="rs">
+    <script is:inline type="application/json" id="catalogo" set:html={JSON.stringify(catalogo)} />
+
+    <section class="rs-paso" data-paso="p1" hidden>
+      <div class="rs-progreso"><span>Paso 1 de 4</span></div>
+      <h1>¿Cómo quieres que te acompañemos?</h1>
+      <p class="rs-lead">Elige cada cuánto te vemos. Entre sesión y sesión, nunca te quedas solo.</p>
+      <div class="rs-bloque">
+        <p class="rs-k">Planes con seguimiento continuo</p>
+        <div class="rs-incluye">
+          <b>Todos incluyen tu seguimiento entre sesiones</b>
+          <ul>
+            <li><b>Tu plan en la app</b><span>Ajustado a tu día a día, con opciones para comer fuera.</span></li>
+            <li><b>Equipo por WhatsApp</b><span>Nutricionistas que te responden entre sesiones.</span></li>
+            <li><b>2 clases en vivo por semana</b><span>Miércoles con el equipo, domingos con Alejandro.</span></li>
+          </ul>
+        </div>
+        <div class="rs-planes">
+          {monthlyPlans.map((p) => (
+            <article class:list={['rs-plan', { 'rs-plan--star': p.highlight }]}>
+              <header><b>{p.name}</b>{p.highlight && <span class="rs-badge">Recomendado</span>}</header>
+              <ul class="rs-lista">
+                <li>{p.sessionsPerMonth === 1 ? '1 sesión' : `${p.sessionsPerMonth} sesiones`} al mes con tu nutricionista</li>
+                <li>Tu plan ajustado a tu día a día</li>
+                <li>Tu seguimiento entre sesiones</li>
+              </ul>
+              {p.firstMonthEval && <p class="rs-regalo">De regalo: evaluación de cierre del primer mes</p>}
+              <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir y ver precios</button>
+            </article>
+          ))}
+        </div>
+      </div>
+      <p class="rs-k">Sin seguimiento continuo</p>
+      <div class="rs-sueltas">
+        <button type="button" class="rs-suelta" data-producto="basico"><span><b>Una sola sesión</b><small>Tu sesión y tu plan, sin seguimiento</small></span><span class="rs-ir">Elegir ›</span></button>
+        <button type="button" class="rs-suelta" data-producto="evaluacion"><span><b>¿Prefieres que te evaluemos antes?</b><small>Se descuenta si eliges un plan ese día</small></span><span class="rs-ir">Elegir ›</span></button>
+      </div>
+    </section>
+
+    <section class="rs-paso" data-paso="p2" hidden>
+      <button type="button" class="rs-volver" data-volver="p1">‹ Cambiar acompañamiento</button>
+      <div class="rs-progreso"><span>Paso 2 de 4</span></div>
+      <h1>¿Por cuánto tiempo?</h1>
+      <p class="rs-lead" id="p2-plan"></p>
+      <div class="rs-duraciones" id="p2-opciones"></div>
+      <div class="rs-consultas" id="p2-consultas"></div>
+      <p class="rs-nota">Tu plazo empieza cuando recibes tu plan, no cuando pagas. No necesitas agendar todo ahora: eliges la primera cita y las demás las coordinas con tu nutricionista. Pagas con tarjeta o con Yape, sin recargo. Con tarjeta de crédito puedes pagar en hasta 12 cuotas; si hay intereses, los cobra tu banco.</p>
+    </section>
+
+    <section class="rs-paso" data-paso="p3" hidden>
+      <button type="button" class="rs-volver" data-volver="p1">‹ Volver</button>
+      <div class="rs-progreso"><span>Paso 3 de 4</span></div>
+      <h1>Elige tu primera sesión</h1>
+      <p class="rs-lead">Tu nutricionista te acompaña durante todo tu plan. Tus siguientes citas las agendas cuando quieras.</p>
+      <div id="p3-selector"></div>
+      <p class="rs-error" id="p3-error" role="alert"></p>
+    </section>
+
+    <section class="rs-paso" data-paso="p4" hidden>
+      <button type="button" class="rs-volver" data-volver="p3">‹ Cambiar hora</button>
+      <div class="rs-progreso"><span>Paso 4 de 4</span><span>Guardamos tu horario · <span class="rs-reloj" id="p4-reloj"></span></span></div>
+      <h1>¿A nombre de quién?</h1>
+      <div class="rs-resumen" id="p4-resumen"></div>
+      <form id="p4-form" novalidate>
+        <label for="f-nombres">Nombres</label>
+        <input type="text" id="f-nombres" autocomplete="given-name" maxlength="60" required>
+        <div class="rs-dos">
+          <div><label for="f-paterno">Apellido paterno</label><input type="text" id="f-paterno" autocomplete="family-name" maxlength="60" required></div>
+          <div><label for="f-materno">Apellido materno <small>(si tienes)</small></label><input type="text" id="f-materno" maxlength="60"></div>
+        </div>
+        <label for="f-whatsapp">WhatsApp · aquí te escribimos si hace falta</label>
+        <div class="rs-tel">
+          <select id="f-pais" aria-label="Código de país">
+            {PAISES.map(([bandera, nombre, codigo]) => <option value={codigo}>{bandera} {nombre} +{codigo}</option>)}
+          </select>
+          <input type="tel" id="f-whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="9__ ___ ___" required>
+        </div>
+        <label for="f-email">Correo · aquí llega tu invitación</label>
+        <input type="email" id="f-email" autocomplete="email" required>
+        <label for="f-nac-dia" id="l-nacimiento">Fecha de nacimiento</label>
+        <div class="rs-fecha" role="group" aria-labelledby="l-nacimiento">
+          <select id="f-nac-dia" aria-label="Día" autocomplete="bday-day" required>
+            <option value="">Día</option>
+            {DIAS.map((d) => <option value={String(d).padStart(2, '0')}>{d}</option>)}
+          </select>
+          <select id="f-nac-mes" aria-label="Mes" autocomplete="bday-month" required>
+            <option value="">Mes</option>
+            {MESES.map((m, i) => <option value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          </select>
+          <select id="f-nac-anio" aria-label="Año" autocomplete="bday-year" required>
+            <option value="">Año</option>
+            {ANIOS.map((a) => <option value={String(a)}>{a}</option>)}
+          </select>
+        </div>
+        <label for="f-doc">Documento · para tu comprobante</label>
+        <div class="rs-doc">
+          <select id="f-tipo-doc" aria-label="Tipo de documento">
+            <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+          </select>
+          <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
+        </div>
+        <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
+        <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
+        <p class="rs-nota">Mover tu cita es gratis hasta 48 h antes; después cuesta S/80.</p>
+        <p class="rs-aviso" id="p4-yape" hidden>¿Pagarás con Yape? Revisa tu límite en la app: este monto puede superarlo. Con tarjeta no hay límite.</p>
+        <button type="submit" class="rs-btn" id="p4-pagar">Pagar</button>
+        <p class="rs-cuotas">Con tarjeta de crédito, en hasta 12 cuotas</p>
+        <p class="rs-error" id="p4-error" role="alert"></p>
+      </form>
+    </section>
+
+    {VENTANAS.map(([id, titulo, puntos, ruta]) => (
+      <dialog class="rs-modal" id={`ventana-${id}`} aria-labelledby={`ventana-${id}-t`}>
+        <div class="rs-modal-cab">
+          <h2 id={`ventana-${id}-t`}>{titulo}</h2>
+          <button type="button" class="rs-cerrar" data-cerrar aria-label="Cerrar">×</button>
+        </div>
+        <div class="rs-modal-cuerpo">
+          {puntos.map((p) => <div><b>{p.t}</b><p>{p.d}</p></div>)}
+          <p>Versión completa: <a href={ruta} target="_blank" rel="noopener">ajlnutricion.com{ruta}</a></p>
+        </div>
+        <button type="button" class="rs-btn" data-cerrar>Entendido, volver a mis datos</button>
+      </dialog>
+    ))}
+  </main>
+</Layout>
+
+<script>
+  import '../../scripts/reservar.js';
+</script>

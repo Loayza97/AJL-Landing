@@ -159,3 +159,5 @@ cuando se agreguen/quiten.
 | Google (GA4, Fonts) | Analytics + tipografía | EE.UU. | Cookies, IP truncada | DPA estándar | ya existente |
 | Google (Search Console) | SEO insights | EE.UU. | Datos agregados, no personales | DPA estándar | 2026-05-26 |
 | Namecheap | Registro de dominio y DNS | EE.UU. | Datos de contacto del titular del dominio (no de usuarios) | Standard ToS | ya existente |
+| Mercado Pago | Pagos de la web | Perú / otros | Datos de pago (no pasan por nosotros), nombre y correo del pagador | Términos y política de Mercado Pago | 2026-10-01 |
+| Google (Calendar) | Agenda e invitaciones de sesiones | EE.UU. | Nombre, correo, fecha y modalidad de la sesión | Google Workspace/Cloud DPA no aplica a Gmail personal: términos de Google | 2026-10-01 |
