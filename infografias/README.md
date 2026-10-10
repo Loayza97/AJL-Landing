@@ -16,6 +16,13 @@ que queda abierto está en `RETOMAR-AQUI.md`.
 | `ciclo-sesion-plan-seguimiento.html` | La fuente. Se edita acá |
 | `ciclo-sesion-plan-seguimiento.png` | 3320×3680, para compartir o imprimir |
 
+## `proceso-tres-pilares`
+
+Versión "tres pilares en fila" del recorrido del paciente (14-sep): La cita → El plan → El
+seguimiento, con retorno sutil del seguimiento al plan ("Ajustamos contigo"). Página HTML
+responsive con texto real, sin interacción necesaria; misma identidad (crema, verde, terracota,
+Fraunces + Inter). Se abre directo en el navegador: `open proceso-tres-pilares.html`.
+
 ## `ciclo-del-metodo`
 
 El ciclo del método AJL contado como una espiral: cada vuelta cierra más arriba que la

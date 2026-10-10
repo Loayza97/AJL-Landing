@@ -1,12 +1,24 @@
 # Dónde quedó el diagrama del ciclo, y cómo seguir
 
-**Última sesión:** 10-sep-2026. Esto es la Tarea B del handoff comercial, el esquema visual del método.
+**Última sesión:** 11-sep-2026. Esto es la Tarea B del handoff comercial, el esquema visual del método.
 
 ---
 
+## Las versiones (11-sep)
+
+| Archivo | Qué es |
+|---|---|
+| `ciclo-sesion-plan-seguimiento-v1-base.html/.png` | La base congelada del 10-sep. No se toca |
+| `ciclo-sesion-plan-seguimiento-v2.html/.png` | **La viva.** Solo negritas; el detalle es una burbuja (`+`) que se ve en la web al pasar el cursor o tocar. El PNG se genera con `?png=1` (sin `+` ni burbujas) |
+| `ciclo-sesion-plan-seguimiento-v3.html/.png` | Prueba: cada sector muestra el objeto (barra de 60 min, celular con el plan, chat de WhatsApp). Quedó en pausa; Joaquín prefirió seguir con oraciones antes de meter imágenes |
+| `ciclo-sesion-plan-seguimiento-artefacto.html` | La v2 empaquetada para publicar como Artifact (escala a la ventana). Publicada en https://claude.ai/code/artifact/891809ee-1ac3-44f6-a966-724140118dd9 |
+| `ciclo-sesion-plan-seguimiento.html/.png` | Igual a la v1-base; se conserva por compatibilidad |
+
+**Fuente de contenido desde el 11-sep:** `~/Downloads/version_final_de_3_pilares.md` (copy comercial de los 3 pilares). Las viñetas de "Tu plan" en la v2 las dictó Joaquín tal cual; las burbujas salen del documento.
+
 ## La pieza viva
 
-`ciclo-sesion-plan-seguimiento.html` es la fuente. Se edita ahí y se regenera el PNG.
+`ciclo-sesion-plan-seguimiento-v2.html` es la fuente. Se edita ahí y se regenera el PNG con `?png=1`.
 
 Es un diagrama circular de tres sectores en forma de flecha, con el contenido dentro de cada
 sector, insignias numeradas montadas sobre el borde y una esfera central que los conecta.
