@@ -11,7 +11,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-10-12
 
-- Portada: prueba A/B del botón principal. Al azar, «Descubre tu plan →» (A) o «Quiero comer sin culpa →» (B); se cuentan vistas, clics y reservas pagadas por versión, sin identificar a nadie.
+- Portada: prueba A/B del botón principal. Al azar, «Descubre tu plan →» (A) o «Mira precios aquí →» (B); se cuentan vistas, clics y reservas pagadas por versión, sin identificar a nadie.
 - Reserva, pantalla final: botón verde «Avisar al equipo por WhatsApp» con el mensaje de la cita ya escrito.
 - Reserva, pantalla 3: el filtro dice «Elige a tu nutricionista».
 - Reserva: la hora de 1 a 2 p. m. (almuerzo del equipo) ya no se ofrece ningún día.
