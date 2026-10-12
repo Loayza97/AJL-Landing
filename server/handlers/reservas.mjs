@@ -94,11 +94,14 @@ export async function handleHoras(request, env, deps) {
   const modalidad = q.get('modalidad');
   const precio = cotizar(q.get('producto'), Number(q.get('duracion')));
   const filtro = q.get('nutricionista') || '';
-  if (!FECHA.test(desde) || !MODALIDADES.has(modalidad) || !precio || !nutriValida(deps, filtro)) return bad(400, 'Parámetros inválidos');
+  // Cuántos días mirar: 7 por defecto; el calendario del mes pide 21 de una vez.
+  const n = q.has('dias') ? Number(q.get('dias')) : 7;
+  if (!FECHA.test(desde) || !MODALIDADES.has(modalidad) || !precio || !nutriValida(deps, filtro)
+    || !Number.isInteger(n) || n < 1 || n > 28) return bad(400, 'Parámetros inválidos');
   try {
-    const ctx = await contexto(deps, desde, 7);
+    const ctx = await contexto(deps, desde, n);
     const dias = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < n; i++) {
       const fecha = sumarDias(desde, i);
       dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, peso: precio.peso, filtro }) });
     }
