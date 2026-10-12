@@ -1,0 +1,34 @@
+# Changelog · ajlnutricion.com
+
+Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
+
+## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
+
+- Portada: «dietas» se tacha con una línea al cargar y aparece «Aprende a comer.».
+- Portada: la foto del equipo tiene un paralaje suave (mouse en computadora, scroll en todos).
+- Portada: el botón «Quiero empezar →» tiene un brillo que lo recorre y un halo que late.
+- Todo se queda quieto si el dispositivo pide reducir movimiento.
+
+## 2026-10-12
+
+- Portada: el botón principal pasa a «Quiero empezar →» y lleva a `/reservar/`.
+- Reserva, pantalla 3: calendario del mes con la próxima hora disponible, horas separadas en mañana y tarde, y filtro opcional por nutricionista con foto (Nico, Paola, Jussara, Paolo).
+- Reserva, pantalla final: «Agregar a Google Calendar» abre Google con la cita cargada; «Otro calendario» descarga el `.ics` para Apple u Outlook.
+- El resumen diario lo dispara el Worker `ajl-resumen-cron` (8:00 en Lima), sin URL pública.
+
+## 2026-10-10 · lanzamiento de la reserva con pago
+
+- Reserva y pago en la web con Mercado Pago (producción): plan, duración, hora, datos y pago.
+- Paquete de 6 meses: S/1.500, S/1.950 y S/2.808; la tabla de la landing suma la columna «6 meses».
+- Pantalla 2 con las duraciones en tarjetas lado a lado (opción B) y el ahorro de cada paquete.
+- Cuotas hasta 12 con tarjeta de crédito; los intereses los cobra el banco del paciente.
+- Datos del paciente: nombres, apellidos (materno opcional), fecha de nacimiento y documento (DNI, Carné de Extranjería o pasaporte).
+- Condiciones y privacidad se abren en una ventana desde el formulario.
+- Elegir otra hora suelta la anterior; cada hora apartada se libera sola a los 15 minutos (30 si llegó a Mercado Pago).
+- Resumen diario al equipo de quienes dejaron datos y no pagaron (desde el último envío, sin perder días).
+- Los botones de planes llevan a `/reservar/`; `/checkout/*` redirige ahí. Sin recargo por tarjeta.
+- Condiciones del servicio 2026-10-09 y política de privacidad v1.5.
+
+## 2026-10-01
+
+- El sitio pasa de Vercel a Cloudflare Pages (`www`); el apex sigue redirigiendo desde Vercel.
