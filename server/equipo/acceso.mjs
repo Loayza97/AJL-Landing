@@ -4,7 +4,8 @@
 // POST /api/equipo/salir                      cierra la sesión
 // Solo los correos de EQUIPO_EMAILS (secreto) reciben código. La respuesta es la
 // misma para cualquier correo, así no se puede averiguar quién está autorizado.
-// Códigos y sesiones se guardan como hash; 5 intentos por código.
+// Códigos y sesiones se guardan como hash; 5 intentos por código y, tras 10
+// fallidos en 24 h, el correo queda bloqueado un día.
 import { json, readJson } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
 
@@ -13,6 +14,7 @@ const CODIGO_MIN = 10;
 const SESION_H = 12;
 const MAX_INTENTOS = 5;
 const REENVIO_SEG = 60;
+const MAX_FALLOS_DIA = 10; // intentos fallidos por correo en 24 h antes de bloquearlo
 
 const sha256 = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
   .map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -20,6 +22,12 @@ const autorizados = (env) => String(env.EQUIPO_EMAILS || '').split(',').map((e) 
 const normalizar = (e) => String(e || '').trim().toLowerCase();
 const codigoAlAzar = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
+
+async function bloqueado(db, email, ahora) {
+  const desde = new Date(ahora.getTime() - 24 * 3600000).toISOString();
+  const { n } = await db.prepare('SELECT COUNT(*) AS n FROM equipo_fallos WHERE email = ?1 AND en >= ?2').bind(email, desde).first();
+  return n >= MAX_FALLOS_DIA;
+}
 
 function leerCookie(request) {
   const m = (request.headers.get('Cookie') || '').match(new RegExp(`(?:^|;\\s*)${COOKIE}=([^;]+)`));
@@ -32,6 +40,7 @@ export async function handlePedirCodigo(request, env, deps) {
   const ok = json(200, { ok: true, mensaje: 'Si tu correo está autorizado, te llegó un código.' });
   if (!autorizados(env).includes(email)) return ok;
   const ahora = deps.ahora();
+  if (await bloqueado(deps.db, email, ahora)) return ok;
   const previo = await deps.db.prepare('SELECT creado_en FROM equipo_codigos WHERE email = ?1').bind(email).first();
   if (previo && ahora.getTime() - Date.parse(previo.creado_en) < REENVIO_SEG * 1000) return ok;
   const codigo = codigoAlAzar();
@@ -55,10 +64,14 @@ export async function handleEntrar(request, env, deps) {
   const mal = json(401, { ok: false, error: 'El código no es válido o ya venció. Pide uno nuevo.' });
   if (!autorizados(env).includes(email) || codigo.length !== 6) return mal;
   const ahora = deps.ahora();
+  if (await bloqueado(deps.db, email, ahora)) return mal;
   const fila = await deps.db.prepare('SELECT codigo_hash, expira, intentos FROM equipo_codigos WHERE email = ?1').bind(email).first();
   if (!fila || Date.parse(fila.expira) <= ahora.getTime() || fila.intentos >= MAX_INTENTOS) return mal;
   if ((await sha256(`${email}:${codigo}`)) !== fila.codigo_hash) {
-    await deps.db.prepare('UPDATE equipo_codigos SET intentos = intentos + 1 WHERE email = ?1').bind(email).run();
+    await deps.db.batch([
+      deps.db.prepare('UPDATE equipo_codigos SET intentos = intentos + 1 WHERE email = ?1').bind(email),
+      deps.db.prepare('INSERT INTO equipo_fallos (email, en) VALUES (?1, ?2)').bind(email, ahora.toISOString()),
+    ]);
     return mal;
   }
   const token = randomToken(32);
