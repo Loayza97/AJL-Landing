@@ -16,3 +16,10 @@ export function icsDeReserva({ uid, titulo, inicioUtc, finUtc, ubicacion, descri
     'END:VEVENT', 'END:VCALENDAR', '',
   ].join('\r\n');
 }
+
+// Enlace que abre Google Calendar con la cita ya cargada: en computadoras con
+// Google es más claro que descargar el .ics.
+export function enlaceGoogleCalendar({ titulo, inicioUtc, finUtc, ubicacion, descripcion }) {
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: titulo, dates: `${sello(inicioUtc)}/${sello(finUtc)}`, location: ubicacion, details: descripcion });
+  return `https://calendar.google.com/calendar/render?${q}`;
+}
