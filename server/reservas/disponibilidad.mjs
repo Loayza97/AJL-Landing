@@ -7,6 +7,8 @@ export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viern
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
 export const HORARIO_CLINICA = { 1: [10, 20], 2: [10, 20], 3: [10, 20], 4: [10, 20], 5: [10, 20], 6: [9, 19] };
 const HORA_MS = 3600 * 1000;
+// De 1 a 2 p. m. es el almuerzo del equipo, todos los días: esa hora no se ofrece.
+export const HORA_ALMUERZO = 13;
 
 export function normalizar(texto) {
   return String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -51,6 +53,7 @@ function horasOcupadas(eventos, delDia, fecha) {
 }
 
 function ventanaCubre(nutricionista, fecha, modalidad, hora) {
+  if (hora === HORA_ALMUERZO) return false;
   const dow = diaSemana(fecha);
   return nutricionista.ventanas.some((v) => {
     if (v.dia !== DIAS[dow]) return false;
