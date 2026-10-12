@@ -35,8 +35,12 @@ const trust = [
             a: ['Descubre tu plan →', 'Te mostramos cuánto cuesta y cómo te acompañamos, sin compromiso.'],
             b: ['Mira precios aquí →', 'Te mostramos tu plan y el precio antes de que decidas nada.'],
           };
-          var v = null;
-          try { v = localStorage.getItem('ajl_ab_hero'); } catch (e) {}
+          // ?version=a o ?version=b muestra esa versión para revisarla, sin guardarla
+          // ni contarla en la prueba.
+          var forzada = new URLSearchParams(location.search).get('version');
+          var revision = forzada === 'a' || forzada === 'b';
+          var v = revision ? forzada : null;
+          if (!revision) { try { v = localStorage.getItem('ajl_ab_hero'); } catch (e) {} }
           if (v !== 'a' && v !== 'b') {
             v = Math.random() < 0.5 ? 'a' : 'b';
             try { localStorage.setItem('ajl_ab_hero', v); } catch (e) {}
@@ -46,6 +50,7 @@ const trust = [
           boton.setAttribute('data-variante', v);
           document.getElementById('hero-cta-promesa').textContent = V[v][1];
           var enviar = function (evento) {
+            if (revision) return;
             var cuerpo = JSON.stringify({ evento: evento, variante: v });
             if (navigator.sendBeacon) navigator.sendBeacon('/api/ab', cuerpo);
             else fetch('/api/ab', { method: 'POST', body: cuerpo, keepalive: true });
