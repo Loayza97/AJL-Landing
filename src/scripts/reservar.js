@@ -60,8 +60,9 @@ function elegirProducto(id) {
     const precioMes = plan.duraciones[0].porMes;
     $('#p2-opciones').replaceChildren(...plan.duraciones.map((o) => tarjetaDuracion(o, precioMes)));
     const caja = $('#p2-consultas');
-    caja.replaceChildren(h('b', null, 'Así son tus consultas cada mes'), ...plan.consultas.map((t) => h('span', null, t)));
-    if (plan.regalo) caja.append(h('span', 'rs-regalo', 'De regalo: evaluación de cierre del primer mes'));
+    const lista = h('ul', 'rs-incluye-lista');
+    lista.append(...plan.incluye.map((t) => h('li', null, t)));
+    caja.replaceChildren(h('b', null, 'Incluye:'), lista);
     irA('p2');
   } else {
     estado.duracion = 1;
