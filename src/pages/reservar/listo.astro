@@ -13,6 +13,7 @@ import '../../styles/reservar.css';
 
 <script>
   import { formatoSoles } from '../../data/duraciones.js';
+  import { contacto } from '../../data/contacto.js';
   const raiz = document.getElementById('listo');
   const q = new URLSearchParams(location.search);
   const leerGuardado = (clave) => { try { return sessionStorage.getItem(clave); } catch { return null; } };
@@ -24,6 +25,13 @@ import '../../styles/reservar.css';
   const soles = (c) => formatoSoles(Math.round(c / 100));
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // Mensaje ya escrito para que el paciente avise al equipo que reservó.
+  function enlaceWhatsApp(d) {
+    const donde = d.modalidad === 'video' ? 'por videollamada' : 'en Lince';
+    const texto = `Hola, acabo de reservar mi primera sesión en la web: ${d.etiqueta}, ${donde}, con ${d.nutricionista?.nombre ?? 'el equipo'}. Plan: ${d.titulo}.`;
+    return `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(texto)}`;
+  }
+
   function pintar(d) {
     // Pagada: ya no hay hora apartada que soltar; se borra el código guardado.
     if (['confirmada', 'pagada_sin_hora'].includes(d.estado)) { try { localStorage.removeItem('ajl_reserva_apartada'); } catch {} }
@@ -31,7 +39,9 @@ import '../../styles/reservar.css';
       raiz.innerHTML = `
         <h1>Listo${d.nombre ? `, ${esc(d.nombre)}` : ''}. Tu primera sesión está reservada.</h1>
         <div class="rs-resumen"><div>${esc(d.etiqueta)}</div><div>${d.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${esc(d.nutricionista?.nombre)}</div><div>${esc(d.titulo)} · ${soles(d.monto_centimos)}</div></div>
-        ${d.google_calendar ? `<a class="rs-btn" href="${esc(d.google_calendar)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Agregar a Google Calendar</a>` : ''}
+        <a class="rs-btn rs-btn--wa" href="${esc(enlaceWhatsApp(d))}" target="_blank" rel="noopener">Avisar al equipo por WhatsApp</a>
+        <p class="rs-nota" style="text-align:center;margin-top:6px">Te respondemos para confirmar tu cita y resolver tus dudas antes de la sesión.</p>
+        ${d.google_calendar ? `<a class="rs-btn rs-btn--ghost" href="${esc(d.google_calendar)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Agregar a Google Calendar</a>` : ''}
         <a class="rs-btn rs-btn--ghost" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Otro calendario (Apple, Outlook)</a>
         <p class="rs-nota">Te enviamos la invitación y la confirmación a tu correo. Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`;
       (async () => {
