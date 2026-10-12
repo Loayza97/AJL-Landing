@@ -14,7 +14,7 @@ const reserva = (o) => ({ peso_tope: 1, modalidad: 'presencial', ...o });
 
 test('martes presencial: de 10:00 a 19:00, recortado al consultorio', () => {
   const r = horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'presencial' });
-  assert.deepEqual(horas(r), ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
+  assert.deepEqual(horas(r), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.equal(r[0].inicio, '2026-10-06T15:00:00Z');
 });
 
@@ -23,7 +23,7 @@ test('Nico alterna: miércoles 7 sí, miércoles 14 no; sábado 10 no, sábado 1
   assert.equal(horas(nico('2026-10-07'))[0], '11:00');
   assert.deepEqual(nico('2026-10-14'), []);
   assert.deepEqual(nico('2026-10-10'), []);
-  assert.deepEqual(horas(nico('2026-10-17')), ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']);
+  assert.deepEqual(horas(nico('2026-10-17')), ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']);
 });
 
 test('Paolo no se ofrece viernes ni sábado mientras su alternancia no esté definida', () => {
@@ -36,7 +36,7 @@ test('Paolo no se ofrece viernes ni sábado mientras su alternancia no esté def
 
 test('modalidad sin definir se ofrece en ambas: Jussara también por video', () => {
   const v = horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' });
-  assert.deepEqual(horas(v), ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']);
+  assert.deepEqual(horas(v), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00']);
 });
 
 test('viernes por video: Jussara desde las 10, Nico hasta las 19', () => {
@@ -125,4 +125,12 @@ test('asigna a la menos cargada del día, en el orden del equipo si empatan', ()
   const r = horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'presencial' });
   assert.equal(r.find((h) => h.hora === '15:00').nutricionista_id, 'jussara');
   assert.equal(r.find((h) => h.hora === '17:00').nutricionista_id, 'paolo');
+});
+
+test('de 1 a 2 es almuerzo: nunca se ofrece la hora de las 13:00, ni presencial ni por video', () => {
+  for (const fecha of ['2026-10-06', '2026-10-07', '2026-10-09', '2026-10-17']) {
+    for (const modalidad of ['presencial', 'video']) {
+      assert.ok(!horas(horasLibres({ ...base, fecha, modalidad })).includes('13:00'), `${fecha} ${modalidad}`);
+    }
+  }
 });
