@@ -21,12 +21,41 @@ const trust = [
       <a
         href="/reservar/"
         class="btn-primary"
+        id="hero-cta"
         data-cta="hero_primary"
-        aria-label="Ver precios y elegir mi plan"
       >
-        Ver precios →
+        Descubre tu plan →
       </a>
-      <p class="hero__cta-promise">Eliges tu plan y tu primera sesión, sin escribir por WhatsApp.</p>
+      <p class="hero__cta-promise" id="hero-cta-promesa">Te mostramos cuánto cuesta y cómo te acompañamos, sin compromiso.</p>
+      <script is:inline>
+        // Prueba A/B del botón: cada visitante ve siempre la misma versión, elegida
+        // al azar. Corre antes de pintar para que el texto no cambie a la vista.
+        (function () {
+          var V = {
+            a: ['Descubre tu plan →', 'Te mostramos cuánto cuesta y cómo te acompañamos, sin compromiso.'],
+            b: ['Quiero comer sin culpa →', 'Te mostramos tu plan y el precio antes de que decidas nada.'],
+          };
+          var v = null;
+          try { v = localStorage.getItem('ajl_ab_hero'); } catch (e) {}
+          if (v !== 'a' && v !== 'b') {
+            v = Math.random() < 0.5 ? 'a' : 'b';
+            try { localStorage.setItem('ajl_ab_hero', v); } catch (e) {}
+          }
+          var boton = document.getElementById('hero-cta');
+          boton.textContent = V[v][0];
+          boton.setAttribute('data-variante', v);
+          document.getElementById('hero-cta-promesa').textContent = V[v][1];
+          var enviar = function (evento) {
+            var cuerpo = JSON.stringify({ evento: evento, variante: v });
+            if (navigator.sendBeacon) navigator.sendBeacon('/api/ab', cuerpo);
+            else fetch('/api/ab', { method: 'POST', body: cuerpo, keepalive: true });
+          };
+          try {
+            if (!sessionStorage.getItem('ajl_ab_hero_vista')) { sessionStorage.setItem('ajl_ab_hero_vista', '1'); enviar('vista'); }
+          } catch (e) { enviar('vista'); }
+          boton.addEventListener('click', function () { enviar('click'); });
+        })();
+      </script>
     </div>
 
     <ul class="hero__trust" aria-label="Por qué confiar en AJL Nutrición">

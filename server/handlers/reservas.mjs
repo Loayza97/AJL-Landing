@@ -131,6 +131,8 @@ export async function handleApartar(request, env, deps) {
       peso_tope: precio.peso, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha, modalidad: d.modalidad,
       primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora,
       huella: await huellaDe(request, fechaLima(ahora)), maxRetenciones: MAX_RETENCIONES,
+      // Versión del botón de la portada que vio (prueba A/B); cualquier otra cosa se descarta.
+      variante: ['hero_a', 'hero_b'].includes(d.variante) ? d.variante.slice(-1) : null,
     });
     if (!res.ok && res.motivo === 'limite') {
       return bad(429, 'Ya tienes horas apartadas. Termina tu pago o espera unos minutos.', { motivo: 'limite' });
