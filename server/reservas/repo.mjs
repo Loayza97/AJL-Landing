@@ -27,12 +27,12 @@ export async function crearRetencion(db, r) {
   }
   const insertar = db.prepare(
     `INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
-       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12
+       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12, ?16
      WHERE (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
             WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella, r.variante ?? null);
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
     if (res.meta.changes === 0) return { ok: false, motivo: 'tope' };

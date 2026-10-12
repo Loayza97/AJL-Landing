@@ -212,3 +212,12 @@ test('horas: dias=21 devuelve las tres semanas de una vez; más de 28 o no numé
     assert.equal((await handleHoras(get(`/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3&dias=${dias}`), env, deps())).status, 400, dias);
   }
 });
+
+test('apartar guarda la versión del botón de la portada solo si es válida', async () => {
+  const d = deps();
+  const ok = await (await apartar(d, { variante: 'hero_b' })).json();
+  const raro = await (await apartar(d, { inicio: '2026-10-06T19:00:00Z', variante: '<script>' })).json();
+  const v = async (token) => (await d.db.prepare('SELECT variante FROM reservas WHERE token = ?1').bind(token).first()).variante;
+  assert.equal(await v(ok.token), 'b');
+  assert.equal(await v(raro.token), null);
+});

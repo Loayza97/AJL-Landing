@@ -89,12 +89,17 @@ function horaApartada() {
   } catch { return null; }
 }
 
+// Versión del botón de la portada que vio (prueba A/B), para medir reservas pagadas por versión.
+function varianteHero() {
+  try { const v = localStorage.getItem('ajl_ab_hero'); return v === 'a' || v === 'b' ? `hero_${v}` : null; } catch { return null; }
+}
+
 async function apartar(eleccion) {
   $('#p3-error').textContent = 'Apartando tu hora…';
   try {
     const r = await fetch('/api/reservas/apartar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, ...eleccion, liberar: horaApartada() }),
+      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, ...eleccion, liberar: horaApartada(), variante: varianteHero() }),
     });
     const d = await r.json();
     if (!r.ok) { $('#p3-error').textContent = d.error || 'Esa hora ya no está disponible.'; estado.selector.recargar(); return; }
