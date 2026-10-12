@@ -32,7 +32,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir }) {
         <button type="button" data-modalidad="presencial">En Lince</button>
         <button type="button" data-modalidad="video">Por videollamada</button>
       </div>
-      <p class="sel-etq">¿Prefieres a alguien?</p>
+      <p class="sel-etq">Elige a tu nutricionista</p>
       <div class="sel-nutris"></div>
     </div>
     <div class="sel-proxima" hidden></div>
