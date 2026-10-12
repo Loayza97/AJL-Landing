@@ -5,9 +5,20 @@ import { duracionesDe } from '../../data/duraciones.js';
 import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
 
+// Todo lo que trae cada plan, para el recuadro «Incluye» de la pantalla 2.
+const ORDINAL = { 2: '2da', 3: '3ra', 4: '4ta', 5: '5ta' };
+const incluyeDe = (p) => [
+  ...p.consultasMes,
+  ...(p.firstMonthEval ? [`${ORDINAL[p.sessionsPerMonth + 1]} sesión de evaluación al final de tu primer mes`] : []),
+  p.sessionsPerMonth >= 4 ? '2 planes nutricionales en la app, ajustados a tu día a día' : 'Tu plan nutricional en la app, ajustado a tu día a día',
+  'Seguimiento continuo por WhatsApp con el equipo de nutricionistas (L–V 9–18 h, S 9–13 h)',
+  '2 clases en vivo por semana (miércoles con el equipo, domingos con Alejandro) y comunidad',
+  ...(p.checkoutSummary.includes('Atención prioritaria') ? ['Atención prioritaria'] : []),
+];
+
 const catalogo = {};
 for (const p of monthlyPlans) {
-  catalogo[p.id] = { nombre: p.name, mensual: true, duraciones: duracionesDe(p.id), consultas: p.consultasMes, regalo: !!p.firstMonthEval };
+  catalogo[p.id] = { nombre: p.name, mensual: true, duraciones: duracionesDe(p.id), incluye: incluyeDe(p) };
 }
 catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
@@ -60,7 +71,7 @@ const VENTANAS = [
                 <li>Tu plan ajustado a tu día a día</li>
                 <li>Tu seguimiento entre sesiones</li>
               </ul>
-              {p.firstMonthEval && <p class="rs-regalo">De regalo: evaluación de cierre del primer mes</p>}
+              {p.firstMonthEval && <p class="rs-regalo">{ORDINAL[p.sessionsPerMonth + 1]} sesión de evaluación al final de tu primer mes</p>}
               <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir y ver precios</button>
             </article>
           ))}
