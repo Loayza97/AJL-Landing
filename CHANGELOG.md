@@ -11,6 +11,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-10-12
 
+- Reserva: la hora de 1 a 2 p. m. (almuerzo del equipo) ya no se ofrece ningún día.
+
 - Portada: el botón principal pasa a «Quiero empezar →» y lleva a `/reservar/`.
 - Reserva, pantalla 3: calendario del mes con la próxima hora disponible, horas separadas en mañana y tarde, y filtro opcional por nutricionista con foto (Nico, Paola, Jussara, Paolo).
 - Reserva, pantalla final: «Agregar a Google Calendar» abre Google con la cita cargada; «Otro calendario» descarga el `.ics` para Apple u Outlook.
