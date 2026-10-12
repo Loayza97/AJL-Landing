@@ -13,7 +13,7 @@ const trust = [
 <section id="section-hero" class="hero">
   <div class="container hero__inner">
     <h1 class="hero__title">
-      Deja de hacer dietas.<br />
+      Deja de hacer <span class="hero__tachar">dietas</span>.<br />
       <span class="hero__accent">Aprende a comer.</span>
     </h1>
 
@@ -37,6 +37,32 @@ const trust = [
   </div>
 </section>
 
+<script>
+  // Paralaje del fondo del hero: con el mouse (solo donde hay mouse) y al bajar.
+  // Movimiento máximo ~12 px; se apaga si la persona pidió menos animaciones.
+  const hero = document.getElementById('section-hero');
+  if (hero && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let mx = 0, my = 0, pendiente = false;
+    const aplicar = () => {
+      pendiente = false;
+      const scroll = Math.min(window.scrollY, hero.offsetHeight) * 0.08;
+      hero.style.setProperty('--px', `${(mx * 12).toFixed(1)}px`);
+      hero.style.setProperty('--py', `${(my * 8 + scroll).toFixed(1)}px`);
+    };
+    const pedir = () => { if (!pendiente) { pendiente = true; requestAnimationFrame(aplicar); } };
+    if (matchMedia('(pointer: fine)').matches) {
+      hero.addEventListener('pointermove', (e) => {
+        const r = hero.getBoundingClientRect();
+        mx = (e.clientX - r.left) / r.width - 0.5;
+        my = (e.clientY - r.top) / r.height - 0.5;
+        pedir();
+      });
+      hero.addEventListener('pointerleave', () => { mx = 0; my = 0; pedir(); });
+    }
+    window.addEventListener('scroll', pedir, { passive: true });
+  }
+</script>
+
 <style>
 .hero {
   position: relative;
@@ -59,6 +85,10 @@ const trust = [
   /* El hero es más apaisado que la foto: se ancla arriba para no cortar
      las cabezas (las caras están entre el 15 % y el 45 % del alto). */
   background: url('/equipo-desktop.jpg') center 15% / cover no-repeat;
+  /* Paralaje suave: el script mueve --px/--py unos pocos píxeles con el mouse
+     y al bajar; el scale evita que asomen los bordes. */
+  transform: translate3d(var(--px, 0px), var(--py, 0px), 0) scale(1.06);
+  will-change: transform;
 }
 
 /* Velo verde para legibilidad del texto + destello terracota.
@@ -114,6 +144,31 @@ const trust = [
 .hero__accent {
   color: var(--gold);
   display: block;
+}
+
+/* Mensaje animado: «dietas» se tacha con una línea dorada y después aparece
+   «Aprende a comer.». Sin animaciones (prefers-reduced-motion) queda quieto. */
+.hero__tachar { position: relative; white-space: nowrap; }
+.hero__tachar::after {
+  content: "";
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 55%;
+  height: 0.09em;
+  border-radius: 0.05em;
+  background: var(--gold);
+  transform: scaleX(0) rotate(-3deg);
+  transform-origin: left center;
+  animation: hero-tachar 0.55s cubic-bezier(.6, 0, .2, 1) 0.5s forwards;
+}
+.hero__accent { animation: hero-aparecer 0.6s ease-out 0.95s both; }
+@keyframes hero-tachar { to { transform: scaleX(1) rotate(-3deg); } }
+@keyframes hero-aparecer { from { opacity: 0; transform: translateY(0.35em); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero__tachar::after { animation: none; transform: scaleX(1) rotate(-3deg); }
+  .hero__accent { animation: none; }
+  .hero::before { transform: scale(1.06); }
 }
 
 
