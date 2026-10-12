@@ -80,3 +80,23 @@ test('acceso: sesión vencida, cookie falsa o correo quitado de la lista no entr
   reloj = new Date('2026-10-13T08:01:00Z');
   assert.equal((await verificarAcceso(api(cookie), env, d)).ok, false, 'vence a las 12 h');
 });
+
+test('acceso: tras 10 intentos fallidos en 24 h el correo queda bloqueado, aunque pida códigos nuevos', async () => {
+  reloj = new Date('2026-10-12T20:00:00Z');
+  const d = deps();
+  for (let ronda = 0; ronda < 2; ronda++) {
+    reloj = new Date(reloj.getTime() + 2 * 60000);
+    await handlePedirCodigo(post('/api/equipo/codigo', { email: 'romi@x.pe' }), env, d);
+    const bueno = codigoDe(d);
+    const malo = bueno === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) await handleEntrar(post('/api/equipo/entrar', { email: 'romi@x.pe', codigo: malo }), env, d);
+  }
+  const enviados = d.correos.length;
+  reloj = new Date(reloj.getTime() + 2 * 60000);
+  await handlePedirCodigo(post('/api/equipo/codigo', { email: 'romi@x.pe' }), env, d);
+  assert.equal(d.correos.length, enviados, 'bloqueado: no se manda otro código');
+  reloj = new Date(reloj.getTime() + 25 * 3600000);
+  await handlePedirCodigo(post('/api/equipo/codigo', { email: 'romi@x.pe' }), env, d);
+  assert.equal(d.correos.length, enviados + 1, 'al día siguiente vuelve a poder');
+  assert.equal((await handleEntrar(post('/api/equipo/entrar', { email: 'romi@x.pe', codigo: codigoDe(d) }), env, d)).status, 200);
+});
