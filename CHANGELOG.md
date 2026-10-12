@@ -11,6 +11,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-10-12
 
+- Reserva, pantalla 2: recuadro «Incluye» con todo lo del plan (sesiones, evaluación, plan en la app, seguimiento por WhatsApp, clases en vivo y comunidad).
+- Reserva: la evaluación del primer mes se presenta como sesión numerada («3ra sesión de evaluación al final de tu primer mes»; 5ta en el plan de 4 sesiones).
 - Portada: prueba A/B del botón principal. Al azar, «Descubre tu plan →» (A) o «Mira precios aquí →» (B); se cuentan vistas, clics y reservas pagadas por versión, sin identificar a nadie.
 - Reserva, pantalla final: botón verde «Avisar al equipo por WhatsApp» con el mensaje de la cita ya escrito.
 - Reserva, pantalla 3: el filtro dice «Elige a tu nutricionista».
