@@ -11,6 +11,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-10-12
 
+- Panel del equipo en `/panel/` (Romi, Alejandro, Joaquín): quién pagó, quién dejó datos sin pagar (30 días), marcar «contactado» y descargar Excel. Acceso con código de 6 dígitos por correo.
 - Reserva, pantalla 2: recuadro «Incluye» con todo lo del plan (sesiones, evaluación, plan en la app, seguimiento por WhatsApp, clases en vivo y comunidad).
 - Reserva: la evaluación del primer mes se presenta como sesión numerada («3ra sesión de evaluación al final de tu primer mes»; 5ta en el plan de 4 sesiones).
 - Portada: prueba A/B del botón principal. Al azar, «Descubre tu plan →» (A) o «Mira precios aquí →» (B); se cuentan vistas, clics y reservas pagadas por versión, sin identificar a nadie.
