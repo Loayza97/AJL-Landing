@@ -71,7 +71,7 @@ const VENTANAS = [
                 <li>Tu plan ajustado a tu día a día</li>
                 <li>Tu seguimiento entre sesiones</li>
               </ul>
-              {p.firstMonthEval && <p class="rs-regalo">De regalo: evaluación de cierre del primer mes</p>}
+              {p.firstMonthEval && <p class="rs-regalo">{ORDINAL[p.sessionsPerMonth + 1]} sesión de evaluación al final de tu primer mes</p>}
               <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir y ver precios</button>
             </article>
           ))}
