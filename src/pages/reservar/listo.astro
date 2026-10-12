@@ -31,7 +31,8 @@ import '../../styles/reservar.css';
       raiz.innerHTML = `
         <h1>Listo${d.nombre ? `, ${esc(d.nombre)}` : ''}. Tu primera sesión está reservada.</h1>
         <div class="rs-resumen"><div>${esc(d.etiqueta)}</div><div>${d.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${esc(d.nutricionista?.nombre)}</div><div>${esc(d.titulo)} · ${soles(d.monto_centimos)}</div></div>
-        <a class="rs-btn" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Agregar a mi calendario</a>
+        ${d.google_calendar ? `<a class="rs-btn" href="${esc(d.google_calendar)}" target="_blank" rel="noopener" style="text-align:center;text-decoration:none">Agregar a Google Calendar</a>` : ''}
+        <a class="rs-btn rs-btn--ghost" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Otro calendario (Apple, Outlook)</a>
         <p class="rs-nota">Te enviamos la invitación y la confirmación a tu correo. Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`;
       (async () => {
         try {

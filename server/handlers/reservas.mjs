@@ -17,7 +17,7 @@ import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES }
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
 import { firmaValida } from '../reservas/mercadopago.mjs';
-import { icsDeReserva } from '../reservas/ics.mjs';
+import { icsDeReserva, enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
@@ -51,6 +51,18 @@ function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro }) {
     maxHorasDia: MAX_HORAS_DIA });
 }
 
+// Datos de la cita para el .ics y para el enlace de Google Calendar.
+function eventoDe(r) {
+  const precio = cotizar(r.producto, r.duracion_meses);
+  return {
+    titulo: `Tu sesión en AJL Nutrición · ${precio?.titulo ?? ''}`,
+    inicioUtc: r.inicio_utc,
+    finUtc: new Date(Date.parse(r.inicio_utc) + 3600 * 1000).toISOString(),
+    ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
+    descripcion: 'Si necesitas mover tu cita, escríbenos por WhatsApp: +51 919 151 237.',
+  };
+}
+
 export function vista(r, deps, ultimo = null) {
   const precio = cotizar(r.producto, r.duracion_meses);
   const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
@@ -70,6 +82,7 @@ export function vista(r, deps, ultimo = null) {
     nutricionista: n ? { id: n.id, nombre: n.nombre } : null,
     nombre: r.nombre ? r.nombre.split(' ')[0] : null,
     meet: r.meet_url || null,
+    google_calendar: r.estado === 'confirmada' ? enlaceGoogleCalendar(eventoDe(r)) : null,
     ultimo_pago: ultimo?.estado ?? null,
   };
 }
@@ -81,11 +94,14 @@ export async function handleHoras(request, env, deps) {
   const modalidad = q.get('modalidad');
   const precio = cotizar(q.get('producto'), Number(q.get('duracion')));
   const filtro = q.get('nutricionista') || '';
-  if (!FECHA.test(desde) || !MODALIDADES.has(modalidad) || !precio || !nutriValida(deps, filtro)) return bad(400, 'Parámetros inválidos');
+  // Cuántos días mirar: 7 por defecto; el calendario del mes pide 21 de una vez.
+  const n = q.has('dias') ? Number(q.get('dias')) : 7;
+  if (!FECHA.test(desde) || !MODALIDADES.has(modalidad) || !precio || !nutriValida(deps, filtro)
+    || !Number.isInteger(n) || n < 1 || n > 28) return bad(400, 'Parámetros inválidos');
   try {
-    const ctx = await contexto(deps, desde, 7);
+    const ctx = await contexto(deps, desde, n);
     const dias = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < n; i++) {
       const fecha = sumarDias(desde, i);
       dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, peso: precio.peso, filtro }) });
     }
@@ -206,16 +222,7 @@ export async function handleWebhookMp(request, env, deps) {
 export async function handleIcs(request, env, deps) {
   const r = await repo.reservaPorToken(deps.db, new URL(request.url).searchParams.get('r') || '');
   if (!r || r.estado !== 'confirmada') return bad(404, 'No encontramos tu reserva.');
-  const precio = cotizar(r.producto, r.duracion_meses);
-  const texto = icsDeReserva({
-    uid: r.id,
-    titulo: `Tu sesión en AJL Nutrición · ${precio?.titulo ?? ''}`,
-    inicioUtc: r.inicio_utc,
-    finUtc: new Date(Date.parse(r.inicio_utc) + 3600 * 1000).toISOString(),
-    ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
-    descripcion: 'Si necesitas mover tu cita, escríbenos por WhatsApp: +51 919 151 237.',
-    ahora: deps.ahora(),
-  });
+  const texto = icsDeReserva({ uid: r.id, ...eventoDe(r), ahora: deps.ahora() });
   return new Response(texto, { status: 200, headers: { 'Content-Type': 'text/calendar; charset=utf-8',
     'Content-Disposition': 'attachment; filename="sesion-ajl.ics"', 'Cache-Control': 'no-store' } });
 }

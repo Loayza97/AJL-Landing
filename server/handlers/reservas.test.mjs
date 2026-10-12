@@ -203,3 +203,12 @@ test('resumen diario: si un día no se envió, el siguiente incluye lo acumulado
   assert.deepEqual(await (await llamar(74)).json(), { ok: true, enviados: 0 });
   assert.equal(enviados.length, 1);
 });
+
+test('horas: dias=21 devuelve las tres semanas de una vez; más de 28 o no numérico da 400', async () => {
+  const d = await (await handleHoras(get('/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3&dias=21'), env, deps())).json();
+  assert.equal(d.dias.length, 21);
+  assert.equal(d.dias[20].fecha, '2026-10-26');
+  for (const dias of ['29', 'x', '0']) {
+    assert.equal((await handleHoras(get(`/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3&dias=${dias}`), env, deps())).status, 400, dias);
+  }
+});

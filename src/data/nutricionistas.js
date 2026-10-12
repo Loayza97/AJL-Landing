@@ -22,7 +22,7 @@ export const nutricionistas = [
     id: 'nico',
     nombre: 'Nico',
     apodos: ['nico'],
-    foto: null,
+    foto: '/equipo/nico.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 11, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 11, hasta: 20 },
@@ -36,7 +36,7 @@ export const nutricionistas = [
     id: 'paola',
     nombre: 'Paola',
     apodos: ['paola'],
-    foto: null,
+    foto: '/equipo/paola.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: 'video', desde: 14, hasta: 20 },
       { dia: 'miercoles', modalidad: 'presencial', desde: 14, hasta: 20 },
@@ -48,7 +48,7 @@ export const nutricionistas = [
     id: 'jussara',
     nombre: 'Jussara',
     apodos: ['jussara', 'yuyu'],
-    foto: null,
+    foto: '/equipo/jussara.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: null, desde: 10, hasta: 17 },
       { dia: 'martes', modalidad: null, desde: 10, hasta: 17 },
@@ -62,7 +62,7 @@ export const nutricionistas = [
     id: 'paolo',
     nombre: 'Paolo',
     apodos: ['paolo'],
-    foto: null,
+    foto: '/equipo/paolo.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 14, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20 },
