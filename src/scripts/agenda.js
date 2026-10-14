@@ -6,7 +6,10 @@ import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 
 const $ = (s) => document.querySelector(s);
 const token = new URLSearchParams(location.search).get('l') || '';
-const estado = { link: null, hora: null, dni: null, selector: null };
+// volverA: tras un 409 (hora tomada) el paciente vuelve directo al paso donde
+// estaba (conocido o datos) con lo que ya respondió /dni: no repite el DNI ni
+// gasta otra consulta del cupo del link.
+const estado = { link: null, hora: null, dni: null, selector: null, volverA: null };
 const MOD = { presencial: 'En Lince', video: 'Por videollamada' };
 
 function irA(paso) {
@@ -72,6 +75,7 @@ async function confirmar(datos, errorSel) {
     $('#a-ics').href = d.ics;
     irA('listo');
   } else if (status === 409) {
+    estado.volverA = datos ? 'datos' : 'conocido';
     $('#a-error-horario').textContent = d.error || 'Esa hora acaba de ocuparse. Elige otra.';
     irA('horario');
     estado.selector.recargar();
@@ -94,6 +98,7 @@ $('#a-form-dni').addEventListener('submit', async (e) => {
   if (status === 0) { $('#a-error-dni').textContent = MSJ_RED; return; }
   if (status !== 200) { $('#a-error-dni').textContent = d.error || 'No pudimos revisar tu DNI. Intenta de nuevo.'; return; }
   estado.dni = dni;
+  estado.volverA = null;
   if (!d.conocido) return irA('datos');
   $('#a-hola').textContent = `Hola, ${d.nombre}`;
   const lista = $('#a-contactos');
@@ -146,7 +151,7 @@ async function iniciar() {
       estado.hora = { ...h, etiqueta: etiqueta(h.inicio) };
       $('#a-error-horario').textContent = '';
       pintarResumen();
-      irA('dni');
+      irA(estado.dni && estado.volverA ? estado.volverA : 'dni');
     },
   });
   irA('horario');
