@@ -8,6 +8,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 - Portada: la foto del equipo tiene un paralaje suave (mouse en computadora, scroll en todos).
 - Portada: el botón «Quiero empezar →» tiene un brillo que lo recorre y un halo que late.
 - Todo se queda quieto si el dispositivo pide reducir movimiento.
+- Interno: motor de horarios preparado para citas de 30 min y para impedir cruces de horario; sin cambios para el paciente.
 
 ## 2026-10-12
 
