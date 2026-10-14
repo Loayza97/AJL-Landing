@@ -4,7 +4,7 @@
 
 **Goal:** Que el equipo cree links de un solo uso para pacientes que pagaron por fuera de la web, y que el paciente agende con ellos su cita de 30 o 60 minutos en el calendario compartido.
 
-**Architecture:** Tabla nueva `links_agenda` (token guardado como hash). Las citas de link se guardan en `reservas` como `confirmada`, con `producto = 'link_<tipo>'`, monto y peso 0 y `link_id`; así usan el mismo motor (`horasLibres` con `duracionMin` y `pasoMin: 30`) y los mismos candados de cruce que la reserva con pago (entrega 1). Agendar es un solo `db.batch` que inserta el cliente (si es nuevo), la reserva y marca el link usado, con las mismas condiciones en cada sentencia. Página del paciente `/agenda/?l=TOKEN` y panel `/panel/links/` (mismo acceso por código del panel actual), los dos sin analítica.
+**Architecture:** Tabla nueva `links_agenda` (token guardado como hash). Las citas de link se guardan en `reservas` como `confirmada`, con `producto = 'link_<tipo>'`, monto y peso 0 y `link_id`; así usan el mismo motor (`libresDelDia` → `horasLibres` con `duracionMin` y `pasoMin: 30`) y los mismos candados de cruce que la reserva con pago (entrega 1). Agendar es un solo `db.batch` que inserta el cliente (si es nuevo), la reserva y marca el link usado, con las mismas condiciones en cada sentencia. Página del paciente `/agenda/?l=TOKEN` y panel `/panel/links/` (mismo acceso por código del panel actual), los dos sin analítica.
 
 **Tech Stack:** Astro 4 (páginas estáticas + `<script>` con módulos de `src/scripts/`), Cloudflare Pages Functions, D1, Google Calendar (OAuth existente), Resend, `node:test`.
 
@@ -14,7 +14,9 @@
 
 - Requiere la entrega 1 publicada (`docs/superpowers/plans/2026-10-12-motor-medias-horas.md`): `CRUCE`, `hayCruce`, `fin_utc`, `duracion_min`, `inicioUtcMin`, `sumarMinutos`, `finDeReserva`, `horasLibres({ duracionMin, pasoMin })`.
 - Worktree `~/ajl/ajl-landing-cloudflare`, rama `reservas-pago`. Nada a `main` sin autorización.
-- Tipos de evento: `c30v` (Control de 30 min · Virtual · solo video), `c30p` (Control de 30 min · Presencial o virtual), `s60` (Sesión de 1 hora · Presencial o virtual). Vence a los 7 días; reactivar suma 3 días desde ahora; 10 consultas de DNI por link; páginas de 20 filas.
+- Tipos de evento (cerrados en el spec el 2026-10-13): `c30v` (Control de 30 min · Virtual · solo video), `c30p` (Control de 30 min · Presencial o virtual, modalidades `['presencial', 'video']`), `s60` (Sesión de 1 hora · Presencial o virtual). Vence a los 7 días; reactivar suma 3 días desde ahora; 10 consultas de DNI por link (gastan cupo `/api/agenda/dni` y `/api/agenda/confirmar` sin `datos`, porque los dos revelan si un DNI es paciente); páginas de 20 filas; el CSV de agendados admite hasta 200 citas por descarga.
+- Las horas de link salen de `libresDelDia` de `server/handlers/reservas.mjs` (el mismo motor de la web, con `maxHorasDia`), no de una copia.
+- D1 admite como máximo 100 parámetros por consulta (`node:sqlite` de las pruebas no tiene ese límite): una lista de ids va en un solo parámetro JSON con `json_each(?1)`.
 - Inicios de link cada 30 min: `/^\d{4}-\d{2}-\d{2}T\d{2}:(00|30):00Z$/`. La web de pago sigue aceptando solo `:00`.
 - Datos del paciente nuevo en este orden: Apellido paterno, Apellido materno (opcional), Nombres, Correo, WhatsApp (con desplegable de país, Perú por defecto, la misma lista que `/reservar/`), Fecha de nacimiento. Documento: siempre DNI de 8 dígitos (ya pedido en el paso anterior).
 - Copy en español de Perú, tuteo, sin rayas como inciso; ADN de marca (Preciso · Real · Liberador).
@@ -29,6 +31,9 @@
 3. La hora se ocupa (por la web de pago u otro link) entre elegir y confirmar: 409, vuelve al calendario y el link sigue sirviendo.
 4. Una cita de link de 30 min a las 10:00 deja de ofrecerse a las 10:00 en la web de pago con esa nutricionista, y una cita web de 10:00 tapa el 10:30 del link.
 5. Google Calendar caído al confirmar: la reserva queda confirmada con `calendario_pendiente = 1`, llega alerta al equipo y el paciente igual ve «Listo».
+6. Cualquier error después de agendar (por ejemplo, D1 falla al guardar el evento o al marcarlo pendiente): `finalizarAgenda` va en su propio `try/catch`, el paciente recibe 200 con `meet: null` (nunca 503 con la cita ya guardada) y el equipo recibe una alerta.
+7. Cupo de DNI: `/api/agenda/confirmar` sin `datos` gasta una consulta del mismo cupo de 10 que `/api/agenda/dni`; agotado, 429. Nadie enumera pacientes con un link.
+8. CSV de agendados: hasta 200 ids en una sola sentencia con un solo parámetro (`json_each(?1)`); 201 o más da 400 y el panel avisa antes de pedirlo.
 
 ---
 
@@ -36,10 +41,10 @@
 
 **Files:**
 - Create: `db/d1/0007_links_agenda.sql`, `server/agenda/tipos.mjs`, `server/agenda/tipos.test.mjs`
-- Modify: `server/tokens.mjs` (+ `sha256Hex`), `server/tokens.test.mjs`, `server/reservas/repo.mjs` (exportar `expirar`), `server/reservas/disponibilidad.mjs` (peso 0 no mira el tope), `server/reservas/disponibilidad.test.mjs`, `server/reservas/esquema.test.mjs`
+- Modify: `server/tokens.mjs` (+ `sha256Hex`), `server/tokens.test.mjs`, `server/equipo/acceso.mjs` (usa `sha256Hex` en vez de su copia `sha256`), `server/reservas/repo.mjs` (exportar `expirar`), `server/reservas/disponibilidad.mjs` (peso 0 no mira el tope), `server/reservas/disponibilidad.test.mjs`, `server/reservas/esquema.test.mjs`
 
 **Interfaces:**
-- Produces: tabla `links_agenda(id, token_hash, tipo, creado_en, creado_por, vence_en, reactivado_en, usado_en, reserva_id, paciente_nuevo, consultas_dni)`; `reservas.link_id`; `TIPOS_LINK: Record<'c30v'|'c30p'|'s60', { nombre, etiqueta, duracion_min, modalidades: ('presencial'|'video')[] }>`; `VENCE_DIAS = 7`, `REACTIVAR_DIAS = 3`, `MAX_CONSULTAS_DNI = 10`, `PASO_LINK_MIN = 30`; `tipoDeReserva(r): tipo | null`; `sha256Hex(texto): Promise<string>`; `export const expirar(db, ahoraIso)`.
+- Produces: tabla `links_agenda(id, token_hash, tipo, creado_en, creado_por, vence_en, reactivado_en, usado_en, reserva_id, paciente_nuevo, consultas_dni)` con índice `links_agenda_reserva (reserva_id)`; `reservas.link_id`; `TIPOS_LINK: Record<'c30v'|'c30p'|'s60', { nombre, etiqueta, duracion_min, modalidades: ('presencial'|'video')[] }>`; `VENCE_DIAS = 7`, `REACTIVAR_DIAS = 3`, `MAX_CONSULTAS_DNI = 10`, `PASO_LINK_MIN = 30`; `tipoDeReserva(r): tipo | null`; `sha256Hex(texto): Promise<string>` en `server/tokens.mjs` (la usan los links y `server/equipo/acceso.mjs`; `huellaDe` de `server/handlers/reservas.mjs` se deja como está para no tocar el flujo de pago); `export const expirar(db, ahoraIso)`.
 
 - [ ] **Step 1: Pruebas que fallan**
 
@@ -63,11 +68,9 @@ test('tipoDeReserva: solo para reservas creadas con link', () => {
 });
 ```
 
-En `server/tokens.test.mjs`, agregar:
+En `server/tokens.test.mjs`, sumar `sha256Hex` al import que ya existe (queda `import { randomToken, couponCode, sha256Hex } from './tokens.mjs';`) y agregar al final:
 
 ```js
-import { sha256Hex } from './tokens.mjs';
-
 test('sha256Hex en hexadecimal', async () => {
   assert.equal(await sha256Hex('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });
@@ -86,15 +89,16 @@ test('migración 0007: links de agenda con tipo controlado y reservas.link_id', 
     VALUES ('l2', 'h2', 'otro', 'x', 'a@x.pe', 'y')`).run(), /CHECK/);
   await assert.rejects(db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en)
     VALUES ('l3', 'h1', 's60', 'x', 'a@x.pe', 'y')`).run(), /UNIQUE/);
-  await db.prepare("UPDATE reservas SET link_id = 'l1' WHERE 0").run();
+  assert.ok(await db.prepare("SELECT name FROM pragma_table_info('reservas') WHERE name = 'link_id'").first());
+  assert.ok(await db.prepare("SELECT name FROM pragma_index_list('links_agenda') WHERE name = 'links_agenda_reserva'").first());
 });
 ```
 
-En `server/reservas/disponibilidad.test.mjs`, agregar:
+En `server/reservas/disponibilidad.test.mjs`, agregar (cuatro primeras sesiones manuales: la suma ya pasa el tope de 3, así que sin el cambio el día sale vacío también con peso 0; con tres la prueba pasaría sin el cambio):
 
 ```js
 test('peso 0 (citas de link) no mira el tope de primeras sesiones', () => {
-  const eventos = ['09', '10', '11'].map((h) => conHora('1ra · X · Plan', `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`, { bloquea: false }));
+  const eventos = ['09', '10', '11', '12'].map((h) => conHora('1ra · X · Plan', `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`, { bloquea: false }));
   assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }), []);
   assert.ok(horasLibres({ ...base, peso: 0, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
 });
@@ -103,7 +107,7 @@ test('peso 0 (citas de link) no mira el tope de primeras sesiones', () => {
 - [ ] **Step 2: Correr y ver que fallan**
 
 Run: `npm test`
-Expected: FAIL (no existen `tipos.mjs`, `sha256Hex`, la tabla, y el tope corta también con peso 0).
+Expected: FAIL (no existen `tipos.mjs`, `sha256Hex`, la tabla ni la columna, y con cuatro primeras del día el tope corta también con peso 0).
 
 - [ ] **Step 3: Implementar**
 
@@ -125,6 +129,9 @@ CREATE TABLE links_agenda (
   paciente_nuevo INTEGER,
   consultas_dni  INTEGER NOT NULL DEFAULT 0
 );
+
+-- Para el JOIN de «Agendados» (reserva → link).
+CREATE INDEX links_agenda_reserva ON links_agenda (reserva_id);
 
 -- La cita que se agendó con un link (NULL en las reservas de la web).
 ALTER TABLE reservas ADD COLUMN link_id TEXT;
@@ -161,6 +168,8 @@ export async function sha256Hex(texto) {
 }
 ```
 
+En `server/equipo/acceso.mjs`, usar esa función en vez de su copia: cambiar `import { randomToken } from '../tokens.mjs';` por `import { randomToken, sha256Hex as sha256 } from '../tokens.mjs';` y borrar las dos líneas de `const sha256 = async (s) => …join('');`. Las llamadas `sha256(…)` quedan igual y `server/equipo/acceso.test.mjs` sigue en verde.
+
 En `server/reservas/repo.mjs`, cambiar `const expirar = (db, ahoraIso) => ...` por `export const expirar = (db, ahoraIso) => ...`.
 
 En `server/reservas/disponibilidad.mjs`, en `horasLibres`, cambiar `if (suma + peso > tope) return [];` por:
@@ -173,13 +182,13 @@ En `server/reservas/disponibilidad.mjs`, en `horasLibres`, cambiar `if (suma + p
 - [ ] **Step 4: Correr y ver que pasan**
 
 Run: `npm test`
-Expected: PASS.
+Expected: PASS (incluida `server/equipo/acceso.test.mjs`).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add db/d1/0007_links_agenda.sql server/agenda/tipos.mjs server/agenda/tipos.test.mjs server/tokens.mjs server/tokens.test.mjs \
-  server/reservas/repo.mjs server/reservas/disponibilidad.mjs server/reservas/disponibilidad.test.mjs server/reservas/esquema.test.mjs
+  server/equipo/acceso.mjs server/reservas/repo.mjs server/reservas/disponibilidad.mjs server/reservas/disponibilidad.test.mjs server/reservas/esquema.test.mjs
 git commit -m "agenda: tabla de links, tipos de evento y piezas compartidas"
 ```
 
@@ -471,24 +480,22 @@ git commit -m "agenda: repositorio de links (crear, reactivar, DNI y agendar en 
 
 **Files:**
 - Create: `server/handlers/agenda.mjs`, `server/handlers/agenda.test.mjs`, `server/agenda/finalizar.mjs`, `functions/api/agenda/link.js`, `functions/api/agenda/horas.js`, `functions/api/agenda/dni.js`, `functions/api/agenda/confirmar.js`
-- Modify: `server/reservas/correos.mjs` (+ `correoCitaAgenda`, `dondeCita` compartido), `server/reservas/correos.test.mjs`, `server/handlers/reservas.mjs` (exportar `contexto`; `eventoDe` con título de link)
+- Modify: `server/reservas/correos.mjs` (+ `correoCitaAgenda`, `dondeCita` compartido), `server/reservas/correos.test.mjs`, `server/handlers/reservas.mjs` (exportar `contexto` y `libresDelDia`, que acepta `pasoMin`; `eventoDe` con título de link)
 
 **Interfaces:**
-- Consumes: Task 1 y 2; `horasLibres`, `primerasManuales`; `repo.reservaPorId`, `repo.guardarEvento`, `repo.marcarCalendarioPendiente`, `repo.reservasActivasEntre`; `validarDatos`, `hoyEnLima`; `enlaceGoogleCalendar`; `correoEquipoAlerta`.
+- Consumes: Task 1 y 2; `contexto(deps, desde, dias)` y `libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60, pasoMin = 60 })` de `server/handlers/reservas.mjs` (el mismo motor de la web, con `maxHorasDia: MAX_HORAS_DIA`); `repo.reservaPorId`, `repo.guardarEvento`, `repo.marcarCalendarioPendiente`; `validarDatos`, `hoyEnLima`; `enlaceGoogleCalendar`; `correoEquipoAlerta`.
 - Produces (HTTP):
   - `GET /api/agenda/link?l=TOKEN` → `{ ok, estado: 'sin_usar'|'agendado'|'vencido', tipo: { id, nombre, etiqueta, duracion_min, modalidades }, nutricionistas: [{ id, nombre, foto }], cita?: { etiqueta, modalidad, nutricionista } }` · 404 si no existe.
   - `GET /api/agenda/horas?l&desde&dias&modalidad[&nutricionista]` → mismo formato que `/api/reservas/horas` · 410 si el link no está vigente.
-  - `POST /api/agenda/dni { l, dni }` → `{ ok, conocido: false }` o `{ ok, conocido: true, nombre, email, whatsapp }` (enmascarados) · 400 DNI inválido · 410 · 429.
-  - `POST /api/agenda/confirmar { l, inicio, modalidad, nutricionista?, dni, datos? }` (`datos`: `{ nombres, apellido_paterno, apellido_materno, email, whatsapp, fecha_nacimiento, acepto }`) → `{ ok, etiqueta, modalidad, nutricionista, duracion_min, meet, google_calendar, ics }` · 400 · 409 `{ motivo: 'ocupada' }` · 410 `{ motivo: 'link' }`.
-  - `finalizarAgenda(deps, env, r): Promise<{ meet }>`.
+  - `POST /api/agenda/dni { l, dni }` → `{ ok, conocido: false }` o `{ ok, conocido: true, nombre, email, whatsapp }` (enmascarados) · 400 DNI inválido · 410 · 429 (cupo de 10 consultas por link agotado).
+  - `POST /api/agenda/confirmar { l, inicio, modalidad, nutricionista?, dni, datos? }` (`datos`: `{ nombres, apellido_paterno, apellido_materno, email, whatsapp, fecha_nacimiento, acepto }`) → `{ ok, etiqueta, titulo, modalidad, nutricionista, duracion_min, meet, google_calendar, ics }` · 400 · 409 `{ motivo: 'ocupada' }` · 410 `{ motivo: 'link' }` · 429 (sin `datos` gasta una consulta del mismo cupo de DNI). Si algo falla después de agendar, igual 200 con `meet: null` y alerta al equipo.
+  - `finalizarAgenda(deps, env, r): Promise<{ meet }>`; `remitente(env)` exportado desde `server/agenda/finalizar.mjs`.
 
 - [ ] **Step 1: Pruebas que fallan**
 
-En `server/reservas/correos.test.mjs`, agregar:
+En `server/reservas/correos.test.mjs`, sumar `correoCitaAgenda` al import que ya existe (queda `import { correoConfirmacion, correoEquipoConfirmada, correoResumenNoPagadas, correoCitaAgenda } from './correos.mjs';`) y agregar al final:
 
 ```js
-import { correoCitaAgenda } from './correos.mjs';
-
 test('correo de cita de link: duración real y sin hablar de plan ni de pago', () => {
   const c = correoCitaAgenda({ nombre: '<b>Lu</b>', titulo: 'Control de 30 min', etiqueta: 'miércoles, 14 de octubre, 10:30', duracion: 30,
     modalidad: 'video', direccion: 'Lince', meet: null, nutricionista: 'Nico', urlIcs: 'https://x/ics' });
@@ -508,6 +515,7 @@ import { nutricionistas } from '../../src/data/nutricionistas.js';
 import { sha256Hex } from '../tokens.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import * as repo from '../reservas/repo.mjs';
+import { handleHoras } from './reservas.mjs';
 import { handleAgendaLink, handleAgendaHoras, handleAgendaDni, handleAgendaConfirmar } from './agenda.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z'); // lunes 10:00 en Lima
@@ -572,6 +580,13 @@ test('dni: más de 10 consultas con el mismo link da 429', async () => {
   assert.equal((await handleAgendaDni(post('/api/agenda/dni', { l, dni: '70123456' }), env, d)).status, 429);
 });
 
+test('confirmar sin datos gasta el mismo cupo de DNI: tras 10 consultas da 429', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  for (let i = 0; i < 10; i++) await handleAgendaDni(post('/api/agenda/dni', { l, dni: '70123456' }), env, d);
+  assert.equal((await confirmar(d, l, { datos: undefined, dni: '99999999' })).status, 429);
+});
+
 test('confirmar paciente nuevo: reserva, evento de 30 min con invitación, correo y vista de listo', async () => {
   const d = deps();
   const l = await conLink(d);
@@ -581,6 +596,8 @@ test('confirmar paciente nuevo: reserva, evento de 30 min con invitación, corre
   assert.equal(v.duracion_min, 30);
   assert.equal(v.meet, 'https://meet/x');
   assert.match(v.google_calendar, /^https:\/\/calendar\.google\.com/);
+  assert.equal(new URL(v.google_calendar).searchParams.get('location'), 'https://meet/x');
+  assert.equal(v.titulo, 'Control de 30 min');
   assert.equal(d.eventos[0].finUtc, '2026-10-06T16:00:00Z');
   assert.match(d.eventos[0].titulo, /^Agenda · Lucía Ramos Quispe · Control de 30 min$/);
   assert.equal(d.eventos[0].invitado.email, 'lucia@x.pe');
@@ -642,8 +659,21 @@ test('confirmar con Google caído: confirmada con calendario pendiente y alerta 
   assert.ok(d.correos.some((c) => c.to === 'equipo@x.pe'));
 });
 
+test('si D1 falla después de agendar: 200 con meet null, la cita queda confirmada y se avisa al equipo', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  // guardarEvento y marcarCalendarioPendiente fallan, así finalizarAgenda lanza error.
+  const prepare = d.db.prepare;
+  d.db.prepare = (sql) => { if (sql.includes('calendario_pendiente')) throw new Error('D1 caída'); return prepare(sql); };
+  const res = await confirmar(d, l);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).meet, null);
+  d.db.prepare = prepare;
+  assert.equal((await d.db.prepare("SELECT estado FROM reservas WHERE producto = 'link_c30v'").first()).estado, 'confirmada');
+  assert.ok(d.correos.some((c) => c.to === 'equipo@x.pe'));
+});
+
 test('una cita de link de 30 a las 10:00 deja de ofrecerse en la web a las 10:00 con esa nutricionista', async () => {
-  const { handleHoras } = await import('./reservas.mjs');
   const d = deps();
   const l = await conLink(d);
   await confirmar(d, l, { inicio: '2026-10-06T15:00:00Z', nutricionista: 'jussara' });
@@ -657,7 +687,7 @@ test('una cita de link de 30 a las 10:00 deja de ofrecerse en la web a las 10:00
 - [ ] **Step 2: Correr y ver que fallan**
 
 Run: `node --test server/handlers/agenda.test.mjs server/reservas/correos.test.mjs`
-Expected: FAIL (no existen `agenda.mjs` ni `correoCitaAgenda`).
+Expected: FAIL (no existen `agenda.mjs` ni `correoCitaAgenda`; `libresDelDia` todavía no se exporta).
 
 - [ ] **Step 3: Implementar**
 
@@ -686,7 +716,17 @@ export function correoCitaAgenda({ nombre, titulo, etiqueta, duracion, modalidad
 }
 ```
 
-En `server/handlers/reservas.mjs`: cambiar `async function contexto(` por `export async function contexto(`; importar `import { tipoDeReserva } from '../agenda/tipos.mjs';` y en `eventoDe`:
+En `server/handlers/reservas.mjs`: cambiar `async function contexto(` por `export async function contexto(`; reemplazar `libresDelDia` entera (hoy no recibe paso y no se exporta) por esta versión, que la agenda usa tal cual con su duración y paso de 30 (la web no pasa `pasoMin` y sigue en 60):
+
+```js
+export function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60, pasoMin = 60 }) {
+  return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
+    ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
+    maxHorasDia: MAX_HORAS_DIA, duracionMin, pasoMin });
+}
+```
+
+Importar `import { tipoDeReserva } from '../agenda/tipos.mjs';` y en `eventoDe`:
 
 ```js
 function eventoDe(r) {
@@ -717,7 +757,9 @@ import { tipoDeReserva } from './tipos.mjs';
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
 
-const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
+// Otra copia del remitente (confirmar.mjs y acceso.mjs tienen la misma);
+// unificarlas queda fuera de esta entrega. Se exporta para la alerta de agenda.mjs.
+export const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
 export async function finalizarAgenda(deps, env, r) {
   const tipo = tipoDeReserva(r);
@@ -766,12 +808,11 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, MAX_CONSULTAS_DNI, PASO_LINK_MIN } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { enmascararCorreo, enmascararTelefono } from '../agenda/mascaras.mjs';
-import { finalizarAgenda } from '../agenda/finalizar.mjs';
+import { finalizarAgenda, remitente } from '../agenda/finalizar.mjs';
 import * as repo from '../reservas/repo.mjs';
-import { horasLibres } from '../reservas/disponibilidad.mjs';
 import { sumarDias, fechaLima, etiquetaLima, sumarMinutos } from '../reservas/tiempo.mjs';
-import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS } from '../reservas/constantes.mjs';
-import { contexto, eventoDe } from './reservas.mjs';
+import { correoEquipoAlerta } from '../reservas/correos.mjs';
+import { contexto, libresDelDia, eventoDe } from './reservas.mjs';
 import { enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
@@ -782,6 +823,7 @@ const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...e
 const MSJ_NO_EXISTE = 'Este link no existe. Escríbenos por WhatsApp y te mandamos uno nuevo.';
 const MSJ_NO_VIGENTE = 'Este link ya se usó o venció. Escríbenos por WhatsApp y lo reactivamos.';
 const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
+const MSJ_INTENTOS = 'Demasiados intentos con este link. Escríbenos por WhatsApp.';
 const dniLimpio = (s) => String(s ?? '').replace(/[\s.-]+/g, '');
 
 async function cargar(deps, token) {
@@ -791,12 +833,9 @@ async function cargar(deps, token) {
 
 const tipoPublico = (id) => ({ id, ...TIPOS_LINK[id] });
 const nutriValida = (deps, id) => !id || deps.nutricionistas.some((n) => n.id === id);
-
-function libres(deps, ctx, tipo, { fecha, modalidad, filtro }) {
-  return horasLibres({ fecha, modalidad, peso: 0, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
-    ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
-    duracionMin: tipo.duracion_min, pasoMin: PASO_LINK_MIN });
-}
+// Las horas salen del mismo motor de la web (libresDelDia): peso 0, la duración
+// del tipo y paso de 30.
+const delTipo = (tipo) => ({ peso: 0, duracionMin: tipo.duracion_min, pasoMin: PASO_LINK_MIN });
 
 export async function handleAgendaLink(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
@@ -829,7 +868,7 @@ export async function handleAgendaHoras(request, env, deps) {
     const dias = [];
     for (let i = 0; i < n; i++) {
       const fecha = sumarDias(desde, i);
-      dias.push({ fecha, horas: libres(deps, ctx, tipo, { fecha, modalidad, filtro }) });
+      dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, filtro, ...delTipo(tipo) }) });
     }
     return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) });
   } catch (e) {
@@ -846,9 +885,7 @@ export async function handleAgendaDni(request, env, deps) {
   if (agenda.estadoLink(l, deps.ahora()) !== 'sin_usar') return bad(410, MSJ_NO_VIGENTE, { motivo: 'link' });
   const dni = dniLimpio(d.dni);
   if (!/^\d{8}$/.test(dni)) return bad(400, 'Escribe tu DNI (8 dígitos).');
-  if (!(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) {
-    return bad(429, 'Demasiados intentos con este link. Escríbenos por WhatsApp.');
-  }
+  if (!(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) return bad(429, MSJ_INTENTOS);
   const p = await agenda.pacientePorDni(deps.db, dni);
   if (!p) return json(200, { ok: true, conocido: false });
   return json(200, { ok: true, conocido: true, nombre: p.nombres || p.nombre.split(' ')[0],
@@ -867,10 +904,15 @@ export async function handleAgendaConfirmar(request, env, deps) {
   const dni = dniLimpio(d.dni);
   if (!/^\d{8}$/.test(dni)) return bad(400, 'Escribe tu DNI (8 dígitos).');
 
+  const conDatos = Boolean(d.datos && typeof d.datos === 'object');
+  // Sin datos, la respuesta revela si el DNI es paciente (200 o 400 'datos'):
+  // gasta una consulta del mismo cupo que /dni.
+  if (!conDatos && !(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) return bad(429, MSJ_INTENTOS);
+
   const previo = await agenda.pacientePorDni(deps.db, dni);
   let cliente = null;
   let clienteId = previo?.id ?? null;
-  if (d.datos && typeof d.datos === 'object') {
+  if (conDatos) {
     const v = validarDatos({ ...d.datos, tipo_documento: 'dni', documento: dni }, hoyEnLima(ahora));
     if (!v.ok) return bad(400, v.error);
     cliente = v.cliente;
@@ -882,7 +924,7 @@ export async function handleAgendaConfirmar(request, env, deps) {
   const fecha = fechaLima(new Date(d.inicio));
   try {
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libres(deps, ctx, tipo, { fecha, modalidad: d.modalidad, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
+    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, filtro: d.nutricionista, ...delTipo(tipo) }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const reservaId = crypto.randomUUID();
     const res = await agenda.agendarConLink(deps.db, {
@@ -893,11 +935,20 @@ export async function handleAgendaConfirmar(request, env, deps) {
     });
     if (!res.ok) return res.motivo === 'link' ? bad(410, MSJ_NO_VIGENTE, { motivo: 'link' }) : bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const r = await repo.reservaPorId(deps.db, reservaId);
-    const { meet } = await finalizarAgenda(deps, env, r);
+    // La cita ya quedó guardada: desde aquí ningún error puede volverse un 503
+    // (el paciente reintentaría y recibiría «ya se usó»). Se avisa al equipo.
+    let meet = null;
+    try {
+      ({ meet } = await finalizarAgenda(deps, env, r));
+    } catch (e) {
+      console.error('agenda/finalizar', e);
+      await deps.sendEmail({ from: remitente(env), to: env.NOTIFICATION_EMAIL, ...correoEquipoAlerta({ asunto: 'Cita de link sin aviso',
+        detalle: `La reserva ${r.id} quedó confirmada pero falló el aviso: ${e.message}. Revisa el calendario y escríbele al paciente.` }) });
+    }
     const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
     return json(200, {
       ok: true, etiqueta: etiquetaLima(r.inicio_utc), modalidad: r.modalidad, nutricionista: n?.nombre ?? 'el equipo', duracion_min: tipo.duracion_min,
-      titulo: tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe(r)), ics: `${siteUrl(env)}/api/reservas/ics?r=${r.token}`,
+      titulo: tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe({ ...r, meet_url: meet })), ics: `${siteUrl(env)}/api/reservas/ics?r=${r.token}`,
     });
   } catch (e) {
     console.error('agenda/confirmar', e);
@@ -941,14 +992,14 @@ git commit -m "agenda: API del paciente (link, horas, DNI y confirmar)"
 - Modify: `server/handlers/equipo.mjs` (excluir citas de link de «Pagaron»; exportar `celda`, `comoTexto`, `lima`), `server/handlers/equipo.test.mjs`
 
 **Interfaces:**
-- Consumes: `deps.acceso(request, env) → { ok, email }` (`server/equipo/deps.mjs`); Task 1 y 2.
+- Consumes: `deps.acceso(request, env) → { ok, email }` (`server/equipo/deps.mjs`); Task 1 y 2 (`TIPOS_LINK`, `tipoDeReserva`, `sha256Hex`).
 - Produces:
   - `rangoPeriodo({ periodo, desde, hasta }, ahora, sentido: 'pasado'|'futuro'): { desde: string|null, hasta: string|null } | null` (`null` = parámetros inválidos).
   - `POST /api/equipo/links { tipo }` → `{ ok, id, url, vence_en, tipo }`.
-  - `GET /api/equipo/links?estado=todos|sin_usar|agendado|vencido&q&periodo=30|mes|mes_anterior|rango|todo&desde&hasta&pagina` → `{ ok, filas: [{ id, tipo, nombre_tipo, etiqueta_tipo, estado, creado_en, vence_en, reactivado_en, paciente, cita }], conteos: { todos, sin_usar, agendado, vencido }, total, pagina, por_pagina: 20 }`.
+  - `GET /api/equipo/links?estado=todos|sin_usar|agendado|vencido&q&periodo=30|mes|mes_anterior|rango|todo&desde&hasta&pagina` → `{ ok, email, filas: [{ id, tipo, nombre_tipo, etiqueta_tipo, estado, creado_en, vence_en, reactivado_en, paciente, cita }], conteos: { todos, sin_usar, agendado, vencido }, total, pagina, por_pagina: 20 }` (`email` es el de la sesión: así el panel de links no pide `/api/equipo/reservas`).
   - `POST /api/equipo/links-reactivar { id }` → `{ ok, vence_en }` · 409.
   - `GET /api/equipo/agendados?tramo=proximas|pasadas&q&periodo&desde&hasta&pagina` → `{ ok, filas: [{ id, inicio_utc, etiqueta, tipo, modalidad, nutricionista, apellido_paterno, apellido_materno, nombres, dni, email, whatsapp, fecha_nacimiento, paciente_nuevo }], total, pagina, por_pagina: 20 }`.
-  - `GET /api/equipo/agendados-csv?ids=a,b` → CSV (hasta 500 ids).
+  - `GET /api/equipo/agendados-csv?ids=a,b` → CSV (de 1 a 200 ids, unos 7,4 KB de URL; van a D1 en un solo parámetro JSON con `json_each(?1)`) · 400 fuera de ese rango.
 
 - [ ] **Step 1: Pruebas que fallan**
 
@@ -1011,8 +1062,8 @@ async function sembrar(d) {
     pacienteNuevo: true, condicionesVersion: 'v', ahora: new Date('2026-10-10T15:00:00Z') });
 }
 
-test('sin acceso: 401 en todo', async () => {
-  const d = deps({ acceso: fuera });
+test('sin acceso: 401 en todo y no se lee nada', async () => {
+  const d = deps({ acceso: fuera, db: { prepare() { throw new Error('no debía leer'); } } });
   for (const r of [await handleLinks(get('/api/equipo/links'), env, d), await handleLinks(post('/api/equipo/links', { tipo: 'c30v' }), env, d),
     await handleLinksReactivar(post('/api/equipo/links-reactivar', { id: 'x' }), env, d), await handleAgendados(get('/api/equipo/agendados'), env, d),
     await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=x'), env, d)]) assert.equal(r.status, 401);
@@ -1033,6 +1084,7 @@ test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por e
   const d = deps();
   await sembrar(d);
   const r = await (await handleLinks(get('/api/equipo/links'), env, d)).json();
+  assert.equal(r.email, 'romi@x.pe');
   assert.deepEqual(r.filas.map((f) => [f.id, f.estado]), [['sin', 'sin_usar'], ['usado', 'agendado'], ['venc', 'vencido']]);
   assert.deepEqual(r.conteos, { todos: 3, sin_usar: 1, agendado: 1, vencido: 1 });
   assert.equal(r.filas[1].paciente, 'Ramos Quispe, Lucía');
@@ -1085,6 +1137,21 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   assert.match(lineas[2], /Ramos,Quispe,Lucía,\t70123456,lucia@x\.pe,\t51987654321,1992-03-08,Nuevo$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
+
+test('csv: 150 ids van en una sola consulta con un solo parámetro (D1 admite 100); 201 da 400', async () => {
+  const d = deps();
+  await sembrar(d);
+  const binds = [];
+  const prepare = d.db.prepare;
+  d.db.prepare = (sql) => { const s = prepare(sql); return { ...s, bind: (...p) => { binds.push(p.length); return s.bind(...p); } }; };
+  const ids = ['r-lucia', ...Array.from({ length: 149 }, (_, i) => `x${i}`)];
+  const res = await handleAgendadosCsv(get(`/api/equipo/agendados-csv?ids=${ids.join(',')}`), env, d);
+  assert.equal(res.status, 200);
+  assert.deepEqual(binds, [1]);
+  assert.equal((await res.text()).trim().split('\r\n').length, 3);
+  const muchos = Array.from({ length: 201 }, (_, i) => `x${i}`).join(',');
+  assert.equal((await handleAgendadosCsv(get(`/api/equipo/agendados-csv?ids=${muchos}`), env, d)).status, 400);
+});
 ```
 
 En `server/handlers/equipo.test.mjs`, agregar:
@@ -1102,7 +1169,7 @@ test('equipo: las citas agendadas con link no aparecen en «Pagaron»', async ()
 - [ ] **Step 2: Correr y ver que fallan**
 
 Run: `node --test server/agenda/periodo.test.mjs server/handlers/equipo-links.test.mjs server/handlers/equipo.test.mjs`
-Expected: FAIL (módulos nuevos no existen; la cita de link sigue saliendo en «Pagaron»).
+Expected: FAIL (módulos nuevos no existen; la cita de link sigue saliendo en «Pagaron»). La prueba de 150 ids falla también contra la versión con `IN (?1 … ?N)`, porque cuenta 150 parámetros en vez de 1.
 
 - [ ] **Step 3: Implementar**
 
@@ -1167,13 +1234,14 @@ En `server/handlers/equipo.mjs`:
 // Todas exigen sesión del equipo antes de leer nada.
 import { json, readJson, siteUrl } from '../http.mjs';
 import { randomToken, sha256Hex } from '../tokens.mjs';
-import { TIPOS_LINK } from '../agenda/tipos.mjs';
+import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, comoTexto, lima } from './equipo.mjs';
 
 const POR_PAGINA = 20;
+const MAX_CSV = 200; // ids por descarga: D1 recibe la lista en un solo parámetro JSON
 const ESTADOS = ['sin_usar', 'agendado', 'vencido'];
 const sinAcceso = () => json(401, { ok: false, error: 'Necesitas entrar con un correo autorizado del equipo.' });
 const bad = (status, error) => json(status, { ok: false, error });
@@ -1194,7 +1262,7 @@ const BASE_LINKS = `SELECT l.id, l.tipo, l.creado_en, l.vence_en, l.reactivado_e
   WHERE (?1 IS NULL OR COALESCE(l.reactivado_en, l.creado_en) >= ?1) AND (?2 IS NULL OR COALESCE(l.reactivado_en, l.creado_en) < ?2)
     AND ${filtroTexto}`;
 
-async function listarLinks(request, deps) {
+async function listarLinks(request, deps, email) {
   const q = new URL(request.url).searchParams;
   const rango = rangoPeriodo({ periodo: q.get('periodo') || '30', desde: q.get('desde'), hasta: q.get('hasta') }, deps.ahora(), 'pasado');
   const estado = q.get('estado') || 'todos';
@@ -1212,7 +1280,7 @@ async function listarLinks(request, deps) {
     creado_en: r.creado_en, vence_en: r.vence_en, reactivado_en: r.reactivado_en, paciente: nombreCompleto(r),
     cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null,
   }));
-  return json(200, { ok: true, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
+  return json(200, { ok: true, email, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
 }
 
 async function crearLink(request, env, deps, email) {
@@ -1228,7 +1296,7 @@ export async function handleLinks(request, env, deps) {
   if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
-  return request.method === 'POST' ? crearLink(request, env, deps, acceso.email) : listarLinks(request, deps);
+  return request.method === 'POST' ? crearLink(request, env, deps, acceso.email) : listarLinks(request, deps, acceso.email);
 }
 
 export async function handleLinksReactivar(request, env, deps) {
@@ -1243,12 +1311,12 @@ export async function handleLinksReactivar(request, env, deps) {
 }
 
 const CAMPOS_AGENDADO = `r.id, r.producto, r.inicio_utc, r.modalidad, r.nutricionista_id, l.paciente_nuevo,
-  c.apellido_paterno, c.apellido_materno, c.nombres, c.dni, c.email, c.whatsapp, c.fecha_nacimiento
-  FROM reservas r JOIN links_agenda l ON l.reserva_id = r.id JOIN clientes c ON c.id = r.cliente_id
+  c.apellido_paterno, c.apellido_materno, c.nombres, c.dni, c.email, c.whatsapp, c.fecha_nacimiento`;
+const FROM_AGENDADO = `FROM reservas r JOIN links_agenda l ON l.reserva_id = r.id JOIN clientes c ON c.id = r.cliente_id
   WHERE r.estado = 'confirmada'`;
 
 const vistaAgendado = (r, deps) => ({
-  id: r.id, inicio_utc: r.inicio_utc, etiqueta: etiquetaLima(r.inicio_utc), tipo: TIPOS_LINK[r.producto.slice(5)]?.nombre ?? r.producto,
+  id: r.id, inicio_utc: r.inicio_utc, etiqueta: etiquetaLima(r.inicio_utc), tipo: tipoDeReserva(r)?.nombre ?? r.producto,
   modalidad: r.modalidad, nutricionista: deps.nutricionistas.find((n) => n.id === r.nutricionista_id)?.nombre ?? r.nutricionista_id,
   apellido_paterno: r.apellido_paterno, apellido_materno: r.apellido_materno, nombres: r.nombres, dni: r.dni, email: r.email,
   whatsapp: r.whatsapp, fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: r.paciente_nuevo,
@@ -1266,13 +1334,13 @@ export async function handleAgendados(request, env, deps) {
     tramo === 'proximas' ? 'futuro' : 'pasado');
   if (!rango) return bad(400, 'Filtros inválidos');
   const p = pagina(q.get('pagina'));
-  const donde = `${CAMPOS_AGENDADO}
+  const donde = `${FROM_AGENDADO}
     AND (?1 IS NULL OR r.inicio_utc >= ?1) AND (?2 IS NULL OR r.inicio_utc < ?2) AND ${filtroTexto}
     AND ${tramo === 'proximas' ? 'r.inicio_utc >= ?4' : 'r.inicio_utc < ?4'}`;
   const args = [rango.desde, rango.hasta, busqueda(q.get('q')), ahoraIso];
-  const { n } = await deps.db.prepare(`SELECT COUNT(*) AS n ${donde.slice(donde.indexOf('FROM'))}`).bind(...args).first();
+  const { n } = await deps.db.prepare(`SELECT COUNT(*) AS n ${donde}`).bind(...args).first();
   const { results } = await deps.db.prepare(
-    `SELECT ${donde} ORDER BY r.inicio_utc ${tramo === 'proximas' ? 'ASC' : 'DESC'} LIMIT ${POR_PAGINA} OFFSET ?5`,
+    `SELECT ${CAMPOS_AGENDADO} ${donde} ORDER BY r.inicio_utc ${tramo === 'proximas' ? 'ASC' : 'DESC'} LIMIT ${POR_PAGINA} OFFSET ?5`,
   ).bind(...args, (p - 1) * POR_PAGINA).all();
   return json(200, { ok: true, filas: results.map((r) => vistaAgendado(r, deps)), total: n, pagina: p, por_pagina: POR_PAGINA });
 }
@@ -1282,9 +1350,11 @@ export async function handleAgendadosCsv(request, env, deps) {
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
   const ids = String(new URL(request.url).searchParams.get('ids') || '').split(',').map((s) => s.trim()).filter(Boolean);
-  if (!ids.length || ids.length > 500) return bad(400, 'Elige entre 1 y 500 citas.');
-  const marcas = ids.map((_, i) => `?${i + 1}`).join(', ');
-  const { results } = await deps.db.prepare(`SELECT ${CAMPOS_AGENDADO} AND r.id IN (${marcas}) ORDER BY r.inicio_utc`).bind(...ids).all();
+  if (!ids.length || ids.length > MAX_CSV) return bad(400, `Elige entre 1 y ${MAX_CSV} citas.`);
+  // Un solo parámetro JSON: D1 no acepta más de 100 parámetros por consulta.
+  const { results } = await deps.db.prepare(
+    `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ORDER BY r.inicio_utc`,
+  ).bind(JSON.stringify(ids)).all();
   const cab = ['Cita (Lima)', 'Evento', 'Modalidad', 'Nutricionista', 'Apellido paterno', 'Apellido materno', 'Nombres', 'DNI', 'Correo',
     'WhatsApp', 'Fecha de nacimiento', 'Paciente'];
   const filas = results.map((r) => {
@@ -1336,20 +1406,21 @@ git commit -m "agenda: API del panel (crear, listar, reactivar, agendados y CSV)
 ### Task 5: Página del paciente `/agenda/`
 
 **Files:**
-- Modify: `src/scripts/selector-horas.js` (fuente de horas y modalidades configurables, horas con minutos)
-- Create: `src/data/telefono.js` (lista de países y armado del número, compartidos con `/reservar/`)
+- Modify: `src/scripts/selector-horas.js` (fuente de horas y modalidades configurables, horas con minutos, aviso de error por status)
+- Create: `src/data/telefono.js` (lista de países y armado del número, compartidos con `/reservar/`), `server/reservas/telefono.test.mjs`
 - Modify: `src/pages/reservar/index.astro`, `src/scripts/reservar.js` (usan `src/data/telefono.js` en vez de su copia)
 - Create: `src/pages/agenda/index.astro`, `src/scripts/agenda.js`
 
 **Interfaces:**
 - Consumes: API de la Task 3.
-- Produces: `montarSelector(raiz, { producto?, duracion?, onElegir, urlHoras?: (params: URLSearchParams) => string, modalidades?: ('presencial'|'video')[] })`. Sin `urlHoras` ni `modalidades`, se comporta igual que hoy.
+- Produces: `montarSelector(raiz, { producto?, duracion?, onElegir, urlHoras?: (params: URLSearchParams) => string, modalidades?: ('presencial'|'video')[], onError?: (status: number) => boolean }) → { recargar }`. `onError` recibe el status HTTP cuando la carga de horas falla; si devuelve `true`, el selector no pinta su mensaje genérico. Sin `urlHoras`, `modalidades` ni `onError`, se comporta igual que hoy.
+- Produces: `src/data/telefono.js` → `PAISES`, `telefonoCompleto(codigo, escrito)`, `placeholderTelefono(codigo)`.
 
-No hay pruebas automáticas de navegador en este repo: la verificación es manual (Step 4) y en la Task 7.
+No hay pruebas automáticas de navegador en este repo: la verificación es manual (Step 4) y en la Task 7. La única prueba automática nueva es la de `src/data/telefono.js` (Step 0), que falla antes de crear el módulo.
 
 - [ ] **Step 0: País del WhatsApp compartido**
 
-El WhatsApp lleva un desplegable de país con Perú por defecto, igual que en `/reservar/`. Se saca a un módulo para no tener dos copias.
+El WhatsApp lleva un desplegable de país con Perú por defecto, igual que en `/reservar/`. Se saca a un módulo para no tener dos copias. Primero la prueba (abajo), correr `node --test server/reservas/telefono.test.mjs` y ver que falla porque el módulo no existe; luego crear el módulo y verla pasar.
 
 Crear `src/data/telefono.js`:
 
@@ -1407,7 +1478,7 @@ const NOMBRE_MODALIDAD = { presencial: 'En Lince', video: 'Por videollamada' };
 Cambiar la firma y el estado inicial:
 
 ```js
-export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'] }) {
+export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError }) {
   const manana = sumarDias(hoyLima(), 1);
   const limite = sumarDias(manana, DIAS_VENTANA - 1);
   const meses = [...new Set([manana.slice(0, 7), limite.slice(0, 7)])];
@@ -1422,14 +1493,23 @@ En el `raiz.innerHTML`, reemplazar el bloque `<div class="sel-modalidad" ...>…
       </div>
 ```
 
-En `cargar()`, reemplazar las dos líneas que arman `p` y el `fetch` por:
+En `cargar()`, reemplazar el bloque que va desde `const p = new URLSearchParams(…)` hasta el cierre del `catch` (hoy: la línea de `p`, el `if (estado.nutricionista)`, y el `try { … } catch { … return; }` con el `fetch` y el mensaje «No pudimos cargar los horarios») por:
 
 ```js
     const p = new URLSearchParams({ desde: manana, dias: String(DIAS_VENTANA), modalidad: estado.modalidad });
     if (producto) { p.set('producto', producto); p.set('duracion', String(duracion)); }
     if (estado.nutricionista) p.set('nutricionista', estado.nutricionista);
+    let r = null;
     try {
-      const r = await fetch(urlHoras ? urlHoras(p) : `/api/reservas/horas?${p}`);
+      r = await fetch(urlHoras ? urlHoras(p) : `/api/reservas/horas?${p}`);
+      if (!r.ok) throw new Error(String(r.status));
+      estado.datos = await r.json();
+    } catch {
+      // Quien monta el selector puede encargarse de un status (p. ej. 410 de un link vencido).
+      if (r && !r.ok && onError?.(r.status)) return;
+      $('.sel-dia').innerHTML = '<p class="sel-msg">No pudimos cargar los horarios. Intenta de nuevo en un momento.</p>';
+      return;
+    }
 ```
 
 - [ ] **Step 2: Página**
@@ -1458,7 +1538,11 @@ const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
   <title>Agenda tu cita · AJL Nutrición</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap">
-  <style is:global>body { margin: 0; } [hidden] { display: none !important; }</style>
+  <style is:global>
+    body { margin: 0; } [hidden] { display: none !important; }
+    /* reservar.css solo limita el ancho de p3/p4; estos pasos son de /agenda/. */
+    [data-paso="dni"], [data-paso="conocido"], [data-paso="datos"], [data-paso="listo"], [data-paso="fin"] { max-width: 560px; margin: 0 auto; }
+  </style>
 </head>
 <body>
   <main class="rs">
@@ -1681,6 +1765,8 @@ async function iniciar() {
   estado.selector = montarSelector($('#a-selector'), {
     modalidades: d.tipo.modalidades,
     urlHoras: (p) => { p.set('l', token); return `/api/agenda/horas?${p}`; },
+    // El link venció o se usó en otra pestaña mientras elegía: pantalla de link no vigente.
+    onError: (status) => { if (status !== 410) return false; linkNoVigente(); return true; },
     onElegir: (h) => {
       estado.hora = { ...h, etiqueta: etiqueta(h.inicio) };
       $('#a-error-horario').textContent = '';
@@ -1697,12 +1783,13 @@ iniciar();
 - [ ] **Step 4: Probar a mano en local**
 
 Run: `npm run build && npx wrangler pages dev dist --d1 DB=ajl-reservas-preview` (o el comando de desarrollo que ya usa el repo para funciones; si no hay `.dev.vars`, probar directo en preview en la Task 7).
-Revisar: `/reservar/` sigue mostrando los botones «En Lince» y «Por videollamada» y horas en punto («10:00 a. m.»); `/agenda/?l=...` con un link creado a mano muestra horas con «:30» y sin el selector de modalidad para `c30v`.
+Revisar: `/reservar/` sigue mostrando los botones «En Lince» y «Por videollamada», horas en punto («10:00 a. m.») y el desplegable de país con Perú por defecto (el WhatsApp se arma igual que antes); `/agenda/?l=...` con un link creado a mano muestra horas con «:30» y sin el selector de modalidad para `c30v`; los pasos de DNI, datos y listo no pasan de 560 px de ancho. Run: `npm test` (PASS, incluida `server/reservas/telefono.test.mjs`).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/scripts/selector-horas.js src/pages/agenda/index.astro src/scripts/agenda.js
+git add src/scripts/selector-horas.js src/pages/agenda/index.astro src/scripts/agenda.js \
+  src/data/telefono.js server/reservas/telefono.test.mjs src/pages/reservar/index.astro src/scripts/reservar.js
 git commit -m "agenda: página del paciente /agenda/ (horario, DNI, datos y listo)"
 ```
 
@@ -1711,11 +1798,12 @@ git commit -m "agenda: página del paciente /agenda/ (horario, DNI, datos y list
 ### Task 6: Panel `/panel/links/`
 
 **Files:**
-- Create: `src/pages/panel/links.astro`, `src/scripts/panel-links.js`
-- Modify: `src/pages/panel/index.astro` (enlace «Links de agenda» junto al título)
+- Create: `src/pages/panel/links.astro`, `src/scripts/panel-links.js`, `src/scripts/panel-login.js` (login del panel, compartido por `/panel/` y `/panel/links/`)
+- Modify: `src/pages/panel/index.astro` (enlace «Links de agenda» junto al título; su bloque de login pasa a usar `montarLogin`)
 
 **Interfaces:**
-- Consumes: API de la Task 4; login del panel (`/api/equipo/codigo`, `/entrar`, `/salir`).
+- Consumes: API de la Task 4 (`GET /api/equipo/links` trae `email`); login del panel (`/api/equipo/codigo`, `/entrar`, `/salir`).
+- Produces: `montarLogin({ onEntrar: () => unknown })` en `src/scripts/panel-login.js`: engancha el submit de `#login` (pedir código, luego entrar) y el click de `#salir`; tras entrar con éxito llama a `onEntrar()`. Exige en la página los ids `login`, `login-msg`, `login-email`, `login-codigo`, `login-btn` y `salir`.
 
 - [ ] **Step 1: Enlace desde el panel actual**
 
@@ -1725,14 +1813,61 @@ En `src/pages/panel/index.astro`, dentro de `<div class="eq-cab">`, después del
       <a class="eq-salir" href="/panel/links/">Links de agenda ›</a>
 ```
 
+- [ ] **Step 1b: Login compartido**
+
+El login de `/panel/` (submit de código, entrar y salir) se saca a un módulo para que `/panel/links/` no lo copie. `/panel/` se tiene que ver y comportar igual que hoy: mismos textos, mismo orden (pedir código, escribirlo, entrar), mismo «Salir».
+
+Crear `src/scripts/panel-login.js`:
+
+```js
+// Login del panel del equipo: código por correo y sesión en cookie (HttpOnly,
+// SameSite=Strict). Lo usan /panel/ y /panel/links/; las dos páginas tienen
+// #login, #login-msg, #login-email, #login-codigo, #login-btn y #salir.
+export function montarLogin({ onEntrar }) {
+  const $ = (s) => document.querySelector(s);
+  const enviar = (ruta, cuerpo) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+  let pasoCodigo = false;
+  $('#login').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('#login-email').value;
+    const btn = $('#login-btn');
+    btn.disabled = true;
+    if (!pasoCodigo) {
+      await enviar('/api/equipo/codigo', { email });
+      pasoCodigo = true;
+      $('#login-msg').textContent = 'Si tu correo está autorizado, te llegó un código. Escríbelo aquí (vence en 10 minutos).';
+      $('#login-codigo').hidden = false;
+      $('#login-codigo').focus();
+      btn.textContent = 'Entrar';
+    } else {
+      const r = await enviar('/api/equipo/entrar', { email, codigo: $('#login-codigo').value });
+      if (r.ok) await onEntrar();
+      else $('#login-msg').textContent = 'El código no es válido o ya venció. Recarga la página para pedir otro.';
+    }
+    btn.disabled = false;
+  });
+  $('#salir').addEventListener('click', async () => { await fetch('/api/equipo/salir', { method: 'POST' }); location.reload(); });
+}
+```
+
+En `src/pages/panel/index.astro`, dentro del `<script>`:
+- Agregar como primera línea `import { montarLogin } from '../../scripts/panel-login.js';`.
+- Reemplazar todo el bloque que va desde `let pasoCodigo = false;` hasta la línea `$('#salir').addEventListener('click', …);` (incluidas) por:
+
+```js
+    montarLogin({ onEntrar: cargar });
+```
+
+Lo demás (`cargar`, `mostrarLogin`, `pintar`, `marcar`, el click de `[data-grupo]` y la llamada final a `cargar()`) queda igual.
+
 - [ ] **Step 2: Página**
 
-`src/pages/panel/links.astro` (mismo `<head>` y estilos que `src/pages/panel/index.astro`, más los de abajo):
+`src/pages/panel/links.astro` (mismo `<head>` sin Layout que `src/pages/panel/index.astro`; estilos propios `lk-*`, en la misma paleta):
 
 ```astro
 ---
 // Panel del equipo · links de agenda. Sin el Layout del sitio (no carga
-// analítica). Los datos los da /api/equipo/links* y /agenda*, que exigen acceso.
+// analítica). Los datos los dan /api/equipo/links* y /api/equipo/agendados*, que exigen acceso.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
 const tipos = Object.entries(TIPOS_LINK);
 ---
@@ -1869,7 +2004,10 @@ const tipos = Object.entries(TIPOS_LINK);
 ```js
 // Panel /panel/links/: crea links, lista y filtra links y agendados, reactiva y
 // descarga CSV. Todo el texto de la base se pinta con textContent.
+import { montarLogin } from './panel-login.js';
+
 const $ = (s) => document.querySelector(s);
+const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
 const lima = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '');
 const MOD = { presencial: 'Presencial', video: 'Virtual' };
 const ESTADO = { sin_usar: 'Sin usar', agendado: 'Agendado', vencido: 'Vencido' };
@@ -1906,13 +2044,16 @@ function paginar(prefijo, s) {
   $(`#${prefijo}-next`).disabled = s.pagina * 20 >= s.total;
 }
 
+// Devuelve true si hay sesión (la usa iniciar() para saber si sigue).
 async function cargarLinks() {
   const p = periodo('l');
-  if (!p) return;
+  if (!p) return true;
   p.set('estado', est.links.estado); p.set('pagina', String(est.links.pagina));
   const r = await fetch(`/api/equipo/links?${p}`, { cache: 'no-store' });
-  if (r.status === 401) return mostrarLogin();
+  if (r.status === 401) { mostrarLogin(); return false; }
   const d = await r.json();
+  $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
+  $('#quien').textContent = `Entraste como ${d.email}`;
   est.links.total = d.total;
   document.querySelectorAll('#l-estados button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.estado === est.links.estado));
@@ -1936,6 +2077,7 @@ async function cargarLinks() {
     return tr;
   }) : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="4">No hay links con este filtro.</td>' })]));
   paginar('l', est.links);
+  return true;
 }
 
 async function reactivar(id, b) {
@@ -1998,36 +2140,14 @@ function mostrarLogin() {
   $('#login').hidden = false; $('#app').hidden = true; $('#salir').hidden = true; $('#quien').textContent = '';
 }
 
+// Una sola petición para saber si hay sesión: la lista de links ya trae el
+// correo de quien entró (no se pide /api/equipo/reservas, que trae fichas de pacientes).
 async function iniciar() {
-  const r = await fetch('/api/equipo/links?pagina=1', { cache: 'no-store' });
-  if (r.status === 401) return mostrarLogin();
-  $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
-  const yo = await fetch('/api/equipo/reservas', { cache: 'no-store' }).then((x) => x.json()).catch(() => ({}));
-  if (yo.email) $('#quien').textContent = `Entraste como ${yo.email}`;
-  cargarLinks();
-  cargarAgendados();
+  if (await cargarLinks()) cargarAgendados();
 }
 
-// Login: el mismo flujo de /panel/ (código por correo, sesión en cookie).
-let pasoCodigo = false;
-$('#login').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = $('#login-email').value;
-  const btn = $('#login-btn');
-  btn.disabled = true;
-  if (!pasoCodigo) {
-    await fetch('/api/equipo/codigo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-    pasoCodigo = true;
-    $('#login-msg').textContent = 'Si tu correo está autorizado, te llegó un código. Escríbelo aquí (vence en 10 minutos).';
-    $('#login-codigo').hidden = false; $('#login-codigo').focus();
-    btn.textContent = 'Entrar';
-  } else {
-    const r = await fetch('/api/equipo/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, codigo: $('#login-codigo').value }) });
-    if (r.ok) iniciar(); else $('#login-msg').textContent = 'El código no es válido o ya venció. Recarga la página para pedir otro.';
-  }
-  btn.disabled = false;
-});
-$('#salir').addEventListener('click', async () => { await fetch('/api/equipo/salir', { method: 'POST' }); location.reload(); });
+// Login: el mismo módulo que /panel/ (código por correo, sesión en cookie).
+montarLogin({ onEntrar: iniciar });
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button, a');
@@ -2038,6 +2158,7 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.tramo) { est.ag.tramo = b.dataset.tramo; est.ag.pagina = 1; cargarAgendados(); }
   else if (b.id === 'l-prev' || b.id === 'l-next') { est.links.pagina += b.id === 'l-next' ? 1 : -1; cargarLinks(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.ag.pagina += b.id === 'a-next' ? 1 : -1; cargarAgendados(); }
+  else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) { alert(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`); }
   else if (b.id === 'a-descargar' && est.sel.size) { location.href = `/api/equipo/agendados-csv?ids=${encodeURIComponent([...est.sel].join(','))}`; }
 });
 
@@ -2061,12 +2182,12 @@ El servidor pinta el `<tr>` vacío con `innerHTML` de texto fijo (sin datos de l
 - [ ] **Step 3b: Build**
 
 Run: `npm run build`
-Expected: sin errores; existen `dist/panel/links/index.html` y `dist/agenda/index.html`.
+Expected: sin errores; existen `dist/panel/links/index.html` y `dist/agenda/index.html`. Revisar a mano (en local o en el preview de la Task 7) que `/panel/` se ve y se comporta igual que antes: pide código, entra, muestra «Entraste como …», «Salir» cierra la sesión y las pestañas «Pagaron»/«No pagaron» funcionan.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/pages/panel/links.astro src/scripts/panel-links.js src/pages/panel/index.astro
+git add src/pages/panel/links.astro src/scripts/panel-links.js src/scripts/panel-login.js src/pages/panel/index.astro
 git commit -m "agenda: panel /panel/links/ (crear, filtrar, reactivar, agendados y CSV)"
 ```
 
@@ -2076,6 +2197,7 @@ git commit -m "agenda: panel /panel/links/ (crear, filtrar, reactivar, agendados
 
 **Files:**
 - Modify: `CHANGELOG.md` (entrada visible: «Links de agenda de un solo uso para pacientes que pagaron por otro medio: panel /panel/links/ y página /agenda/»)
+- Modify: `public/privacidad/index.html` (§2.6, fila nueva en la tabla de finalidades de §3, fecha y versión; Step 3b, con aprobación de Joaquín)
 - Modify (memoria privada, fuera del repo): `~/ajl/memoria/notas/panel-equipo-ajl.md` (sección «Links de agenda»: dónde se entra, qué hace cada botón, que la URL del link solo se ve al crearlo).
 
 - [ ] **Step 1: Pruebas y build**
@@ -2086,7 +2208,7 @@ Expected: todo en verde.
 - [ ] **Step 2: Migración en preview y push**
 
 ```bash
-npx wrangler d1 migrations apply ajl-reservas-preview --remote
+npx wrangler d1 migrations apply ajl-reservas-preview --remote --env preview
 git add CHANGELOG.md && git commit -m "changelog: links de agenda"
 git push origin reservas-pago
 ```
@@ -2101,12 +2223,40 @@ En `https://reservas-pago.ajl-landing.pages.dev/panel/links/` (entrar con `ajlnu
 5. En el panel: el link pasa a «Agendado» con el nombre; la cita aparece en «Agendados»; marcar la casilla y descargar el CSV; abrirlo en Google Sheets (Archivo › Importar) y ver tildes, DNI y WhatsApp como texto.
 6. Crear un link `s60`, poner el mismo DNI: «Hola, <nombre>» con datos enmascarados; confirmar sin llenar nada.
 7. En `/reservar/` (preview), buscar la misma nutricionista y día: la hora tomada por el link no aparece.
-8. Vencer un link a mano (`npx wrangler d1 execute ajl-reservas-preview --remote --command "UPDATE links_agenda SET vence_en = '2026-01-01T00:00:00Z' WHERE id = '<id>'"`), ver «Vencido» y «Reactivar 3 días más»; tras reactivar, la URL vuelve a funcionar.
+8. Vencer un link a mano (`npx wrangler d1 execute ajl-reservas-preview --remote --env preview --command "UPDATE links_agenda SET vence_en = '2026-01-01T00:00:00Z' WHERE id = '<id>'"`), ver «Vencido» y «Reactivar 3 días más»; tras reactivar, la URL vuelve a funcionar.
 9. Borrar a mano los eventos de prueba del calendario real.
+10. En `/panel/` (preview): el login, «Entraste como …», «Salir» y las pestañas funcionan igual que antes (usa `panel-login.js`).
+
+- [ ] **Step 3b: Política de privacidad (requiere la aprobación de Joaquín; va en el mismo merge)**
+
+Lo que hace el código y lo que dice la política tienen que coincidir (CLAUDE.md). Hoy §2.6 de `public/privacidad/index.html` describe solo la reserva web. Mostrarle a Joaquín el texto propuesto de abajo, aplicar los cambios que pida y recién entonces editar el archivo. No publicar la entrega 2 sin este cambio.
+
+1. En §2.6 («Datos de tu reserva»), después del `<p>` que ya existe, agregar:
+
+```html
+      <p><strong>Si agendas con un link de un solo uso.</strong> Si pagaste por otro medio (transferencia, Yape o en persona), el equipo puede mandarte por WhatsApp un link personal para que elijas la hora de tu cita. El link sirve una sola vez y vence a los 7 días si no lo usas; guardamos qué persona del equipo lo creó, cuándo y si ya se usó. Al usarlo te pedimos tu <strong>DNI</strong>. Si ya eres paciente, te saludamos por tu primer nombre y te mostramos tu correo y tu WhatsApp ocultos en parte, para que confirmes sin volver a escribirlos. Si no, te pedimos tus <strong>apellidos y nombres</strong>, tu <strong>correo</strong>, tu <strong>WhatsApp</strong> y tu <strong>fecha de nacimiento</strong>, y que aceptes las condiciones del servicio. Para que nadie use un link para averiguar datos de otras personas, cada link admite como máximo 10 consultas de DNI. Registramos la fecha, hora, modalidad y nutricionista de tu cita; tu nombre y tu correo van en la invitación de Google Calendar, igual que en la reserva web. La página del link no usa cookies de analítica ni de publicidad. El equipo ve estas citas en su panel interno, con el mismo acceso por correo y código de un solo uso, y puede descargar en un archivo CSV los datos de las citas que elija para organizar su agenda.</p>
+```
+
+2. En la tabla de finalidades de §3, después de la fila «Gestionar tu reserva y tu pago…» (la que dice «2.4 y 2.6»), agregar:
+
+```html
+          <tr>
+            <td>Agendar tu cita con un link de un solo uso cuando pagaste por otro medio, reconocerte por tu DNI si ya eres paciente y organizar la agenda del equipo</td>
+            <td>2.6 (agendar con link)</td>
+            <td>Ejecución del contrato que celebras con nosotros</td>
+          </tr>
+```
+
+3. En la cabecera, cambiar `Última actualización: <strong>10 de octubre de 2026</strong> · Versión 1.5` por la fecha del día en que se publica y `Versión 1.6`.
+
+```bash
+git add public/privacidad/index.html && git commit -m "privacidad: agendar con link de un solo uso"
+git push origin reservas-pago
+```
 
 - [ ] **Step 4: Publicar (solo con autorización de Joaquín)**
 
-Antes: resolver con Joaquín los dos puntos abiertos del spec (`c30p` y la política de privacidad). Con el sí:
+Antes: (1) Joaquín aprobó y está en la rama el texto de privacidad del Step 3b (el único punto abierto del spec); (2) Joaquín verificó en el panel de Cloudflare que Web Analytics (la inyección automática del beacon) está apagado para el proyecto `ajl-landing`, porque ese beacon vería la URL con el token. Con el sí:
 
 ```bash
 npx wrangler d1 migrations apply ajl-reservas --remote
