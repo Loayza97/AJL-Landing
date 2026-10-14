@@ -18,7 +18,7 @@ async function listar(db, ahora) {
     `SELECT ${CAMPOS}, p.creado_en AS pagado_en, p.metodo
      FROM reservas r LEFT JOIN clientes c ON c.id = r.cliente_id
      LEFT JOIN pagos p ON p.id = (SELECT id FROM pagos WHERE reserva_id = r.id AND estado = 'approved' ORDER BY creado_en DESC LIMIT 1)
-     WHERE r.estado IN ('confirmada', 'pagada_sin_hora')
+     WHERE r.estado IN ('confirmada', 'pagada_sin_hora') AND r.link_id IS NULL
      ORDER BY p.creado_en DESC`,
   ).all();
   const { results: noPagadas } = await db.prepare(
@@ -71,14 +71,14 @@ export async function handleEquipoContactado(request, env, deps) {
 // CSV para Excel: BOM para las tildes, «sep=,» para que Excel en español separe
 // bien, texto que empieza con = + - @ neutralizado (no se ejecuta como fórmula)
 // y documento y WhatsApp como texto (no pierden ceros ni se vuelven 5,1E+10).
-const celda = (v) => {
+export const celda = (v) => {
   let s = String(v ?? '');
   if (/^[=+\-@]/.test(s)) s = `'${s}`;
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
-const comoTexto = (v) => (v ? `\t${String(v).replace(/^\+/, '')}` : '');
+export const comoTexto = (v) => (v ? `\t${String(v).replace(/^\+/, '')}` : '');
 const DOCS = { dni: 'DNI', ce: 'Carné de Extranjería', pasaporte: 'Pasaporte' };
-const lima = (iso) => (iso ? `${fechaLima(new Date(iso))} ${new Date(Date.parse(iso) - 5 * 3600000).toISOString().slice(11, 16)}` : '');
+export const lima = (iso) => (iso ? `${fechaLima(new Date(iso))} ${new Date(Date.parse(iso) - 5 * 3600000).toISOString().slice(11, 16)}` : '');
 
 export async function handleEquipoExcel(request, env, deps) {
   if (request.method !== 'GET') return json(405, { ok: false, error: 'Método no permitido' });

@@ -75,3 +75,11 @@ test('equipo: Excel (CSV) con los dos grupos, sin fórmulas inyectables y con n�
   assert.ok(texto.includes("\"'=HYPERLINK(\"\"x\"\")\""));
   assert.ok(texto.includes('\t01234567'), 'documento con cero inicial queda como texto');
 });
+
+test('equipo: las citas agendadas con link no aparecen en «Pagaron»', async () => {
+  const db = await base();
+  await db.prepare("UPDATE reservas SET link_id = 'L1' WHERE id = 'pagada'").run();
+  const deps = { db, ahora, nutricionistas, acceso: dentro };
+  const d = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, deps)).json();
+  assert.deepEqual(d.pagadas, []);
+});
