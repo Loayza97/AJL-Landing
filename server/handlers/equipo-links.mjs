@@ -35,7 +35,7 @@ const BASE_LINKS = `SELECT l.id, l.tipo, l.creado_en, l.vence_en, l.reactivado_e
   WHERE (?1 IS NULL OR COALESCE(l.reactivado_en, l.creado_en) >= ?1) AND (?2 IS NULL OR COALESCE(l.reactivado_en, l.creado_en) < ?2)
     AND ${filtroTexto}`;
 
-async function listarLinks(request, deps, email) {
+async function listarLinks(request, deps, { email, admin }) {
   const q = new URL(request.url).searchParams;
   const rango = rangoPeriodo({ periodo: q.get('periodo') || '30', desde: q.get('desde'), hasta: q.get('hasta') }, deps.ahora(), 'pasado');
   const estado = q.get('estado') || 'todos';
@@ -53,7 +53,7 @@ async function listarLinks(request, deps, email) {
     creado_en: r.creado_en, vence_en: r.vence_en, reactivado_en: r.reactivado_en, paciente: nombreCompleto(r),
     cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null,
   }));
-  return json(200, { ok: true, email, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
+  return json(200, { ok: true, email, admin: admin === true, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
 }
 
 async function crearLink(request, env, deps, email) {
@@ -69,7 +69,7 @@ export async function handleLinks(request, env, deps) {
   if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
-  return request.method === 'POST' ? crearLink(request, env, deps, acceso.email) : listarLinks(request, deps, acceso.email);
+  return request.method === 'POST' ? crearLink(request, env, deps, acceso.email) : listarLinks(request, deps, acceso);
 }
 
 export async function handleLinksReactivar(request, env, deps) {

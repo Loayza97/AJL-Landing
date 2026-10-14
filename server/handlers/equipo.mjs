@@ -50,7 +50,7 @@ export async function handleEquipoReservas(request, env, deps) {
   if (!acceso.ok) return sinAcceso();
   const { pagadas, noPagadas } = await listar(deps.db, deps.ahora());
   return json(200, {
-    ok: true, email: acceso.email,
+    ok: true, email: acceso.email, admin: acceso.admin === true,
     pagadas: pagadas.map((r) => vistaEquipo(r, deps.nutricionistas)),
     no_pagadas: noPagadas.map((r) => vistaEquipo(r, deps.nutricionistas)),
   });

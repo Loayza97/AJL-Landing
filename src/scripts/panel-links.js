@@ -50,6 +50,7 @@ async function cargarLinks() {
   const d = await r.json();
   $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
   $('#quien').textContent = `Entraste como ${d.email}`;
+  $('#usuarios').hidden = !d.admin;
   est.links.total = d.total;
   document.querySelectorAll('#l-estados button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.estado === est.links.estado));
@@ -134,6 +135,7 @@ async function crear(tipo, tarjeta) {
 
 function mostrarLogin() {
   $('#login').hidden = false; $('#app').hidden = true; $('#salir').hidden = true; $('#quien').textContent = '';
+  $('#usuarios').hidden = true;
 }
 
 // Una sola petición para saber si hay sesión: la lista de links ya trae el

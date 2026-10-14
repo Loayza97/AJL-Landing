@@ -47,6 +47,7 @@
     <div class="eq-cab">
       <div><h1>Reservas de la web</h1><span class="eq-quien" id="quien"></span><button type="button" class="eq-salir" id="salir" hidden>Salir</button></div>
       <a class="eq-salir" href="/panel/links/">Links de agenda ›</a>
+      <a class="eq-salir" href="/panel/usuarios/" id="usuarios" hidden>Usuarios del equipo ›</a>
       <a class="eq-btn" href="/api/equipo/excel" id="excel" hidden>Descargar Excel</a>
     </div>
     <form class="eq-login" id="login" hidden>
@@ -134,6 +135,7 @@
       $('#login').hidden = true; $('#tabs').hidden = false; $('#salir').hidden = false;
       estado.datos = await res.json();
       $('#quien').textContent = `Entraste como ${estado.datos.email}`;
+      $('#usuarios').hidden = !estado.datos.admin;
       $('#excel').hidden = false;
       pintar();
     }
@@ -141,6 +143,7 @@
     function mostrarLogin() {
       $('#login').hidden = false; $('#tabs').hidden = true; $('#excel').hidden = true; $('#salir').hidden = true;
       $('#quien').textContent = '';
+      $('#usuarios').hidden = true;
       $('#contenido').replaceChildren();
     }
 

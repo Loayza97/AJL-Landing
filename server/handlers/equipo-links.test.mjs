@@ -116,3 +116,9 @@ test('csv: 150 ids van en una sola consulta con un solo parámetro (D1 admite 10
   const muchos = Array.from({ length: 201 }, (_, i) => `x${i}`).join(',');
   assert.equal((await handleAgendadosCsv(get(`/api/equipo/agendados-csv?ids=${muchos}`), env, d)).status, 400);
 });
+
+test('listar: la respuesta dice si quien entró es súper usuario', async () => {
+  assert.equal((await (await handleLinks(get('/api/equipo/links'), env, deps())).json()).admin, false);
+  const admin = async () => ({ ok: true, email: 'ale@x.pe', admin: true });
+  assert.equal((await (await handleLinks(get('/api/equipo/links'), env, deps({ acceso: admin }))).json()).admin, true);
+});

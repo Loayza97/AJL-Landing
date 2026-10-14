@@ -26,7 +26,7 @@ test('acceso: correo autorizado recibe un código y entra; la sesión abre la AP
   const sc = r2.headers.get('Set-Cookie');
   assert.match(sc, /HttpOnly/); assert.match(sc, /Secure/); assert.match(sc, /SameSite=Strict/); assert.match(sc, /Max-Age=43200/);
   const api = new Request('https://www.ajlnutricion.com/api/equipo/reservas', { headers: { Cookie: `otra=1; ${cookieDe(r2)}` } });
-  assert.deepEqual(await verificarAcceso(api, env, d), { ok: true, email: 'ale@x.pe' });
+  assert.deepEqual(await verificarAcceso(api, env, d), { ok: true, email: 'ale@x.pe', admin: false });
   const { n } = await d.db.prepare('SELECT COUNT(*) AS n FROM equipo_codigos').first();
   assert.equal(n, 0, 'el código se usa una sola vez');
 });
