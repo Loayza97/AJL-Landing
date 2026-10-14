@@ -309,3 +309,25 @@ test('reservasActivasEntre devuelve fin y duración', async () => {
   assert.equal(r.fin_utc, '2026-10-06T15:30:00Z');
   assert.equal(r.duracion_min, 30);
 });
+
+test('guardar datos de una reserva ya confirmada: no toca la ficha ni crea otra', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'cf', token: 'tcf' });
+  await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, 'tcf'), cliente, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
+  await repo.confirmarReserva(db, { id: 'cf', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 3, ahora: mas(2) });
+  const otro = { ...cliente, nombre: 'Otra Persona', email: 'otra@x.pe', dni: '87654321' };
+  const res = await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, 'tcf'), cliente: otro, condicionesVersion: 'v', novedades: false, ahora: mas(3) });
+  assert.deepEqual(res, { ok: false, motivo: 'vencida' });
+  const c = await db.prepare('SELECT * FROM clientes').all();
+  assert.equal(c.results.length, 1);
+  assert.deepEqual([c.results[0].nombre, c.results[0].email, c.results[0].dni], ['Ana Lucía Pérez Núñez', 'a@x.pe', '12345678']);
+  assert.equal((await repo.reservaPorToken(db, 'tcf')).estado, 'confirmada');
+});
+
+test('guardar datos sin ficha previa con la retención vencida: no crea ficha', async () => {
+  const db = d1DePrueba();
+  await ret(db, { token: 'tsf' });
+  const res = await repo.guardarDatosYPagar(db, { reserva: await repo.reservaPorToken(db, 'tsf'), cliente, condicionesVersion: 'v', novedades: false, ahora: mas(20) });
+  assert.deepEqual(res, { ok: false, motivo: 'vencida' });
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM clientes').first()).n, 0);
+});

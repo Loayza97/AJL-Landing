@@ -93,13 +93,17 @@ export async function guardarDatosYPagar(db, { reserva, cliente, condicionesVers
   const c = cliente;
   const campos = [c.nombre ?? null, c.whatsapp ?? null, c.email ?? null, c.dni ?? null, c.nombres ?? null, c.apellido_paterno ?? null, c.apellido_materno ?? null,
     c.fecha_nacimiento ?? null, c.tipo_documento ?? null];
+  // La ficha solo se escribe si la reserva todavía se puede pagar (la misma
+  // condición que el UPDATE de abajo): con el token de una cita confirmada o
+  // vencida no se reescriben los datos del paciente.
+  const pagable = `EXISTS (SELECT 1 FROM reservas WHERE id = ?12 AND estado IN ('apartada', 'pagando') AND retencion_hasta >= ?11)`;
   const guardarCliente = reserva.cliente_id
     ? db.prepare(`UPDATE clientes SET nombre = ?2, whatsapp = ?3, email = ?4, dni = ?5, nombres = ?6,
-        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1`)
-      .bind(clienteId, ...campos)
+        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1 AND ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id)
     : db.prepare(`INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno,
-        fecha_nacimiento, tipo_documento, creado_en) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
-      .bind(clienteId, ...campos, ahoraIso);
+        fecha_nacimiento, tipo_documento, creado_en) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 WHERE ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id);
   const actualizar = db.prepare(
     `UPDATE reservas SET cliente_id = ?1, estado = 'pagando', retencion_hasta = ?2,
        acepto_condiciones_version = ?3, novedades_optin = ?4, actualizado_en = ?5
