@@ -170,3 +170,33 @@ test('una cita de link de 30 a las 10:00 deja de ofrecerse en la web a las 10:00
   const r = await (await handleHoras(get('/api/reservas/horas?desde=2026-10-06&dias=1&modalidad=video&producto=constancia&duracion=3&nutricionista=jussara'), env, d)).json();
   assert.ok(!r.dias[0].horas.some((h) => h.hora === '10:00'));
 });
+
+test('si leer la reserva falla después de agendar: 200 con meet null, cita confirmada, link usado y alerta', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  // reservaPorId lanza error: la cita y el link ya quedaron guardados.
+  const prepare = d.db.prepare;
+  d.db.prepare = (sql) => { if (sql.includes('WHERE r.id = ?1')) throw new Error('D1 caída'); return prepare(sql); };
+  const res = await confirmar(d, l);
+  d.db.prepare = prepare;
+  assert.equal(res.status, 200);
+  const v = await res.json();
+  assert.equal(v.meet, null);
+  assert.equal(v.duracion_min, 30);
+  assert.match(v.ics, /\/api\/reservas\/ics\?r=.+/);
+  assert.equal((await d.db.prepare("SELECT estado FROM reservas WHERE producto = 'link_c30v'").first()).estado, 'confirmada');
+  assert.equal((await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json()).estado, 'agendado');
+  assert.ok(d.correos.some((c) => c.to === 'equipo@x.pe'));
+});
+
+test('si además falla la alerta al equipo: igual 200 con la cita guardada', async () => {
+  const d = deps({ sendEmail: async () => { throw new Error('Resend caído'); } });
+  const l = await conLink(d);
+  const prepare = d.db.prepare;
+  d.db.prepare = (sql) => { if (sql.includes('WHERE r.id = ?1')) throw new Error('D1 caída'); return prepare(sql); };
+  const res = await confirmar(d, l);
+  d.db.prepare = prepare;
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).meet, null);
+  assert.equal((await d.db.prepare("SELECT estado FROM reservas WHERE producto = 'link_c30v'").first()).estado, 'confirmada');
+});

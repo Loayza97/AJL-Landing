@@ -123,36 +123,46 @@ export async function handleAgendaConfirmar(request, env, deps) {
   }
 
   const fecha = fechaLima(new Date(d.inicio));
+  const reservaId = crypto.randomUUID();
+  const token = randomToken();
+  let hora;
   try {
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, filtro: d.nutricionista, ...delTipo(tipo) }).find((h) => h.inicio === d.inicio);
+    hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, filtro: d.nutricionista, ...delTipo(tipo) }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
-    const reservaId = crypto.randomUUID();
     const res = await agenda.agendarConLink(deps.db, {
-      link: l.id, reservaId, token: randomToken(), tipoId: l.tipo, cliente, clienteId,
+      link: l.id, reservaId, token, tipoId: l.tipo, cliente, clienteId,
       hora: { inicio: hora.inicio, fin: sumarMinutos(hora.inicio, tipo.duracion_min), nutricionista_id: hora.nutricionista_id,
         modalidad: d.modalidad, fecha_lima: fecha, duracion_min: tipo.duracion_min },
       pacienteNuevo: !previo, condicionesVersion: cliente ? CONDICIONES_VERSION : null, ahora,
     });
     if (!res.ok) return res.motivo === 'link' ? bad(410, MSJ_NO_VIGENTE, { motivo: 'link' }) : bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
-    const r = await repo.reservaPorId(deps.db, reservaId);
-    // La cita ya quedó guardada: desde aquí ningún error puede volverse un 503
-    // (el paciente reintentaría y recibiría «ya se usó»). Se avisa al equipo.
-    let meet = null;
-    try {
-      ({ meet } = await finalizarAgenda(deps, env, r));
-    } catch (e) {
-      console.error('agenda/finalizar', e);
-      await deps.sendEmail({ from: remitente(env), to: env.NOTIFICATION_EMAIL, ...correoEquipoAlerta({ asunto: 'Cita de link sin aviso',
-        detalle: `La reserva ${r.id} quedó confirmada pero falló el aviso: ${e.message}. Revisa el calendario y escríbele al paciente.` }) });
-    }
-    const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
-    return json(200, {
-      ok: true, etiqueta: etiquetaLima(r.inicio_utc), modalidad: r.modalidad, nutricionista: n?.nombre ?? 'el equipo', duracion_min: tipo.duracion_min,
-      titulo: tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe({ ...r, meet_url: meet })), ics: `${siteUrl(env)}/api/reservas/ics?r=${r.token}`,
-    });
   } catch (e) {
     console.error('agenda/confirmar', e);
     return bad(503, 'No pudimos agendar tu cita. Intenta en un momento.');
   }
+
+  // La cita ya quedó guardada: desde aquí ningún error puede volverse un 503
+  // (el paciente reintentaría y recibiría «ya se usó»). La respuesta se arma con
+  // lo que ya tenemos, sin volver a leer D1, y cualquier falla avisa al equipo.
+  let meet = null;
+  try {
+    const r = await repo.reservaPorId(deps.db, reservaId);
+    if (!r) throw new Error('la reserva no se pudo leer');
+    ({ meet } = await finalizarAgenda(deps, env, r));
+  } catch (e) {
+    console.error('agenda/finalizar', e);
+    try {
+      await deps.sendEmail({ from: remitente(env), to: env.NOTIFICATION_EMAIL, ...correoEquipoAlerta({ asunto: 'Cita de link sin aviso',
+        detalle: `La reserva ${reservaId} quedó confirmada pero falló el aviso: ${e?.message}. Revisa el calendario y escríbele al paciente.` }) });
+    } catch (e2) {
+      console.error('agenda/alerta', e2);
+    }
+  }
+  const n = deps.nutricionistas.find((x) => x.id === hora.nutricionista_id);
+  const cita = { producto: `link_${l.tipo}`, inicio_utc: hora.inicio, duracion_min: tipo.duracion_min, modalidad: d.modalidad, meet_url: meet };
+  return json(200, {
+    ok: true, etiqueta: etiquetaLima(hora.inicio), modalidad: d.modalidad, nutricionista: n?.nombre ?? 'el equipo', duracion_min: tipo.duracion_min,
+    titulo: tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe(cita)), ics: `${siteUrl(env)}/api/reservas/ics?r=${token}`,
+  });
 }
