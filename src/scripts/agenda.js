@@ -72,8 +72,11 @@ async function confirmar(datos, errorSel) {
     $(errorSel).textContent = MSJ_RED_CONFIRMAR;
   } else if (status === 200) {
     $('#a-listo').textContent = `${d.etiqueta} · ${d.titulo} · ${MOD[d.modalidad]} · con ${d.nutricionista}`;
-    const donde = d.modalidad === 'video' ? 'por videollamada' : 'en Lince';
-    const texto = `Hola, acabo de agendar mi cita con el link: ${d.titulo}, ${d.etiqueta}, ${donde}, con ${d.nutricionista}.`;
+    const donde = d.modalidad === 'video' ? 'por videollamada' : 'en el consultorio de Lince';
+    // «viernes, 16 de octubre, 5:00 p. m.» → «el viernes 16 de octubre a las 5:00 p. m.»
+    const f = d.etiqueta.match(/^(\S+), (.+), (\d.+)$/);
+    const cuando = f ? `el ${f[1]} ${f[2]} ${f[3].startsWith('1:') ? 'a la' : 'a las'} ${f[3]}` : d.etiqueta;
+    const texto = `Hola, ya agendé mi evaluación nutricional para ${cuando} con ${d.nutricionista} ${donde}.`;
     $('#a-wa').href = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(texto)}`;
     $('#a-gcal').href = d.google_calendar;
     $('#a-ics').href = d.ics;
