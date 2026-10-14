@@ -67,7 +67,7 @@ test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por e
   assert.deepEqual(r.filas.map((f) => [f.id, f.estado]), [['sin', 'sin_usar'], ['usado', 'agendado'], ['venc', 'vencido']]);
   assert.deepEqual(r.conteos, { todos: 3, sin_usar: 1, agendado: 1, vencido: 1 });
   assert.equal(r.filas[1].paciente, 'Ramos Quispe, Lucía');
-  assert.deepEqual([r.filas[0].plan, r.filas[0].cita_link], ['2 sesiones al mes · 3 meses', '2da sesión (control)']);
+  assert.deepEqual([r.filas[0].plan, r.filas[0].cita_link], ['Constancia · 2 sesiones al mes · 3 meses', '2da sesión (control)']);
   const todo = await (await handleLinks(get('/api/equipo/links?periodo=todo&estado=vencido'), env, d)).json();
   assert.deepEqual(todo.filas.map((f) => f.id), ['venc', 'viejo']);
 });
@@ -121,7 +121,7 @@ test('agendados: próximas con datos completos; pasadas vacío; paginación de 2
   const f = r.filas[0];
   assert.deepEqual([f.apellido_paterno, f.nombres, f.dni, f.email, f.whatsapp, f.fecha_nacimiento, f.paciente_nuevo, f.tipo, f.nutricionista, f.modalidad],
     ['Ramos', 'Lucía', '70123456', 'lucia@x.pe', '+51987654321', '1992-03-08', 1, 'Control de 30 min', 'Nico', 'video']);
-  assert.deepEqual([f.plan, f.cita], ['2 sesiones al mes · 3 meses', '2da sesión (control)']);
+  assert.deepEqual([f.plan, f.cita], ['Constancia · 2 sesiones al mes · 3 meses', '2da sesión (control)']);
   assert.equal((await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json()).total, 0);
   assert.equal(r.por_pagina, 20);
 });
@@ -138,7 +138,7 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.match(lineas[1], /,Nico,2 sesiones al mes · 3 meses,2da sesión \(control\),Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
+  assert.match(lineas[1], /,Nico,Constancia · 2 sesiones al mes · 3 meses,2da sesión \(control\),Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 

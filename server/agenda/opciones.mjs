@@ -6,11 +6,11 @@ import { duracionesDe } from '../../src/data/duraciones.js';
 
 const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
 
-// Mismos nombres que ve el paciente en la web, cada plan con sus duraciones.
+// Nombre interno del equipo + nombre que ve el paciente; los planes mensuales con su duración.
 export const PLANES = [
   { id: 'evaluacion', etiqueta: 'Evaluación nutricional' },
-  { id: plans.basico.id, etiqueta: plans.basico.name },
-  ...monthlyPlans.flatMap((p) => duracionesDe(p.id).map((d) => ({ id: `${p.id}:${d.meses}`, etiqueta: `${p.name} · ${meses(d.meses)}` }))),
+  { id: plans.basico.id, etiqueta: `${plans.basico.internalName} · ${plans.basico.name}` },
+  ...monthlyPlans.flatMap((p) => duracionesDe(p.id).map((d) => ({ id: `${p.id}:${d.meses}`, etiqueta: `${p.internalName} · ${p.name} · ${meses(d.meses)}` }))),
   { id: 'otro', etiqueta: 'Otro' },
 ];
 

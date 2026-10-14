@@ -11,16 +11,16 @@ test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
 test('planes: evaluación, una sola sesión, cada plan con acompañamiento × 1, 3 y 6 meses, y Otro', () => {
   assert.deepEqual(PLANES.map((p) => [p.id, p.etiqueta]), [
     ['evaluacion', 'Evaluación nutricional'],
-    ['basico', 'Una sola sesión'],
-    ['acompanamiento:1', '1 sesión al mes · 1 mes'],
-    ['acompanamiento:3', '1 sesión al mes · 3 meses'],
-    ['acompanamiento:6', '1 sesión al mes · 6 meses'],
-    ['constancia:1', '2 sesiones al mes · 1 mes'],
-    ['constancia:3', '2 sesiones al mes · 3 meses'],
-    ['constancia:6', '2 sesiones al mes · 6 meses'],
-    ['transformacion:1', '4 sesiones al mes · 1 mes'],
-    ['transformacion:3', '4 sesiones al mes · 3 meses'],
-    ['transformacion:6', '4 sesiones al mes · 6 meses'],
+    ['basico', 'Básico · Una sola sesión'],
+    ['acompanamiento:1', 'Seguimiento · 1 sesión al mes · 1 mes'],
+    ['acompanamiento:3', 'Seguimiento · 1 sesión al mes · 3 meses'],
+    ['acompanamiento:6', 'Seguimiento · 1 sesión al mes · 6 meses'],
+    ['constancia:1', 'Constancia · 2 sesiones al mes · 1 mes'],
+    ['constancia:3', 'Constancia · 2 sesiones al mes · 3 meses'],
+    ['constancia:6', 'Constancia · 2 sesiones al mes · 6 meses'],
+    ['transformacion:1', 'Transformación · 4 sesiones al mes · 1 mes'],
+    ['transformacion:3', 'Transformación · 4 sesiones al mes · 3 meses'],
+    ['transformacion:6', 'Transformación · 4 sesiones al mes · 6 meses'],
     ['otro', 'Otro'],
   ]);
 });
@@ -35,7 +35,7 @@ test('citas: de la 1ra a la 24ta (desde la 2da son control) y la evaluación de 
 });
 
 test('etiquetas y validación: lo desconocido o vacío no pasa y no tiene etiqueta', () => {
-  assert.equal(etiquetaPlan('constancia:3'), '2 sesiones al mes · 3 meses');
+  assert.equal(etiquetaPlan('constancia:3'), 'Constancia · 2 sesiones al mes · 3 meses');
   assert.equal(etiquetaCita('2'), '2da sesión (control)');
   for (const x of [null, undefined, '', 'zzz', 'constancia:12', '__proto__', 'toString']) {
     assert.equal(etiquetaPlan(x), null, String(x));
