@@ -75,9 +75,11 @@ async function cargarLinks() {
     const tr = document.createElement('tr');
     const chip = document.createElement('span');
     chip.className = `lk-estado lk-estado--${f.estado}`; chip.textContent = ESTADO[f.estado];
+    // Plan y cita que eligió el equipo (los links viejos no los tienen).
+    const planCita = [f.plan, f.cita_link].filter(Boolean).join(' · ') || null;
     let detalle;
     if (f.estado === 'agendado') {
-      detalle = td(`${f.paciente ?? ''} · ${f.cita}`);
+      detalle = td(`${f.paciente ?? ''} · ${f.cita}`, planCita);
     } else {
       // Sin usar o vencido: se puede borrar (no tiene datos del paciente).
       const acciones = document.createElement('div');
@@ -93,7 +95,7 @@ async function cargarLinks() {
       borra.setAttribute('aria-label', `Borrar el link de ${f.nombre_tipo} · ${f.etiqueta_tipo} creado el ${lima(f.creado_en)}`);
       borra.addEventListener('click', () => borrar(f.id, borra));
       acciones.append(borra);
-      detalle = f.estado === 'vencido' ? td(acciones) : td(`Esperando al paciente · vence el ${lima(f.vence_en)}`, acciones);
+      detalle = f.estado === 'vencido' ? td(planCita, acciones) : td(`Esperando al paciente · vence el ${lima(f.vence_en)}`, planCita, acciones);
     }
     tr.append(td(lima(f.reactivado_en || f.creado_en)), td(`${f.nombre_tipo} · ${f.etiqueta_tipo}`), td(chip), detalle);
     return tr;
@@ -153,11 +155,11 @@ function pintarAgendados() {
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno}`);
     caja.addEventListener('change', () => { caja.checked ? est.sel.add(f.id) : est.sel.delete(f.id); pintarAgendados(); });
     const etq = document.createElement('label'); etq.className = 'lk-check'; etq.append(caja);
-    tr.append(td(etq), td(f.etiqueta, `${f.tipo} · ${MOD[f.modalidad]} · ${f.nutricionista}`),
+    tr.append(td(etq), td(f.etiqueta, `${f.tipo} · ${MOD[f.modalidad]} · ${f.nutricionista}`), td(f.plan, f.cita),
       td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), td(f.dni), td(f.email), td(f.whatsapp),
       td(f.fecha_nacimiento ? f.fecha_nacimiento.split('-').reverse().join('/') : ''), td(f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'));
     return tr;
-  }) : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="9">No hay citas con este filtro.</td>' })]));
+  }) : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="10">No hay citas con este filtro.</td>' })]));
   $('#a-todos').checked = filas.length > 0 && filas.every((f) => est.sel.has(f.id));
   const n = est.sel.size;
   $('#a-descargar').disabled = n === 0;
@@ -189,24 +191,45 @@ async function copiar(b) {
   }
 }
 
+// «Crear link» se habilita solo con plan y cita elegidos.
+function revisarForm(tarjeta) {
+  tarjeta.querySelector('[data-crear]').disabled = !tarjeta.querySelector('[data-plan]').value || !tarjeta.querySelector('[data-cita]').value;
+}
+
 async function crear(tipo, tarjeta) {
-  const btns = tarjeta.querySelectorAll('[data-crear]');
-  btns.forEach((b) => { b.disabled = true; });
+  const plan = tarjeta.querySelector('[data-plan]').value;
+  const cita = tarjeta.querySelector('[data-cita]').value;
+  if (!plan || !cita) return;
+  const b = tarjeta.querySelector('[data-crear]');
+  b.disabled = true;
   reiniciarCopia(tarjeta);
   let r = null;
   try {
-    r = await fetch('/api/equipo/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo }) });
+    r = await fetch('/api/equipo/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo, plan, cita }) });
   } catch {}
-  btns.forEach((b) => { b.disabled = false; });
+  revisarForm(tarjeta);
   if (r?.status === 401) return mostrarLogin();
-  if (!r?.ok) { alert('No se pudo crear el link. Intenta de nuevo.'); return; }
+  if (!r?.ok) { alert((await jsonDe(r))?.error || 'No se pudo crear el link. Intenta de nuevo.'); return; }
   const d = await r.json();
   tarjeta.querySelector('.lk-url').value = d.url;
   reiniciarCopia(tarjeta);
   tarjeta.querySelector('[data-wa]').href = `https://wa.me/?text=${encodeURIComponent(`Agenda tu cita en AJL Nutrición aquí (sirve una sola vez): ${d.url}`)}`;
-  tarjeta.querySelector('[data-crear]').hidden = true;
+  // Las listas vuelven a cero: el próximo link es de otro paciente.
+  tarjeta.querySelector('[data-plan]').value = '';
+  tarjeta.querySelector('[data-cita]').value = '';
+  revisarForm(tarjeta);
+  tarjeta.querySelector('[data-form]').hidden = true;
   tarjeta.querySelector('[data-creado]').hidden = false;
   refrescar();
+}
+
+// «Crear otro link»: vuelve al formulario con las listas sin elegir.
+function otro(tarjeta) {
+  tarjeta.querySelector('[data-creado]').hidden = true;
+  tarjeta.querySelector('.lk-url').value = '';
+  reiniciarCopia(tarjeta);
+  tarjeta.querySelector('[data-form]').hidden = false;
+  tarjeta.querySelector('[data-plan]').focus();
 }
 
 // Descarga con fetch: si la sesión venció se muestra el login y si hay error se
@@ -247,6 +270,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button, a');
   if (!b) return;
   if (b.dataset.crear) crear(b.dataset.crear, b.closest('[data-tipo]'));
+  else if (b.dataset.otro !== undefined) otro(b.closest('[data-tipo]'));
   else if (b.dataset.copiar !== undefined) copiar(b);
   else if (b.dataset.estado) { est.links.estado = b.dataset.estado; est.links.pagina = 1; cargarLinks(); }
   else if (b.dataset.tramo) { est.ag.tramo = b.dataset.tramo; est.ag.pagina = 1; cargarAgendados(); }
@@ -254,6 +278,11 @@ document.addEventListener('click', (e) => {
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.ag.pagina += b.id === 'a-next' ? 1 : -1; cargarAgendados(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) { alert(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`); }
   else if (b.id === 'a-descargar' && est.sel.size) descargar();
+});
+
+document.querySelectorAll('[data-tipo]').forEach((t) => {
+  t.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => revisarForm(t)));
+  revisarForm(t); // por si el navegador recuerda lo elegido al recargar
 });
 
 $('#a-todos').addEventListener('change', (e) => {

@@ -14,6 +14,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 - Links: el paciente avisa al equipo por WhatsApp al agendar; el equipo puede borrar links sin usar.
 - Panel /panel/links/: la tabla «Agendados» se actualiza junto con la de links (al crear o reactivar uno y al volver a la pestaña); antes podía decir «No hay citas» con un link ya «Agendado».
 - Panel /panel/links/: botón «Borrar» en los links sin usar o vencidos (pide confirmación); el link borrado abre «Este link no existe».
+- Panel /panel/links/: al crear un link se elige el plan del paciente y qué cita es; se ven en la lista de links, en «Agendados», en el CSV (columnas «Plan» y «Cita») y en el evento del calendario.
 
 ## 2026-10-12
 
