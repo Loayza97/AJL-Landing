@@ -117,11 +117,20 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   assert.match(res.headers.get('Content-Disposition'), /agendados-ajl-2026-10-12\.csv/);
   const texto = await res.text();
   const lineas = texto.replace(/^﻿/, '').trim().split('\r\n');
-  assert.equal(lineas[0], 'sep=,');
-  assert.equal(lineas[1], 'Cita (Lima),Evento,Modalidad,Nutricionista,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
-  assert.equal(lineas.length, 3);
-  assert.match(lineas[2], /Ramos,Quispe,Lucía,\t70123456,lucia@x\.pe,\t51987654321,1992-03-08,Nuevo$/);
+  // Sin la fila «sep=,» (Google Sheets la importaría como datos): la primera línea son los encabezados.
+  assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
+  assert.equal(lineas.length, 2);
+  // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
+  assert.match(lineas[1], /Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
+});
+
+test('csv: DNI con cero inicial queda como texto; un valor raro no se vuelve fórmula', async () => {
+  const d = deps();
+  await sembrar(d);
+  await d.db.prepare(`UPDATE clientes SET dni = '01234567', whatsapp = '=HYPERLINK("x")' WHERE id = 'c-lucia'`).run();
+  const lineas = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=r-lucia'), env, d)).text()).trim().split('\r\n');
+  assert.match(lineas[1], /,"=""01234567""",lucia@x\.pe,"'=HYPERLINK\(""x""\)",/);
 });
 
 test('csv: 150 ids van en una sola consulta con un solo parámetro (D1 admite 100); 201 da 400', async () => {
@@ -134,7 +143,7 @@ test('csv: 150 ids van en una sola consulta con un solo parámetro (D1 admite 10
   const res = await handleAgendadosCsv(get(`/api/equipo/agendados-csv?ids=${ids.join(',')}`), env, d);
   assert.equal(res.status, 200);
   assert.deepEqual(binds, [1]);
-  assert.equal((await res.text()).trim().split('\r\n').length, 3);
+  assert.equal((await res.text()).trim().split('\r\n').length, 2); // encabezados + Lucía
   const muchos = Array.from({ length: 201 }, (_, i) => `x${i}`).join(',');
   assert.equal((await handleAgendadosCsv(get(`/api/equipo/agendados-csv?ids=${muchos}`), env, d)).status, 400);
 });

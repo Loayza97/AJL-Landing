@@ -11,7 +11,7 @@ import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
-import { celda, comoTexto, lima } from './equipo.mjs';
+import { celda, lima } from './equipo.mjs';
 
 const POR_PAGINA = 20;
 const MAX_CSV = 200; // ids por descarga: D1 recibe la lista en un solo parámetro JSON
@@ -128,6 +128,15 @@ export async function handleAgendados(request, env, deps) {
   return json(200, { ok: true, filas: results.map((r) => vistaAgendado(r, deps)), total: n, pagina: p, por_pagina: POR_PAGINA });
 }
 
+// DNI y WhatsApp como texto en Google Sheets y en Excel: la celda va como
+// fórmula ="…" (las dos la muestran como texto y conservan el cero inicial y el +).
+// Solo se arma con letras y dígitos, así que no se puede colar otra fórmula;
+// cualquier otra cosa sale como celda normal (neutralizada).
+const textoFijo = (v) => {
+  const s = String(v ?? '');
+  return /^\+?[0-9A-Za-z]{1,20}$/.test(s) ? `"=""${s}"""` : celda(s);
+};
+
 export async function handleAgendadosCsv(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
@@ -142,11 +151,12 @@ export async function handleAgendadosCsv(request, env, deps) {
     'WhatsApp', 'Fecha de nacimiento', 'Paciente'];
   const filas = results.map((r) => {
     const v = vistaAgendado(r, deps);
-    return [lima(v.inicio_utc), v.tipo, v.modalidad === 'video' ? 'Videollamada' : 'Presencial', v.nutricionista, v.apellido_paterno,
-      v.apellido_materno, v.nombres, comoTexto(v.dni), v.email, comoTexto(v.whatsapp), v.fecha_nacimiento,
-      v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'].map(celda).join(',');
+    return [celda(lima(v.inicio_utc)), celda(v.tipo), celda(v.modalidad === 'video' ? 'Videollamada' : 'Presencial'), celda(v.nutricionista),
+      celda(v.apellido_paterno), celda(v.apellido_materno), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
+      celda(v.fecha_nacimiento), celda(v.paciente_nuevo ? 'Nuevo' : 'Ya paciente')].join(',');
   });
-  const csv = ['sep=,', cab.map(celda).join(','), ...filas].join('\r\n');
+  // Sin «sep=,»: es una directiva de Excel y Google Sheets la importa como una fila más.
+  const csv = [cab.map(celda).join(','), ...filas].join('\r\n');
   return new Response(`﻿${csv}\r\n`, {
     status: 200,
     headers: {
