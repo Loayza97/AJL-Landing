@@ -73,7 +73,7 @@ async function confirmar(datos, errorSel) {
   } else if (status === 200) {
     $('#a-listo').textContent = `${d.etiqueta} · ${d.titulo} · ${MOD[d.modalidad]} · con ${d.nutricionista}`;
     const donde = d.modalidad === 'video' ? 'por videollamada' : 'en Lince';
-    const texto = `Hola, acabo de agendar mi cita con el link: ${d.titulo}, ${d.etiqueta}, ${donde}, con ${d.nutricionista}.`;
+    const texto = `Hola, acabo de agendar mi cita con el link: ${d.producto || d.titulo}, ${d.etiqueta}, ${donde}, con ${d.nutricionista}.`;
     $('#a-wa').href = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(texto)}`;
     $('#a-gcal').href = d.google_calendar;
     $('#a-ics').href = d.ics;

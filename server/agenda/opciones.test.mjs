@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PLANES, CITAS, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida, citasDeTipo, citaValidaParaTipo } from './opciones.mjs';
+import { PLANES, CITAS, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida, citasDeTipo, citaValidaParaTipo, productoPaciente } from './opciones.mjs';
 
 test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
   const esperado = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na', '10ma', '11va', '12va',
@@ -60,4 +60,14 @@ test('un control de 30 min nunca es la 1ra sesión; la sesión de 1 hora ofrece 
   assert.deepEqual(citasDeTipo('s60'), CITAS);
   assert.equal(citaValidaParaTipo('s60', '1'), true);
   assert.equal(citaValidaParaTipo('s60', '99'), false);
+});
+
+test('productoPaciente: nombre público del plan para el WhatsApp, nunca el interno', () => {
+  assert.equal(productoPaciente('evaluacion'), 'Evaluación nutricional');
+  assert.equal(productoPaciente('basico'), 'Plan de una sola sesión');
+  assert.equal(productoPaciente('constancia:3'), 'Plan de 2 sesiones al mes por 3 meses');
+  assert.equal(productoPaciente('acompanamiento:1'), 'Plan de 1 sesión al mes por 1 mes');
+  assert.equal(productoPaciente('otro'), null);
+  assert.equal(productoPaciente(null), null);
+  assert.equal(productoPaciente('__proto__'), null);
 });
