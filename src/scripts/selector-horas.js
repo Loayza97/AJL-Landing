@@ -3,7 +3,8 @@
 // La disponibilidad la decide el servidor; aquí solo se pinta y se elige.
 const hoyLima = () => new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
 const sumarDias = (f, n) => { const d = new Date(`${f}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const hora12 = (h) => { const n = parseInt(h, 10); return `${n % 12 || 12}:00 ${n >= 12 ? 'p. m.' : 'a. m.'}`; };
+const hora12 = (h) => { const [hh, mm = '00'] = String(h).split(':'); const n = parseInt(hh, 10); return `${n % 12 || 12}:${mm} ${n >= 12 ? 'p. m.' : 'a. m.'}`; };
+const NOMBRE_MODALIDAD = { presencial: 'En Lince', video: 'Por videollamada' };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDia = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const fmtMes = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -21,16 +22,15 @@ function celdasDelMes(mes) {
   return celdas;
 }
 
-export function montarSelector(raiz, { producto, duracion, onElegir }) {
+export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError }) {
   const manana = sumarDias(hoyLima(), 1);
   const limite = sumarDias(manana, DIAS_VENTANA - 1);
   const meses = [...new Set([manana.slice(0, 7), limite.slice(0, 7)])];
-  const estado = { modalidad: 'presencial', nutricionista: '', mes: meses[0], fecha: null, datos: null };
+  const estado = { modalidad: modalidades[0], nutricionista: '', mes: meses[0], fecha: null, datos: null };
   raiz.innerHTML = `
     <div class="sel-filtros">
-      <div class="sel-modalidad" role="group" aria-label="Modalidad">
-        <button type="button" data-modalidad="presencial">En Lince</button>
-        <button type="button" data-modalidad="video">Por videollamada</button>
+      <div class="sel-modalidad" role="group" aria-label="Modalidad"${modalidades.length < 2 ? ' hidden' : ''}>
+        ${modalidades.map((m) => `<button type="button" data-modalidad="${m}">${NOMBRE_MODALIDAD[m]}</button>`).join('')}
       </div>
       <p class="sel-etq">Elige a tu nutricionista</p>
       <div class="sel-nutris"></div>
@@ -48,13 +48,17 @@ export function montarSelector(raiz, { producto, duracion, onElegir }) {
 
   async function cargar() {
     $('.sel-dia').innerHTML = '<p class="sel-msg">Buscando horarios…</p>';
-    const p = new URLSearchParams({ desde: manana, dias: String(DIAS_VENTANA), modalidad: estado.modalidad, producto, duracion: String(duracion) });
+    const p = new URLSearchParams({ desde: manana, dias: String(DIAS_VENTANA), modalidad: estado.modalidad });
+    if (producto) { p.set('producto', producto); p.set('duracion', String(duracion)); }
     if (estado.nutricionista) p.set('nutricionista', estado.nutricionista);
+    let r = null;
     try {
-      const r = await fetch(`/api/reservas/horas?${p}`);
+      r = await fetch(urlHoras ? urlHoras(p) : `/api/reservas/horas?${p}`);
       if (!r.ok) throw new Error(String(r.status));
       estado.datos = await r.json();
     } catch {
+      // Quien monta el selector puede encargarse de un status (p. ej. 410 de un link vencido).
+      if (r && !r.ok && onError?.(r.status)) return;
       $('.sel-dia').innerHTML = '<p class="sel-msg">No pudimos cargar los horarios. Intenta de nuevo en un momento.</p>';
       return;
     }

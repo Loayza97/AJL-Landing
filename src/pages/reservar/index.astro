@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { plans, monthlyPlans } from '../../data/plans.js';
 import { duracionesDe } from '../../data/duraciones.js';
+import { PAISES } from '../../data/telefono.js';
 import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
 
@@ -22,15 +23,6 @@ for (const p of monthlyPlans) {
 }
 catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
-
-// Código de país del WhatsApp. Perú primero; luego los países desde donde más
-// escriben pacientes y vecinos. Quien no esté aquí elige «Otro» y escribe +código.
-const PAISES = [
-  ['🇵🇪', 'Perú', '51'], ['🇺🇸', 'EE.UU.', '1'], ['🇪🇸', 'España', '34'], ['🇨🇱', 'Chile', '56'],
-  ['🇦🇷', 'Argentina', '54'], ['🇨🇴', 'Colombia', '57'], ['🇪🇨', 'Ecuador', '593'], ['🇧🇴', 'Bolivia', '591'],
-  ['🇲🇽', 'México', '52'], ['🇻🇪', 'Venezuela', '58'], ['🇧🇷', 'Brasil', '55'], ['🇮🇹', 'Italia', '39'],
-  ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
-];
 
 // Fecha de nacimiento en tres listas: más fácil que un calendario que abre en
 // el año actual. Años de los 10 a los 100 años (lo que acepta validar-datos.js).

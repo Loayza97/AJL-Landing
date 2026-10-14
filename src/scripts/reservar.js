@@ -4,6 +4,7 @@
 import { montarSelector } from './selector-horas.js';
 import { formatoSoles } from '../data/duraciones.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
+import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
@@ -140,16 +141,8 @@ function abrirP4(reserva) {
   });
 }
 
-// WhatsApp con código de país: «Otro» deja que la persona escriba el +código.
-function telefonoCompleto() {
-  const numero = $('#f-whatsapp').value.replace(/[^\d+]/g, '');
-  const codigo = $('#f-pais').value;
-  if (!codigo || numero.startsWith('+')) return numero;
-  return `+${codigo}${numero.replace(/^0+/, '')}`;
-}
-
 $('#f-pais').addEventListener('change', () => {
-  $('#f-whatsapp').placeholder = $('#f-pais').value === '51' ? '9__ ___ ___' : ($('#f-pais').value ? 'Tu número' : '+código y número');
+  $('#f-whatsapp').placeholder = placeholderTelefono($('#f-pais').value);
 });
 
 // AAAA-MM-DD a partir de las tres listas; vacío si falta alguna (el validador
@@ -172,7 +165,7 @@ async function pagar(e) {
   $('#p4-error').textContent = '';
   const datos = {
     token: estado.reserva.token, nombres: $('#f-nombres').value, apellido_paterno: $('#f-paterno').value,
-    apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto(), email: $('#f-email').value,
+    apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto($('#f-pais').value, $('#f-whatsapp').value), email: $('#f-email').value,
     fecha_nacimiento: fechaNacimiento(), tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
     acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
   };
