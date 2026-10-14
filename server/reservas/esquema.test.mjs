@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { DatabaseSync } from 'node:sqlite';
+import { readFileSync, readdirSync } from 'node:fs';
 import { d1DePrueba } from './d1-prueba.mjs';
 
 const fila = (db, o) => db.prepare(
@@ -50,4 +52,17 @@ test('migración 0002: columnas nuevas de clientes y tabla de resúmenes', async
   assert.equal(c.tipo_documento, 'ce');
   await db.prepare("INSERT INTO resumenes_enviados (fecha, enviado_en) VALUES ('2026-10-09', 'x')").run();
   await assert.rejects(db.prepare("INSERT INTO resumenes_enviados (fecha, enviado_en) VALUES ('2026-10-09', 'y')").run(), /UNIQUE|PRIMARY/);
+});
+
+test('migración 0006: duración 60 por defecto y fin_utc calculado para las reservas existentes', () => {
+  const sqlite = new DatabaseSync(':memory:');
+  const dir = new URL('../../db/d1/', import.meta.url);
+  const archivos = readdirSync(dir).filter((x) => x.endsWith('.sql')).sort();
+  for (const f of archivos.filter((x) => x < '0006')) sqlite.exec(readFileSync(new URL(f, dir), 'utf8'));
+  sqlite.exec(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
+    inicio_utc, fecha_lima, modalidad, estado, creado_en, actualizado_en)
+    VALUES ('vieja', 'tv', 'constancia', 3, 108000, 1, 'nico', '2026-10-06T15:00:00Z', '2026-10-06', 'presencial', 'confirmada', 'x', 'x')`);
+  for (const f of archivos.filter((x) => x >= '0006')) sqlite.exec(readFileSync(new URL(f, dir), 'utf8'));
+  const r = sqlite.prepare("SELECT duracion_min, fin_utc FROM reservas WHERE id = 'vieja'").get();
+  assert.deepEqual({ ...r }, { duracion_min: 60, fin_utc: '2026-10-06T16:00:00Z' });
 });

@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fechaLima, inicioUtc, sumarDias, diaSemana, diasEntre, etiquetaLima } from './tiempo.mjs';
+import {
+  fechaLima, inicioUtc, sumarDias, diaSemana, diasEntre, etiquetaLima, inicioUtcMin, sumarMinutos, finDeReserva,
+} from './tiempo.mjs';
 
 test('fechaLima usa UTC−5: las 3:00 UTC del 6 son aún el 5 en Lima', () => {
   assert.equal(fechaLima(new Date('2026-10-06T03:00:00Z')), '2026-10-05');
@@ -28,4 +30,16 @@ test('etiquetaLima muestra la fecha en Lima', () => {
   assert.match(t, /8/);
   assert.match(t, /octubre/);
   assert.match(t, /5:00/);
+});
+
+test('inicioUtcMin: minutos desde la medianoche de Lima a UTC sin milisegundos', () => {
+  assert.equal(inicioUtcMin('2026-10-06', 10 * 60 + 30), '2026-10-06T15:30:00Z');
+  assert.equal(inicioUtcMin('2026-10-06', 0), '2026-10-06T05:00:00Z');
+});
+
+test('sumarMinutos y finDeReserva: usa fin_utc si existe; si no, la duración o 60', () => {
+  assert.equal(sumarMinutos('2026-10-06T15:00:00Z', 30), '2026-10-06T15:30:00Z');
+  assert.equal(finDeReserva({ inicio_utc: '2026-10-06T15:00:00Z', fin_utc: '2026-10-06T15:30:00Z' }), '2026-10-06T15:30:00Z');
+  assert.equal(finDeReserva({ inicio_utc: '2026-10-06T15:00:00Z', duracion_min: 30 }), '2026-10-06T15:30:00Z');
+  assert.equal(finDeReserva({ inicio_utc: '2026-10-06T15:00:00Z' }), '2026-10-06T16:00:00Z');
 });
