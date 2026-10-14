@@ -26,15 +26,13 @@ test('duración depende del producto: pago único solo en evaluación y básico'
   assert.equal(clavePlan('constancia', '3'), 'constancia:3');
 });
 
-test('citas dependen de producto y duración: pago único 1; por meses, 3 el primer mes y 2 los siguientes', () => {
+test('citas dependen de producto y duración: sesiones al mes × meses, +1 el primer mes en Constancia y Transformación', () => {
   const total = (plan) => citasDePlan(plan).length;
   assert.deepEqual(citasDePlan('evaluacion'), [{ id: '1', etiqueta: '1 de 1' }]);
   assert.deepEqual(citasDePlan('basico'), [{ id: '1', etiqueta: '1 de 1' }]);
-  for (const p of ['acompanamiento', 'constancia', 'transformacion']) {
-    assert.equal(total(`${p}:1`), 3, p);
-    assert.equal(total(`${p}:3`), 7, p);
-    assert.equal(total(`${p}:6`), 13, p);
-  }
+  assert.deepEqual([1, 3, 6].map((m) => total(`acompanamiento:${m}`)), [1, 3, 6]);
+  assert.deepEqual([1, 3, 6].map((m) => total(`constancia:${m}`)), [3, 7, 13]);
+  assert.deepEqual([1, 3, 6].map((m) => total(`transformacion:${m}`)), [5, 13, 25]);
   assert.deepEqual(citasDePlan('constancia:3').at(-1), { id: '7', etiqueta: '7 de 7' });
   assert.ok(!citasDePlan('constancia:3').some((c) => c.id === 'evaluacion_mes'));
   assert.deepEqual(citasDePlan('zzz'), []);
@@ -54,9 +52,10 @@ test('etiquetas y validación', () => {
   assert.equal(etiquetaCita('otro', '2'), '2da sesión'); // link viejo sin total
   assert.equal(etiquetaCita(null, '1'), '1ra sesión');
   assert.equal(etiquetaCita('constancia:3', 'evaluacion_mes'), 'Evaluación de fin de mes');
-  for (const x of [null, '', '0', '25', 2, 'constructor']) assert.equal(etiquetaCita('constancia:3', x), null, String(x));
-  assert.equal(citaValida('acompanamiento:3', '7'), true);
-  assert.equal(citaValida('acompanamiento:3', '8'), false);
+  for (const x of [null, '', '0', '26', 2, 'constructor']) assert.equal(etiquetaCita('constancia:3', x), null, String(x));
+  assert.equal(citaValida('acompanamiento:3', '3'), true);
+  assert.equal(citaValida('acompanamiento:3', '4'), false);
+  assert.equal(citaValida('transformacion:6', '25'), true);
   assert.equal(citaValida('constancia:3', 'evaluacion_mes'), false);
   assert.equal(citaValida('evaluacion', '1'), true);
   assert.equal(citaValida('evaluacion', 1), false);

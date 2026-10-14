@@ -49,16 +49,16 @@ test('crear: devuelve la URL una sola vez; en la base solo queda el hash', async
 
 test('crear: plan y cita son obligatorios y salen de las listas (400 si no)', async () => {
   const d = deps();
-  // «Otro» ya no se ofrece; la cita no puede pasar el total del plan (3 meses: 3 + 2 + 2 = 7).
+  // «Otro» ya no se ofrece; la cita no puede pasar el total del plan (Acompañamiento de 3 meses: 3).
   for (const cuerpo of [{ tipo: 's60' }, { tipo: 's60', plan: 'evaluacion' }, { tipo: 's60', cita: '1' }, { tipo: 's60', plan: 'zzz', cita: '1' },
-    { tipo: 's60', plan: 'otro', cita: '1' }, { tipo: 's60', plan: 'acompanamiento:3', cita: '8' }, { tipo: 's60', plan: 'evaluacion', cita: '2' },
+    { tipo: 's60', plan: 'otro', cita: '1' }, { tipo: 's60', plan: 'acompanamiento:3', cita: '4' }, { tipo: 's60', plan: 'evaluacion', cita: '2' },
     { tipo: 's60', plan: '__proto__', cita: '1' }, { tipo: 's60', plan: 'basico', cita: 1 }, { tipo: 's60', plan: 'basico', cita: 'evaluacion_mes' }]) {
     const r = await handleLinks(post('/api/equipo/links', cuerpo), env, d);
     assert.equal(r.status, 400, JSON.stringify(cuerpo));
     assert.match((await r.json()).error, /producto|cita/i);
   }
   assert.equal(await d.db.prepare('SELECT 1 FROM links_agenda').first(), null);
-  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'transformacion:6', cita: '13' }), env, d)).status, 200);
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'transformacion:6', cita: '25' }), env, d)).status, 200);
   assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'constancia:1', cita: 'evaluacion_mes' }), env, d)).status, 400);
 });
 

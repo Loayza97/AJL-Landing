@@ -26,16 +26,18 @@ export function duracionesDeProducto(producto) {
 // Clave que va a la base: el producto solo si es de pago único, si no `producto:meses`.
 export const clavePlan = (producto, duracion) => (duracion === PAGO_UNICO ? producto : `${producto}:${duracion}`);
 
-// Citas de un plan (Alejandro, 2026-10-14): pago único 1; los planes por meses
-// tienen 3 citas el primer mes y 2 cada mes siguiente, sea cual sea el plan.
-const citasTotales = (duracion) => (duracion === PAGO_UNICO ? 1 : 3 + 2 * (Number(duracion) - 1));
+// Citas de un plan (Alejandro, 2026-10-14): pago único 1; los planes por meses,
+// sus sesiones al mes × meses, y Constancia y Transformación una más el primer
+// mes (la evaluación sin costo de plans.js, `firstMonthEval`).
+const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? 1
+  : plans[producto].sessionsPerMonth * Number(duracion) + (plans[producto].firstMonthEval ? 1 : 0));
 const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
-  { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(d.id) }])));
+  { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(p.id, d.id) }])));
 
 // Links creados antes del 2026-10-14 pudieron guardar «Otro»: se sigue mostrando, ya no se ofrece.
 const VIEJOS = new Map([['otro', 'Otro']]);
 
-export const MAX_CITA = 24;
+export const MAX_CITA = 25; // Transformación de 6 meses: 4 × 6 + 1
 // Links del 2026-10-13 pudieron guardar esta cita: se sigue mostrando, ya no se ofrece.
 const EVAL_MES = { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' };
 
