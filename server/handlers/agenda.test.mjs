@@ -101,8 +101,6 @@ test('confirmar paciente nuevo: reserva, evento de 30 min con invitación, corre
   assert.match(v.google_calendar, /^https:\/\/calendar\.google\.com/);
   assert.equal(new URL(v.google_calendar).searchParams.get('location'), 'https://meet/x');
   assert.equal(v.titulo, 'Control de 30 min');
-  // El mensaje de WhatsApp lleva el plan con su nombre público, no el interno.
-  assert.equal(v.producto, 'Plan de 4 sesiones al mes por 6 meses');
   assert.equal(d.eventos[0].finUtc, '2026-10-06T16:00:00Z');
   assert.match(d.eventos[0].titulo, /^Agenda · Lucía Ramos Quispe · Control de 30 min$/);
   assert.equal(d.eventos[0].invitado.email, 'lucia@x.pe');

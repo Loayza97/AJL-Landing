@@ -14,7 +14,6 @@ import * as repo from '../reservas/repo.mjs';
 import { sumarDias, fechaLima, etiquetaLima, sumarMinutos } from '../reservas/tiempo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { contexto, libresDelDia, eventoDe } from './reservas.mjs';
-import { productoPaciente } from '../agenda/opciones.mjs';
 import { enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
@@ -167,6 +166,6 @@ export async function handleAgendaConfirmar(request, env, deps) {
   const cita = { producto: `link_${l.tipo}`, inicio_utc: hora.inicio, duracion_min: tipo.duracion_min, modalidad: d.modalidad, meet_url: meet };
   return json(200, {
     ok: true, etiqueta: etiquetaLima(hora.inicio), modalidad: d.modalidad, nutricionista: n?.nombre ?? 'el equipo', duracion_min: tipo.duracion_min,
-    titulo: tipo.nombre, producto: productoPaciente(l.plan) ?? tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe(cita)), ics: `${siteUrl(env)}/api/reservas/ics?r=${token}`,
+    titulo: tipo.nombre, meet, google_calendar: enlaceGoogleCalendar(eventoDe(cita)), ics: `${siteUrl(env)}/api/reservas/ics?r=${token}`,
   });
 }

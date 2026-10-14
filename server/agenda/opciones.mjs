@@ -32,16 +32,6 @@ const PLAN = new Map(PLANES.map((p) => [p.id, p.etiqueta]));
 const CITA = new Map(CITAS.map((c) => [c.id, c.etiqueta]));
 
 export const etiquetaPlan = (id) => PLAN.get(id) ?? null;
-
-// Lo que el paciente ve del plan en el mensaje de WhatsApp: el nombre público,
-// nunca el interno del equipo. «Otro» o sin plan devuelve null (va el tipo de sesión).
-export function productoPaciente(id) {
-  if (!planValido(id) || id === 'otro') return null;
-  if (id === 'evaluacion') return 'Evaluación nutricional';
-  const [planId, m] = id.split(':');
-  const nombre = plans[planId].name.replace(/^U/, 'u');
-  return `Plan de ${nombre}${m ? ` por ${meses(Number(m))}` : ''}`;
-}
 export const etiquetaCita = (id) => CITA.get(id) ?? null;
 export const planValido = (id) => typeof id === 'string' && PLAN.has(id);
 export const citaValida = (id) => typeof id === 'string' && CITA.has(id);
