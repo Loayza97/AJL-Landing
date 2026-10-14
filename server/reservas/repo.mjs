@@ -30,7 +30,7 @@ export async function hayCruce(db, { id, nutri, inicio, modalidad, fin }) {
 
 const finIso = (inicio, min) => new Date(Date.parse(inicio) + min * MIN).toISOString().replace('.000Z', 'Z');
 
-const expirar = (db, ahoraIso) => db.prepare(
+export const expirar = (db, ahoraIso) => db.prepare(
   `UPDATE reservas SET estado = 'expirada', actualizado_en = ?1
    WHERE estado IN ('apartada', 'pagando') AND retencion_hasta < ?1`,
 ).bind(ahoraIso);

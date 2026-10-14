@@ -7,7 +7,7 @@
 // Códigos y sesiones se guardan como hash; 5 intentos por código y, tras 10
 // fallidos en 24 h, el correo queda bloqueado un día.
 import { json, readJson } from '../http.mjs';
-import { randomToken } from '../tokens.mjs';
+import { randomToken, sha256Hex as sha256 } from '../tokens.mjs';
 
 const COOKIE = 'ajl_equipo';
 const CODIGO_MIN = 10;
@@ -16,8 +16,6 @@ const MAX_INTENTOS = 5;
 const REENVIO_SEG = 60;
 const MAX_FALLOS_DIA = 10; // intentos fallidos por correo en 24 h antes de bloquearlo
 
-const sha256 = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
-  .map((b) => b.toString(16).padStart(2, '0')).join('');
 const autorizados = (env) => String(env.EQUIPO_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
 const normalizar = (e) => String(e || '').trim().toLowerCase();
 const codigoAlAzar = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');

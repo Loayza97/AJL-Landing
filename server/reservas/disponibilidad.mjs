@@ -87,7 +87,8 @@ export function horasLibres({
 
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
   const suma = delDia.reduce((s, r) => s + r.peso_tope, 0) + primerasManuales(eventos, fecha);
-  if (suma + peso > tope) return [];
+  // Las citas de link (peso 0) no son primeras sesiones: el tope no las frena.
+  if (peso > 0 && suma + peso > tope) return [];
   if (maxHorasDia !== null && horasOcupadas(eventos, delDia, fecha) >= maxHorasDia) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;

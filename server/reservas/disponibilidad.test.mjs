@@ -180,3 +180,9 @@ test('un evento manual de 30 min bloquea solo esa media hora', () => {
   assert.ok(!r.includes('10:00'));
   assert.ok(r.includes('10:30'));
 });
+
+test('peso 0 (citas de link) no mira el tope de primeras sesiones', () => {
+  const eventos = ['09', '10', '11', '12'].map((h) => conHora('1ra · X · Plan', `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`, { bloquea: false }));
+  assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }), []);
+  assert.ok(horasLibres({ ...base, peso: 0, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
+});

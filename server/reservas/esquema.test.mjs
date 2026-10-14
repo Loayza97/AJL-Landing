@@ -66,3 +66,17 @@ test('migración 0006: duración 60 por defecto y fin_utc calculado para las res
   const r = sqlite.prepare("SELECT duracion_min, fin_utc FROM reservas WHERE id = 'vieja'").get();
   assert.deepEqual({ ...r }, { duracion_min: 60, fin_utc: '2026-10-06T16:00:00Z' });
 });
+
+test('migración 0007: links de agenda con tipo controlado y reservas.link_id', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en)
+    VALUES ('l1', 'h1', 'c30v', 'x', 'a@x.pe', 'y')`).run();
+  const l = await db.prepare("SELECT consultas_dni, usado_en FROM links_agenda WHERE id = 'l1'").first();
+  assert.deepEqual(l, { consultas_dni: 0, usado_en: null });
+  await assert.rejects(db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en)
+    VALUES ('l2', 'h2', 'otro', 'x', 'a@x.pe', 'y')`).run(), /CHECK/);
+  await assert.rejects(db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en)
+    VALUES ('l3', 'h1', 's60', 'x', 'a@x.pe', 'y')`).run(), /UNIQUE/);
+  assert.ok(await db.prepare("SELECT name FROM pragma_table_info('reservas') WHERE name = 'link_id'").first());
+  assert.ok(await db.prepare("SELECT name FROM pragma_index_list('links_agenda') WHERE name = 'links_agenda_reserva'").first());
+});
