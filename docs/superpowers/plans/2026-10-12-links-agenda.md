@@ -16,7 +16,7 @@
 - Worktree `~/ajl/ajl-landing-cloudflare`, rama `reservas-pago`. Nada a `main` sin autorización.
 - Tipos de evento: `c30v` (Control de 30 min · Virtual · solo video), `c30p` (Control de 30 min · Presencial o virtual), `s60` (Sesión de 1 hora · Presencial o virtual). Vence a los 7 días; reactivar suma 3 días desde ahora; 10 consultas de DNI por link; páginas de 20 filas.
 - Inicios de link cada 30 min: `/^\d{4}-\d{2}-\d{2}T\d{2}:(00|30):00Z$/`. La web de pago sigue aceptando solo `:00`.
-- Datos del paciente nuevo en este orden: Apellido paterno, Apellido materno (opcional), Nombres, Correo, WhatsApp, Fecha de nacimiento. Documento: siempre DNI de 8 dígitos (ya pedido en el paso anterior).
+- Datos del paciente nuevo en este orden: Apellido paterno, Apellido materno (opcional), Nombres, Correo, WhatsApp (con desplegable de país, Perú por defecto, la misma lista que `/reservar/`), Fecha de nacimiento. Documento: siempre DNI de 8 dígitos (ya pedido en el paso anterior).
 - Copy en español de Perú, tuteo, sin rayas como inciso; ADN de marca (Preciso · Real · Liberador).
 - Ninguna página nueva carga GA, Meta ni Clarity (no usar `Layout.astro`). `<meta name="robots" content="noindex, nofollow">`.
 - Todo texto que escribió el paciente pasa por `esc()` en correos y por `textContent` en el navegador.
@@ -1337,6 +1337,8 @@ git commit -m "agenda: API del panel (crear, listar, reactivar, agendados y CSV)
 
 **Files:**
 - Modify: `src/scripts/selector-horas.js` (fuente de horas y modalidades configurables, horas con minutos)
+- Create: `src/data/telefono.js` (lista de países y armado del número, compartidos con `/reservar/`)
+- Modify: `src/pages/reservar/index.astro`, `src/scripts/reservar.js` (usan `src/data/telefono.js` en vez de su copia)
 - Create: `src/pages/agenda/index.astro`, `src/scripts/agenda.js`
 
 **Interfaces:**
@@ -1344,6 +1346,52 @@ git commit -m "agenda: API del panel (crear, listar, reactivar, agendados y CSV)
 - Produces: `montarSelector(raiz, { producto?, duracion?, onElegir, urlHoras?: (params: URLSearchParams) => string, modalidades?: ('presencial'|'video')[] })`. Sin `urlHoras` ni `modalidades`, se comporta igual que hoy.
 
 No hay pruebas automáticas de navegador en este repo: la verificación es manual (Step 4) y en la Task 7.
+
+- [ ] **Step 0: País del WhatsApp compartido**
+
+El WhatsApp lleva un desplegable de país con Perú por defecto, igual que en `/reservar/`. Se saca a un módulo para no tener dos copias.
+
+Crear `src/data/telefono.js`:
+
+```js
+// Código de país del WhatsApp. Perú primero (queda elegido por defecto); luego
+// los países desde donde más escriben pacientes y vecinos. Quien no esté aquí
+// elige «Otro» y escribe +código. Lo usan /reservar/ y /agenda/.
+export const PAISES = [
+  ['🇵🇪', 'Perú', '51'], ['🇺🇸', 'EE.UU.', '1'], ['🇪🇸', 'España', '34'], ['🇨🇱', 'Chile', '56'],
+  ['🇦🇷', 'Argentina', '54'], ['🇨🇴', 'Colombia', '57'], ['🇪🇨', 'Ecuador', '593'], ['🇧🇴', 'Bolivia', '591'],
+  ['🇲🇽', 'México', '52'], ['🇻🇪', 'Venezuela', '58'], ['🇧🇷', 'Brasil', '55'], ['🇮🇹', 'Italia', '39'],
+  ['🇨🇦', 'Canadá', '1'], ['🌐', 'Otro', ''],
+];
+
+// Número completo con +código: «Otro» (código vacío) o un número que ya trae +
+// se dejan como los escribió la persona.
+export function telefonoCompleto(codigo, escrito) {
+  const numero = String(escrito || '').replace(/[^\d+]/g, '');
+  if (!codigo || numero.startsWith('+')) return numero;
+  return `+${codigo}${numero.replace(/^0+/, '')}`;
+}
+
+export const placeholderTelefono = (codigo) => (codigo === '51' ? '9__ ___ ___' : (codigo ? 'Tu número' : '+código y número'));
+```
+
+Agregar `server/reservas/telefono.test.mjs` (`npm test` solo recoge `server/**`, como `validar-datos.test.mjs`):
+
+```js
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { PAISES, telefonoCompleto } from '../../src/data/telefono.js';
+
+test('Perú es la primera opción y el número se arma con +51', () => {
+  assert.deepEqual(PAISES[0], ['🇵🇪', 'Perú', '51']);
+  assert.equal(telefonoCompleto('51', '987 654 321'), '+51987654321');
+  assert.equal(telefonoCompleto('34', '0612345678'), '+34612345678');
+  assert.equal(telefonoCompleto('', '+44 7700 900123'), '+447700900123');
+  assert.equal(telefonoCompleto('51', '+1 305 555 0100'), '+13055550100');
+});
+```
+
+En `src/pages/reservar/index.astro`, borrar la constante `PAISES` (y su comentario) e importarla: `import { PAISES } from '../../data/telefono.js';`. En `src/scripts/reservar.js`, importar `telefonoCompleto` y `placeholderTelefono` de `../data/telefono.js`, borrar la función local `telefonoCompleto`, cambiar su uso a `telefonoCompleto($('#f-pais').value, $('#f-whatsapp').value)` y el `change` de `#f-pais` a `$('#f-whatsapp').placeholder = placeholderTelefono($('#f-pais').value);`. La web se ve y se comporta igual.
 
 - [ ] **Step 1: Selector configurable**
 
@@ -1394,6 +1442,7 @@ En `cargar()`, reemplazar las dos líneas que arman `p` y el `fetch` por:
 // su hora. Sin el Layout del sitio: el token va en la URL y aquí se escriben
 // datos personales, así que no se carga analítica.
 import '../../styles/reservar.css';
+import { PAISES } from '../../data/telefono.js';
 const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const ANIO = new Date().getFullYear();
@@ -1462,7 +1511,12 @@ const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
         <label for="a-email">Correo · aquí llega la invitación para tu calendario</label>
         <input type="email" id="a-email" autocomplete="email" required>
         <label for="a-whatsapp">WhatsApp</label>
-        <input type="tel" id="a-whatsapp" autocomplete="tel" inputmode="tel" placeholder="+51 9__ ___ ___" required>
+        <div class="rs-tel">
+          <select id="a-pais" aria-label="Código de país">
+            {PAISES.map(([bandera, nombre, codigo]) => <option value={codigo}>{bandera} {nombre} +{codigo}</option>)}
+          </select>
+          <input type="tel" id="a-whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="9__ ___ ___" required>
+        </div>
         <label for="a-nac-dia" id="a-l-nac">Fecha de nacimiento</label>
         <div class="rs-fecha" role="group" aria-labelledby="a-l-nac">
           <select id="a-nac-dia" aria-label="Día" required><option value="">Día</option>{DIAS.map((d) => <option value={String(d).padStart(2, '0')}>{d}</option>)}</select>
@@ -1506,6 +1560,7 @@ const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
 // nuevo: datos) → listo. Las horas, el DNI y la cita los decide el servidor.
 import { montarSelector } from './selector-horas.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
+import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 
 const $ = (s) => document.querySelector(s);
 const token = new URLSearchParams(location.search).get('l') || '';
@@ -1592,10 +1647,11 @@ $('#a-form-dni').addEventListener('submit', async (e) => {
 
 $('#a-confirmar-conocido').addEventListener('click', () => confirmar(undefined, '#a-error-conocido'));
 
+$('#a-pais').addEventListener('change', () => { $('#a-whatsapp').placeholder = placeholderTelefono($('#a-pais').value); });
+
 $('#a-form-datos').addEventListener('submit', (e) => {
   e.preventDefault();
-  let whatsapp = $('#a-whatsapp').value.replace(/[^\d+]/g, '');
-  if (/^9\d{8}$/.test(whatsapp)) whatsapp = `+51${whatsapp}`;
+  const whatsapp = telefonoCompleto($('#a-pais').value, $('#a-whatsapp').value);
   const datos = {
     apellido_paterno: $('#a-paterno').value, apellido_materno: $('#a-materno').value, nombres: $('#a-nombres').value,
     email: $('#a-email').value, whatsapp,
