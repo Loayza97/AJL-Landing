@@ -228,3 +228,14 @@ test('links viejos sin plan ni cita: agendados y CSV muestran «—», la lista 
   const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=r-old'), env, d)).text()).trim().split('\r\n');
   assert.match(csv[1], /,Nico,—,—,Ramos,/);
 });
+
+test('crear: un control de 30 min no puede ser la 1ra sesión (400); la sesión de 1 hora sí', async () => {
+  const d = deps();
+  for (const tipo of ['c30v', 'c30p']) {
+    const r = await handleLinks(post('/api/equipo/links', { tipo, plan: 'otro', cita: '1' }), env, d);
+    assert.equal(r.status, 400);
+    assert.equal((await r.json()).error, 'Un control de 30 min no puede ser la primera sesión. Usa la sesión de 1 hora.');
+    assert.equal((await handleLinks(post('/api/equipo/links', { tipo, plan: 'otro', cita: '2' }), env, d)).status, 200);
+  }
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 's60', plan: 'otro', cita: '1' }), env, d)).status, 200);
+});

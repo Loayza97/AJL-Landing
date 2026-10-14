@@ -2,6 +2,7 @@
 // el servidor (validar, Agendados, CSV, calendario) y /panel/links/ (los <select>).
 // En la base va la clave (`constancia:3`, `2`); la etiqueta se arma aquí.
 import { plans, monthlyPlans } from '../../src/data/plans.js';
+import { TIPOS_LINK } from './tipos.mjs';
 import { duracionesDe } from '../../src/data/duraciones.js';
 
 const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
@@ -34,3 +35,8 @@ export const etiquetaPlan = (id) => PLAN.get(id) ?? null;
 export const etiquetaCita = (id) => CITA.get(id) ?? null;
 export const planValido = (id) => typeof id === 'string' && PLAN.has(id);
 export const citaValida = (id) => typeof id === 'string' && CITA.has(id);
+
+// Un control de 30 min nunca es la primera sesión: solo la sesión de 1 hora puede serlo.
+export const MSJ_CITA_30 = 'Un control de 30 min no puede ser la primera sesión. Usa la sesión de 1 hora.';
+export const citasDeTipo = (tipo) => (TIPOS_LINK[tipo]?.duracion_min === 30 ? CITAS.filter((c) => c.id !== '1') : CITAS);
+export const citaValidaParaTipo = (tipo, id) => typeof id === 'string' && citasDeTipo(tipo).some((c) => c.id === id);

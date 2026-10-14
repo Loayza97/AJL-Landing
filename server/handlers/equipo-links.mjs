@@ -11,7 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida, citaValidaParaTipo, MSJ_CITA_30 } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 
@@ -74,6 +74,7 @@ async function crearLink(request, env, deps, email) {
   if (!Object.hasOwn(TIPOS_LINK, d.tipo)) return bad(400, 'Tipo de evento inválido');
   if (!planValido(d.plan)) return bad(400, 'Elige el plan del paciente.');
   if (!citaValida(d.cita)) return bad(400, 'Elige qué cita es.');
+  if (!citaValidaParaTipo(d.tipo, d.cita)) return bad(400, MSJ_CITA_30);
   const token = randomToken();
   const id = crypto.randomUUID();
   const { vence_en } = await agenda.crearLink(deps.db, { id, tokenHash: await sha256Hex(token), tipo: d.tipo, creadoPor: email, ahora: deps.ahora(),

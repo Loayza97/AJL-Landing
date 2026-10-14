@@ -215,3 +215,12 @@ test('si además falla la alerta al equipo: igual 200 con la cita guardada', asy
   assert.equal((await res.json()).meet, null);
   assert.equal((await d.db.prepare("SELECT estado FROM reservas WHERE producto = 'link_c30v'").first()).estado, 'confirmada');
 });
+
+test('confirmar un link de 30 min a las 13:30 Lima (almuerzo): 409 y el link sigue sin usar', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  for (const inicio of ['2026-10-06T18:00:00Z', '2026-10-06T18:30:00Z']) {
+    assert.equal((await confirmar(d, l, { inicio })).status, 409, inicio);
+  }
+  assert.equal((await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json()).estado, 'sin_usar');
+});
