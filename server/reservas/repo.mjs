@@ -1,6 +1,7 @@
 // Acceso a D1. Las reglas que no pueden fallar por concurrencia las impone la
 // propia base: índices únicos parciales (hora del consultorio y de cada
-// nutricionista) y el tope dentro de la misma sentencia que inserta.
+// nutricionista), el cruce de horarios (CRUCE) y el tope dentro de la misma
+// sentencia que inserta.
 const ACTIVOS = "('apartada', 'pagando', 'confirmada')";
 const UNIQUE = /UNIQUE constraint failed/i;
 const MIN = 60000;
@@ -11,9 +12,12 @@ const FIN = (col) => `COALESCE(${col}.fin_utc, strftime('%Y-%m-%dT%H:%M:%SZ', ${
 // las dos son presenciales, en el único consultorio. Cada argumento es un
 // parámetro (?N) o una columna. Va dentro de la misma sentencia que escribe:
 // D1 corre las sentencias en serie, así que nadie se cuela entre medio.
+// La cota «un día atrás» deja usar el índice reservas_cruce: una cita dura pocas
+// horas, así que las de más de un día antes no pueden cruzarse.
 export const CRUCE = ({ ini, fin, nutri, modalidad, excluir }) => `EXISTS (SELECT 1 FROM reservas o
   WHERE o.id <> ${excluir} AND o.estado IN ${ACTIVOS}
     AND o.inicio_utc < ${fin} AND ${FIN('o')} > ${ini}
+    AND o.inicio_utc > strftime('%Y-%m-%dT%H:%M:%SZ', ${ini}, '-1 day')
     AND (o.nutricionista_id = ${nutri} OR (${modalidad} = 'presencial' AND o.modalidad = 'presencial')))`;
 
 // ¿Hay cruce para esta cita? Se pregunta solo cuando una escritura no entró,

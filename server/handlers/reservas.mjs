@@ -45,10 +45,10 @@ async function contexto(deps, desde, dias) {
   return { eventos, reservas };
 }
 
-function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro }) {
+function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60 }) {
   return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
     ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
-    maxHorasDia: MAX_HORAS_DIA });
+    maxHorasDia: MAX_HORAS_DIA, duracionMin });
 }
 
 // Datos de la cita para el .ics y para el enlace de Google Calendar.
@@ -239,7 +239,8 @@ export async function handleReubicar(request, env, deps) {
   const fecha = fechaLima(new Date(d.inicio));
   try {
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: r.peso_tope, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
+    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: r.peso_tope, filtro: d.nutricionista,
+      duracionMin: r.duracion_min ?? 60 }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const res = await repo.reubicar(deps.db, { id: r.id, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha,
       modalidad: d.modalidad, primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora: deps.ahora() });

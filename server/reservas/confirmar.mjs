@@ -104,7 +104,9 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
       const reservas = await repo.reservasActivasEntre(deps.db, r.fecha_lima, sumarDias(r.fecha_lima, 1), deps.ahora());
       manuales = primerasManuales(eventos, r.fecha_lima);
       const sigue = horasLibres({ fecha: r.fecha_lima, modalidad: r.modalidad, peso: r.peso_tope, nutricionistas: deps.nutricionistas,
-        eventos, reservas, ahora: deps.ahora(), filtroNutricionista: r.nutricionista_id, tope: TOPE_PRIMERAS, desdeDias: 0 })
+        eventos, reservas, ahora: deps.ahora(), filtroNutricionista: r.nutricionista_id, tope: TOPE_PRIMERAS, desdeDias: 0,
+        // Con la duración real de la cita; paso de 30 porque una cita corta puede empezar a y media.
+        duracionMin: r.duracion_min ?? 60, pasoMin: 30 })
         .some((h) => h.inicio === r.inicio_utc);
       if (!sigue) return sinHora(deps, env, r);
     } catch (e) {
