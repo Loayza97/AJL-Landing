@@ -4,7 +4,9 @@ import { montarLogin } from './panel-login.js';
 
 const $ = (s) => document.querySelector(s);
 const ORIGEN = { admin: 'Súper usuario', fijo: 'Fijo', app: 'Agregado' };
-const enviar = (ruta, cuerpo) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+// Una caída de red vuelve como una respuesta 599 sin cuerpo: cae en el mensaje de error de cada acción.
+const enviar = (ruta, cuerpo) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
+  .catch(() => new Response(null, { status: 599 }));
 const celda = (texto) => { const c = document.createElement('td'); c.textContent = texto ?? ''; return c; };
 const errorDe = async (r, porDefecto) => (await r.json().catch(() => ({}))).error ?? porDefecto;
 
@@ -17,12 +19,13 @@ function mostrar(vista) {
 }
 
 async function cargar() {
-  const r = await fetch('/api/equipo/usuarios', { cache: 'no-store' });
-  if (r.status === 401) return mostrar('login');
-  if (r.status === 403) return mostrar('sin-permiso');
+  // Una caída de red o una respuesta que no es JSON se avisa en pantalla.
+  const r = await fetch('/api/equipo/usuarios', { cache: 'no-store' }).catch(() => null);
+  if (r?.status === 401) return mostrar('login');
+  if (r?.status === 403) return mostrar('sin-permiso');
   mostrar('app');
-  if (!r.ok) { $('#n-msg').textContent = 'No pudimos cargar la lista. Recarga la página.'; return; }
-  const d = await r.json();
+  const d = r?.ok ? await r.json().catch(() => null) : null;
+  if (!d) { $('#n-msg').textContent = 'No pudimos cargar la lista. Revisa tu conexión y recarga la página.'; return; }
   $('#quien').textContent = `Entraste como ${d.email}`;
   $('#filas').replaceChildren(...d.usuarios.map((u) => {
     const tr = document.createElement('tr');

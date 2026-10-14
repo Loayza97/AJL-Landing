@@ -48,6 +48,7 @@ const tipos = Object.entries(TIPOS_LINK);
     .lk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
     .lk-login { max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
     .lk-login input { border: 1px solid #CFCFCF; border-radius: 10px; padding: 12px; font: inherit; }
+    .lk-error { margin: 0 0 10px; color: #9B2C2C; font-size: .85rem; font-weight: 600; }
     .lk-enlace { background: none; border: 0; color: var(--gold-ink); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
   </style>
 </head>
@@ -78,6 +79,7 @@ const tipos = Object.entries(TIPOS_LINK);
               <div data-creado hidden>
                 <label class="lk-nota">Link nuevo · sirve una vez · vence en 7 días<input class="lk-url" readonly></label>
                 <div class="lk-dos"><button type="button" class="lk-btn lk-btn--borde" data-copiar>Copiar</button><a class="lk-btn lk-btn--wa" data-wa target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+                <p class="lk-error" data-copia-msg role="status"></p>
                 <button type="button" class="lk-enlace" data-crear={id}>Crear otro link</button>
               </div>
             </article>
@@ -98,6 +100,7 @@ const tipos = Object.entries(TIPOS_LINK);
             <button type="button" data-estado="vencido" aria-pressed="false">Vencidos <span></span></button>
           </div>
         </div>
+        <p class="lk-error" id="l-msg" role="alert" hidden></p>
         <div class="lk-scroll"><table><thead><tr><th>Creado</th><th>Evento</th><th>Estado</th><th>Detalle</th></tr></thead><tbody id="l-filas"></tbody></table></div>
         <div class="lk-pie"><span>Los vencidos con más de 30 días se archivan solos. Siguen en «Vencidos» con el periodo «Todo».</span>
           <span><span id="l-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="l-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="l-next" aria-label="Página siguiente">›</button></span></div>
@@ -115,6 +118,7 @@ const tipos = Object.entries(TIPOS_LINK);
           <span id="a-rango" hidden><input type="date" id="a-desde" aria-label="Desde"> <input type="date" id="a-hasta" aria-label="Hasta"></span>
           <button type="button" class="lk-btn" id="a-descargar" disabled>Elige a quiénes descargar</button>
         </div>
+        <p class="lk-error" id="a-msg" role="alert" hidden></p>
         <div class="lk-scroll"><table><thead><tr>
           <th><label class="lk-check"><input type="checkbox" id="a-todos"> Todos</label></th>
           <th>Cita</th><th>Apellidos</th><th>Nombres</th><th>DNI</th><th>Correo</th><th>WhatsApp</th><th>Nacimiento</th><th>Paciente</th>

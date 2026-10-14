@@ -13,6 +13,15 @@ const est = {
   sel: new Set(),
 };
 
+const MSJ_CARGA = 'No pudimos cargar. Revisa tu conexión y recarga la página.';
+// Mensaje visible de cada sección (#l-msg, #a-msg); sin texto se oculta.
+function aviso(sel, texto = '') { $(sel).textContent = texto; $(sel).hidden = !texto; }
+// GET del panel que no lanza: una caída de red vuelve como null.
+async function pedir(url) {
+  try { return await fetch(url, { cache: 'no-store' }); } catch { return null; }
+}
+const jsonDe = async (r) => (r ? r.json().catch(() => null) : null);
+
 const td = (...partes) => {
   const c = document.createElement('td');
   partes.filter((p) => p != null && p !== '').forEach((p, i) => {
@@ -45,10 +54,15 @@ async function cargarLinks() {
   const p = periodo('l');
   if (!p) return true;
   p.set('estado', est.links.estado); p.set('pagina', String(est.links.pagina));
-  const r = await fetch(`/api/equipo/links?${p}`, { cache: 'no-store' });
-  if (r.status === 401) { mostrarLogin(); return false; }
-  const d = await r.json();
-  $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
+  const r = await pedir(`/api/equipo/links?${p}`);
+  if (r?.status === 401) { mostrarLogin(); return false; }
+  const d = r?.ok ? await jsonDe(r) : null;
+  $('#login').hidden = true; $('#app').hidden = false;
+  // Error del servidor o de red: se avisa y la tabla queda como estaba. Se
+  // devuelve true para que Agendados intente cargar por su cuenta.
+  if (!d) { aviso('#l-msg', MSJ_CARGA); return true; }
+  aviso('#l-msg');
+  $('#salir').hidden = false;
   $('#quien').textContent = `Entraste como ${d.email}`;
   $('#usuarios').hidden = !d.admin;
   est.links.total = d.total;
@@ -79,8 +93,9 @@ async function cargarLinks() {
 
 async function reactivar(id, b) {
   b.disabled = true;
-  const r = await fetch('/api/equipo/links-reactivar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-  if (!r.ok) { b.disabled = false; alert('No se pudo reactivar. Recarga la página.'); return; }
+  const r = await fetch('/api/equipo/links-reactivar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => null);
+  if (r?.status === 401) return mostrarLogin();
+  if (!r?.ok) { b.disabled = false; alert('No se pudo reactivar. Recarga la página.'); return; }
   cargarLinks();
 }
 
@@ -88,9 +103,11 @@ async function cargarAgendados() {
   const p = periodo('a');
   if (!p) return;
   p.set('tramo', est.ag.tramo); p.set('pagina', String(est.ag.pagina));
-  const r = await fetch(`/api/equipo/agendados?${p}`, { cache: 'no-store' });
-  if (r.status === 401) return mostrarLogin();
-  const d = await r.json();
+  const r = await pedir(`/api/equipo/agendados?${p}`);
+  if (r?.status === 401) return mostrarLogin();
+  const d = r?.ok ? await jsonDe(r) : null;
+  if (!d) { aviso('#a-msg', MSJ_CARGA); return; }
+  aviso('#a-msg');
   est.ag.total = d.total; est.ag.filas = d.filas;
   document.querySelectorAll('#a-tramos button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tramo === est.ag.tramo)));
   pintarAgendados();
@@ -118,19 +135,69 @@ function pintarAgendados() {
   $('#a-descargar').textContent = n ? `Descargar ${n} para Google Sheets (.csv)` : 'Elige a quiénes descargar';
 }
 
+// Cada link nuevo vuelve a «Copiar»: si quedara «Copiado», quien atiende podría
+// pegar el link anterior (que está en el portapapeles) a otro paciente.
+function reiniciarCopia(tarjeta) {
+  tarjeta.querySelector('[data-copiar]').textContent = 'Copiar';
+  tarjeta.querySelector('[data-copia-msg]').textContent = '';
+}
+
+async function copiar(b) {
+  const tarjeta = b.closest('[data-tipo]');
+  const u = tarjeta.querySelector('.lk-url');
+  const valor = u.value;
+  try {
+    // Sin la API (http o navegador viejo) esto lanza y cae en el aviso.
+    await navigator.clipboard.writeText(valor);
+    // Si mientras tanto se creó otro link, no se marca «Copiado» sobre el nuevo.
+    if (u.value !== valor) return;
+    b.textContent = 'Copiado';
+    tarjeta.querySelector('[data-copia-msg]').textContent = '';
+  } catch {
+    b.textContent = 'Copiar';
+    tarjeta.querySelector('[data-copia-msg]').textContent = 'No se pudo copiar, selecciónalo a mano.';
+    u.select();
+  }
+}
+
 async function crear(tipo, tarjeta) {
   const btns = tarjeta.querySelectorAll('[data-crear]');
   btns.forEach((b) => { b.disabled = true; });
-  const r = await fetch('/api/equipo/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo }) });
+  reiniciarCopia(tarjeta);
+  let r = null;
+  try {
+    r = await fetch('/api/equipo/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo }) });
+  } catch {}
   btns.forEach((b) => { b.disabled = false; });
-  if (r.status === 401) return mostrarLogin();
-  if (!r.ok) { alert('No se pudo crear el link. Intenta de nuevo.'); return; }
+  if (r?.status === 401) return mostrarLogin();
+  if (!r?.ok) { alert('No se pudo crear el link. Intenta de nuevo.'); return; }
   const d = await r.json();
   tarjeta.querySelector('.lk-url').value = d.url;
+  reiniciarCopia(tarjeta);
   tarjeta.querySelector('[data-wa]').href = `https://wa.me/?text=${encodeURIComponent(`Agenda tu cita en AJL Nutrición aquí (sirve una sola vez): ${d.url}`)}`;
   tarjeta.querySelector('[data-crear]').hidden = true;
   tarjeta.querySelector('[data-creado]').hidden = false;
   cargarLinks();
+}
+
+// Descarga con fetch: si la sesión venció se muestra el login y si hay error se
+// avisa en el panel, en vez de navegar a un JSON crudo.
+async function descargar() {
+  const b = $('#a-descargar');
+  b.disabled = true;
+  const r = await pedir(`/api/equipo/agendados-csv?ids=${encodeURIComponent([...est.sel].join(','))}`);
+  b.disabled = est.sel.size === 0;
+  if (r?.status === 401) return mostrarLogin();
+  let blob = null;
+  if (r?.ok) blob = await r.blob().catch(() => null);
+  if (!blob) { aviso('#a-msg', (await jsonDe(r))?.error || 'No se pudo descargar. Intenta de nuevo.'); return; }
+  aviso('#a-msg');
+  const nombre = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || 'agendados-ajl.csv';
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: nombre });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
 function mostrarLogin() {
@@ -151,13 +218,13 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button, a');
   if (!b) return;
   if (b.dataset.crear) crear(b.dataset.crear, b.closest('[data-tipo]'));
-  else if (b.dataset.copiar !== undefined) { const u = b.closest('[data-tipo]').querySelector('.lk-url'); navigator.clipboard?.writeText(u.value); b.textContent = 'Copiado'; }
+  else if (b.dataset.copiar !== undefined) copiar(b);
   else if (b.dataset.estado) { est.links.estado = b.dataset.estado; est.links.pagina = 1; cargarLinks(); }
   else if (b.dataset.tramo) { est.ag.tramo = b.dataset.tramo; est.ag.pagina = 1; cargarAgendados(); }
   else if (b.id === 'l-prev' || b.id === 'l-next') { est.links.pagina += b.id === 'l-next' ? 1 : -1; cargarLinks(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.ag.pagina += b.id === 'a-next' ? 1 : -1; cargarAgendados(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) { alert(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`); }
-  else if (b.id === 'a-descargar' && est.sel.size) { location.href = `/api/equipo/agendados-csv?ids=${encodeURIComponent([...est.sel].join(','))}`; }
+  else if (b.id === 'a-descargar' && est.sel.size) descargar();
 });
 
 $('#a-todos').addEventListener('change', (e) => {
