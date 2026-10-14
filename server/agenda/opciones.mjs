@@ -26,23 +26,23 @@ export function duracionesDeProducto(producto) {
 // Clave que va a la base: el producto solo si es de pago único, si no `producto:meses`.
 export const clavePlan = (producto, duracion) => (duracion === PAGO_UNICO ? producto : `${producto}:${duracion}`);
 
+// Citas de un plan (Alejandro, 2026-10-14): pago único 1; los planes por meses
+// tienen 3 citas el primer mes y 2 cada mes siguiente, sea cual sea el plan.
+const citasTotales = (duracion) => (duracion === PAGO_UNICO ? 1 : 3 + 2 * (Number(duracion) - 1));
 const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
-  { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`,
-    total: d.id === PAGO_UNICO ? 1 : plans[p.id].sessionsPerMonth * Number(d.id), evalMes: Boolean(plans[p.id]?.firstMonthEval) }])));
+  { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(d.id) }])));
 
 // Links creados antes del 2026-10-14 pudieron guardar «Otro»: se sigue mostrando, ya no se ofrece.
 const VIEJOS = new Map([['otro', 'Otro']]);
 
 export const MAX_CITA = 24;
-export const EVAL_MES = { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' };
+// Links del 2026-10-13 pudieron guardar esta cita: se sigue mostrando, ya no se ofrece.
+const EVAL_MES = { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' };
 
-// Citas del plan: «1 de N» hasta N (sesiones al mes × meses), más la evaluación
-// del primer mes en los planes que la incluyen.
+// Citas del plan: de «1 de N» a «N de N».
 export function citasDePlan(plan) {
   const p = PLAN.get(plan);
-  if (!p) return [];
-  const lista = Array.from({ length: p.total }, (_, i) => ({ id: String(i + 1), etiqueta: `${i + 1} de ${p.total}` }));
-  return p.evalMes ? [...lista, EVAL_MES] : lista;
+  return p ? Array.from({ length: p.total }, (_, i) => ({ id: String(i + 1), etiqueta: `${i + 1} de ${p.total}` })) : [];
 }
 
 export const etiquetaPlan = (id) => PLAN.get(id)?.etiqueta ?? VIEJOS.get(id) ?? null;

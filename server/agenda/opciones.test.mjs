@@ -26,19 +26,17 @@ test('duración depende del producto: pago único solo en evaluación y básico'
   assert.equal(clavePlan('constancia', '3'), 'constancia:3');
 });
 
-test('citas dependen de producto y duración: 1 de N, con N = sesiones al mes × meses', () => {
-  const total = (plan) => citasDePlan(plan).filter((c) => /^\d+$/.test(c.id)).length;
+test('citas dependen de producto y duración: pago único 1; por meses, 3 el primer mes y 2 los siguientes', () => {
+  const total = (plan) => citasDePlan(plan).length;
   assert.deepEqual(citasDePlan('evaluacion'), [{ id: '1', etiqueta: '1 de 1' }]);
   assert.deepEqual(citasDePlan('basico'), [{ id: '1', etiqueta: '1 de 1' }]);
-  assert.equal(total('acompanamiento:3'), 3);
-  assert.equal(total('acompanamiento:6'), 6);
-  assert.equal(total('constancia:3'), 6);
-  assert.equal(total('transformacion:1'), 4);
-  assert.equal(total('transformacion:6'), 24);
-  assert.deepEqual(citasDePlan('transformacion:6').at(-2), { id: '24', etiqueta: '24 de 24' });
-  // La evaluación del primer mes solo en los planes que la incluyen.
-  assert.equal(citasDePlan('constancia:3').at(-1).id, 'evaluacion_mes');
-  assert.ok(!citasDePlan('acompanamiento:3').some((c) => c.id === 'evaluacion_mes'));
+  for (const p of ['acompanamiento', 'constancia', 'transformacion']) {
+    assert.equal(total(`${p}:1`), 3, p);
+    assert.equal(total(`${p}:3`), 7, p);
+    assert.equal(total(`${p}:6`), 13, p);
+  }
+  assert.deepEqual(citasDePlan('constancia:3').at(-1), { id: '7', etiqueta: '7 de 7' });
+  assert.ok(!citasDePlan('constancia:3').some((c) => c.id === 'evaluacion_mes'));
   assert.deepEqual(citasDePlan('zzz'), []);
 });
 
@@ -52,13 +50,14 @@ test('etiquetas y validación', () => {
     assert.equal(etiquetaPlan(x), null, String(x));
     assert.equal(planValido(x), false, String(x));
   }
-  assert.equal(etiquetaCita('constancia:3', '2'), '2 de 6');
+  assert.equal(etiquetaCita('constancia:3', '2'), '2 de 7');
   assert.equal(etiquetaCita('otro', '2'), '2da sesión'); // link viejo sin total
   assert.equal(etiquetaCita(null, '1'), '1ra sesión');
   assert.equal(etiquetaCita('constancia:3', 'evaluacion_mes'), 'Evaluación de fin de mes');
   for (const x of [null, '', '0', '25', 2, 'constructor']) assert.equal(etiquetaCita('constancia:3', x), null, String(x));
-  assert.equal(citaValida('acompanamiento:3', '3'), true);
-  assert.equal(citaValida('acompanamiento:3', '4'), false);
+  assert.equal(citaValida('acompanamiento:3', '7'), true);
+  assert.equal(citaValida('acompanamiento:3', '8'), false);
+  assert.equal(citaValida('constancia:3', 'evaluacion_mes'), false);
   assert.equal(citaValida('evaluacion', '1'), true);
   assert.equal(citaValida('evaluacion', 1), false);
 });
