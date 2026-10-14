@@ -9,6 +9,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 - Portada: el botón «Quiero empezar →» tiene un brillo que lo recorre y un halo que late.
 - Todo se queda quieto si el dispositivo pide reducir movimiento.
 - Interno: motor de horarios preparado para citas de 30 min y para impedir cruces de horario; sin cambios para el paciente.
+- Links de agenda de un solo uso para pacientes que pagaron por otro medio: panel /panel/links/ y página /agenda/.
+- Usuarios del equipo: los súper usuarios dan y quitan acceso al panel en /panel/usuarios/.
 
 ## 2026-10-12
 
