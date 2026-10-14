@@ -2,7 +2,7 @@
 // Panel del equipo · links de agenda. Sin el Layout del sitio (no carga
 // analítica). Los datos los dan /api/equipo/links* y /api/equipo/agendados*, que exigen acceso.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
-import { PLANES, citasDeTipo } from '../../../server/agenda/opciones.mjs';
+import { PRODUCTOS } from '../../../server/agenda/opciones.mjs';
 const tipos = Object.entries(TIPOS_LINK);
 ---
 <!doctype html>
@@ -82,17 +82,17 @@ const tipos = Object.entries(TIPOS_LINK);
               <div><span class="lk-chip">{t.duracion_min === 60 ? '1 hora' : `${t.duracion_min} min`}</span><span class="lk-chip">{t.etiqueta}</span></div>
               <b>{t.nombre}</b>
               <div class="lk-form" data-form>
-                <label class="lk-campo">Plan
-                  <select data-plan required>
-                    <option value="">Elige el plan del paciente</option>
-                    {PLANES.map((p) => <option value={p.id}>{p.etiqueta}</option>)}
+                <label class="lk-campo">Producto
+                  <select data-producto required>
+                    <option value="">Elige el producto</option>
+                    {PRODUCTOS.map((p) => <option value={p.id}>{p.etiqueta}</option>)}
                   </select>
                 </label>
+                <label class="lk-campo">Duración
+                  <select data-duracion required disabled><option value="">Primero elige el producto</option></select>
+                </label>
                 <label class="lk-campo">Qué cita es
-                  <select data-cita required>
-                    <option value="">Elige qué cita es</option>
-                    {citasDeTipo(id).map((c) => <option value={c.id}>{c.etiqueta}</option>)}
-                  </select>
+                  <select data-cita required disabled><option value="">Primero elige la duración</option></select>
                 </label>
                 <button type="button" class="lk-btn" data-crear={id} disabled>Crear link de un solo uso</button>
               </div>

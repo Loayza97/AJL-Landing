@@ -11,7 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida, citaValidaParaTipo, MSJ_CITA_30 } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 
@@ -64,7 +64,7 @@ async function listarLinks(request, deps, { email, admin }) {
   const filas = results.map((r) => ({
     id: r.id, tipo: r.tipo, nombre_tipo: TIPOS_LINK[r.tipo].nombre, etiqueta_tipo: TIPOS_LINK[r.tipo].etiqueta, estado: r.estado,
     creado_en: r.creado_en, vence_en: r.vence_en, reactivado_en: r.reactivado_en, paciente: nombreCompleto(r),
-    cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null, plan: etiquetaPlan(r.plan), cita_link: etiquetaCita(r.cita_link),
+    cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null, plan: etiquetaPlan(r.plan), cita_link: etiquetaCita(r.plan, r.cita_link),
   }));
   return json(200, { ok: true, email, admin: admin === true, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
 }
@@ -72,13 +72,13 @@ async function listarLinks(request, deps, { email, admin }) {
 async function crearLink(request, env, deps, email) {
   const d = await readJson(request);
   if (!Object.hasOwn(TIPOS_LINK, d.tipo)) return bad(400, 'Tipo de evento inválido');
-  if (!planValido(d.plan)) return bad(400, 'Elige el plan del paciente.');
-  if (!citaValida(d.cita)) return bad(400, 'Elige qué cita es.');
-  if (!citaValidaParaTipo(d.tipo, d.cita)) return bad(400, MSJ_CITA_30);
+  if (!planValido(d.plan)) return bad(400, 'Elige el producto y la duración.');
+  if (!citaValida(d.plan, d.cita)) return bad(400, 'Elige qué cita es.');
   const token = randomToken();
   const id = crypto.randomUUID();
+  const nutri = await agenda.siguienteNutri(deps.db, deps.nutricionistas.map((n) => n.id));
   const { vence_en } = await agenda.crearLink(deps.db, { id, tokenHash: await sha256Hex(token), tipo: d.tipo, creadoPor: email, ahora: deps.ahora(),
-    plan: d.plan, cita: d.cita });
+    plan: d.plan, cita: d.cita, nutri });
   return json(200, { ok: true, id, tipo: d.tipo, vence_en, url: `${siteUrl(env)}/agenda/?l=${token}` });
 }
 
@@ -120,7 +120,7 @@ const FROM_AGENDADO = `FROM reservas r JOIN links_agenda l ON l.reserva_id = r.i
 const vistaAgendado = (r, deps) => ({
   id: r.id, inicio_utc: r.inicio_utc, etiqueta: etiquetaLima(r.inicio_utc), tipo: tipoDeReserva(r)?.nombre ?? r.producto,
   modalidad: r.modalidad, nutricionista: deps.nutricionistas.find((n) => n.id === r.nutricionista_id)?.nombre ?? r.nutricionista_id,
-  plan: etiquetaPlan(r.plan) ?? SIN_DATO, cita: etiquetaCita(r.cita) ?? SIN_DATO,
+  plan: etiquetaPlan(r.plan) ?? SIN_DATO, cita: etiquetaCita(r.plan, r.cita) ?? SIN_DATO,
   apellido_paterno: r.apellido_paterno, apellido_materno: r.apellido_materno, nombres: r.nombres, dni: r.dni, email: r.email,
   whatsapp: r.whatsapp, fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: r.paciente_nuevo,
 });

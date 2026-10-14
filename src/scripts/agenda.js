@@ -151,6 +151,8 @@ async function iniciar() {
   $('#a-tipo').textContent = `${d.tipo.nombre} · ${d.tipo.etiqueta}`;
   estado.selector = montarSelector($('#a-selector'), {
     modalidades: d.tipo.modalidades,
+    // Elegida de entrada por turnos al crear el link; el paciente puede cambiarla o quitarla.
+    nutricionista: d.nutricionista_sugerida || '',
     urlHoras: (p) => { p.set('l', token); return `/api/agenda/horas?${p}`; },
     // El link venció o se usó en otra pestaña mientras elegía: pantalla de link no vigente.
     onError: (status) => { if (status !== 410) return false; linkNoVigente(); return true; },
