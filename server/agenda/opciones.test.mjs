@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { PLANES, CITAS, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida } from './opciones.mjs';
 
 test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
-  const esperado = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na', '10ma', '11va', '12va'];
+  const esperado = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na', '10ma', '11va', '12va',
+    '13ra', '14ta', '15ta', '16ta', '17ma', '18va', '19na', '20ma', '21ra', '22da', '23ra', '24ta'];
   assert.deepEqual(esperado.map((_, i) => ordinal(i + 1)), esperado);
-  for (let n = 13; n <= 24; n++) assert.equal(ordinal(n), `${n}va`);
 });
 
 test('planes: evaluación, una sola sesión, cada plan con acompañamiento × 1, 3 y 6 meses, y Otro', () => {
@@ -25,12 +25,12 @@ test('planes: evaluación, una sola sesión, cada plan con acompañamiento × 1,
   ]);
 });
 
-test('citas: de la 1ra a la 24va (desde la 2da son control) y la evaluación de fin de mes', () => {
+test('citas: de la 1ra a la 24ta (desde la 2da son control) y la evaluación de fin de mes', () => {
   assert.equal(CITAS.length, 25);
   assert.deepEqual(CITAS[0], { id: '1', etiqueta: '1ra sesión' });
   assert.deepEqual(CITAS[1], { id: '2', etiqueta: '2da sesión (control)' });
   assert.deepEqual(CITAS[2], { id: '3', etiqueta: '3ra sesión (control)' });
-  assert.deepEqual(CITAS[23], { id: '24', etiqueta: '24va sesión (control)' });
+  assert.deepEqual(CITAS[23], { id: '24', etiqueta: '24ta sesión (control)' });
   assert.deepEqual(CITAS[24], { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' });
 });
 

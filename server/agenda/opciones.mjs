@@ -15,9 +15,10 @@ export const PLANES = [
 ];
 
 // Abreviatura femenina del ordinal como se escribe en Perú: 1ra, 2da, 3ra, 4ta,
-// 5ta, 6ta, 7ma, 8va, 9na, 10ma y desde la 11 «va» (11va, 12va… 24va).
-const SUFIJOS = ['ra', 'da', 'ra', 'ta', 'ta', 'ta', 'ma', 'va', 'na', 'ma'];
-export const ordinal = (n) => `${n}${n <= 10 ? SUFIJOS[n - 1] : 'va'}`;
+// 5ta, 6ta, 7ma, 8va, 9na, 10ma, 11va, 12va; desde la 13 la da la última cifra
+// (decimotercera → 13ra, vigésima → 20ma, vigesimocuarta → 24ta).
+const SUFIJOS = ['ra', 'da', 'ra', 'ta', 'ta', 'ta', 'ma', 'va', 'na', 'ma', 'va', 'va'];
+export const ordinal = (n) => `${n}${n <= 12 ? SUFIJOS[n - 1] : SUFIJOS[(n % 10 || 10) - 1]}`;
 
 export const MAX_CITA = 24;
 export const CITAS = [
