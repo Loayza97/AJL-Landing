@@ -80,3 +80,10 @@ test('migración 0007: links de agenda con tipo controlado y reservas.link_id', 
   assert.ok(await db.prepare("SELECT name FROM pragma_table_info('reservas') WHERE name = 'link_id'").first());
   assert.ok(await db.prepare("SELECT name FROM pragma_index_list('links_agenda') WHERE name = 'links_agenda_reserva'").first());
 });
+
+test('migración 0009: plan y cita del link, opcionales (los links viejos no los tienen)', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en)
+    VALUES ('l1', 'h1', 'c30v', 'x', 'a@x.pe', 'y')`).run();
+  assert.deepEqual(await db.prepare("SELECT plan, cita FROM links_agenda WHERE id = 'l1'").first(), { plan: null, cita: null });
+});

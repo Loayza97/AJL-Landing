@@ -16,7 +16,8 @@ const lucia = { nombre: 'Lucía Ramos Quispe', nombres: 'Lucía', apellido_pater
   tipo_documento: 'dni', dni: '70123456', whatsapp: '+51987654321', email: 'lucia@x.pe' };
 
 async function sembrar(d) {
-  const crear = (id, creado) => agenda.crearLink(d.db, { id, tokenHash: `h-${id}`, tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date(creado) });
+  const crear = (id, creado) => agenda.crearLink(d.db, { id, tokenHash: `h-${id}`, tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date(creado),
+    plan: 'constancia:3', cita: '2' });
   await crear('sin', '2026-10-12T14:00:00Z');
   await crear('venc', '2026-10-01T14:00:00Z');
   await crear('viejo', '2026-08-01T14:00:00Z');
@@ -36,13 +37,26 @@ test('sin acceso: 401 en todo y no se lee nada', async () => {
 
 test('crear: devuelve la URL una sola vez; en la base solo queda el hash', async () => {
   const d = deps();
-  const r = await (await handleLinks(post('/api/equipo/links', { tipo: 's60' }), env, d)).json();
+  const r = await (await handleLinks(post('/api/equipo/links', { tipo: 's60', plan: 'constancia:3', cita: '2' }), env, d)).json();
   assert.match(r.url, /^https:\/\/www\.ajlnutricion\.com\/agenda\/\?l=[\w-]{20,}$/);
   const token = new URL(r.url).searchParams.get('l');
   const fila = await d.db.prepare('SELECT * FROM links_agenda').first();
   assert.notEqual(fila.token_hash, token);
   assert.equal(fila.creado_por, 'romi@x.pe');
-  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'zzz' }), env, d)).status, 400);
+  assert.deepEqual([fila.plan, fila.cita], ['constancia:3', '2']);
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'zzz', plan: 'otro', cita: '1' }), env, d)).status, 400);
+});
+
+test('crear: plan y cita son obligatorios y salen de las listas (400 si no)', async () => {
+  const d = deps();
+  for (const cuerpo of [{ tipo: 's60' }, { tipo: 's60', plan: 'otro' }, { tipo: 's60', cita: '1' }, { tipo: 's60', plan: 'zzz', cita: '1' },
+    { tipo: 's60', plan: 'otro', cita: '25' }, { tipo: 's60', plan: '__proto__', cita: '1' }, { tipo: 's60', plan: 'otro', cita: 1 }]) {
+    const r = await handleLinks(post('/api/equipo/links', cuerpo), env, d);
+    assert.equal(r.status, 400, JSON.stringify(cuerpo));
+    assert.match((await r.json()).error, /plan|cita/i);
+  }
+  assert.equal(await d.db.prepare('SELECT 1 FROM links_agenda').first(), null);
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'evaluacion', cita: 'evaluacion_mes' }), env, d)).status, 200);
 });
 
 test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por estado y datos del agendado', async () => {
@@ -53,6 +67,7 @@ test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por e
   assert.deepEqual(r.filas.map((f) => [f.id, f.estado]), [['sin', 'sin_usar'], ['usado', 'agendado'], ['venc', 'vencido']]);
   assert.deepEqual(r.conteos, { todos: 3, sin_usar: 1, agendado: 1, vencido: 1 });
   assert.equal(r.filas[1].paciente, 'Ramos Quispe, Lucía');
+  assert.deepEqual([r.filas[0].plan, r.filas[0].cita_link], ['2 sesiones al mes · 3 meses', '2da sesión (control)']);
   const todo = await (await handleLinks(get('/api/equipo/links?periodo=todo&estado=vencido'), env, d)).json();
   assert.deepEqual(todo.filas.map((f) => f.id), ['venc', 'viejo']);
 });
@@ -106,6 +121,7 @@ test('agendados: próximas con datos completos; pasadas vacío; paginación de 2
   const f = r.filas[0];
   assert.deepEqual([f.apellido_paterno, f.nombres, f.dni, f.email, f.whatsapp, f.fecha_nacimiento, f.paciente_nuevo, f.tipo, f.nutricionista, f.modalidad],
     ['Ramos', 'Lucía', '70123456', 'lucia@x.pe', '+51987654321', '1992-03-08', 1, 'Control de 30 min', 'Nico', 'video']);
+  assert.deepEqual([f.plan, f.cita], ['2 sesiones al mes · 3 meses', '2da sesión (control)']);
   assert.equal((await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json()).total, 0);
   assert.equal(r.por_pagina, 20);
 });
@@ -119,10 +135,10 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   const texto = await res.text();
   const lineas = texto.replace(/^﻿/, '').trim().split('\r\n');
   // Sin la fila «sep=,» (Google Sheets la importaría como datos): la primera línea son los encabezados.
-  assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
+  assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.match(lineas[1], /Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
+  assert.match(lineas[1], /,Nico,2 sesiones al mes · 3 meses,2da sesión \(control\),Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 
@@ -197,4 +213,18 @@ test('borrar: el sin usar y el vencido se borran y los conteos bajan; el usado d
   assert.deepEqual(lista.conteos, { todos: 1, sin_usar: 0, agendado: 1, vencido: 0 });
   // El link borrado ya no se encuentra por su hash: la agenda del paciente da «Este link no existe».
   assert.equal(await agenda.linkPorHash(d.db, 'h-sin'), null);
+});
+
+test('links viejos sin plan ni cita: agendados y CSV muestran «—», la lista los deja vacíos', async () => {
+  const d = deps();
+  await agenda.crearLink(d.db, { id: 'old', tokenHash: 'h-old', tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date('2026-10-10T14:00:00Z') });
+  await agenda.agendarConLink(d.db, { link: 'old', reservaId: 'r-old', token: 'to', tipoId: 'c30v', cliente: lucia, clienteId: 'c-old',
+    hora: { inicio: '2026-10-14T15:00:00Z', fin: '2026-10-14T15:30:00Z', nutricionista_id: 'nico', modalidad: 'video', fecha_lima: '2026-10-14', duracion_min: 30 },
+    pacienteNuevo: true, condicionesVersion: 'v', ahora: new Date('2026-10-10T15:00:00Z') });
+  const f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
+  assert.deepEqual([f.plan, f.cita], ['—', '—']);
+  const l = (await (await handleLinks(get('/api/equipo/links'), env, d)).json()).filas[0];
+  assert.deepEqual([l.plan, l.cita_link], [null, null]);
+  const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=r-old'), env, d)).text()).trim().split('\r\n');
+  assert.match(csv[1], /,Nico,—,—,Ramos,/);
 });

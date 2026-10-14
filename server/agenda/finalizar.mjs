@@ -5,6 +5,7 @@ import * as repo from '../reservas/repo.mjs';
 import { etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
 import { correoCitaAgenda, correoEquipoAlerta } from '../reservas/correos.mjs';
 import { tipoDeReserva } from './tipos.mjs';
+import { etiquetaPlan, etiquetaCita } from './opciones.mjs';
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
 
@@ -12,15 +13,20 @@ import { contacto } from '../../src/data/contacto.js';
 // unificarlas queda fuera de esta entrega. Se exporta para la alerta de agenda.mjs.
 export const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
-export async function finalizarAgenda(deps, env, r) {
+// `link` trae el plan y la cita que eligió el equipo al crear el link; los links
+// viejos no los tienen y el evento sale sin esa línea.
+export async function finalizarAgenda(deps, env, r, link = {}) {
   const tipo = tipoDeReserva(r);
   const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
+  const plan = etiquetaPlan(link.plan);
+  const cita = etiquetaCita(link.cita);
+  const lineaPlan = plan || cita ? `Plan: ${plan ?? '—'} · Cita: ${cita ?? '—'}\n` : '';
   let meet = null;
   try {
     const ev = await deps.google.crearEvento({
       reservaId: r.id,
       titulo: `Agenda · ${r.nombre} · ${tipo.nombre}`,
-      descripcion: `WhatsApp: ${r.whatsapp}\nCorreo: ${r.email}\nNutricionista: ${n.nombre}\nAgendado con link de un solo uso (${r.id}).`,
+      descripcion: `${lineaPlan}WhatsApp: ${r.whatsapp}\nCorreo: ${r.email}\nNutricionista: ${n.nombre}\nAgendado con link de un solo uso (${r.id}).`,
       inicioUtc: r.inicio_utc,
       finUtc: finDeReserva(r),
       modalidad: r.modalidad,

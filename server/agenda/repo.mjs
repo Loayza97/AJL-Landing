@@ -11,10 +11,11 @@ export function estadoLink(l, ahora) {
   return Date.parse(l.vence_en) <= ahora.getTime() ? 'vencido' : 'sin_usar';
 }
 
-export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora }) {
+// Plan y cita ya vienen validados por el handler (server/agenda/opciones.mjs).
+export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora, plan = null, cita = null }) {
   const vence = new Date(ahora.getTime() + VENCE_DIAS * DIA).toISOString();
-  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en) VALUES (?1, ?2, ?3, ?4, ?5, ?6)`)
-    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence).run();
+  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en, plan, cita) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
+    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence, plan, cita).run();
   return { vence_en: vence };
 }
 

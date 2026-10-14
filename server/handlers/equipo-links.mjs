@@ -11,6 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 
@@ -19,6 +20,7 @@ const MAX_CSV = 200; // ids por descarga: D1 recibe la lista en un solo parámet
 const ESTADOS = ['sin_usar', 'agendado', 'vencido'];
 const sinAcceso = () => json(401, { ok: false, error: 'Necesitas entrar con un correo autorizado del equipo.' });
 const bad = (status, error) => json(status, { ok: false, error });
+const SIN_DATO = '—'; // links creados antes de pedir plan y cita
 
 // Búsqueda sin tildes ni mayúsculas, sin migración: el texto buscado se
 // normaliza en JS y la columna en SQL con la misma tabla de letras (SQLite
@@ -38,7 +40,7 @@ const pagina = (p) => Math.max(1, Math.min(1000, Number.parseInt(p, 10) || 1));
 const nombreCompleto = (r) => (r.nombres ? `${[r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ')}, ${r.nombres}` : null);
 const filtroTexto = `(?3 = '' OR ${sinTildesSql("COALESCE(c.nombre, '') || ' ' || COALESCE(c.dni, '')")} LIKE ?3 ESCAPE '\\')`;
 
-const BASE_LINKS = `SELECT l.id, l.tipo, l.creado_en, l.vence_en, l.reactivado_en, l.usado_en,
+const BASE_LINKS = `SELECT l.id, l.tipo, l.plan, l.cita AS cita_link, l.creado_en, l.vence_en, l.reactivado_en, l.usado_en,
     CASE WHEN l.usado_en IS NOT NULL THEN 'agendado' WHEN l.vence_en <= ?4 THEN 'vencido' ELSE 'sin_usar' END AS estado,
     COALESCE(l.reactivado_en, l.creado_en) AS actividad,
     r.inicio_utc, r.modalidad, r.nutricionista_id, c.nombres, c.apellido_paterno, c.apellido_materno, c.dni
@@ -62,7 +64,7 @@ async function listarLinks(request, deps, { email, admin }) {
   const filas = results.map((r) => ({
     id: r.id, tipo: r.tipo, nombre_tipo: TIPOS_LINK[r.tipo].nombre, etiqueta_tipo: TIPOS_LINK[r.tipo].etiqueta, estado: r.estado,
     creado_en: r.creado_en, vence_en: r.vence_en, reactivado_en: r.reactivado_en, paciente: nombreCompleto(r),
-    cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null,
+    cita: r.inicio_utc ? etiquetaLima(r.inicio_utc) : null, plan: etiquetaPlan(r.plan), cita_link: etiquetaCita(r.cita_link),
   }));
   return json(200, { ok: true, email, admin: admin === true, filas, conteos, total: estado === 'todos' ? conteos.todos : conteos[estado], pagina: p, por_pagina: POR_PAGINA });
 }
@@ -70,9 +72,12 @@ async function listarLinks(request, deps, { email, admin }) {
 async function crearLink(request, env, deps, email) {
   const d = await readJson(request);
   if (!Object.hasOwn(TIPOS_LINK, d.tipo)) return bad(400, 'Tipo de evento inválido');
+  if (!planValido(d.plan)) return bad(400, 'Elige el plan del paciente.');
+  if (!citaValida(d.cita)) return bad(400, 'Elige qué cita es.');
   const token = randomToken();
   const id = crypto.randomUUID();
-  const { vence_en } = await agenda.crearLink(deps.db, { id, tokenHash: await sha256Hex(token), tipo: d.tipo, creadoPor: email, ahora: deps.ahora() });
+  const { vence_en } = await agenda.crearLink(deps.db, { id, tokenHash: await sha256Hex(token), tipo: d.tipo, creadoPor: email, ahora: deps.ahora(),
+    plan: d.plan, cita: d.cita });
   return json(200, { ok: true, id, tipo: d.tipo, vence_en, url: `${siteUrl(env)}/agenda/?l=${token}` });
 }
 
@@ -106,7 +111,7 @@ export async function handleLinksBorrar(request, env, deps) {
   return json(200, { ok: true });
 }
 
-const CAMPOS_AGENDADO = `r.id, r.producto, r.inicio_utc, r.modalidad, r.nutricionista_id, l.paciente_nuevo,
+const CAMPOS_AGENDADO = `r.id, r.producto, r.inicio_utc, r.modalidad, r.nutricionista_id, l.paciente_nuevo, l.plan, l.cita,
   c.apellido_paterno, c.apellido_materno, c.nombres, c.dni, c.email, c.whatsapp, c.fecha_nacimiento`;
 const FROM_AGENDADO = `FROM reservas r JOIN links_agenda l ON l.reserva_id = r.id JOIN clientes c ON c.id = r.cliente_id
   WHERE r.estado = 'confirmada'`;
@@ -114,6 +119,7 @@ const FROM_AGENDADO = `FROM reservas r JOIN links_agenda l ON l.reserva_id = r.i
 const vistaAgendado = (r, deps) => ({
   id: r.id, inicio_utc: r.inicio_utc, etiqueta: etiquetaLima(r.inicio_utc), tipo: tipoDeReserva(r)?.nombre ?? r.producto,
   modalidad: r.modalidad, nutricionista: deps.nutricionistas.find((n) => n.id === r.nutricionista_id)?.nombre ?? r.nutricionista_id,
+  plan: etiquetaPlan(r.plan) ?? SIN_DATO, cita: etiquetaCita(r.cita) ?? SIN_DATO,
   apellido_paterno: r.apellido_paterno, apellido_materno: r.apellido_materno, nombres: r.nombres, dni: r.dni, email: r.email,
   whatsapp: r.whatsapp, fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: r.paciente_nuevo,
 });
@@ -160,12 +166,12 @@ export async function handleAgendadosCsv(request, env, deps) {
   const { results } = await deps.db.prepare(
     `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ORDER BY r.inicio_utc`,
   ).bind(JSON.stringify(ids)).all();
-  const cab = ['Cita (Lima)', 'Evento', 'Modalidad', 'Nutricionista', 'Apellido paterno', 'Apellido materno', 'Nombres', 'DNI', 'Correo',
+  const cab = ['Cita (Lima)', 'Evento', 'Modalidad', 'Nutricionista', 'Plan', 'Cita', 'Apellido paterno', 'Apellido materno', 'Nombres', 'DNI', 'Correo',
     'WhatsApp', 'Fecha de nacimiento', 'Paciente'];
   const filas = results.map((r) => {
     const v = vistaAgendado(r, deps);
     return [celda(lima(v.inicio_utc)), celda(v.tipo), celda(v.modalidad === 'video' ? 'Videollamada' : 'Presencial'), celda(v.nutricionista),
-      celda(v.apellido_paterno), celda(v.apellido_materno), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
+      celda(v.plan), celda(v.cita), celda(v.apellido_paterno), celda(v.apellido_materno), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
       celda(v.fecha_nacimiento), celda(v.paciente_nuevo ? 'Nuevo' : 'Ya paciente')].join(',');
   });
   // Sin «sep=,»: es una directiva de Excel y Google Sheets la importa como una fila más.
