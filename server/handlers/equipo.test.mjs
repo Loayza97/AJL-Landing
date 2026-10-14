@@ -75,3 +75,20 @@ test('equipo: Excel (CSV) con los dos grupos, sin fórmulas inyectables y con n�
   assert.ok(texto.includes("\"'=HYPERLINK(\"\"x\"\")\""));
   assert.ok(texto.includes('\t01234567'), 'documento con cero inicial queda como texto');
 });
+
+test('equipo: las citas agendadas con link no aparecen en «Pagaron»', async () => {
+  const db = await base();
+  await db.prepare("UPDATE reservas SET link_id = 'L1' WHERE id = 'pagada'").run();
+  const deps = { db, ahora, nutricionistas, acceso: dentro };
+  const d = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, deps)).json();
+  assert.deepEqual(d.pagadas, []);
+});
+
+test('equipo: la respuesta dice si quien entró es súper usuario', async () => {
+  const db = await base();
+  const d = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, { db, ahora, nutricionistas, acceso: dentro })).json();
+  assert.equal(d.admin, false);
+  const admin = async () => ({ ok: true, email: 'ale@x.pe', admin: true });
+  const a = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, { db, ahora, nutricionistas, acceso: admin })).json();
+  assert.equal(a.admin, true);
+});

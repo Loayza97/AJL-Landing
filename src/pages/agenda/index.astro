@@ -1,0 +1,118 @@
+---
+// Página del link de agenda (/agenda/?l=TOKEN): pacientes que ya pagaron eligen
+// su hora. Sin el Layout del sitio: el token va en la URL y aquí se escriben
+// datos personales, así que no se carga analítica.
+import '../../styles/reservar.css';
+import { PAISES } from '../../data/telefono.js';
+const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const ANIO = new Date().getFullYear();
+const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Agenda tu cita · AJL Nutrición</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap">
+  <style is:global>
+    body { margin: 0; } [hidden] { display: none !important; }
+    /* reservar.css solo limita el ancho de p3/p4; estos pasos son de /agenda/. */
+    [data-paso="dni"], [data-paso="conocido"], [data-paso="datos"], [data-paso="listo"], [data-paso="fin"] { max-width: 560px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <main class="rs">
+    <section class="rs-paso" data-paso="cargando"><p class="rs-lead">Cargando tu link…</p></section>
+
+    <section class="rs-paso" data-paso="horario" hidden>
+      <p class="rs-k" id="a-tipo"></p>
+      <h1>Agenda tu cita</h1>
+      <p class="rs-lead">Tu cita ya está pagada. Solo elige día y hora.</p>
+      <div id="a-selector"></div>
+      <p class="rs-error" id="a-error-horario" role="alert"></p>
+    </section>
+
+    <section class="rs-paso" data-paso="dni" hidden>
+      <button type="button" class="rs-volver" data-volver="horario">‹ Cambiar hora</button>
+      <div class="rs-resumen" data-resumen></div>
+      <h1>¿Cuál es tu DNI?</h1>
+      <p class="rs-lead">Si ya eres paciente, no tienes que llenar nada más.</p>
+      <form id="a-form-dni" novalidate>
+        <label for="a-dni">Número de DNI</label>
+        <input type="text" id="a-dni" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="8 dígitos" required>
+        <button type="submit" class="rs-btn">Continuar</button>
+        <p class="rs-error" id="a-error-dni" role="alert"></p>
+      </form>
+    </section>
+
+    <section class="rs-paso" data-paso="conocido" hidden>
+      <button type="button" class="rs-volver" data-volver="dni">‹ Volver</button>
+      <h1 id="a-hola"></h1>
+      <p class="rs-lead">Ya tenemos tus datos. Te avisamos a estos contactos:</p>
+      <ul class="rs-lista" id="a-contactos"></ul>
+      <div class="rs-resumen" data-resumen></div>
+      <button type="button" class="rs-btn" id="a-confirmar-conocido">Confirmar cita</button>
+      <button type="button" class="rs-btn rs-btn--ghost" data-ir="datos">Mis datos cambiaron</button>
+      <p class="rs-error" id="a-error-conocido" role="alert"></p>
+    </section>
+
+    <section class="rs-paso" data-paso="datos" hidden>
+      <button type="button" class="rs-volver" data-volver="dni">‹ Volver</button>
+      <h1>Tus datos</h1>
+      <p class="rs-lead">Los pedimos una sola vez.</p>
+      <div class="rs-resumen" data-resumen></div>
+      <form id="a-form-datos" novalidate>
+        <div class="rs-dos">
+          <div><label for="a-paterno">Apellido paterno</label><input type="text" id="a-paterno" autocomplete="family-name" maxlength="60" required></div>
+          <div><label for="a-materno">Apellido materno <small>(si tienes)</small></label><input type="text" id="a-materno" maxlength="60"></div>
+        </div>
+        <label for="a-nombres">Nombres</label>
+        <input type="text" id="a-nombres" autocomplete="given-name" maxlength="60" required>
+        <label for="a-email">Correo · aquí llega la invitación para tu calendario</label>
+        <input type="email" id="a-email" autocomplete="email" required>
+        <label for="a-whatsapp">WhatsApp</label>
+        <div class="rs-tel">
+          <select id="a-pais" aria-label="Código de país">
+            {PAISES.map(([bandera, nombre, codigo]) => <option value={codigo}>{bandera} {nombre} +{codigo}</option>)}
+          </select>
+          <input type="tel" id="a-whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="9__ ___ ___" required>
+        </div>
+        <label for="a-nac-dia" id="a-l-nac">Fecha de nacimiento</label>
+        <div class="rs-fecha" role="group" aria-labelledby="a-l-nac">
+          <select id="a-nac-dia" aria-label="Día" required><option value="">Día</option>{DIAS.map((d) => <option value={String(d).padStart(2, '0')}>{d}</option>)}</select>
+          <select id="a-nac-mes" aria-label="Mes" required><option value="">Mes</option>{MESES.map((m, i) => <option value={String(i + 1).padStart(2, '0')}>{m}</option>)}</select>
+          <select id="a-nac-anio" aria-label="Año" required><option value="">Año</option>{ANIOS.map((a) => <option value={String(a)}>{a}</option>)}</select>
+        </div>
+        <label class="rs-check"><input type="checkbox" id="a-acepto" required> <span>Acepto las <a href="/condiciones/" target="_blank" rel="noopener">condiciones del servicio</a> y he leído la <a href="/privacidad/" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+        <button type="submit" class="rs-btn">Confirmar cita</button>
+        <p class="rs-error" id="a-error-datos" role="alert"></p>
+      </form>
+    </section>
+
+    <section class="rs-paso" data-paso="listo" hidden>
+      <h1>Tu cita está agendada</h1>
+      <p class="rs-lead">Te mandamos la invitación a tu correo. Ya está también en nuestro calendario.</p>
+      <div class="rs-resumen" id="a-listo"></div>
+      <a class="rs-btn rs-btn--wa" id="a-wa" target="_blank" rel="noopener">Avisar al equipo por WhatsApp</a>
+      <a class="rs-btn" id="a-gcal" target="_blank" rel="noopener">Agregar a Google Calendar</a>
+      <a class="rs-btn rs-btn--ghost" id="a-ics">Otro calendario (.ics)</a>
+      <p class="rs-nota">¿Necesitas cambiar la hora? Escríbenos por ese mismo WhatsApp.</p>
+    </section>
+
+    <section class="rs-paso" data-paso="fin" hidden>
+      <h1 id="a-fin-t"></h1>
+      <p class="rs-lead" id="a-fin-d"></p>
+      <button type="button" class="rs-btn" id="a-reintentar" hidden>Reintentar</button>
+      <a class="rs-btn rs-btn--wa" href="https://wa.me/51919151237" target="_blank" rel="noopener">Escribir por WhatsApp</a>
+    </section>
+  </main>
+  <script>
+    import '../../scripts/agenda.js';
+  </script>
+</body>
+</html>

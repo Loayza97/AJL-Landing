@@ -24,6 +24,8 @@ export const plans = {
   // su equivalente mensual, sin tachados; el ahorro se muestra solo en /reservar.
   basico: {
     id: 'basico',
+    // Nombre que usa el equipo en el panel; nunca se muestra al paciente.
+    internalName: 'Básico',
     name: 'Una sola sesión',
     tagline: 'Sin acompañamiento continuo',
     price: 250,
@@ -44,6 +46,8 @@ export const plans = {
   },
   acompanamiento: {
     id: 'acompanamiento',
+    // Nombre que usa el equipo en el panel; nunca se muestra al paciente.
+    internalName: 'Seguimiento',
     name: '1 sesión al mes',
     tagline: 'Con acompañamiento continuo',
     price: 320,
@@ -69,6 +73,8 @@ export const plans = {
   },
   constancia: {
     id: 'constancia',
+    // Nombre que usa el equipo en el panel; nunca se muestra al paciente.
+    internalName: 'Constancia',
     name: '2 sesiones al mes',
     tagline: 'Con acompañamiento continuo',
     price: 440,
@@ -97,6 +103,8 @@ export const plans = {
   },
   transformacion: {
     id: 'transformacion',
+    // Nombre que usa el equipo en el panel; nunca se muestra al paciente.
+    internalName: 'Transformación',
     name: '4 sesiones al mes',
     tagline: 'Con acompañamiento continuo',
     price: 600,

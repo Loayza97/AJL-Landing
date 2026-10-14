@@ -9,9 +9,10 @@
 // POST /api/reservas/resumen-diario  correo diario al equipo con quienes no pagaron (cron)
 import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
-import { inicioUtc, sumarDias, fechaLima, etiquetaLima } from '../reservas/tiempo.mjs';
+import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
+import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
@@ -39,25 +40,26 @@ async function huellaDe(request, fecha) {
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function contexto(deps, desde, dias) {
+export async function contexto(deps, desde, dias) {
   const eventos = await deps.google.listarEventos(inicioUtc(desde, 0), inicioUtc(sumarDias(desde, dias), 0));
   const reservas = await repo.reservasActivasEntre(deps.db, desde, sumarDias(desde, dias), deps.ahora());
   return { eventos, reservas };
 }
 
-function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro }) {
+export function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60, pasoMin = 60 }) {
   return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
     ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
-    maxHorasDia: MAX_HORAS_DIA });
+    maxHorasDia: MAX_HORAS_DIA, duracionMin, pasoMin });
 }
 
 // Datos de la cita para el .ics y para el enlace de Google Calendar.
-function eventoDe(r) {
-  const precio = cotizar(r.producto, r.duracion_meses);
+export function eventoDe(r) {
+  const tipo = tipoDeReserva(r);
+  const precio = tipo ? null : cotizar(r.producto, r.duracion_meses);
   return {
-    titulo: `Tu sesión en AJL Nutrición · ${precio?.titulo ?? ''}`,
+    titulo: `Tu ${tipo ? 'cita' : 'sesión'} en AJL Nutrición · ${tipo ? tipo.nombre : (precio?.titulo ?? '')}`,
     inicioUtc: r.inicio_utc,
-    finUtc: new Date(Date.parse(r.inicio_utc) + 3600 * 1000).toISOString(),
+    finUtc: finDeReserva(r),
     ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
     descripcion: 'Si necesitas mover tu cita, escríbenos por WhatsApp: +51 919 151 237.',
   };
@@ -239,7 +241,8 @@ export async function handleReubicar(request, env, deps) {
   const fecha = fechaLima(new Date(d.inicio));
   try {
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: r.peso_tope, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
+    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: r.peso_tope, filtro: d.nutricionista,
+      duracionMin: r.duracion_min ?? 60 }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const res = await repo.reubicar(deps.db, { id: r.id, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha,
       modalidad: d.modalidad, primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora: deps.ahora() });

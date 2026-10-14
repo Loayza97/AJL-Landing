@@ -2,12 +2,14 @@
 // POST /api/equipo/codigo  { email }          manda un código de 6 dígitos (10 min)
 // POST /api/equipo/entrar  { email, codigo }  abre una sesión de 12 h (cookie)
 // POST /api/equipo/salir                      cierra la sesión
-// Solo los correos de EQUIPO_EMAILS (secreto) reciben código. La respuesta es la
+// Solo reciben código los correos de EQUIPO_EMAILS o EQUIPO_ADMINS (secretos) y los
+// agregados en /panel/usuarios/ (server/equipo/usuarios.mjs). La respuesta es la
 // misma para cualquier correo, así no se puede averiguar quién está autorizado.
 // Códigos y sesiones se guardan como hash; 5 intentos por código y, tras 10
 // fallidos en 24 h, el correo queda bloqueado un día.
 import { json, readJson } from '../http.mjs';
-import { randomToken } from '../tokens.mjs';
+import { randomToken, sha256Hex as sha256 } from '../tokens.mjs';
+import { esAdmin, normalizarEmail as normalizar, puedeEntrar } from './usuarios.mjs';
 
 const COOKIE = 'ajl_equipo';
 const CODIGO_MIN = 10;
@@ -16,10 +18,6 @@ const MAX_INTENTOS = 5;
 const REENVIO_SEG = 60;
 const MAX_FALLOS_DIA = 10; // intentos fallidos por correo en 24 h antes de bloquearlo
 
-const sha256 = async (s) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))]
-  .map((b) => b.toString(16).padStart(2, '0')).join('');
-const autorizados = (env) => String(env.EQUIPO_EMAILS || '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-const normalizar = (e) => String(e || '').trim().toLowerCase();
 const codigoAlAzar = () => String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
@@ -38,7 +36,7 @@ export async function handlePedirCodigo(request, env, deps) {
   if (request.method !== 'POST') return json(405, { ok: false, error: 'Método no permitido' });
   const email = normalizar((await readJson(request)).email);
   const ok = json(200, { ok: true, mensaje: 'Si tu correo está autorizado, te llegó un código.' });
-  if (!autorizados(env).includes(email)) return ok;
+  if (!(await puedeEntrar(env, deps.db, email))) return ok;
   const ahora = deps.ahora();
   if (await bloqueado(deps.db, email, ahora)) return ok;
   const previo = await deps.db.prepare('SELECT creado_en FROM equipo_codigos WHERE email = ?1').bind(email).first();
@@ -62,7 +60,7 @@ export async function handleEntrar(request, env, deps) {
   const email = normalizar(d.email);
   const codigo = String(d.codigo || '').replace(/\D/g, '');
   const mal = json(401, { ok: false, error: 'El código no es válido o ya venció. Pide uno nuevo.' });
-  if (!autorizados(env).includes(email) || codigo.length !== 6) return mal;
+  if (codigo.length !== 6 || !(await puedeEntrar(env, deps.db, email))) return mal;
   const ahora = deps.ahora();
   if (await bloqueado(deps.db, email, ahora)) return mal;
   const fila = await deps.db.prepare('SELECT codigo_hash, expira, intentos FROM equipo_codigos WHERE email = ?1').bind(email).first();
@@ -98,11 +96,12 @@ export async function handleSalir(request, env, deps) {
   });
 }
 
-// Lo usan las rutas /api/equipo/*: sesión vigente y correo todavía autorizado.
+// Lo usan las rutas /api/equipo/*: sesión vigente y correo todavía autorizado
+// (secretos o tabla). admin = está en EQUIPO_ADMINS.
 export async function verificarAcceso(request, env, deps) {
   const token = leerCookie(request);
   if (!token) return { ok: false };
   const fila = await deps.db.prepare('SELECT email, expira FROM equipo_sesiones WHERE token_hash = ?1').bind(await sha256(token)).first();
-  if (!fila || Date.parse(fila.expira) <= deps.ahora().getTime() || !autorizados(env).includes(fila.email)) return { ok: false };
-  return { ok: true, email: fila.email };
+  if (!fila || Date.parse(fila.expira) <= deps.ahora().getTime() || !(await puedeEntrar(env, deps.db, fila.email))) return { ok: false };
+  return { ok: true, email: fila.email, admin: esAdmin(env, fila.email) };
 }

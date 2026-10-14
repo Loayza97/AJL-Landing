@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
-import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario } from './reservas.mjs';
+import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar } from './reservas.mjs';
+import * as repo from '../reservas/repo.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok' };
@@ -220,4 +221,27 @@ test('apartar guarda la versión del botón de la portada solo si es válida', a
   const v = async (token) => (await d.db.prepare('SELECT variante FROM reservas WHERE token = ?1').bind(token).first()).variante;
   assert.equal(await v(ok.token), 'b');
   assert.equal(await v(raro.token), null);
+});
+
+test('ics: DTEND sale de fin_utc', async () => {
+  const d = deps();
+  await d.db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima,
+    modalidad, estado, creado_en, actualizado_en, duracion_min, fin_utc)
+    VALUES ('i', 'ti', 'constancia', 3, 108000, 1, 'nico', '2026-10-06T15:00:00Z', '2026-10-06', 'video', 'confirmada', 'x', 'x', 30, '2026-10-06T15:30:00Z')`).run();
+  const texto = await (await handleIcs(get('/api/reservas/ics?r=ti'), env, d)).text();
+  assert.match(texto, /DTEND:20261006T153000Z/);
+});
+
+test('reubicar: una cita de 30 min se valida como de 30 (cabe antes de otra que empieza a y media)', async () => {
+  const d = deps();
+  const ap = await (await apartar(d, { inicio: '2026-10-06T15:00:00Z' })).json();
+  await handlePagar(post('/api/reservas/pagar', { ...datos, token: ap.token }), env, d);
+  await d.db.prepare("UPDATE reservas SET estado = 'pagada_sin_hora', duracion_min = 30, fin_utc = '2026-10-06T15:30:00Z' WHERE token = ?1").bind(ap.token).run();
+  await repo.crearRetencion(d.db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1, duracion_min: 30,
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: d.ahora() });
+  const res = await handleReubicar(post('/api/reservas/reubicar', { token: ap.token, modalidad: 'presencial', inicio: '2026-10-06T17:00:00Z', nutricionista: 'nico' }), env, d);
+  assert.equal(res.status, 200);
+  const r = await repo.reservaPorToken(d.db, ap.token);
+  assert.equal(r.estado, 'confirmada');
+  assert.equal(r.inicio_utc, '2026-10-06T17:00:00Z');
 });

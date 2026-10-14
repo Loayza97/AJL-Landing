@@ -46,6 +46,8 @@
   <main class="eq">
     <div class="eq-cab">
       <div><h1>Reservas de la web</h1><span class="eq-quien" id="quien"></span><button type="button" class="eq-salir" id="salir" hidden>Salir</button></div>
+      <a class="eq-salir" href="/panel/links/">Links de agenda ›</a>
+      <a class="eq-salir" href="/panel/usuarios/" id="usuarios" hidden>Usuarios del equipo ›</a>
       <a class="eq-btn" href="/api/equipo/excel" id="excel" hidden>Descargar Excel</a>
     </div>
     <form class="eq-login" id="login" hidden>
@@ -62,6 +64,7 @@
   </main>
 
   <script>
+    import { montarLogin } from '../../scripts/panel-login.js';
     const DOCS: Record<string, string> = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
     const estado: { grupo: 'pagadas' | 'no_pagadas'; datos: any } = { grupo: 'pagadas', datos: null };
     const $ = (s: string) => document.querySelector(s) as HTMLElement;
@@ -132,6 +135,7 @@
       $('#login').hidden = true; $('#tabs').hidden = false; $('#salir').hidden = false;
       estado.datos = await res.json();
       $('#quien').textContent = `Entraste como ${estado.datos.email}`;
+      $('#usuarios').hidden = !estado.datos.admin;
       $('#excel').hidden = false;
       pintar();
     }
@@ -139,31 +143,11 @@
     function mostrarLogin() {
       $('#login').hidden = false; $('#tabs').hidden = true; $('#excel').hidden = true; $('#salir').hidden = true;
       $('#quien').textContent = '';
+      $('#usuarios').hidden = true;
       $('#contenido').replaceChildren();
     }
 
-    let pasoCodigo = false;
-    $('#login').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = ($('#login-email') as HTMLInputElement).value;
-      const btn = $('#login-btn') as HTMLButtonElement;
-      btn.disabled = true;
-      if (!pasoCodigo) {
-        await fetch('/api/equipo/codigo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-        pasoCodigo = true;
-        $('#login-msg').textContent = 'Si tu correo está autorizado, te llegó un código. Escríbelo aquí (vence en 10 minutos).';
-        ($('#login-codigo') as HTMLInputElement).hidden = false;
-        ($('#login-codigo') as HTMLInputElement).focus();
-        btn.textContent = 'Entrar';
-      } else {
-        const codigo = ($('#login-codigo') as HTMLInputElement).value;
-        const r = await fetch('/api/equipo/entrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, codigo }) });
-        if (r.ok) { await cargar(); } else { $('#login-msg').textContent = 'El código no es válido o ya venció. Recarga la página para pedir otro.'; }
-      }
-      btn.disabled = false;
-    });
-
-    $('#salir').addEventListener('click', async () => { await fetch('/api/equipo/salir', { method: 'POST' }); location.reload(); });
+    montarLogin({ onEntrar: cargar });
 
     document.addEventListener('click', (e) => {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-grupo]');

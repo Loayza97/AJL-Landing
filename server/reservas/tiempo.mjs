@@ -14,6 +14,22 @@ export function inicioUtc(fecha, hora) {
   return new Date(Date.UTC(y, m - 1, d, hora + 5)).toISOString().replace('.000Z', 'Z');
 }
 
+// Inicio en UTC a partir de los minutos desde la medianoche de Lima (10:30 = 630).
+export function inicioUtcMin(fecha, minutos) {
+  const [y, m, d] = partes(fecha);
+  return new Date(Date.UTC(y, m - 1, d, 5, minutos)).toISOString().replace('.000Z', 'Z');
+}
+
+export function sumarMinutos(iso, min) {
+  return new Date(Date.parse(iso) + min * 60000).toISOString().replace('.000Z', 'Z');
+}
+
+// Fin de una reserva: las de antes de la migración 0006 no tienen fin_utc y
+// duraban 60 min.
+export function finDeReserva(r) {
+  return r.fin_utc || sumarMinutos(r.inicio_utc, r.duracion_min ?? 60);
+}
+
 export function sumarDias(fecha, n) {
   const [y, m, d] = partes(fecha);
   return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);

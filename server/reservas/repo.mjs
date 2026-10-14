@@ -1,11 +1,36 @@
 // Acceso a D1. Las reglas que no pueden fallar por concurrencia las impone la
 // propia base: índices únicos parciales (hora del consultorio y de cada
-// nutricionista) y el tope dentro de la misma sentencia que inserta.
+// nutricionista), el cruce de horarios (CRUCE) y el tope dentro de la misma
+// sentencia que inserta.
 const ACTIVOS = "('apartada', 'pagando', 'confirmada')";
 const UNIQUE = /UNIQUE constraint failed/i;
 const MIN = 60000;
 
-const expirar = (db, ahoraIso) => db.prepare(
+const FIN = (col) => `COALESCE(${col}.fin_utc, strftime('%Y-%m-%dT%H:%M:%SZ', ${col}.inicio_utc, '+60 minutes'))`;
+
+// Otra cita activa que se cruza con [ini, fin): de la misma nutricionista o, si
+// las dos son presenciales, en el único consultorio. Cada argumento es un
+// parámetro (?N) o una columna. Va dentro de la misma sentencia que escribe:
+// D1 corre las sentencias en serie, así que nadie se cuela entre medio.
+// La cota «un día atrás» deja usar el índice reservas_cruce: una cita dura pocas
+// horas, así que las de más de un día antes no pueden cruzarse.
+export const CRUCE = ({ ini, fin, nutri, modalidad, excluir }) => `EXISTS (SELECT 1 FROM reservas o
+  WHERE o.id <> ${excluir} AND o.estado IN ${ACTIVOS}
+    AND o.inicio_utc < ${fin} AND ${FIN('o')} > ${ini}
+    AND o.inicio_utc > strftime('%Y-%m-%dT%H:%M:%SZ', ${ini}, '-1 day')
+    AND (o.nutricionista_id = ${nutri} OR (${modalidad} = 'presencial' AND o.modalidad = 'presencial')))`;
+
+// ¿Hay cruce para esta cita? Se pregunta solo cuando una escritura no entró,
+// para distinguir «ocupada» de «tope».
+export async function hayCruce(db, { id, nutri, inicio, modalidad, fin }) {
+  const { c } = await db.prepare(`SELECT ${CRUCE({ ini: '?3', fin: '?5', nutri: '?2', modalidad: '?4', excluir: '?1' })} AS c`)
+    .bind(id, nutri, inicio, modalidad, fin).first();
+  return Boolean(c);
+}
+
+const finIso = (inicio, min) => new Date(Date.parse(inicio) + min * MIN).toISOString().replace('.000Z', 'Z');
+
+export const expirar = (db, ahoraIso) => db.prepare(
   `UPDATE reservas SET estado = 'expirada', actualizado_en = ?1
    WHERE estado IN ('apartada', 'pagando') AND retencion_hasta < ?1`,
 ).bind(ahoraIso);
@@ -25,17 +50,23 @@ export async function crearRetencion(db, r) {
     ).bind(huella, ahoraIso).first();
     if (n >= (r.maxRetenciones ?? 2)) return { ok: false, motivo: 'limite' };
   }
+  const duracion = r.duracion_min ?? 60;
+  const fin = finIso(r.inicio_utc, duracion);
   const insertar = db.prepare(
     `INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
-       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12, ?16
+       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante, fin_utc, duracion_min)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12, ?16, ?17, ?18
      WHERE (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
-            WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14`,
+            WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14
+       AND NOT ${CRUCE({ ini: '?8', fin: '?17', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella, r.variante ?? null);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella, r.variante ?? null, fin, duracion);
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
-    if (res.meta.changes === 0) return { ok: false, motivo: 'tope' };
+    if (res.meta.changes === 0) {
+      const ocupada = await hayCruce(db, { id: r.id, nutri: r.nutricionista_id, inicio: r.inicio_utc, modalidad: r.modalidad, fin });
+      return { ok: false, motivo: ocupada ? 'ocupada' : 'tope' };
+    }
     return { ok: true, retencion_hasta: hasta };
   } catch (e) {
     if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'ocupada' };
@@ -45,7 +76,7 @@ export async function crearRetencion(db, r) {
 
 export async function reservasActivasEntre(db, desde, hasta, ahora) {
   const { results } = await db.prepare(
-    `SELECT id, inicio_utc, fecha_lima, nutricionista_id, modalidad, peso_tope FROM reservas
+    `SELECT id, inicio_utc, fin_utc, duracion_min, fecha_lima, nutricionista_id, modalidad, peso_tope FROM reservas
      WHERE fecha_lima >= ?1 AND fecha_lima < ?2
        AND (estado = 'confirmada' OR (estado IN ('apartada', 'pagando') AND retencion_hasta >= ?3))`,
   ).bind(desde, hasta, ahora.toISOString()).all();
@@ -62,13 +93,17 @@ export async function guardarDatosYPagar(db, { reserva, cliente, condicionesVers
   const c = cliente;
   const campos = [c.nombre ?? null, c.whatsapp ?? null, c.email ?? null, c.dni ?? null, c.nombres ?? null, c.apellido_paterno ?? null, c.apellido_materno ?? null,
     c.fecha_nacimiento ?? null, c.tipo_documento ?? null];
+  // La ficha solo se escribe si la reserva todavía se puede pagar (la misma
+  // condición que el UPDATE de abajo): con el token de una cita confirmada o
+  // vencida no se reescriben los datos del paciente.
+  const pagable = `EXISTS (SELECT 1 FROM reservas WHERE id = ?12 AND estado IN ('apartada', 'pagando') AND retencion_hasta >= ?11)`;
   const guardarCliente = reserva.cliente_id
     ? db.prepare(`UPDATE clientes SET nombre = ?2, whatsapp = ?3, email = ?4, dni = ?5, nombres = ?6,
-        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1`)
-      .bind(clienteId, ...campos)
+        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1 AND ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id)
     : db.prepare(`INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno,
-        fecha_nacimiento, tipo_documento, creado_en) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
-      .bind(clienteId, ...campos, ahoraIso);
+        fecha_nacimiento, tipo_documento, creado_en) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 WHERE ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id);
   const actualizar = db.prepare(
     `UPDATE reservas SET cliente_id = ?1, estado = 'pagando', retencion_hasta = ?2,
        acepto_condiciones_version = ?3, novedades_optin = ?4, actualizado_en = ?5
@@ -105,14 +140,18 @@ export async function confirmarReserva(db, { id, fecha_lima, primerasManuales, t
     // índice único ni contando para el tope del día.
     const [, res] = await db.batch([expirar(db, ahoraIso), db.prepare(
       `UPDATE reservas SET estado = 'confirmada', retencion_hasta = NULL, actualizado_en = ?2
-       WHERE id = ?1 AND (
+       WHERE id = ?1 AND NOT ${CRUCE({ ini: 'reservas.inicio_utc', fin: FIN('reservas'), nutri: 'reservas.nutricionista_id', modalidad: 'reservas.modalidad', excluir: 'reservas.id' })}
+         AND (
          estado IN ('apartada', 'pagando')
          OR (estado = 'expirada' AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
                WHERE fecha_lima = ?3 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?4 <= ?5))`,
     ).bind(id, ahoraIso, fecha_lima, primerasManuales, tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, id);
-    return { ok: false, motivo: actual?.estado === 'confirmada' ? 'ya_confirmada' : 'tope' };
+    if (actual?.estado === 'confirmada') return { ok: false, motivo: 'ya_confirmada' };
+    if (actual && await hayCruce(db, { id, nutri: actual.nutricionista_id, inicio: actual.inicio_utc, modalidad: actual.modalidad,
+      fin: actual.fin_utc ?? finIso(actual.inicio_utc, 60) })) return { ok: false, motivo: 'ocupada' };
+    return { ok: false, motivo: 'tope' };
   } catch (e) {
     if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'ocupada' };
     throw e;
@@ -138,14 +177,20 @@ export async function reubicar(db, r) {
   try {
     // Mismo cuidado que en confirmarReserva: expirar antes de comprobar la
     // hora de destino, para que un cupo vencido sin marcar no la bloquee.
+    const fin = `strftime('%Y-%m-%dT%H:%M:%SZ', ?3, '+' || reservas.duracion_min || ' minutes')`;
     const [, res] = await db.batch([expirar(db, ahoraIso), db.prepare(
-      `UPDATE reservas SET nutricionista_id = ?2, inicio_utc = ?3, fecha_lima = ?4, modalidad = ?5,
+      `UPDATE reservas SET nutricionista_id = ?2, inicio_utc = ?3, fecha_lima = ?4, modalidad = ?5, fin_utc = ${fin},
          estado = 'confirmada', google_event_id = NULL, meet_url = NULL, actualizado_en = ?6
        WHERE id = ?1 AND estado = 'pagada_sin_hora'
+         AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}
          AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
               WHERE fecha_lima = ?4 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?7 <= ?8`,
     ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.primerasManuales, r.tope)]);
-    return res.meta.changes === 1 ? { ok: true } : { ok: false, motivo: 'tope' };
+    if (res.meta.changes === 1) return { ok: true };
+    const actual = await reservaPorId(db, r.id);
+    const ocupada = await hayCruce(db, { id: r.id, nutri: r.nutricionista_id, inicio: r.inicio_utc, modalidad: r.modalidad,
+      fin: finIso(r.inicio_utc, actual?.duracion_min ?? 60) });
+    return { ok: false, motivo: ocupada ? 'ocupada' : 'tope' };
   } catch (e) {
     if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'ocupada' };
     throw e;

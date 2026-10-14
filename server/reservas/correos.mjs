@@ -14,10 +14,12 @@ const boton = (href, texto) => `<p style="margin:24px 0"><a href="${esc(href)}" 
 const ETIQUETA_DOCUMENTO = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const etiquetaDocumento = (tipo) => ETIQUETA_DOCUMENTO[tipo] || 'DNI';
 
+const dondeCita = (modalidad, direccion, meet) => (modalidad === 'video'
+  ? (meet ? `Por videollamada: <a href="${esc(meet)}">${esc(meet)}</a>` : 'Por videollamada: el enlace llega en la invitación de Google Calendar.')
+  : `En nuestro consultorio: ${esc(direccion)}`);
+
 export function correoConfirmacion({ nombre, titulo, etiqueta, modalidad, direccion, meet, nutricionista, urlIcs }) {
-  const donde = modalidad === 'video'
-    ? (meet ? `Por videollamada: <a href="${esc(meet)}">${esc(meet)}</a>` : 'Por videollamada: el enlace llega en la invitación de Google Calendar.')
-    : `En nuestro consultorio: ${esc(direccion)}`;
+  const donde = dondeCita(modalidad, direccion, meet);
   return {
     subject: `Tu primera sesión: ${etiqueta} · AJL Nutrición`,
     html: marco(`
@@ -72,5 +74,18 @@ export function correoResumenNoPagadas({ fecha, personas }) {
       <h2 style="color:#9C7A2B">Dejaron sus datos y no pagaron</h2>
       <p>Desde el resumen anterior. Escríbeles por WhatsApp para ayudarles con su reserva; sus datos se borran a los 30 días.</p>
       <ul style="padding-left:18px">${filas}</ul>`),
+  };
+}
+
+export function correoCitaAgenda({ nombre, titulo, etiqueta, duracion, modalidad, direccion, meet, nutricionista, urlIcs }) {
+  return {
+    subject: `Tu cita: ${etiqueta} · AJL Nutrición`,
+    html: marco(`
+      <h2 style="font-family:Georgia,serif;color:#173C2C">Listo, ${esc(nombre)}. Tu cita está agendada.</h2>
+      <p><strong>${esc(etiqueta)}</strong> · ${Number(duracion)} min · con ${esc(nutricionista)}</p>
+      <p>${dondeCita(modalidad, direccion, meet)}</p>
+      <p>${esc(titulo)}</p>
+      ${boton(urlIcs, 'Agregar a mi calendario')}
+      <p>Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`),
   };
 }

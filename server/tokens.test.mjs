@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomToken, couponCode } from './tokens.mjs';
+import { randomToken, couponCode, sha256Hex } from './tokens.mjs';
 
 test('randomToken(24) da 32 caracteres base64url', () => {
   const t = randomToken(24);
@@ -11,4 +11,8 @@ test('randomToken(24) da 32 caracteres base64url', () => {
 
 test('couponCode usa el alfabeto sin ambiguos', () => {
   for (let i = 0; i < 200; i++) assert.match(couponCode(), /^AJL-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/);
+});
+
+test('sha256Hex en hexadecimal', async () => {
+  assert.equal(await sha256Hex('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
 });

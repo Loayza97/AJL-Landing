@@ -16,3 +16,8 @@ export function couponCode() {
   for (let i = 0; i < 6; i++) s += ALPHABET[bytes[i] % ALPHABET.length];
   return `AJL-${s}`;
 }
+
+export async function sha256Hex(texto) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}

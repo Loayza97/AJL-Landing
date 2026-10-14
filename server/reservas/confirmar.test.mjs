@@ -133,3 +133,21 @@ test('aprobado tarde con la hora tomada, procesado dos veces a la vez: un solo c
   await Promise.all([procesarPago(deps, env, '555'), procesarPago(deps, env, '555')]);
   assert.equal(correos.filter((c) => c.to === 'ana@x.pe').length, 1);
 });
+
+test('el evento del calendario termina cuando termina la cita (fin_utc)', async () => {
+  const { db, deps, creados } = await preparar({ pagos: { 555: aprobado() } });
+  await db.prepare("UPDATE reservas SET duracion_min = 30, fin_utc = '2026-10-06T17:30:00Z' WHERE id = 'r1'").run();
+  await procesarPago(deps, env, '555');
+  assert.equal(creados[0].finUtc, '2026-10-06T17:30:00Z');
+});
+
+test('aprobado tarde: una cita de 30 min se valida como de 30, no de 60', async () => {
+  const { db, deps, mover } = await preparar({ pagos: { 555: aprobado() } });
+  await db.prepare("UPDATE reservas SET duracion_min = 30, fin_utc = '2026-10-06T17:30:00Z' WHERE id = 'r1'").run();
+  mover(40);
+  // Otra cita de 30 min pegada a la de r1: con 60 min se cruzaría, con 30 no.
+  await repo.crearRetencion(db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1, duracion_min: 30,
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: deps.ahora() });
+  assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
+  assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
+});
