@@ -152,7 +152,7 @@ export async function handleAgendaConfirmar(request, env, deps) {
   try {
     const r = await repo.reservaPorId(deps.db, reservaId);
     if (!r) throw new Error('la reserva no se pudo leer');
-    ({ meet } = await finalizarAgenda(deps, env, r, { plan: l.plan, cita: l.cita }));
+    ({ meet } = await finalizarAgenda(deps, env, r));
   } catch (e) {
     console.error('agenda/finalizar', e);
     try {
