@@ -153,3 +153,20 @@ test('listar: la respuesta dice si quien entró es súper usuario', async () => 
   const admin = async () => ({ ok: true, email: 'ale@x.pe', admin: true });
   assert.equal((await (await handleLinks(get('/api/equipo/links'), env, deps({ acceso: admin }))).json()).admin, true);
 });
+
+// Caso del preview (13-oct, 22:05 Lima): link «Agendado» y la tabla Agendados
+// vacía. La API sí la devuelve (la tabla quedó vieja en el navegador); esto fija
+// las mismas formas: creado_en con milisegundos, inicio_utc sin ellos.
+test('agendados: una cita recién agendada sale en próximas · 30 días con las mismas formas del preview', async () => {
+  const ahora = new Date('2026-10-14T03:05:49.799Z');
+  const d = deps({ ahora: () => ahora });
+  await agenda.crearLink(d.db, { id: 'L', tokenHash: 'h-L', tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date('2026-10-14T02:53:58.232Z') });
+  const koc = { ...lucia, nombre: 'prueba koc lopez', nombres: 'prueba', apellido_paterno: 'koc', apellido_materno: 'lopez' };
+  assert.deepEqual(await agenda.agendarConLink(d.db, { link: 'L', reservaId: 'R', token: 'tk', tipoId: 'c30v', cliente: koc, clienteId: 'C',
+    hora: { inicio: '2026-10-14T16:30:00Z', fin: '2026-10-14T17:00:00Z', nutricionista_id: 'nico', modalidad: 'video', fecha_lima: '2026-10-14', duracion_min: 30 },
+    pacienteNuevo: true, condicionesVersion: 'v', ahora: new Date('2026-10-14T03:01:56.041Z') }), { ok: true });
+  const links = await (await handleLinks(get('/api/equipo/links?periodo=30&estado=todos&pagina=1'), env, d)).json();
+  assert.deepEqual(links.filas.map((f) => [f.estado, f.paciente, f.cita]), [['agendado', 'koc lopez, prueba', 'miércoles, 14 de octubre, 11:30 a. m.']]);
+  const ags = await (await handleAgendados(get('/api/equipo/agendados?periodo=30&tramo=proximas&pagina=1'), env, d)).json();
+  assert.deepEqual([ags.total, ags.filas[0]?.id, ags.filas[0]?.etiqueta], [1, 'R', 'miércoles, 14 de octubre, 11:30 a. m.']);
+});

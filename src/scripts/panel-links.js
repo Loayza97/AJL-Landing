@@ -1,6 +1,7 @@
 // Panel /panel/links/: crea links, lista y filtra links y agendados, reactiva y
 // descarga CSV. Todo el texto de la base se pinta con textContent.
 import { montarLogin } from './panel-login.js';
+import { montarRefresco } from './panel-refresco.js';
 
 const $ = (s) => document.querySelector(s);
 const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
@@ -49,7 +50,7 @@ function paginar(prefijo, s) {
   $(`#${prefijo}-next`).disabled = s.pagina * 20 >= s.total;
 }
 
-// Devuelve true si hay sesión (la usa iniciar() para saber si sigue).
+// Devuelve true si hay sesión (la usa refrescar() para saber si sigue).
 async function cargarLinks() {
   const p = periodo('l');
   if (!p) return true;
@@ -96,7 +97,7 @@ async function reactivar(id, b) {
   const r = await fetch('/api/equipo/links-reactivar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => null);
   if (r?.status === 401) return mostrarLogin();
   if (!r?.ok) { b.disabled = false; alert('No se pudo reactivar. Recarga la página.'); return; }
-  cargarLinks();
+  refrescar();
 }
 
 async function cargarAgendados() {
@@ -177,7 +178,7 @@ async function crear(tipo, tarjeta) {
   tarjeta.querySelector('[data-wa]').href = `https://wa.me/?text=${encodeURIComponent(`Agenda tu cita en AJL Nutrición aquí (sirve una sola vez): ${d.url}`)}`;
   tarjeta.querySelector('[data-crear]').hidden = true;
   tarjeta.querySelector('[data-creado]').hidden = false;
-  cargarLinks();
+  refrescar();
 }
 
 // Descarga con fetch: si la sesión venció se muestra el login y si hay error se
@@ -207,9 +208,9 @@ function mostrarLogin() {
 
 // Una sola petición para saber si hay sesión: la lista de links ya trae el
 // correo de quien entró (no se pide /api/equipo/reservas, que trae fichas de pacientes).
-async function iniciar() {
-  if (await cargarLinks()) cargarAgendados();
-}
+// Iniciar, crear, reactivar o volver a la pestaña recargan las dos tablas juntas.
+const refrescar = montarRefresco(document, { links: cargarLinks, agendados: cargarAgendados });
+const iniciar = refrescar;
 
 // Login: el mismo módulo que /panel/ (código por correo, sesión en cookie).
 montarLogin({ onEntrar: iniciar });
