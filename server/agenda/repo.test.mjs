@@ -108,3 +108,17 @@ test('consultas de DNI: hasta el máximo por link', async () => {
   assert.equal(await agenda.contarConsultaDni(db, id, 2), true);
   assert.equal(await agenda.contarConsultaDni(db, id, 2), false);
 });
+
+test('borrar: solo un link sin usar (vigente o vencido), en una sola sentencia; el usado no se toca', async () => {
+  const db = d1DePrueba();
+  const vigente = await link(db);
+  const vencido = await link(db, { ahora: dias(-8) });
+  const usado = await link(db);
+  assert.deepEqual(await agendar(db, usado), { ok: true });
+  assert.equal(await agenda.borrarLink(db, vigente), 'borrado');
+  assert.equal(await agenda.borrarLink(db, vencido), 'borrado');
+  assert.equal(await agenda.borrarLink(db, usado), 'usado');
+  assert.equal(await agenda.borrarLink(db, 'no-existe'), null);
+  const { results } = await db.prepare('SELECT id FROM links_agenda').all();
+  assert.deepEqual(results.map((l) => l.id), [usado]);
+});

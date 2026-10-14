@@ -32,6 +32,15 @@ export async function reactivarLink(db, id, ahora) {
   return r.meta.changes === 1 ? vence : null;
 }
 
+// Borrado de verdad: un link sin usar no tiene datos de pacientes. Una sola
+// sentencia con la condición, así un link que se usa justo ahora no se borra.
+// Devuelve 'borrado', 'usado' o null si no existe.
+export async function borrarLink(db, id) {
+  const r = await db.prepare('DELETE FROM links_agenda WHERE id = ?1 AND usado_en IS NULL').bind(id).run();
+  if (r.meta.changes === 1) return 'borrado';
+  return (await db.prepare('SELECT 1 AS hay FROM links_agenda WHERE id = ?1').bind(id).first()) ? 'usado' : null;
+}
+
 export async function contarConsultaDni(db, id, max) {
   const r = await db.prepare('UPDATE links_agenda SET consultas_dni = consultas_dni + 1 WHERE id = ?1 AND consultas_dni < ?2')
     .bind(id, max).run();

@@ -1,5 +1,5 @@
-// Panel /panel/links/: crea links, lista y filtra links y agendados, reactiva y
-// descarga CSV. Todo el texto de la base se pinta con textContent.
+// Panel /panel/links/: crea links, lista y filtra links y agendados, reactiva,
+// borra los sin usar y descarga CSV. Todo el texto de la base se pinta con textContent.
 import { montarLogin } from './panel-login.js';
 import { montarRefresco } from './panel-refresco.js';
 
@@ -76,16 +76,26 @@ async function cargarLinks() {
     const chip = document.createElement('span');
     chip.className = `lk-estado lk-estado--${f.estado}`; chip.textContent = ESTADO[f.estado];
     let detalle;
-    if (f.estado === 'vencido') {
-      detalle = document.createElement('button');
-      detalle.type = 'button'; detalle.className = 'lk-btn lk-btn--borde'; detalle.textContent = 'Reactivar 3 días más';
-      detalle.addEventListener('click', () => reactivar(f.id, detalle));
-    } else if (f.estado === 'agendado') {
-      detalle = `${f.paciente ?? ''} · ${f.cita}`;
+    if (f.estado === 'agendado') {
+      detalle = td(`${f.paciente ?? ''} · ${f.cita}`);
     } else {
-      detalle = `Esperando al paciente · vence el ${lima(f.vence_en)}`;
+      // Sin usar o vencido: se puede borrar (no tiene datos del paciente).
+      const acciones = document.createElement('div');
+      acciones.className = 'lk-acciones';
+      if (f.estado === 'vencido') {
+        const re = document.createElement('button');
+        re.type = 'button'; re.className = 'lk-btn lk-btn--borde'; re.textContent = 'Reactivar 3 días más';
+        re.addEventListener('click', () => reactivar(f.id, re));
+        acciones.append(re);
+      }
+      const borra = document.createElement('button');
+      borra.type = 'button'; borra.className = 'lk-btn lk-btn--chico'; borra.textContent = 'Borrar';
+      borra.setAttribute('aria-label', `Borrar el link de ${f.nombre_tipo} · ${f.etiqueta_tipo} creado el ${lima(f.creado_en)}`);
+      borra.addEventListener('click', () => borrar(f.id, borra));
+      acciones.append(borra);
+      detalle = f.estado === 'vencido' ? td(acciones) : td(`Esperando al paciente · vence el ${lima(f.vence_en)}`, acciones);
     }
-    tr.append(td(lima(f.reactivado_en || f.creado_en)), td(`${f.nombre_tipo} · ${f.etiqueta_tipo}`), td(chip), td(detalle));
+    tr.append(td(lima(f.reactivado_en || f.creado_en)), td(`${f.nombre_tipo} · ${f.etiqueta_tipo}`), td(chip), detalle);
     return tr;
   }) : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="4">No hay links con este filtro.</td>' })]));
   paginar('l', est.links);
@@ -98,6 +108,24 @@ async function reactivar(id, b) {
   if (r?.status === 401) return mostrarLogin();
   if (!r?.ok) { b.disabled = false; alert('No se pudo reactivar. Recarga la página.'); return; }
   refrescar();
+}
+
+// Borrado de verdad, solo de links sin usar. Si ya se usó o ya no existe, se
+// recarga la lista (que dirá cómo está) y se avisa en #l-msg.
+async function borrar(id, b) {
+  if (!window.confirm('¿Borrar este link? El paciente ya no podrá usarlo.')) return;
+  b.disabled = true;
+  const r = await fetch('/api/equipo/links-borrar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }).catch(() => null);
+  if (r?.status === 401) return mostrarLogin();
+  if (r?.ok) {
+    // Si era la única fila de una página que no es la primera, se vuelve a la anterior.
+    if (est.links.pagina > 1 && $('#l-filas').children.length === 1) est.links.pagina -= 1;
+    return refrescar();
+  }
+  const error = (await jsonDe(r))?.error || 'No se pudo borrar. Revisa tu conexión e intenta de nuevo.';
+  if (r?.status === 404 || r?.status === 409) await refrescar();
+  else b.disabled = false;
+  aviso('#l-msg', error);
 }
 
 async function cargarAgendados() {

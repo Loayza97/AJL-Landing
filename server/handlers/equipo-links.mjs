@@ -2,6 +2,7 @@
 // GET  /api/equipo/links             links con filtro, búsqueda, periodo y páginas
 // POST /api/equipo/links             crea un link (la URL solo se ve aquí)
 // POST /api/equipo/links-reactivar   +3 días a un link vencido sin usar
+// POST /api/equipo/links-borrar      borra un link sin usar (vigente o vencido)
 // GET  /api/equipo/agendados         citas agendadas con link, con datos del paciente
 // GET  /api/equipo/agendados-csv     las elegidas, en CSV para Google Sheets o Excel
 // Todas exigen sesión del equipo antes de leer nada.
@@ -91,6 +92,18 @@ export async function handleLinksReactivar(request, env, deps) {
   const vence = await agenda.reactivarLink(deps.db, d.id, deps.ahora());
   if (!vence) return bad(409, 'Este link no se puede reactivar: está vigente o ya se usó.');
   return json(200, { ok: true, vence_en: vence });
+}
+
+export async function handleLinksBorrar(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  const acceso = await deps.acceso(request, env);
+  if (!acceso.ok) return sinAcceso();
+  const d = await readJson(request);
+  if (typeof d.id !== 'string') return bad(400, 'Datos inválidos');
+  const r = await agenda.borrarLink(deps.db, d.id);
+  if (r === 'usado') return bad(409, 'Este link ya se usó: no se puede borrar.');
+  if (!r) return bad(404, 'Este link ya no existe.');
+  return json(200, { ok: true });
 }
 
 const CAMPOS_AGENDADO = `r.id, r.producto, r.inicio_utc, r.modalidad, r.nutricionista_id, l.paciente_nuevo,

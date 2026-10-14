@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as agenda from '../agenda/repo.mjs';
-import { handleLinks, handleLinksReactivar, handleAgendados, handleAgendadosCsv } from './equipo-links.mjs';
+import { handleLinks, handleLinksReactivar, handleLinksBorrar, handleAgendados, handleAgendadosCsv } from './equipo-links.mjs';
 
 const t0 = new Date('2026-10-12T20:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com' };
@@ -30,6 +30,7 @@ test('sin acceso: 401 en todo y no se lee nada', async () => {
   const d = deps({ acceso: fuera, db: { prepare() { throw new Error('no debía leer'); } } });
   for (const r of [await handleLinks(get('/api/equipo/links'), env, d), await handleLinks(post('/api/equipo/links', { tipo: 'c30v' }), env, d),
     await handleLinksReactivar(post('/api/equipo/links-reactivar', { id: 'x' }), env, d), await handleAgendados(get('/api/equipo/agendados'), env, d),
+    await handleLinksBorrar(post('/api/equipo/links-borrar', { id: 'x' }), env, d),
     await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=x'), env, d)]) assert.equal(r.status, 401);
 });
 
@@ -169,4 +170,31 @@ test('agendados: una cita recién agendada sale en próximas · 30 días con las
   assert.deepEqual(links.filas.map((f) => [f.estado, f.paciente, f.cita]), [['agendado', 'koc lopez, prueba', 'miércoles, 14 de octubre, 11:30 a. m.']]);
   const ags = await (await handleAgendados(get('/api/equipo/agendados?periodo=30&tramo=proximas&pagina=1'), env, d)).json();
   assert.deepEqual([ags.total, ags.filas[0]?.id, ags.filas[0]?.etiqueta], [1, 'R', 'miércoles, 14 de octubre, 11:30 a. m.']);
+});
+
+test('borrar: sin sesión 401 sin leer la base', async () => {
+  const d = deps({ acceso: fuera, db: { prepare() { throw new Error('no debía leer'); } } });
+  assert.equal((await handleLinksBorrar(post('/api/equipo/links-borrar', { id: 'sin' }), env, d)).status, 401);
+});
+
+test('borrar: el sin usar y el vencido se borran y los conteos bajan; el usado da 409; uno que no existe, 404', async () => {
+  const d = deps();
+  await sembrar(d);
+  const borrar = (id) => handleLinksBorrar(post('/api/equipo/links-borrar', { id }), env, d);
+  const r = await borrar('sin');
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true });
+  assert.equal((await borrar('venc')).status, 200);
+  const usado = await borrar('usado');
+  assert.equal(usado.status, 409);
+  assert.match((await usado.json()).error, /ya se usó/);
+  assert.equal((await borrar('sin')).status, 404);
+  assert.equal((await borrar('no-existe')).status, 404);
+  assert.equal((await handleLinksBorrar(post('/api/equipo/links-borrar', { id: 7 }), env, d)).status, 400);
+  assert.equal((await handleLinksBorrar(get('/api/equipo/links-borrar'), env, d)).status, 405);
+  const lista = await (await handleLinks(get('/api/equipo/links'), env, d)).json();
+  assert.deepEqual(lista.filas.map((f) => f.id), ['usado']);
+  assert.deepEqual(lista.conteos, { todos: 1, sin_usar: 0, agendado: 1, vencido: 0 });
+  // El link borrado ya no se encuentra por su hash: la agenda del paciente da «Este link no existe».
+  assert.equal(await agenda.linkPorHash(d.db, 'h-sin'), null);
 });
