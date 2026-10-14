@@ -49,14 +49,17 @@ test('crear: devuelve la URL una sola vez; en la base solo queda el hash', async
 
 test('crear: plan y cita son obligatorios y salen de las listas (400 si no)', async () => {
   const d = deps();
-  for (const cuerpo of [{ tipo: 's60' }, { tipo: 's60', plan: 'otro' }, { tipo: 's60', cita: '1' }, { tipo: 's60', plan: 'zzz', cita: '1' },
-    { tipo: 's60', plan: 'otro', cita: '25' }, { tipo: 's60', plan: '__proto__', cita: '1' }, { tipo: 's60', plan: 'otro', cita: 1 }]) {
+  // «Otro» ya no se ofrece; la cita no puede pasar el total del plan (Acompañamiento de 3 meses: 3).
+  for (const cuerpo of [{ tipo: 's60' }, { tipo: 's60', plan: 'evaluacion' }, { tipo: 's60', cita: '1' }, { tipo: 's60', plan: 'zzz', cita: '1' },
+    { tipo: 's60', plan: 'otro', cita: '1' }, { tipo: 's60', plan: 'acompanamiento:3', cita: '4' }, { tipo: 's60', plan: 'evaluacion', cita: '2' },
+    { tipo: 's60', plan: '__proto__', cita: '1' }, { tipo: 's60', plan: 'basico', cita: 1 }, { tipo: 's60', plan: 'basico', cita: 'evaluacion_mes' }]) {
     const r = await handleLinks(post('/api/equipo/links', cuerpo), env, d);
     assert.equal(r.status, 400, JSON.stringify(cuerpo));
-    assert.match((await r.json()).error, /plan|cita/i);
+    assert.match((await r.json()).error, /producto|cita/i);
   }
   assert.equal(await d.db.prepare('SELECT 1 FROM links_agenda').first(), null);
-  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'evaluacion', cita: 'evaluacion_mes' }), env, d)).status, 200);
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'transformacion:6', cita: '25' }), env, d)).status, 200);
+  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 'c30p', plan: 'constancia:1', cita: 'evaluacion_mes' }), env, d)).status, 400);
 });
 
 test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por estado y datos del agendado', async () => {
@@ -67,7 +70,7 @@ test('listar: por defecto 30 días (el vencido viejo no sale), con conteos por e
   assert.deepEqual(r.filas.map((f) => [f.id, f.estado]), [['sin', 'sin_usar'], ['usado', 'agendado'], ['venc', 'vencido']]);
   assert.deepEqual(r.conteos, { todos: 3, sin_usar: 1, agendado: 1, vencido: 1 });
   assert.equal(r.filas[1].paciente, 'Ramos Quispe, Lucía');
-  assert.deepEqual([r.filas[0].plan, r.filas[0].cita_link], ['Constancia · 2 sesiones al mes · 3 meses', '2da sesión (control)']);
+  assert.deepEqual([r.filas[0].plan, r.filas[0].cita_link], ['Constancia, 3 meses', '2 de 7']);
   const todo = await (await handleLinks(get('/api/equipo/links?periodo=todo&estado=vencido'), env, d)).json();
   assert.deepEqual(todo.filas.map((f) => f.id), ['venc', 'viejo']);
 });
@@ -121,7 +124,7 @@ test('agendados: próximas con datos completos; pasadas vacío; paginación de 2
   const f = r.filas[0];
   assert.deepEqual([f.apellido_paterno, f.nombres, f.dni, f.email, f.whatsapp, f.fecha_nacimiento, f.paciente_nuevo, f.tipo, f.nutricionista, f.modalidad],
     ['Ramos', 'Lucía', '70123456', 'lucia@x.pe', '+51987654321', '1992-03-08', 1, 'Control de 30 min', 'Nico', 'video']);
-  assert.deepEqual([f.plan, f.cita], ['Constancia · 2 sesiones al mes · 3 meses', '2da sesión (control)']);
+  assert.deepEqual([f.plan, f.cita], ['Constancia, 3 meses', '2 de 7']);
   assert.equal((await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json()).total, 0);
   assert.equal(r.por_pagina, 20);
 });
@@ -138,7 +141,7 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.match(lineas[1], /,Nico,Constancia · 2 sesiones al mes · 3 meses,2da sesión \(control\),Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
+  assert.match(lineas[1], /,Nico,"Constancia, 3 meses",2 de 7,Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 
@@ -229,13 +232,20 @@ test('links viejos sin plan ni cita: agendados y CSV muestran «—», la lista 
   assert.match(csv[1], /,Nico,—,—,Ramos,/);
 });
 
-test('crear: un control de 30 min no puede ser la 1ra sesión (400); la sesión de 1 hora sí', async () => {
+test('crear: cualquier tipo admite la 1ra cita (venta por WhatsApp)', async () => {
   const d = deps();
-  for (const tipo of ['c30v', 'c30p']) {
-    const r = await handleLinks(post('/api/equipo/links', { tipo, plan: 'otro', cita: '1' }), env, d);
-    assert.equal(r.status, 400);
-    assert.equal((await r.json()).error, 'Un control de 30 min no puede ser la primera sesión. Usa la sesión de 1 hora.');
-    assert.equal((await handleLinks(post('/api/equipo/links', { tipo, plan: 'otro', cita: '2' }), env, d)).status, 200);
+  for (const tipo of ['c30v', 'c30p', 's60']) {
+    assert.equal((await handleLinks(post('/api/equipo/links', { tipo, plan: 'evaluacion', cita: '1' }), env, d)).status, 200, tipo);
   }
-  assert.equal((await handleLinks(post('/api/equipo/links', { tipo: 's60', plan: 'otro', cita: '1' }), env, d)).status, 200);
+});
+
+test('crear: la nutricionista sugerida va por turnos y vuelve a empezar', async () => {
+  const d = deps();
+  const ids = d.nutricionistas.map((n) => n.id);
+  const vistas = [];
+  for (let i = 0; i < ids.length + 1; i++) {
+    await handleLinks(post('/api/equipo/links', { tipo: 's60', plan: 'basico', cita: '1' }), env, d);
+    vistas.push((await d.db.prepare('SELECT nutri_sugerida AS n FROM links_agenda ORDER BY rowid DESC LIMIT 1').first()).n);
+  }
+  assert.deepEqual(vistas, [...ids, ids[0]]);
 });

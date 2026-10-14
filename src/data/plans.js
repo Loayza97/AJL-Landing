@@ -47,7 +47,7 @@ export const plans = {
   acompanamiento: {
     id: 'acompanamiento',
     // Nombre que usa el equipo en el panel; nunca se muestra al paciente.
-    internalName: 'Seguimiento',
+    internalName: 'Acompañamiento',
     name: '1 sesión al mes',
     tagline: 'Con acompañamiento continuo',
     price: 320,

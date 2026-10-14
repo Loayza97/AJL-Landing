@@ -22,11 +22,11 @@ function celdasDelMes(mes) {
   return celdas;
 }
 
-export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError }) {
+export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError, nutricionista = '' }) {
   const manana = sumarDias(hoyLima(), 1);
   const limite = sumarDias(manana, DIAS_VENTANA - 1);
   const meses = [...new Set([manana.slice(0, 7), limite.slice(0, 7)])];
-  const estado = { modalidad: modalidades[0], nutricionista: '', mes: meses[0], fecha: null, datos: null };
+  const estado = { modalidad: modalidades[0], nutricionista, mes: meses[0], fecha: null, datos: null };
   raiz.innerHTML = `
     <div class="sel-filtros">
       <div class="sel-modalidad" role="group" aria-label="Modalidad"${modalidades.length < 2 ? ' hidden' : ''}>

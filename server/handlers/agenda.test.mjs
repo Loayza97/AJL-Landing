@@ -20,9 +20,9 @@ function deps(extra = {}) {
     ...extra,
   };
 }
-async function conLink(d, tipo = 'c30v', ahora = t0) {
+async function conLink(d, tipo = 'c30v', ahora = t0, nutri = null) {
   await agenda.crearLink(d.db, { id: `L-${tipo}`, tokenHash: await sha256Hex(`tok-${tipo}`), tipo, creadoPor: 'romi@x.pe', ahora,
-    plan: 'transformacion:6', cita: 'evaluacion_mes' });
+    plan: 'transformacion:6', cita: 'evaluacion_mes', nutri });
   return `tok-${tipo}`;
 }
 const get = (ruta) => new Request(`https://x.test${ruta}`);
@@ -223,4 +223,23 @@ test('confirmar un link de 30 min a las 13:30 Lima (almuerzo): 409 y el link sig
     assert.equal((await confirmar(d, l, { inicio })).status, 409, inicio);
   }
   assert.equal((await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json()).estado, 'sin_usar');
+});
+
+test('horas: la sesión de 1 hora solo en hora en punto; el control de 30 min también a la media', async () => {
+  const d = deps();
+  const l60 = await conLink(d, 's60');
+  const r60 = await (await handleAgendaHoras(get(`/api/agenda/horas?l=${l60}&desde=2026-10-06&dias=1&modalidad=video`), env, d)).json();
+  assert.ok(r60.dias[0].horas.length > 0);
+  assert.ok(r60.dias[0].horas.every((h) => h.hora.endsWith(':00')), JSON.stringify(r60.dias[0].horas.map((h) => h.hora)));
+  const l30 = await conLink(d, 'c30v');
+  const r30 = await (await handleAgendaHoras(get(`/api/agenda/horas?l=${l30}&desde=2026-10-06&dias=1&modalidad=video`), env, d)).json();
+  assert.ok(r30.dias[0].horas.some((h) => h.hora.endsWith(':30')));
+});
+
+test('link: trae la nutricionista sugerida mientras está sin usar; sin ella no manda el campo', async () => {
+  const d = deps();
+  const l = await conLink(d, 's60', t0, 'paola');
+  assert.equal((await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json()).nutricionista_sugerida, 'paola');
+  const l2 = await conLink(d, 'c30v');
+  assert.equal('nutricionista_sugerida' in (await (await handleAgendaLink(get(`/api/agenda/link?l=${l2}`), env, d)).json()), false);
 });

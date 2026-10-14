@@ -1,42 +1,67 @@
-// Listas de «Plan» y «Qué cita es» de los links de agenda. Fuente única: la usan
-// el servidor (validar, Agendados, CSV, calendario) y /panel/links/ (los <select>).
-// En la base va la clave (`constancia:3`, `2`); la etiqueta se arma aquí.
-import { plans, monthlyPlans } from '../../src/data/plans.js';
-import { TIPOS_LINK } from './tipos.mjs';
+// Listas de «Producto», «Duración» y «Cita» de los links de agenda (pedido de
+// Alejandro del 2026-10-14: tres campos, cada uno depende del anterior). Fuente
+// única: la usan el servidor (validar, Agendados, CSV) y /panel/links/.
+// En la base va la clave del plan (`evaluacion`, `basico`, `constancia:3`) y el
+// número de cita (`2`); la etiqueta se arma aquí.
+import { plans } from '../../src/data/plans.js';
 import { duracionesDe } from '../../src/data/duraciones.js';
 
 const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
 
-// Nombre interno del equipo + nombre que ve el paciente; los planes mensuales con su duración.
-export const PLANES = [
-  { id: 'evaluacion', etiqueta: 'Evaluación nutricional' },
-  { id: plans.basico.id, etiqueta: `${plans.basico.internalName} · ${plans.basico.name}` },
-  ...monthlyPlans.flatMap((p) => duracionesDe(p.id).map((d) => ({ id: `${p.id}:${d.meses}`, etiqueta: `${p.internalName} · ${p.name} · ${meses(d.meses)}` }))),
-  { id: 'otro', etiqueta: 'Otro' },
+// Producto con el nombre interno del equipo. Evaluación y Básico son de pago único.
+export const PRODUCTOS = [
+  { id: 'evaluacion', etiqueta: 'Evaluación' },
+  ...['basico', 'acompanamiento', 'constancia', 'transformacion'].map((id) => ({ id, etiqueta: plans[id].internalName })),
 ];
+const UNICO = new Set(['evaluacion', 'basico']);
+export const PAGO_UNICO = 'unico';
 
-// Abreviatura femenina del ordinal como se escribe en Perú: 1ra, 2da, 3ra, 4ta,
-// 5ta, 6ta, 7ma, 8va, 9na, 10ma, 11va, 12va; desde la 13 la da la última cifra
-// (decimotercera → 13ra, vigésima → 20ma, vigesimocuarta → 24ta).
+// Duraciones de un producto: «Pago único» o los meses de sus paquetes (1, 3 y 6).
+export function duracionesDeProducto(producto) {
+  if (UNICO.has(producto)) return [{ id: PAGO_UNICO, etiqueta: 'Pago único' }];
+  if (!PRODUCTOS.some((p) => p.id === producto)) return [];
+  return duracionesDe(producto).map((d) => ({ id: String(d.meses), etiqueta: meses(d.meses) }));
+}
+
+// Clave que va a la base: el producto solo si es de pago único, si no `producto:meses`.
+export const clavePlan = (producto, duracion) => (duracion === PAGO_UNICO ? producto : `${producto}:${duracion}`);
+
+// Citas de un plan (Alejandro, 2026-10-14): pago único 1; los planes por meses,
+// sus sesiones al mes × meses, y Constancia y Transformación una más el primer
+// mes (la evaluación sin costo de plans.js, `firstMonthEval`).
+const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? 1
+  : plans[producto].sessionsPerMonth * Number(duracion) + (plans[producto].firstMonthEval ? 1 : 0));
+const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
+  { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(p.id, d.id) }])));
+
+// Links creados antes del 2026-10-14 pudieron guardar «Otro»: se sigue mostrando, ya no se ofrece.
+const VIEJOS = new Map([['otro', 'Otro']]);
+
+export const MAX_CITA = 25; // Transformación de 6 meses: 4 × 6 + 1
+// Links del 2026-10-13 pudieron guardar esta cita: se sigue mostrando, ya no se ofrece.
+const EVAL_MES = { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' };
+
+// Citas del plan: de «1 de N» a «N de N».
+export function citasDePlan(plan) {
+  const p = PLAN.get(plan);
+  return p ? Array.from({ length: p.total }, (_, i) => ({ id: String(i + 1), etiqueta: `${i + 1} de ${p.total}` })) : [];
+}
+
+export const etiquetaPlan = (id) => PLAN.get(id)?.etiqueta ?? VIEJOS.get(id) ?? null;
+export const planValido = (id) => typeof id === 'string' && PLAN.has(id);
+export const citaValida = (plan, id) => typeof id === 'string' && citasDePlan(plan).some((c) => c.id === id);
+
+// Abreviatura femenina del ordinal como se escribe en Perú (1ra, 2da, 3ra, 4ta…).
+// Solo para links viejos cuyo plan no da el total de citas.
 const SUFIJOS = ['ra', 'da', 'ra', 'ta', 'ta', 'ta', 'ma', 'va', 'na', 'ma', 'va', 'va'];
 export const ordinal = (n) => `${n}${n <= 12 ? SUFIJOS[n - 1] : SUFIJOS[(n % 10 || 10) - 1]}`;
 
-export const MAX_CITA = 24;
-export const CITAS = [
-  ...Array.from({ length: MAX_CITA }, (_, i) => ({ id: String(i + 1), etiqueta: i === 0 ? '1ra sesión' : `${ordinal(i + 1)} sesión (control)` })),
-  { id: 'evaluacion_mes', etiqueta: 'Evaluación de fin de mes' },
-];
-
-// Map y no objeto: así «__proto__» o «toString» no pasan como claves válidas.
-const PLAN = new Map(PLANES.map((p) => [p.id, p.etiqueta]));
-const CITA = new Map(CITAS.map((c) => [c.id, c.etiqueta]));
-
-export const etiquetaPlan = (id) => PLAN.get(id) ?? null;
-export const etiquetaCita = (id) => CITA.get(id) ?? null;
-export const planValido = (id) => typeof id === 'string' && PLAN.has(id);
-export const citaValida = (id) => typeof id === 'string' && CITA.has(id);
-
-// Un control de 30 min nunca es la primera sesión: solo la sesión de 1 hora puede serlo.
-export const MSJ_CITA_30 = 'Un control de 30 min no puede ser la primera sesión. Usa la sesión de 1 hora.';
-export const citasDeTipo = (tipo) => (TIPOS_LINK[tipo]?.duracion_min === 30 ? CITAS.filter((c) => c.id !== '1') : CITAS);
-export const citaValidaParaTipo = (tipo, id) => typeof id === 'string' && citasDeTipo(tipo).some((c) => c.id === id);
+export function etiquetaCita(plan, id) {
+  if (id === EVAL_MES.id) return EVAL_MES.etiqueta;
+  if (typeof id !== 'string' || !/^\d{1,2}$/.test(id)) return null;
+  const n = Number(id);
+  if (n < 1 || n > MAX_CITA) return null;
+  const total = PLAN.get(plan)?.total;
+  if (total && n <= total) return `${n} de ${total}`;
+  return n === 1 ? '1ra sesión' : `${ordinal(n)} sesión`;
+}

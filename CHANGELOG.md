@@ -4,6 +4,10 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel /panel/links/: el plan se elige en tres listas que dependen una de otra (producto, duración y qué cita es, como «2 de 7»; Constancia y Transformación suman una cita más el primer mes); «Seguimiento» pasa a llamarse «Acompañamiento» y ya no está «Otro».
+- Links: cualquier tipo de evento admite la primera cita; la sesión de 1 hora se ofrece solo en hora en punto y los controles de 30 min también a la media.
+- /agenda/: la página abre con una nutricionista ya elegida, repartida por turnos entre el equipo en cada link nuevo.
+
 - Portada: «dietas» se tacha con una línea al cargar y aparece «Aprende a comer.».
 - Portada: la foto del equipo tiene un paralaje suave (mouse en computadora, scroll en todos).
 - Portada: el botón «Quiero empezar →» tiene un brillo que lo recorre y un halo que late.

@@ -2,6 +2,7 @@
 // borra los sin usar y descarga CSV. Todo el texto de la base se pinta con textContent.
 import { montarLogin } from './panel-login.js';
 import { montarRefresco } from './panel-refresco.js';
+import { duracionesDeProducto, clavePlan, citasDePlan } from '../../server/agenda/opciones.mjs';
 
 const $ = (s) => document.querySelector(s);
 const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
@@ -191,13 +192,37 @@ async function copiar(b) {
   }
 }
 
-// «Crear link» se habilita solo con plan y cita elegidos.
+// Llena un <select> con sus opciones; si hay una sola, la deja elegida.
+function opciones(sel, lista, vacio) {
+  sel.replaceChildren(new Option(vacio, ''), ...lista.map((o) => new Option(o.etiqueta, o.id)));
+  sel.disabled = !lista.length;
+  if (lista.length === 1) sel.value = lista[0].id;
+}
+
+// Cada lista depende de la anterior: el producto da las duraciones y los dos dan las citas.
+function planDe(tarjeta) {
+  const producto = tarjeta.querySelector('[data-producto]').value;
+  const duracion = tarjeta.querySelector('[data-duracion]').value;
+  return producto && duracion ? clavePlan(producto, duracion) : '';
+}
+function alCambiarProducto(tarjeta) {
+  const producto = tarjeta.querySelector('[data-producto]').value;
+  opciones(tarjeta.querySelector('[data-duracion]'), duracionesDeProducto(producto), producto ? 'Elige la duración' : 'Primero elige el producto');
+  alCambiarDuracion(tarjeta);
+}
+function alCambiarDuracion(tarjeta) {
+  const plan = planDe(tarjeta);
+  opciones(tarjeta.querySelector('[data-cita]'), plan ? citasDePlan(plan) : [], plan ? 'Elige qué cita es' : 'Primero elige la duración');
+  revisarForm(tarjeta);
+}
+
+// «Crear link» se habilita solo con producto, duración y cita elegidos.
 function revisarForm(tarjeta) {
-  tarjeta.querySelector('[data-crear]').disabled = !tarjeta.querySelector('[data-plan]').value || !tarjeta.querySelector('[data-cita]').value;
+  tarjeta.querySelector('[data-crear]').disabled = !planDe(tarjeta) || !tarjeta.querySelector('[data-cita]').value;
 }
 
 async function crear(tipo, tarjeta) {
-  const plan = tarjeta.querySelector('[data-plan]').value;
+  const plan = planDe(tarjeta);
   const cita = tarjeta.querySelector('[data-cita]').value;
   if (!plan || !cita) return;
   const b = tarjeta.querySelector('[data-crear]');
@@ -215,9 +240,8 @@ async function crear(tipo, tarjeta) {
   reiniciarCopia(tarjeta);
   tarjeta.querySelector('[data-wa]').href = `https://wa.me/?text=${encodeURIComponent(`Agenda tu cita en AJL Nutrición aquí (sirve una sola vez): ${d.url}`)}`;
   // Las listas vuelven a cero: el próximo link es de otro paciente.
-  tarjeta.querySelector('[data-plan]').value = '';
-  tarjeta.querySelector('[data-cita]').value = '';
-  revisarForm(tarjeta);
+  tarjeta.querySelector('[data-producto]').value = '';
+  alCambiarProducto(tarjeta);
   tarjeta.querySelector('[data-form]').hidden = true;
   tarjeta.querySelector('[data-creado]').hidden = false;
   refrescar();
@@ -229,7 +253,7 @@ function otro(tarjeta) {
   tarjeta.querySelector('.lk-url').value = '';
   reiniciarCopia(tarjeta);
   tarjeta.querySelector('[data-form]').hidden = false;
-  tarjeta.querySelector('[data-plan]').focus();
+  tarjeta.querySelector('[data-producto]').focus();
 }
 
 // Descarga con fetch: si la sesión venció se muestra el login y si hay error se
@@ -281,8 +305,10 @@ document.addEventListener('click', (e) => {
 });
 
 document.querySelectorAll('[data-tipo]').forEach((t) => {
-  t.querySelectorAll('select').forEach((s) => s.addEventListener('change', () => revisarForm(t)));
-  revisarForm(t); // por si el navegador recuerda lo elegido al recargar
+  t.querySelector('[data-producto]').addEventListener('change', () => alCambiarProducto(t));
+  t.querySelector('[data-duracion]').addEventListener('change', () => alCambiarDuracion(t));
+  t.querySelector('[data-cita]').addEventListener('change', () => revisarForm(t));
+  alCambiarProducto(t); // por si el navegador recuerda el producto al recargar
 });
 
 $('#a-todos').addEventListener('change', (e) => {

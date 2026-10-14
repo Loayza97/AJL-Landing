@@ -6,7 +6,7 @@
 // El token del link es la única llave: se busca por su hash.
 import { json, readJson, siteUrl } from '../http.mjs';
 import { randomToken, sha256Hex } from '../tokens.mjs';
-import { TIPOS_LINK, MAX_CONSULTAS_DNI, PASO_LINK_MIN } from '../agenda/tipos.mjs';
+import { TIPOS_LINK, MAX_CONSULTAS_DNI } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { enmascararCorreo, enmascararTelefono } from '../agenda/mascaras.mjs';
 import { finalizarAgenda, remitente } from '../agenda/finalizar.mjs';
@@ -36,7 +36,8 @@ const tipoPublico = (id) => ({ id, ...TIPOS_LINK[id] });
 const nutriValida = (deps, id) => !id || deps.nutricionistas.some((n) => n.id === id);
 // Las horas salen del mismo motor de la web (libresDelDia): peso 0, la duración
 // del tipo y paso de 30.
-const delTipo = (tipo) => ({ peso: 0, duracionMin: tipo.duracion_min, pasoMin: PASO_LINK_MIN });
+// La sesión de 1 hora empieza solo en hora en punto; los controles de 30 min, también a la media.
+const delTipo = (tipo) => ({ peso: 0, duracionMin: tipo.duracion_min, pasoMin: tipo.duracion_min });
 
 export async function handleAgendaLink(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
@@ -44,6 +45,7 @@ export async function handleAgendaLink(request, env, deps) {
   if (!l) return bad(404, MSJ_NO_EXISTE);
   const estado = agenda.estadoLink(l, deps.ahora());
   const cuerpo = { ok: true, estado, tipo: tipoPublico(l.tipo), nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) };
+  if (estado === 'sin_usar' && l.nutri_sugerida && nutriValida(deps, l.nutri_sugerida)) cuerpo.nutricionista_sugerida = l.nutri_sugerida;
   if (estado === 'agendado') {
     cuerpo.cita = { etiqueta: etiquetaLima(l.inicio_utc), modalidad: l.modalidad,
       nutricionista: deps.nutricionistas.find((n) => n.id === l.nutricionista_id)?.nombre ?? 'el equipo' };

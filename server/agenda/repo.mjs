@@ -12,11 +12,19 @@ export function estadoLink(l, ahora) {
 }
 
 // Plan y cita ya vienen validados por el handler (server/agenda/opciones.mjs).
-export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora, plan = null, cita = null }) {
+export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora, plan = null, cita = null, nutri = null }) {
   const vence = new Date(ahora.getTime() + VENCE_DIAS * DIA).toISOString();
-  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en, plan, cita) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
-    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence, plan, cita).run();
+  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en, plan, cita, nutri_sugerida)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
+    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence, plan, cita, nutri).run();
   return { vence_en: vence };
+}
+
+// Por turnos: la que sigue a la del último link creado, en el orden del equipo.
+export async function siguienteNutri(db, ids) {
+  const u = await db.prepare(`SELECT nutri_sugerida AS id FROM links_agenda WHERE nutri_sugerida IS NOT NULL
+    ORDER BY creado_en DESC, rowid DESC LIMIT 1`).first();
+  return ids[(ids.indexOf(u?.id) + 1) % ids.length];
 }
 
 export const linkPorHash = (db, hash) => db.prepare(
