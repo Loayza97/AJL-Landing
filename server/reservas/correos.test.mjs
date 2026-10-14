@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { correoConfirmacion, correoEquipoConfirmada, correoResumenNoPagadas } from './correos.mjs';
+import { correoConfirmacion, correoEquipoConfirmada, correoResumenNoPagadas, correoCitaAgenda } from './correos.mjs';
 import { icsDeReserva } from './ics.mjs';
 import { crearSendEmail } from '../correo.mjs';
 
@@ -55,4 +55,12 @@ test('resumen de no pagados: escapa nombres y arma el link de WhatsApp', () => {
   assert.ok(!c.html.includes('<b>Ana</b>'));
   assert.ok(c.html.includes('&lt;b&gt;Ana&lt;/b&gt;'));
   assert.ok(c.html.includes('https://wa.me/51987654321'));
+});
+
+test('correo de cita de link: duración real y sin hablar de plan ni de pago', () => {
+  const c = correoCitaAgenda({ nombre: '<b>Lu</b>', titulo: 'Control de 30 min', etiqueta: 'miércoles, 14 de octubre, 10:30', duracion: 30,
+    modalidad: 'video', direccion: 'Lince', meet: null, nutricionista: 'Nico', urlIcs: 'https://x/ics' });
+  assert.match(c.html, /30 min/);
+  assert.match(c.html, /&lt;b&gt;Lu/);
+  assert.doesNotMatch(c.html, /Plan:|pago/i);
 });

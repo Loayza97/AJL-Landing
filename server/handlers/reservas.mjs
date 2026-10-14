@@ -12,6 +12,7 @@ import { randomToken } from '../tokens.mjs';
 import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
+import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
@@ -39,23 +40,24 @@ async function huellaDe(request, fecha) {
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function contexto(deps, desde, dias) {
+export async function contexto(deps, desde, dias) {
   const eventos = await deps.google.listarEventos(inicioUtc(desde, 0), inicioUtc(sumarDias(desde, dias), 0));
   const reservas = await repo.reservasActivasEntre(deps.db, desde, sumarDias(desde, dias), deps.ahora());
   return { eventos, reservas };
 }
 
-function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60 }) {
+export function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60, pasoMin = 60 }) {
   return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
     ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
-    maxHorasDia: MAX_HORAS_DIA, duracionMin });
+    maxHorasDia: MAX_HORAS_DIA, duracionMin, pasoMin });
 }
 
 // Datos de la cita para el .ics y para el enlace de Google Calendar.
-function eventoDe(r) {
-  const precio = cotizar(r.producto, r.duracion_meses);
+export function eventoDe(r) {
+  const tipo = tipoDeReserva(r);
+  const precio = tipo ? null : cotizar(r.producto, r.duracion_meses);
   return {
-    titulo: `Tu sesión en AJL Nutrición · ${precio?.titulo ?? ''}`,
+    titulo: `Tu ${tipo ? 'cita' : 'sesión'} en AJL Nutrición · ${tipo ? tipo.nombre : (precio?.titulo ?? '')}`,
     inicioUtc: r.inicio_utc,
     finUtc: finDeReserva(r),
     ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
