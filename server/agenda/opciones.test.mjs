@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PLANES, CITAS, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida } from './opciones.mjs';
+import { PLANES, CITAS, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida, citasDeTipo, citaValidaParaTipo } from './opciones.mjs';
 
 test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
   const esperado = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na', '10ma', '11va', '12va',
@@ -47,4 +47,17 @@ test('etiquetas y validación: lo desconocido o vacío no pasa y no tiene etique
   }
   assert.equal(planValido('otro'), true);
   assert.equal(citaValida('evaluacion_mes'), true);
+});
+
+test('un control de 30 min nunca es la 1ra sesión; la sesión de 1 hora ofrece la lista completa', () => {
+  for (const t of ['c30v', 'c30p']) {
+    assert.ok(!citasDeTipo(t).some((c) => c.id === '1'));
+    assert.equal(citasDeTipo(t).length, CITAS.length - 1);
+    assert.equal(citaValidaParaTipo(t, '1'), false);
+    assert.equal(citaValidaParaTipo(t, '2'), true);
+    assert.equal(citaValidaParaTipo(t, 'evaluacion_mes'), true);
+  }
+  assert.deepEqual(citasDeTipo('s60'), CITAS);
+  assert.equal(citaValidaParaTipo('s60', '1'), true);
+  assert.equal(citaValidaParaTipo('s60', '99'), false);
 });
