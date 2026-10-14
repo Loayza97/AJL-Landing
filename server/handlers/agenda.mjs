@@ -78,6 +78,9 @@ export async function handleAgendaHoras(request, env, deps) {
   }
 }
 
+// Solo el primer nombre: es lo que la política de privacidad dice que mostramos.
+const primerNombre = (p) => String(p.nombres || p.nombre || '').trim().split(/\s+/)[0];
+
 export async function handleAgendaDni(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const d = await readJson(request);
@@ -89,7 +92,7 @@ export async function handleAgendaDni(request, env, deps) {
   if (!(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) return bad(429, MSJ_INTENTOS);
   const p = await agenda.pacientePorDni(deps.db, dni);
   if (!p) return json(200, { ok: true, conocido: false });
-  return json(200, { ok: true, conocido: true, nombre: p.nombres || p.nombre.split(' ')[0],
+  return json(200, { ok: true, conocido: true, nombre: primerNombre(p),
     email: enmascararCorreo(p.email), whatsapp: enmascararTelefono(p.whatsapp) });
 }
 

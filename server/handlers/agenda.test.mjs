@@ -63,6 +63,18 @@ test('dni: desconocido → conocido false; conocido → datos enmascarados; form
   assert.deepEqual(r, { ok: true, conocido: true, nombre: 'Lucía', email: 'l••••••@x.pe', whatsapp: '+51 ••• ••• 321' });
 });
 
+test('dni: el saludo usa solo el primer nombre (como dice la política de privacidad)', async () => {
+  const d = deps();
+  await confirmar(d, await conLink(d), { datos: { ...datos, nombres: '  María Fernanda ' } });
+  const l2 = await conLink(d, 's60');
+  const r = await (await handleAgendaDni(post('/api/agenda/dni', { l: l2, dni: '70123456' }), env, d)).json();
+  assert.equal(r.nombre, 'María');
+  // Ficha vieja de la web: sin «nombres», se toma la primera palabra de «nombre».
+  await d.db.prepare("UPDATE clientes SET nombres = NULL, nombre = 'Rosa Elena Díaz'").run();
+  const r2 = await (await handleAgendaDni(post('/api/agenda/dni', { l: l2, dni: '70123456' }), env, d)).json();
+  assert.equal(r2.nombre, 'Rosa');
+});
+
 test('dni: más de 10 consultas con el mismo link da 429', async () => {
   const d = deps();
   const l = await conLink(d);
