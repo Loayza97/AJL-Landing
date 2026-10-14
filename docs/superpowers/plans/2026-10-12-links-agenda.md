@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Requiere la entrega 1 publicada (`docs/superpowers/plans/2026-10-12-motor-medias-horas.md`): `CRUCE`, `hayCruce`, `fin_utc`, `duracion_min`, `inicioUtcMin`, `sumarMinutos`, `finDeReserva`, `horasLibres({ duracionMin, pasoMin })`.
+- Se construye sobre la entrega 1 (`docs/superpowers/plans/2026-10-12-motor-medias-horas.md`): `CRUCE`, `hayCruce`, `fin_utc`, `duracion_min`, `inicioUtcMin`, `sumarMinutos`, `finDeReserva`, `horasLibres({ duracionMin, pasoMin })`. La entrega 1 está en la rama pero **no en producción** (revisado el 2026-10-13: producción en la migración `0005`, `origin/main` en `6f3716e` sin `0006_duracion.sql`): el merge de la Task 7 publica las dos entregas juntas y aplica `0006`, `0007` y `0008`.
 - Worktree `~/ajl/ajl-landing-cloudflare`, rama `reservas-pago`. Nada a `main` sin autorización.
 - Tipos de evento (cerrados en el spec el 2026-10-13): `c30v` (Control de 30 min · Virtual · solo video), `c30p` (Control de 30 min · Presencial o virtual, modalidades `['presencial', 'video']`), `s60` (Sesión de 1 hora · Presencial o virtual). Vence a los 7 días; reactivar suma 3 días desde ahora; 10 consultas de DNI por link (gastan cupo `/api/agenda/dni` y `/api/agenda/confirmar` sin `datos`, porque los dos revelan si un DNI es paciente); páginas de 20 filas; el CSV de agendados admite hasta 200 citas por descarga.
 - Las horas de link salen de `libresDelDia` de `server/handlers/reservas.mjs` (el mismo motor de la web, con `maxHorasDia`), no de una copia.
@@ -2750,7 +2750,7 @@ git commit -m "equipo: usuarios del panel y súper usuario (/panel/usuarios/)"
 
 **Files:**
 - Modify: `CHANGELOG.md` (entrada visible: «Links de agenda de un solo uso para pacientes que pagaron por otro medio: panel /panel/links/ y página /agenda/. Usuarios del equipo: los súper usuarios dan y quitan acceso al panel en /panel/usuarios/»)
-- Modify: `public/privacidad/index.html` (§2.6, fila nueva en la tabla de finalidades de §3, fecha y versión; Step 3b, con aprobación de Joaquín)
+- Modify: `public/privacidad/index.html` (§2.6, fila nueva en la tabla de finalidades de §3, conservación en §5, fecha y versión; Step 3b, con aprobación de Joaquín)
 - Modify (memoria privada, fuera del repo): `~/ajl/memoria/notas/panel-equipo-ajl.md` (sección «Links de agenda»: dónde se entra, qué hace cada botón, que la URL del link solo se ve al crearlo; sección «Usuarios del equipo»: quién es súper usuario, que `EQUIPO_ADMINS` y `EQUIPO_EMAILS` se cambian solo con `wrangler pages secret put` y que quitar a alguien cierra su sesión al instante).
 
 - [ ] **Step 1: Pruebas y build**
@@ -2760,11 +2760,12 @@ Expected: todo en verde.
 
 - [ ] **Step 2: Secreto, migraciones en preview y push**
 
-Joaquín da el valor de `EQUIPO_ADMINS` (por ahora su correo y el de Alejandro, separados por coma; más adelante solo el de Alejandro). Se escribe cuando el comando lo pide, nunca en `wrangler.toml` ni en el panel de Cloudflare. Los secretos de Pages se aplican al siguiente despliegue: el push de abajo lo hace. `migrations apply` aplica las pendientes en orden, `0007_links_agenda.sql` y `0008_equipo_usuarios.sql`; revisar en su salida que salgan las dos.
+Mismo orden que en producción: migraciones → secreto → push. Joaquín da el valor de `EQUIPO_ADMINS` (por ahora su correo y el de Alejandro, separados por coma; más adelante solo el de Alejandro). Se escribe cuando el comando lo pide, nunca en `wrangler.toml` ni en el panel de Cloudflare. Los secretos de Pages se aplican al siguiente despliegue: el push de abajo lo hace. Preview ya tiene `0006`; `migrations apply` aplica las pendientes en orden, `0007_links_agenda.sql` y `0008_equipo_usuarios.sql`; revisar en su salida que salgan las dos.
 
 ```bash
-npx wrangler pages secret put EQUIPO_ADMINS --project-name ajl-landing --env preview
+npx wrangler d1 migrations list ajl-reservas-preview --remote --env preview   # pendientes: 0007 y 0008
 npx wrangler d1 migrations apply ajl-reservas-preview --remote --env preview
+npx wrangler pages secret put EQUIPO_ADMINS --project-name ajl-landing --env preview
 git add CHANGELOG.md && git commit -m "changelog: links de agenda"
 git push origin reservas-pago
 ```
@@ -2776,7 +2777,7 @@ En `https://reservas-pago.ajl-landing.pages.dev/panel/links/` (entrar con `ajlnu
 2. Abrir la URL en el celular: tipo «Control de 30 min · Virtual», sin selector de modalidad, horas con «:30». Elegir una hora.
 3. DNI nuevo → formulario → confirmar. Ver «Tu cita está agendada», el evento de 30 min en el calendario real con Meet y el paciente invitado, y el correo.
 4. Abrir otra vez la URL: «Este link ya se usó» con la cita.
-5. En el panel: el link pasa a «Agendado» con el nombre; la cita aparece en «Agendados»; marcar la casilla y descargar el CSV; abrirlo en Google Sheets (Archivo › Importar) y ver tildes, DNI y WhatsApp como texto.
+5. En el panel: el link pasa a «Agendado» con el nombre; la cita aparece en «Agendados»; buscar «ramirez» o «maria» sin tildes y ver que encuentra los nombres con tilde; marcar la casilla y descargar el CSV; abrirlo en Google Sheets (Archivo › Importar, con «Convertir texto en números, fechas y fórmulas» marcado, que es lo que viene por defecto) y ver: la primera fila son los encabezados (no hay fila `sep=,`), tildes bien, DNI con su cero inicial (probar con un DNI que empiece en 0) y WhatsApp con `+51` como texto. Abrir el mismo archivo con doble clic en Excel y ver lo mismo. Con la sesión vencida (borrar la cookie), «Descargar» muestra el login en vez de un JSON.
 6. Crear un link `s60`, poner el mismo DNI: «Hola, <nombre>» con datos enmascarados; confirmar sin llenar nada.
 7. En `/reservar/` (preview), buscar la misma nutricionista y día: la hora tomada por el link no aparece.
 8. Vencer un link a mano (`npx wrangler d1 execute ajl-reservas-preview --remote --env preview --command "UPDATE links_agenda SET vence_en = '2026-01-01T00:00:00Z' WHERE id = '<id>'"`), ver «Vencido» y «Reactivar 3 días más»; tras reactivar, la URL vuelve a funcionar.
@@ -2790,6 +2791,8 @@ En `https://reservas-pago.ajl-landing.pages.dev/panel/links/` (entrar con `ajlnu
 - [ ] **Step 3b: Política de privacidad (requiere la aprobación de Joaquín; va en el mismo merge)**
 
 Lo que hace el código y lo que dice la política tienen que coincidir (CLAUDE.md). Hoy §2.6 de `public/privacidad/index.html` describe solo la reserva web. Mostrarle a Joaquín el texto propuesto de abajo, aplicar los cambios que pida y recién entonces editar el archivo. No publicar la entrega 2 sin este cambio.
+
+El código (al 2026-10-13) guarda, por cita de link: la ficha del paciente en `clientes` (apellidos, nombres, DNI, correo, WhatsApp, fecha de nacimiento), la cita en `reservas` (`confirmada`, fecha, modalidad, nutricionista, versión de condiciones aceptada) y en `links_agenda` quién del equipo creó el link, cuándo, cuándo venció o se reactivó, cuándo se usó, si el paciente era nuevo y cuántas consultas de DNI se hicieron (solo el número, no los DNI). Nada de esto se purga: `purgarNoPagadas` no toca fichas con una cita confirmada, y «Mis datos cambiaron» crea una ficha nueva y deja la anterior. El saludo muestra solo el primer nombre (`primerNombre` en `server/handlers/agenda.mjs`). Los textos de abajo dicen eso; si Joaquín prefiere otro plazo de conservación, el código tiene que cambiar para cumplirlo antes del merge.
 
 1. En §2.6 («Datos de tu reserva»), después del `<p>` que ya existe, agregar:
 
@@ -2807,7 +2810,13 @@ Lo que hace el código y lo que dice la política tienen que coincidir (CLAUDE.m
           </tr>
 ```
 
-3. En la cabecera, cambiar `Última actualización: <strong>10 de octubre de 2026</strong> · Versión 1.5` por la fecha del día en que se publica y `Versión 1.6`.
+3. En §5 («Plazo de conservación»), después del `<li>` de «Reservas no pagadas», agregar (propuesta; el plazo lo aprueba Joaquín):
+
+```html
+        <li><strong>Citas agendadas con un link de un solo uso:</strong> como pagaste por otro medio, conservamos los datos de la cita y de tu ficha el mismo plazo que los de las reservas pagadas. Si al agendar nos indicas que tus datos cambiaron, guardamos una ficha nueva con los datos actuales y conservamos la anterior, con la cita que se agendó con ella, por el mismo plazo. El registro de cada link (quién del equipo lo creó, cuándo, si se usó y cuántas consultas de DNI se hicieron con él, sin guardar los DNI consultados) se conserva lo mismo que la cita agendada con él; un link que nadie usó no guarda datos tuyos.</li>
+```
+
+4. En la cabecera, cambiar `Última actualización: <strong>10 de octubre de 2026</strong> · Versión 1.5` por la fecha del día en que se publica y `Versión 1.6`.
 
 ```bash
 git add public/privacidad/index.html && git commit -m "privacidad: agendar con link de un solo uso"
@@ -2816,13 +2825,35 @@ git push origin reservas-pago
 
 - [ ] **Step 4: Publicar (solo con autorización de Joaquín)**
 
-Antes: (1) Joaquín aprobó y está en la rama el texto de privacidad del Step 3b (el único punto abierto del spec); (2) Joaquín verificó en el panel de Cloudflare que Web Analytics (la inyección automática del beacon) está apagado para el proyecto `ajl-landing`, porque ese beacon vería la URL con el token. Con el sí (Joaquín da el valor de `EQUIPO_ADMINS` de producción; `migrations apply` aplica `0007` y `0008`):
+Producción **no tiene la entrega 1**: está en la migración `0005` y `origin/main` no tiene `0006_duracion.sql` (revisado el 2026-10-13 con `wrangler d1 migrations list`). Este merge publica las dos entregas juntas (motor de medias horas + links de agenda y usuarios del equipo) y además todo lo demás que la rama tiene sobre `main`, incluidas las animaciones de la portada (`src/components/Hero.astro`): revisar con Joaquín `git log --oneline origin/main..reservas-pago` antes de seguir.
+
+Antes: (1) Joaquín aprobó y está en la rama el texto de privacidad del Step 3b, con §2.6, §3 y §5 (el único punto abierto del spec); (2) Joaquín verificó en el panel de Cloudflare que Web Analytics (la inyección automática del beacon) está apagado para el proyecto `ajl-landing`, porque ese beacon vería la URL con el token.
+
+Orden obligatorio: **migraciones → secreto → merge**. Las tres migraciones solo agregan (columnas con DEFAULT o NULL, tablas e índice nuevos) y el código actual de `main` sigue funcionando con ellas: `0006` llena `fin_utc` de las reservas existentes y `main` no la escribe, pero `FIN()` y `finDeReserva` cubren el NULL. Al revés no: si el código nuevo llega sin `0008`, `puedeEntrar` lanza con cualquier correo que no esté en los secretos y `/api/equipo/codigo` da 500 solo a los no autorizados (un oráculo de quién tiene acceso); sin `0006`/`0007`, la web de pago y la agenda fallan al leer `fin_utc`, `duracion_min` y `link_id`.
+
+Con el sí (Joaquín da el valor de `EQUIPO_ADMINS` de producción):
 
 ```bash
+# 1. Migraciones. Antes: deben salir pendientes 0006_duracion.sql, 0007_links_agenda.sql y 0008_equipo_usuarios.sql.
+npx wrangler d1 migrations list ajl-reservas --remote
+npx wrangler d1 migrations apply ajl-reservas --remote      # en la salida, las tres con ✅
+npx wrangler d1 migrations list ajl-reservas --remote       # ya no queda ninguna pendiente
+npx wrangler d1 execute ajl-reservas --remote --command "SELECT name FROM sqlite_master WHERE name IN ('links_agenda', 'equipo_usuarios', 'reservas_cruce')"   # las tres
+npx wrangler d1 execute ajl-reservas --remote --command "SELECT COUNT(*) AS sin_fin FROM reservas WHERE fin_utc IS NULL"   # 0
+npx wrangler d1 execute ajl-reservas --remote --command "PRAGMA table_info(reservas)"   # entre las columnas: duracion_min, fin_utc y link_id
+# 2. Secreto (se aplica con el despliegue que dispara el merge).
 npx wrangler pages secret put EQUIPO_ADMINS --project-name ajl-landing
-npx wrangler d1 migrations apply ajl-reservas --remote
-git checkout main && git pull && git merge --no-ff reservas-pago -m "Links de agenda de un solo uso" && git push origin main
+# 3. Merge.
+git checkout main && git pull && git merge --no-ff reservas-pago -m "Motor de medias horas, links de agenda y usuarios del equipo" && git push origin main
 git checkout reservas-pago
 ```
+
+Prueba de la web de pago en producción (la entrega 1 nunca se probó ahí; Mercado Pago es el real): en `https://www.ajlnutricion.com/reservar/`, en celular y computadora, elegir un plan y ver que el calendario muestra las mismas horas en punto que antes (ninguna «:30»); apartar una hora, llenar los datos y llegar al checkout de Mercado Pago. Sin pagar, desde otra ventana, la misma hora ya no aparece. Revisar en la base que esa reserva quedó con 60 min:
+
+```bash
+npx wrangler d1 execute ajl-reservas --remote --command "SELECT estado, inicio_utc, fin_utc, duracion_min, link_id FROM reservas ORDER BY creado_en DESC LIMIT 1"   # pagando, fin = inicio + 1 h, 60, NULL
+```
+
+Si Joaquín decide hacer un pago real (el plan más barato, para devolverlo después), además: pantalla Listo, la cita de 1 hora en Google Calendar y los 3 correos; luego borrar la cita del calendario y devolver el pago. Si no paga, la retención vence sola a los 30 minutos.
 
 Luego `npm run smoke -- https://www.ajlnutricion.com`, entrar a `https://www.ajlnutricion.com/panel/links/` y crear un link real de prueba (vencerlo después a mano). Entrar a `https://www.ajlnutricion.com/panel/usuarios/` con un súper usuario y ver la lista. Si Joaquín quiere poder quitar a Romi o a Irene desde el panel, primero se les da acceso ahí y después se sacan de `EQUIPO_EMAILS` (con `wrangler pages secret put EQUIPO_EMAILS`); mientras estén en el secreto se ven como «Fijo».
