@@ -134,3 +134,49 @@ test('de 1 a 2 es almuerzo: nunca se ofrece la hora de las 13:00, ni presencial 
     }
   }
 });
+
+const media = { duracionMin: 30, pasoMin: 30 };
+
+test('30 min cada 30: martes presencial de 10:00 a 19:30, sin la hora del almuerzo', () => {
+  const r = horasLibres({ ...base, ...media, fecha: '2026-10-06', modalidad: 'presencial' });
+  assert.deepEqual(horas(r), ['10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+    '17:00', '17:30', '18:00', '18:30', '19:00', '19:30']);
+  assert.equal(r[1].inicio, '2026-10-06T15:30:00Z');
+});
+
+test('60 min cada 30: no se ofrece 12:30 (pisa el almuerzo) ni 19:30 (pasa el cierre)', () => {
+  const r = horas(horasLibres({ ...base, duracionMin: 60, pasoMin: 30, fecha: '2026-10-06', modalidad: 'presencial' }));
+  assert.ok(r.includes('12:00'));
+  assert.ok(!r.includes('12:30'));
+  assert.ok(r.includes('19:00'));
+  assert.ok(!r.includes('19:30'));
+});
+
+test('una reserva de 60 a las 10:00 tapa 10:00 y 10:30 de esa nutricionista; una de 30 a las 10:00 solo 10:00', () => {
+  const de60 = [reserva({ inicio_utc: '2026-10-06T15:00:00Z', fin_utc: '2026-10-06T16:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' })];
+  const r60 = horas(horasLibres({ ...base, ...media, reservas: de60, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }));
+  assert.ok(!r60.includes('10:00') && !r60.includes('10:30') && r60.includes('11:00'));
+  const de30 = [reserva({ inicio_utc: '2026-10-06T15:00:00Z', fin_utc: '2026-10-06T15:30:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' })];
+  const r30 = horas(horasLibres({ ...base, ...media, reservas: de30, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }));
+  assert.ok(!r30.includes('10:00') && r30.includes('10:30'));
+});
+
+test('una reserva vieja sin fin_utc cuenta como 60 min', () => {
+  const reservas = [reserva({ inicio_utc: '2026-10-06T15:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' })];
+  const r = horas(horasLibres({ ...base, ...media, reservas, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }));
+  assert.ok(!r.includes('10:30'));
+});
+
+test('la web sigue igual: una cita de 30 a las 10:30 tapa la hora de 10:00 a 11:00', () => {
+  const reservas = [reserva({ inicio_utc: '2026-10-06T15:30:00Z', fin_utc: '2026-10-06T16:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' })];
+  const r = horas(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }));
+  assert.ok(!r.includes('10:00'));
+  assert.ok(r.includes('11:00'));
+});
+
+test('un evento manual de 30 min bloquea solo esa media hora', () => {
+  const eventos = [conHora('Carolina', '2026-10-06T10:00:00-05:00', '2026-10-06T10:30:00-05:00')];
+  const r = horas(horasLibres({ ...base, ...media, eventos, fecha: '2026-10-06', modalidad: 'presencial' }));
+  assert.ok(!r.includes('10:00'));
+  assert.ok(r.includes('10:30'));
+});
