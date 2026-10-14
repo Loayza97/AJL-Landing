@@ -221,3 +221,12 @@ test('apartar guarda la versión del botón de la portada solo si es válida', a
   assert.equal(await v(ok.token), 'b');
   assert.equal(await v(raro.token), null);
 });
+
+test('ics: DTEND sale de fin_utc', async () => {
+  const d = deps();
+  await d.db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima,
+    modalidad, estado, creado_en, actualizado_en, duracion_min, fin_utc)
+    VALUES ('i', 'ti', 'constancia', 3, 108000, 1, 'nico', '2026-10-06T15:00:00Z', '2026-10-06', 'video', 'confirmada', 'x', 'x', 30, '2026-10-06T15:30:00Z')`).run();
+  const texto = await (await handleIcs(get('/api/reservas/ics?r=ti'), env, d)).text();
+  assert.match(texto, /DTEND:20261006T153000Z/);
+});

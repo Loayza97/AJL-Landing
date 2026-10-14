@@ -5,7 +5,7 @@
 import * as repo from './repo.mjs';
 import { horasLibres, primerasManuales } from './disponibilidad.mjs';
 import { cotizar } from './catalogo.mjs';
-import { etiquetaLima, inicioUtc, sumarDias } from './tiempo.mjs';
+import { etiquetaLima, finDeReserva, inicioUtc, sumarDias } from './tiempo.mjs';
 import { TOPE_PRIMERAS } from './constantes.mjs';
 import { correoConfirmacion, correoEquipoConfirmada, correoSinHora, correoEquipoAlerta } from './correos.mjs';
 import { siteUrl } from '../http.mjs';
@@ -42,7 +42,7 @@ export async function finalizarConfirmacion(deps, env, r) {
       titulo: `${prefijo} · ${r.nombre} · ${titulo}`,
       descripcion: `WhatsApp: ${r.whatsapp}\nCorreo: ${r.email}\nPlan: ${titulo}\nNutricionista: ${nutricionista.nombre}\nReservado y pagado en la web (${r.id}).`,
       inicioUtc: r.inicio_utc,
-      finUtc: new Date(Date.parse(r.inicio_utc) + 3600 * 1000).toISOString(),
+      finUtc: finDeReserva(r),
       modalidad: r.modalidad,
       direccion: contacto.direccion,
       invitado: { email: r.email, nombre: r.nombre },

@@ -9,7 +9,7 @@
 // POST /api/reservas/resumen-diario  correo diario al equipo con quienes no pagaron (cron)
 import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
-import { inicioUtc, sumarDias, fechaLima, etiquetaLima } from '../reservas/tiempo.mjs';
+import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
@@ -57,7 +57,7 @@ function eventoDe(r) {
   return {
     titulo: `Tu sesión en AJL Nutrición · ${precio?.titulo ?? ''}`,
     inicioUtc: r.inicio_utc,
-    finUtc: new Date(Date.parse(r.inicio_utc) + 3600 * 1000).toISOString(),
+    finUtc: finDeReserva(r),
     ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
     descripcion: 'Si necesitas mover tu cita, escríbenos por WhatsApp: +51 919 151 237.',
   };

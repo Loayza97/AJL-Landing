@@ -133,3 +133,10 @@ test('aprobado tarde con la hora tomada, procesado dos veces a la vez: un solo c
   await Promise.all([procesarPago(deps, env, '555'), procesarPago(deps, env, '555')]);
   assert.equal(correos.filter((c) => c.to === 'ana@x.pe').length, 1);
 });
+
+test('el evento del calendario termina cuando termina la cita (fin_utc)', async () => {
+  const { db, deps, creados } = await preparar({ pagos: { 555: aprobado() } });
+  await db.prepare("UPDATE reservas SET duracion_min = 30, fin_utc = '2026-10-06T17:30:00Z' WHERE id = 'r1'").run();
+  await procesarPago(deps, env, '555');
+  assert.equal(creados[0].finUtc, '2026-10-06T17:30:00Z');
+});
