@@ -23,6 +23,7 @@ Pacientes que pagaron por fuera de la web (transferencia, Yape, en persona) nece
 - Los vencidos viejos se «archivan» solos: el periodo por defecto filtra por la última actividad del link (creación o reactivación).
 - El token del link se guarda como hash; la URL solo se ve al crearlo.
 - Página del paciente y panel sin analítica (el token va en la URL y hay datos personales).
+- Usuarios del equipo (pedido de Joaquín, 2026-10-13): hoy entran Joaquín, Alejandro, Romi e Irene. Los súper usuarios salen del secreto `EQUIPO_ADMINS` (por ahora Joaquín y Alejandro, más adelante solo Alejandro) y nunca se cambian desde la app. Pueden entrar los correos de `EQUIPO_EMAILS`, los de `EQUIPO_ADMINS` y los que un súper usuario agrega en `/panel/usuarios/` (tabla `equipo_usuarios`). Solo los súper usuarios ven esa página; desde ella dan acceso (correo y nombre) y quitan a los agregados, y quitar a alguien cierra su sesión al instante. Los correos de los secretos se ven como «Súper usuario» o «Fijo» y no se quitan desde la app.
 
 ## Fuera del MVP
 

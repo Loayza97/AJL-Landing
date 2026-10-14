@@ -22,7 +22,7 @@
 - Copy en español de Perú, tuteo, sin rayas como inciso; ADN de marca (Preciso · Real · Liberador).
 - Ninguna página nueva carga GA, Meta ni Clarity (no usar `Layout.astro`). `<meta name="robots" content="noindex, nofollow">`.
 - Todo texto que escribió el paciente pasa por `esc()` en correos y por `textContent` en el navegador.
-- Variables y secretos: no hacen falta nuevos.
+- Secreto nuevo `EQUIPO_ADMINS` (correos de súper usuarios separados por coma; valor lo da Joaquín): se carga con `npx wrangler pages secret put`, nunca en `wrangler.toml` ni desde la app. Pueden entrar al panel `EQUIPO_EMAILS ∪ EQUIPO_ADMINS ∪ equipo_usuarios`; solo los de `EQUIPO_ADMINS` ven `/panel/usuarios/` (Task 6b). No hacen falta otras variables.
 
 ## Review Focus
 
@@ -34,6 +34,8 @@
 6. Cualquier error después de agendar (por ejemplo, D1 falla al guardar el evento o al marcarlo pendiente): `finalizarAgenda` va en su propio `try/catch`, el paciente recibe 200 con `meet: null` (nunca 503 con la cita ya guardada) y el equipo recibe una alerta.
 7. Cupo de DNI: `/api/agenda/confirmar` sin `datos` gasta una consulta del mismo cupo de 10 que `/api/agenda/dni`; agotado, 429. Nadie enumera pacientes con un link.
 8. CSV de agendados: hasta 200 ids en una sola sentencia con un solo parámetro (`json_each(?1)`); 201 o más da 400 y el panel avisa antes de pedirlo.
+9. Usuarios del equipo: `/api/equipo/usuarios*` responde 401 sin sesión y 403 a quien no está en `EQUIPO_ADMINS`, los dos antes de leer la base; súper usuarios y fijos (secretos) no se quitan desde el panel (409); agregar un correo que ya tiene acceso da 409.
+10. Quitar a un usuario borra sus sesiones y su código pendiente en el mismo `db.batch`: su siguiente petición da 401, y al pedir código recibe la misma respuesta que un correo desconocido (nadie averigua quién tiene acceso).
 
 ---
 
@@ -2193,21 +2195,575 @@ git commit -m "agenda: panel /panel/links/ (crear, filtrar, reactivar, agendados
 
 ---
 
+### Task 6b: Usuarios del equipo y súper usuario
+
+Pedido de Joaquín (2026-10-13): una sección para que un súper usuario decida quién usa el panel. Hoy entran Joaquín, Alejandro, Romi e Irene; súper usuarios por ahora Joaquín y Alejandro, más adelante solo Alejandro.
+
+Reglas (decididas): los súper usuarios salen del secreto nuevo `EQUIPO_ADMINS` y nunca se cambian desde el panel. Pueden entrar `EQUIPO_EMAILS ∪ EQUIPO_ADMINS ∪ equipo_usuarios`. Los correos de los secretos no se quitan desde el panel (se ven como «Súper usuario» o «Fijo»). Quitar a alguien agregado desde el panel borra sus sesiones y su código pendiente en el mismo `db.batch`: pierde el acceso al instante. Agregar un correo que ya tiene acceso (en la tabla o en un secreto) responde **409** «Ese correo ya tiene acceso al panel.» (no idempotente: así quien agrega se entera de que no hizo nada y no se pisa el nombre ni `creado_por`).
+
+**Files:**
+- Create: `db/d1/0008_equipo_usuarios.sql`, `server/equipo/usuarios.mjs`, `server/handlers/equipo-usuarios.mjs`, `server/handlers/equipo-usuarios.test.mjs`, `functions/api/equipo/usuarios.js`, `functions/api/equipo/usuarios-quitar.js`, `src/pages/panel/usuarios.astro`, `src/scripts/panel-usuarios.js`
+- Modify: `server/equipo/acceso.mjs` (quién puede entrar sale de `usuarios.mjs`; `verificarAcceso` devuelve `admin`), `server/equipo/acceso.test.mjs`, `server/handlers/equipo.mjs` y `server/handlers/equipo-links.mjs` (devuelven `admin`), `server/handlers/equipo.test.mjs`, `server/handlers/equipo-links.test.mjs`, `src/pages/panel/index.astro`, `src/pages/panel/links.astro`, `src/scripts/panel-links.js` (enlace «Usuarios del equipo» solo para súper usuarios)
+
+**Interfaces:**
+- Consumes: `verificarAcceso`, `handlePedirCodigo`, `handleEntrar` (`server/equipo/acceso.mjs`); `makeEquipoDeps` (`server/equipo/deps.mjs`, sin cambios: `deps.acceso` sigue siendo `verificarAcceso`); `montarLogin({ onEntrar })` de la Task 6; tablas `equipo_sesiones` y `equipo_codigos` (`db/d1/0004_contactado.sql`).
+- Produces:
+  - Tabla `equipo_usuarios (email TEXT PRIMARY KEY, nombre TEXT NOT NULL, creado_por TEXT NOT NULL, creado_en TEXT NOT NULL)`; `email` siempre en minúsculas y sin espacios (CHECK).
+  - `server/equipo/usuarios.mjs`: `normalizarEmail(e): string` · `admins(env): string[]` · `fijos(env): string[]` · `esAdmin(env, email): boolean` · `origenSecreto(env, email): 'admin'|'fijo'|null` · `puedeEntrar(env, db, email): Promise<boolean>` · `listarUsuarios(env, db): Promise<Array<{ email, nombre, origen: 'admin'|'fijo'|'app', creado_por, creado_en }>>` (súper usuarios, luego fijos, luego agregados; cada correo una vez, con el origen más fuerte) · `agregarUsuario(db, { email, nombre, creadoPor, ahora }): Promise<boolean>` (`false` si ya estaba) · `quitarUsuario(db, email): Promise<boolean>` (`false` si no estaba).
+  - `verificarAcceso(request, env, deps) → { ok: false } | { ok: true, email, admin: boolean }`.
+  - `GET /api/equipo/reservas` y `GET /api/equipo/links` agregan `admin: boolean` a su respuesta.
+  - `GET /api/equipo/usuarios` → `{ ok, email, usuarios: [...] }` · `POST /api/equipo/usuarios { email, nombre }` → `{ ok, usuario: { email, nombre, origen: 'app', creado_por, creado_en } }` · 400 · 409.
+  - `POST /api/equipo/usuarios-quitar { email }` → `{ ok: true }` · 409 (súper usuario o fijo) · 404 (no está).
+  - Las tres: 401 sin sesión y 403 si no es súper usuario, los dos antes de leer la base.
+
+- [ ] **Step 1: Pruebas que fallan**
+
+`server/handlers/equipo-usuarios.test.mjs` (con el acceso real, para probar de punta a punta el login de un usuario agregado y el cierre de su sesión):
+
+```js
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { d1DePrueba } from '../reservas/d1-prueba.mjs';
+import { handlePedirCodigo, handleEntrar, verificarAcceso } from '../equipo/acceso.mjs';
+import { handleUsuarios, handleUsuariosQuitar } from './equipo-usuarios.mjs';
+
+const env = { EQUIPO_ADMINS: 'joaquin@x.pe, Ale@X.pe', EQUIPO_EMAILS: 'romi@x.pe', NEWSLETTER_FROM: 'AJL <hola@x.pe>' };
+const t0 = new Date('2026-10-13T15:00:00Z');
+function deps(o = {}) {
+  const correos = [];
+  const d = { db: d1DePrueba(), ahora: () => t0, correos, sendEmail: async (m) => { correos.push(m); return true; }, ...o };
+  d.acceso = o.acceso ?? ((request) => verificarAcceso(request, env, d)); // como makeEquipoDeps
+  return d;
+}
+const pedir = (ruta, metodo, cuerpo, cookie) => new Request(`https://www.ajlnutricion.com${ruta}`, {
+  method: metodo, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+  ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {}) });
+const get = (ruta, cookie) => pedir(ruta, 'GET', null, cookie);
+const post = (ruta, cuerpo, cookie) => pedir(ruta, 'POST', cuerpo, cookie);
+const codigoDe = (d) => d.correos.at(-1).html.match(/\b(\d{6})\b/)[1];
+const panel = (cookie) => get('/api/equipo/reservas', cookie);
+
+async function entrar(d, email) {
+  const antes = d.correos.length;
+  await handlePedirCodigo(post('/api/equipo/codigo', { email }), env, d);
+  assert.equal(d.correos.length, antes + 1, `le llega el código a ${email}`);
+  const r = await handleEntrar(post('/api/equipo/entrar', { email, codigo: codigoDe(d) }), env, d);
+  assert.equal(r.status, 200, `entra ${email}`);
+  return r.headers.get('Set-Cookie').split(';')[0];
+}
+const agregar = (d, cookie, cuerpo) => handleUsuarios(post('/api/equipo/usuarios', cuerpo, cookie), env, d);
+const quitar = (d, cookie, email) => handleUsuariosQuitar(post('/api/equipo/usuarios-quitar', { email }, cookie), env, d);
+
+test('usuarios: verificarAcceso dice quién es súper usuario', async () => {
+  const d = deps();
+  assert.deepEqual(await verificarAcceso(panel(await entrar(d, 'ale@x.pe')), env, d), { ok: true, email: 'ale@x.pe', admin: true });
+  assert.deepEqual(await verificarAcceso(panel(await entrar(d, 'romi@x.pe')), env, d), { ok: true, email: 'romi@x.pe', admin: false });
+});
+
+test('usuarios: sin sesión 401 y sin ser súper usuario 403, en las tres rutas y sin leer la base', async () => {
+  const explota = { prepare() { throw new Error('no debía leer'); }, batch() { throw new Error('no debía escribir'); } };
+  const llamadas = (d) => [handleUsuarios(get('/api/equipo/usuarios'), env, d), agregar(d, null, { email: 'irene@x.pe', nombre: 'Irene' }),
+    quitar(d, null, 'irene@x.pe')];
+  for (const r of await Promise.all(llamadas(deps({ db: explota, acceso: async () => ({ ok: false }) })))) assert.equal(r.status, 401);
+  for (const r of await Promise.all(llamadas(deps({ db: explota, acceso: async () => ({ ok: true, email: 'romi@x.pe', admin: false }) })))) {
+    assert.equal(r.status, 403);
+  }
+});
+
+test('usuarios: el súper usuario agrega a Irene; ella pide código, entra y usa el panel, pero no ve usuarios', async () => {
+  const d = deps();
+  const ale = await entrar(d, 'ale@x.pe');
+  const r = await agregar(d, ale, { email: '  Irene@X.pe ', nombre: '  Irene   Ríos ' });
+  assert.equal(r.status, 200);
+  assert.deepEqual((await r.json()).usuario, { email: 'irene@x.pe', nombre: 'Irene Ríos', origen: 'app', creado_por: 'ale@x.pe', creado_en: t0.toISOString() });
+  const lista = await (await handleUsuarios(get('/api/equipo/usuarios', ale), env, d)).json();
+  assert.deepEqual(lista.usuarios.map((u) => [u.email, u.origen]),
+    [['joaquin@x.pe', 'admin'], ['ale@x.pe', 'admin'], ['romi@x.pe', 'fijo'], ['irene@x.pe', 'app']]);
+  const irene = await entrar(d, ' IRENE@x.pe');
+  assert.deepEqual(await verificarAcceso(panel(irene), env, d), { ok: true, email: 'irene@x.pe', admin: false });
+  assert.equal((await handleUsuarios(get('/api/equipo/usuarios', irene), env, d)).status, 403);
+  assert.equal((await agregar(d, irene, { email: 'otra@x.pe', nombre: 'Otra' })).status, 403);
+});
+
+test('usuarios: quitar a Irene cierra su sesión al instante y ya no recibe códigos', async () => {
+  const d = deps();
+  const ale = await entrar(d, 'ale@x.pe');
+  await agregar(d, ale, { email: 'irene@x.pe', nombre: 'Irene' });
+  const irene = await entrar(d, 'irene@x.pe');
+  assert.equal((await verificarAcceso(panel(irene), env, d)).ok, true);
+  assert.equal((await quitar(d, ale, ' Irene@X.pe ')).status, 200);
+  assert.equal((await verificarAcceso(panel(irene), env, d)).ok, false, 'la sesión abierta deja de servir');
+  const { n } = await d.db.prepare("SELECT COUNT(*) AS n FROM equipo_sesiones WHERE email = 'irene@x.pe'").first();
+  assert.equal(n, 0, 'sus sesiones se borran en el mismo batch');
+  const antes = d.correos.length;
+  const pide = await handlePedirCodigo(post('/api/equipo/codigo', { email: 'irene@x.pe' }), env, d);
+  const extraño = await handlePedirCodigo(post('/api/equipo/codigo', { email: 'nadie@x.pe' }), env, d);
+  assert.equal(d.correos.length, antes, 'no le llega código');
+  assert.deepEqual([pide.status, await pide.json()], [extraño.status, await extraño.json()], 'misma respuesta que un correo desconocido');
+  assert.equal((await quitar(d, ale, 'irene@x.pe')).status, 404);
+});
+
+test('usuarios: súper usuarios y fijos no se quitan desde el panel', async () => {
+  const d = deps();
+  const ale = await entrar(d, 'ale@x.pe');
+  const romi = await entrar(d, 'romi@x.pe');
+  assert.equal((await quitar(d, ale, 'JOAQUIN@x.pe')).status, 409);
+  assert.equal((await quitar(d, ale, 'ale@x.pe')).status, 409);
+  assert.equal((await quitar(d, ale, 'romi@x.pe')).status, 409);
+  assert.equal((await verificarAcceso(panel(romi), env, d)).ok, true, 'la sesión de Romi sigue');
+  assert.equal((await verificarAcceso(panel(ale), env, d)).ok, true);
+});
+
+test('usuarios: agregar un correo que ya tiene acceso da 409 y no pisa nada', async () => {
+  const d = deps();
+  const ale = await entrar(d, 'ale@x.pe');
+  assert.equal((await agregar(d, ale, { email: 'irene@x.pe', nombre: 'Irene' })).status, 200);
+  assert.equal((await agregar(d, ale, { email: ' IRENE@x.pe', nombre: 'Otra' })).status, 409);
+  assert.equal((await agregar(d, ale, { email: 'Romi@x.pe', nombre: 'Romi' })).status, 409, 'ya es fijo');
+  assert.equal((await agregar(d, ale, { email: 'joaquin@x.pe', nombre: 'Joaquín' })).status, 409, 'ya es súper usuario');
+  const { results } = await d.db.prepare('SELECT email, nombre FROM equipo_usuarios').all();
+  assert.deepEqual(results, [{ email: 'irene@x.pe', nombre: 'Irene' }]);
+});
+
+test('usuarios: valida correo y nombre (obligatorio, hasta 60 caracteres)', async () => {
+  const d = deps();
+  const ale = await entrar(d, 'ale@x.pe');
+  for (const email of ['', 'irene', 'irene@x', 'a b@x.pe', 'a@x.pe,b@x.pe', 42]) {
+    assert.equal((await agregar(d, ale, { email, nombre: 'Irene' })).status, 400, String(email));
+  }
+  for (const nombre of [undefined, '', '   ', 'x'.repeat(61), { a: 1 }]) {
+    assert.equal((await agregar(d, ale, { email: 'irene@x.pe', nombre })).status, 400, String(nombre));
+  }
+  assert.equal((await agregar(d, ale, { email: 'irene@x.pe', nombre: 'x'.repeat(60) })).status, 200);
+});
+```
+
+En `server/equipo/acceso.test.mjs`, en la prueba «correo autorizado recibe un código y entra», el `deepEqual` de `verificarAcceso` pasa a esperar `{ ok: true, email: 'ale@x.pe', admin: false }` (ese `env` no tiene `EQUIPO_ADMINS`).
+
+En `server/handlers/equipo.test.mjs`, agregar:
+
+```js
+test('equipo: la respuesta dice si quien entró es súper usuario', async () => {
+  const db = await base();
+  const d = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, { db, ahora, nutricionistas, acceso: dentro })).json();
+  assert.equal(d.admin, false);
+  const admin = async () => ({ ok: true, email: 'ale@x.pe', admin: true });
+  const a = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, { db, ahora, nutricionistas, acceso: admin })).json();
+  assert.equal(a.admin, true);
+});
+```
+
+En `server/handlers/equipo-links.test.mjs`, agregar:
+
+```js
+test('listar: la respuesta dice si quien entró es súper usuario', async () => {
+  assert.equal((await (await handleLinks(get('/api/equipo/links'), env, deps())).json()).admin, false);
+  const admin = async () => ({ ok: true, email: 'ale@x.pe', admin: true });
+  assert.equal((await (await handleLinks(get('/api/equipo/links'), env, deps({ acceso: admin }))).json()).admin, true);
+});
+```
+
+- [ ] **Step 2: Correr y ver que fallan**
+
+Run: `node --test server/handlers/equipo-usuarios.test.mjs server/equipo/acceso.test.mjs server/handlers/equipo.test.mjs server/handlers/equipo-links.test.mjs`
+Expected: FAIL (`equipo-usuarios.mjs` no existe; `verificarAcceso` no devuelve `admin`; las respuestas de reservas y links no traen `admin`).
+
+- [ ] **Step 3: Implementar**
+
+`db/d1/0008_equipo_usuarios.sql`:
+
+```sql
+-- Usuarios del panel agregados desde /panel/usuarios/ (2026-10-13). Los súper
+-- usuarios (secreto EQUIPO_ADMINS) y los fijos (secreto EQUIPO_EMAILS) no van
+-- aquí: no se cambian desde el panel.
+CREATE TABLE equipo_usuarios (
+  email      TEXT PRIMARY KEY CHECK (email = lower(trim(email)) AND email <> ''),
+  nombre     TEXT NOT NULL CHECK (length(nombre) BETWEEN 1 AND 60),
+  creado_por TEXT NOT NULL,
+  creado_en  TEXT NOT NULL
+);
+```
+
+`server/equipo/usuarios.mjs`:
+
+```js
+// Quién puede usar el panel del equipo.
+// · Súper usuarios: secreto EQUIPO_ADMINS. Ven /panel/usuarios/; no se cambian desde el panel.
+// · Fijos: secreto EQUIPO_EMAILS. Tampoco se quitan desde el panel.
+// · Agregados: tabla equipo_usuarios, desde /panel/usuarios/. Quitar uno borra sus
+//   sesiones y su código pendiente en el mismo batch: pierde el acceso al instante.
+export const normalizarEmail = (e) => String(e ?? '').trim().toLowerCase();
+const lista = (v) => String(v || '').split(',').map(normalizarEmail).filter(Boolean);
+export const admins = (env) => lista(env.EQUIPO_ADMINS);
+export const fijos = (env) => lista(env.EQUIPO_EMAILS);
+export const esAdmin = (env, email) => admins(env).includes(normalizarEmail(email));
+
+export function origenSecreto(env, email) {
+  const e = normalizarEmail(email);
+  if (admins(env).includes(e)) return 'admin';
+  if (fijos(env).includes(e)) return 'fijo';
+  return null;
+}
+
+export async function puedeEntrar(env, db, email) {
+  const e = normalizarEmail(email);
+  if (!e) return false;
+  if (origenSecreto(env, e)) return true;
+  return Boolean(await db.prepare('SELECT 1 AS si FROM equipo_usuarios WHERE email = ?1').bind(e).first());
+}
+
+export async function listarUsuarios(env, db) {
+  const { results } = await db.prepare('SELECT email, nombre, creado_por, creado_en FROM equipo_usuarios ORDER BY creado_en, email').all();
+  const deTabla = new Map(results.map((r) => [r.email, r]));
+  const filas = [];
+  const vistos = new Set();
+  const sumar = (email, origen) => {
+    if (vistos.has(email)) return;
+    vistos.add(email);
+    const r = deTabla.get(email);
+    filas.push({ email, nombre: r?.nombre ?? null, origen, creado_por: r?.creado_por ?? null, creado_en: r?.creado_en ?? null });
+  };
+  admins(env).forEach((e) => sumar(e, 'admin'));
+  fijos(env).forEach((e) => sumar(e, 'fijo'));
+  results.forEach((r) => sumar(r.email, 'app'));
+  return filas;
+}
+
+// false si el correo ya estaba en la tabla (no pisa nombre ni creado_por).
+export async function agregarUsuario(db, { email, nombre, creadoPor, ahora }) {
+  const r = await db.prepare(
+    'INSERT INTO equipo_usuarios (email, nombre, creado_por, creado_en) VALUES (?1, ?2, ?3, ?4) ON CONFLICT (email) DO NOTHING',
+  ).bind(email, nombre, creadoPor, ahora.toISOString()).run();
+  return r.meta.changes === 1;
+}
+
+// Un solo batch: o se quita todo (usuario, sesiones y código pendiente) o nada.
+export async function quitarUsuario(db, email) {
+  const [usuario] = await db.batch([
+    db.prepare('DELETE FROM equipo_usuarios WHERE email = ?1').bind(email),
+    db.prepare('DELETE FROM equipo_sesiones WHERE email = ?1').bind(email),
+    db.prepare('DELETE FROM equipo_codigos WHERE email = ?1').bind(email),
+  ]);
+  return usuario.meta.changes === 1;
+}
+```
+
+En `server/equipo/acceso.mjs`:
+- En el comentario de cabecera, cambiar «Solo los correos de EQUIPO_EMAILS (secreto) reciben código.» por «Solo reciben código los correos de EQUIPO_EMAILS o EQUIPO_ADMINS (secretos) y los agregados en /panel/usuarios/ (server/equipo/usuarios.mjs).».
+- Borrar las constantes `autorizados` y `normalizar`, y agregar `import { esAdmin, normalizarEmail as normalizar, puedeEntrar } from './usuarios.mjs';`.
+- En `handlePedirCodigo`, `if (!autorizados(env).includes(email)) return ok;` pasa a `if (!(await puedeEntrar(env, deps.db, email))) return ok;` (la respuesta sigue siendo la misma para cualquier correo).
+- En `handleEntrar`, `if (!autorizados(env).includes(email) || codigo.length !== 6) return mal;` pasa a `if (codigo.length !== 6 || !(await puedeEntrar(env, deps.db, email))) return mal;`.
+- `verificarAcceso` queda así:
+
+```js
+// Lo usan las rutas /api/equipo/*: sesión vigente y correo todavía autorizado
+// (secretos o tabla). admin = está en EQUIPO_ADMINS.
+export async function verificarAcceso(request, env, deps) {
+  const token = leerCookie(request);
+  if (!token) return { ok: false };
+  const fila = await deps.db.prepare('SELECT email, expira FROM equipo_sesiones WHERE token_hash = ?1').bind(await sha256(token)).first();
+  if (!fila || Date.parse(fila.expira) <= deps.ahora().getTime() || !(await puedeEntrar(env, deps.db, fila.email))) return { ok: false };
+  return { ok: true, email: fila.email, admin: esAdmin(env, fila.email) };
+}
+```
+
+En `server/handlers/equipo.mjs`, en `handleEquipoReservas`, `ok: true, email: acceso.email,` pasa a `ok: true, email: acceso.email, admin: acceso.admin === true,`.
+
+En `server/handlers/equipo-links.mjs`:
+- `async function listarLinks(request, deps, email)` pasa a `async function listarLinks(request, deps, { email, admin })`, y su `return json(200, { ok: true, email, filas, …` pasa a `return json(200, { ok: true, email, admin: admin === true, filas, …` (el resto igual).
+- En `handleLinks`, `listarLinks(request, deps, acceso.email)` pasa a `listarLinks(request, deps, acceso)`.
+
+`server/handlers/equipo-usuarios.mjs`:
+
+```js
+// ─── Panel del equipo · usuarios ────────────────────────────────────────────
+// GET  /api/equipo/usuarios          súper usuarios, fijos y agregados
+// POST /api/equipo/usuarios          { email, nombre } da acceso (409 si ya lo tiene)
+// POST /api/equipo/usuarios-quitar   { email } quita a un agregado y cierra sus sesiones
+// Solo súper usuarios (EQUIPO_ADMINS): primero la sesión (401), luego el permiso
+// (403) y recién entonces se lee la base.
+import { json, readJson } from '../http.mjs';
+import { agregarUsuario, listarUsuarios, normalizarEmail, origenSecreto, quitarUsuario } from '../equipo/usuarios.mjs';
+
+const EMAIL = /^[^\s@,;<>"']+@[^\s@,;<>"']+\.[a-z]{2,}$/;
+const MAX_NOMBRE = 60;
+const bad = (status, error) => json(status, { ok: false, error });
+
+async function soloAdmin(request, env, deps) {
+  const acceso = await deps.acceso(request, env);
+  if (!acceso.ok) return { error: bad(401, 'Necesitas entrar con un correo autorizado del equipo.') };
+  if (!acceso.admin) return { error: bad(403, 'Esta sección es solo para súper usuarios.') };
+  return { acceso };
+}
+
+export async function handleUsuarios(request, env, deps) {
+  if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
+  const { acceso, error } = await soloAdmin(request, env, deps);
+  if (error) return error;
+  if (request.method === 'GET') return json(200, { ok: true, email: acceso.email, usuarios: await listarUsuarios(env, deps.db) });
+  const d = await readJson(request);
+  const email = typeof d.email === 'string' ? normalizarEmail(d.email) : '';
+  const nombre = typeof d.nombre === 'string' ? d.nombre.trim().replace(/\s+/g, ' ') : '';
+  if (email.length > 254 || !EMAIL.test(email)) return bad(400, 'Escribe un correo válido.');
+  if (!nombre || nombre.length > MAX_NOMBRE) return bad(400, `Escribe el nombre (hasta ${MAX_NOMBRE} caracteres).`);
+  const ahora = deps.ahora();
+  if (origenSecreto(env, email) || !(await agregarUsuario(deps.db, { email, nombre, creadoPor: acceso.email, ahora }))) {
+    return bad(409, 'Ese correo ya tiene acceso al panel.');
+  }
+  return json(200, { ok: true, usuario: { email, nombre, origen: 'app', creado_por: acceso.email, creado_en: ahora.toISOString() } });
+}
+
+export async function handleUsuariosQuitar(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  const { error } = await soloAdmin(request, env, deps);
+  if (error) return error;
+  const email = normalizarEmail((await readJson(request)).email);
+  const origen = origenSecreto(env, email);
+  if (origen === 'admin') return bad(409, 'Los súper usuarios no se quitan desde el panel.');
+  if (origen === 'fijo') return bad(409, 'Este correo es fijo: se quita solo desde la configuración del sitio.');
+  if (!email || !(await quitarUsuario(deps.db, email))) return bad(404, 'Ese correo no está en la lista.');
+  return json(200, { ok: true });
+}
+```
+
+Rutas (`makeEquipoDeps` como en `functions/api/equipo/links.js`):
+
+```js
+// functions/api/equipo/usuarios.js
+import { handleUsuarios } from '../../../server/handlers/equipo-usuarios.mjs';
+import { makeEquipoDeps } from '../../../server/equipo/deps.mjs';
+
+export const onRequest = (ctx) => handleUsuarios(ctx.request, ctx.env, makeEquipoDeps(ctx.env));
+```
+
+`usuarios-quitar.js` → `handleUsuariosQuitar`.
+
+- [ ] **Step 4: Correr y ver que pasan**
+
+Run: `npm test`
+Expected: PASS (incluidas las pruebas de acceso de siempre: un correo de `EQUIPO_EMAILS` entra igual que antes).
+
+- [ ] **Step 5: Página `/panel/usuarios/`**
+
+`src/pages/panel/usuarios.astro` (mismo `<head>` sin Layout que `src/pages/panel/links.astro`; estilos `us-*` en la misma paleta):
+
+```astro
+---
+// Panel del equipo · usuarios (/panel/usuarios/). Solo súper usuarios
+// (EQUIPO_ADMINS): /api/equipo/usuarios* responde 403 a los demás. Sin el
+// Layout del sitio (no carga analítica).
+---
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Usuarios del equipo · AJL Nutrición</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap">
+  <style is:global>
+    [hidden] { display: none !important; }
+    :root { --ink: #111111; --muted: #6B6B6B; --hair: #E4E4E4; --gold: #C9A24B; --gold-ink: #9C7A2B; --gold-pale: #F8F3E6; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Montserrat, Arial, sans-serif; color: var(--ink); background: #F6F4EF; }
+    .us { max-width: 880px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 28px; }
+    .us-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 1.6rem; font-weight: 800; } h2 { margin: 0 0 12px; font-size: 1.2rem; }
+    .us-quien, .us-nota { color: var(--muted); font-size: .85rem; }
+    .us-btn { min-height: 44px; border: 0; border-radius: 10px; background: var(--gold); color: var(--ink); font: inherit; font-weight: 700; padding: 0 16px; cursor: pointer; }
+    .us-btn--borde { background: #fff; border: 1px solid var(--ink); }
+    .us-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .us-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: end; }
+    .us-form label { display: flex; flex-direction: column; gap: 6px; font-size: .85rem; font-weight: 600; }
+    .us-form input, .us-login input { min-height: 44px; border: 1px solid #CFCFCF; border-radius: 10px; padding: 0 12px; font: inherit; background: #fff; }
+    @media (max-width: 640px) { .us-form { grid-template-columns: 1fr; } }
+    .us-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--hair); border-radius: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 12px; white-space: nowrap; }
+    td { border-top: 1px solid var(--hair); padding: 12px; vertical-align: middle; }
+    .us-login { max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
+    .us-enlace { background: none; border: 0; color: var(--gold-ink); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <main class="us">
+    <div class="us-cab">
+      <div><h1>Usuarios del equipo</h1><span class="us-quien" id="quien"></span> <button type="button" class="us-enlace" id="salir" hidden>Salir</button></div>
+      <span><a class="us-enlace" href="/panel/">‹ Reservas de la web</a> · <a class="us-enlace" href="/panel/links/">Links de agenda</a></span>
+    </div>
+
+    <form class="us-login" id="login" hidden>
+      <p id="login-msg">Escribe tu correo del equipo y te mandamos un código.</p>
+      <input type="email" id="login-email" autocomplete="email" placeholder="tucorreo@gmail.com" required>
+      <input type="text" id="login-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" hidden>
+      <button type="submit" class="us-btn" id="login-btn">Enviar código</button>
+    </form>
+
+    <p class="us-nota" id="sin-permiso" hidden>Esta sección es solo para súper usuarios. Si alguien necesita entrar al panel, pídeselo a uno de ellos.</p>
+
+    <div id="app" hidden>
+      <section>
+        <h2>Dar acceso al panel</h2>
+        <p class="us-nota">Con su correo podrá pedir un código y entrar. Puedes quitarle el acceso cuando quieras: su sesión se cierra en ese momento.</p>
+        <form class="us-form" id="nuevo">
+          <label>Nombre<input id="n-nombre" maxlength="60" autocomplete="off" required></label>
+          <label>Correo<input type="email" id="n-email" autocomplete="off" required></label>
+          <button type="submit" class="us-btn" id="n-btn">Dar acceso</button>
+        </form>
+        <p class="us-nota" id="n-msg" role="status"></p>
+      </section>
+
+      <section>
+        <h2>Quiénes entran</h2>
+        <div class="us-scroll"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Tipo</th><th></th></tr></thead><tbody id="filas"></tbody></table></div>
+        <p class="us-nota">«Súper usuario» y «Fijo» se cambian solo en la configuración del sitio, no desde aquí.</p>
+      </section>
+    </div>
+  </main>
+  <script>
+    import '../../scripts/panel-usuarios.js';
+  </script>
+</body>
+</html>
+```
+
+`src/scripts/panel-usuarios.js`:
+
+```js
+// Panel /panel/usuarios/: quién entra al panel; dar y quitar acceso. Solo súper
+// usuarios (la API da 403 a los demás). Todo el texto de la base va por textContent.
+import { montarLogin } from './panel-login.js';
+
+const $ = (s) => document.querySelector(s);
+const ORIGEN = { admin: 'Súper usuario', fijo: 'Fijo', app: 'Agregado' };
+const enviar = (ruta, cuerpo) => fetch(ruta, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+const celda = (texto) => { const c = document.createElement('td'); c.textContent = texto ?? ''; return c; };
+const errorDe = async (r, porDefecto) => (await r.json().catch(() => ({}))).error ?? porDefecto;
+
+function mostrar(vista) {
+  $('#login').hidden = vista !== 'login';
+  $('#app').hidden = vista !== 'app';
+  $('#sin-permiso').hidden = vista !== 'sin-permiso';
+  $('#salir').hidden = vista === 'login';
+  if (vista !== 'app') $('#quien').textContent = '';
+}
+
+async function cargar() {
+  const r = await fetch('/api/equipo/usuarios', { cache: 'no-store' });
+  if (r.status === 401) return mostrar('login');
+  if (r.status === 403) return mostrar('sin-permiso');
+  mostrar('app');
+  if (!r.ok) { $('#n-msg').textContent = 'No pudimos cargar la lista. Recarga la página.'; return; }
+  const d = await r.json();
+  $('#quien').textContent = `Entraste como ${d.email}`;
+  $('#filas').replaceChildren(...d.usuarios.map((u) => {
+    const tr = document.createElement('tr');
+    const accion = document.createElement('td');
+    if (u.origen === 'app') {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'us-btn us-btn--borde'; b.textContent = 'Quitar acceso';
+      b.addEventListener('click', () => quitar(u, b));
+      accion.append(b);
+    }
+    tr.append(celda(u.nombre), celda(u.email), celda(ORIGEN[u.origen]), accion);
+    return tr;
+  }));
+}
+
+async function quitar(u, b) {
+  if (!confirm(`¿Quitarle el acceso a ${u.nombre ?? u.email}? Su sesión se cierra ahora.`)) return;
+  b.disabled = true;
+  const r = await enviar('/api/equipo/usuarios-quitar', { email: u.email });
+  if (r.status === 401) return mostrar('login');
+  if (!r.ok) { b.disabled = false; $('#n-msg').textContent = await errorDe(r, 'No se pudo quitar. Recarga la página.'); return; }
+  $('#n-msg').textContent = `${u.email} ya no puede entrar al panel.`;
+  cargar();
+}
+
+$('#nuevo').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#n-btn').disabled = true;
+  const r = await enviar('/api/equipo/usuarios', { email: $('#n-email').value, nombre: $('#n-nombre').value });
+  $('#n-btn').disabled = false;
+  if (r.status === 401) return mostrar('login');
+  if (r.status === 403) return mostrar('sin-permiso');
+  if (!r.ok) { $('#n-msg').textContent = await errorDe(r, 'No se pudo dar acceso. Intenta de nuevo.'); return; }
+  const d = await r.json();
+  $('#nuevo').reset();
+  $('#n-msg').textContent = `Listo: ${d.usuario.email} ya puede pedir su código en el panel.`;
+  cargar();
+});
+
+// Login: el mismo módulo que /panel/ y /panel/links/.
+montarLogin({ onEntrar: cargar });
+cargar();
+```
+
+- [ ] **Step 6: Enlace «Usuarios del equipo» solo para súper usuarios**
+
+En `src/pages/panel/index.astro`:
+- Después del enlace `<a class="eq-salir" href="/panel/links/">Links de agenda ›</a>` (Task 6, Step 1), agregar:
+
+```html
+      <a class="eq-salir" href="/panel/usuarios/" id="usuarios" hidden>Usuarios del equipo ›</a>
+```
+
+- En `cargar()`, después de `$('#quien').textContent = \`Entraste como ${estado.datos.email}\`;`, agregar `$('#usuarios').hidden = !estado.datos.admin;`.
+- En `mostrarLogin()`, después de `$('#quien').textContent = '';`, agregar `$('#usuarios').hidden = true;`.
+
+En `src/pages/panel/links.astro`, en `<div class="lk-cab">`, cambiar `<a class="lk-enlace" href="/panel/">‹ Reservas de la web</a>` por:
+
+```html
+      <span><a class="lk-enlace" href="/panel/">‹ Reservas de la web</a><span id="usuarios" hidden> · <a class="lk-enlace" href="/panel/usuarios/">Usuarios del equipo</a></span></span>
+```
+
+En `src/scripts/panel-links.js`:
+- En `cargarLinks()`, después de `$('#quien').textContent = \`Entraste como ${d.email}\`;`, agregar `$('#usuarios').hidden = !d.admin;`.
+- En `mostrarLogin()`, agregar al final `$('#usuarios').hidden = true;`.
+
+El enlace oculto es solo comodidad: quien no es súper usuario y abre `/panel/usuarios/` a mano ve «Esta sección es solo para súper usuarios» y la API le responde 403.
+
+- [ ] **Step 7: Build y revisión de la página**
+
+Run: `npm test && npm run build`
+Expected: todo en verde; existe `dist/panel/usuarios/index.html`.
+
+Run: `grep -lE "googletagmanager|gtag|fbq|clarity" dist/panel/usuarios/index.html`
+Expected: sin salida (la página no carga analítica).
+
+Revisión a mano (en el preview de la Task 7, Step 3, puntos 11 a 14): sin sesión pide el código; con un súper usuario muestra la lista con «Súper usuario», «Fijo» y «Agregado», agrega y quita; con un usuario que no es súper usuario muestra solo el aviso y ni `/panel/` ni `/panel/links/` muestran el enlace. En el celular, el formulario queda en una columna y la tabla se desplaza de lado sin mover la página.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add db/d1/0008_equipo_usuarios.sql server/equipo/usuarios.mjs server/equipo/acceso.mjs server/equipo/acceso.test.mjs \
+  server/handlers/equipo-usuarios.mjs server/handlers/equipo-usuarios.test.mjs server/handlers/equipo.mjs server/handlers/equipo.test.mjs \
+  server/handlers/equipo-links.mjs server/handlers/equipo-links.test.mjs functions/api/equipo/usuarios.js functions/api/equipo/usuarios-quitar.js \
+  src/pages/panel/usuarios.astro src/scripts/panel-usuarios.js src/pages/panel/index.astro src/pages/panel/links.astro src/scripts/panel-links.js
+git commit -m "equipo: usuarios del panel y súper usuario (/panel/usuarios/)"
+```
+
+---
+
 ### Task 7: Probar en preview y publicar
 
 **Files:**
-- Modify: `CHANGELOG.md` (entrada visible: «Links de agenda de un solo uso para pacientes que pagaron por otro medio: panel /panel/links/ y página /agenda/»)
+- Modify: `CHANGELOG.md` (entrada visible: «Links de agenda de un solo uso para pacientes que pagaron por otro medio: panel /panel/links/ y página /agenda/. Usuarios del equipo: los súper usuarios dan y quitan acceso al panel en /panel/usuarios/»)
 - Modify: `public/privacidad/index.html` (§2.6, fila nueva en la tabla de finalidades de §3, fecha y versión; Step 3b, con aprobación de Joaquín)
-- Modify (memoria privada, fuera del repo): `~/ajl/memoria/notas/panel-equipo-ajl.md` (sección «Links de agenda»: dónde se entra, qué hace cada botón, que la URL del link solo se ve al crearlo).
+- Modify (memoria privada, fuera del repo): `~/ajl/memoria/notas/panel-equipo-ajl.md` (sección «Links de agenda»: dónde se entra, qué hace cada botón, que la URL del link solo se ve al crearlo; sección «Usuarios del equipo»: quién es súper usuario, que `EQUIPO_ADMINS` y `EQUIPO_EMAILS` se cambian solo con `wrangler pages secret put` y que quitar a alguien cierra su sesión al instante).
 
 - [ ] **Step 1: Pruebas y build**
 
 Run: `npm test && npm run build`
 Expected: todo en verde.
 
-- [ ] **Step 2: Migración en preview y push**
+- [ ] **Step 2: Secreto, migraciones en preview y push**
+
+Joaquín da el valor de `EQUIPO_ADMINS` (por ahora su correo y el de Alejandro, separados por coma; más adelante solo el de Alejandro). Se escribe cuando el comando lo pide, nunca en `wrangler.toml` ni en el panel de Cloudflare. Los secretos de Pages se aplican al siguiente despliegue: el push de abajo lo hace. `migrations apply` aplica las pendientes en orden, `0007_links_agenda.sql` y `0008_equipo_usuarios.sql`; revisar en su salida que salgan las dos.
 
 ```bash
+npx wrangler pages secret put EQUIPO_ADMINS --project-name ajl-landing --env preview
 npx wrangler d1 migrations apply ajl-reservas-preview --remote --env preview
 git add CHANGELOG.md && git commit -m "changelog: links de agenda"
 git push origin reservas-pago
@@ -2226,6 +2782,10 @@ En `https://reservas-pago.ajl-landing.pages.dev/panel/links/` (entrar con `ajlnu
 8. Vencer un link a mano (`npx wrangler d1 execute ajl-reservas-preview --remote --env preview --command "UPDATE links_agenda SET vence_en = '2026-01-01T00:00:00Z' WHERE id = '<id>'"`), ver «Vencido» y «Reactivar 3 días más»; tras reactivar, la URL vuelve a funcionar.
 9. Borrar a mano los eventos de prueba del calendario real.
 10. En `/panel/` (preview): el login, «Entraste como …», «Salir» y las pestañas funcionan igual que antes (usa `panel-login.js`).
+11. Con un súper usuario, `/panel/` y `/panel/links/` muestran «Usuarios del equipo». `/panel/usuarios/` lista a los súper usuarios como «Súper usuario», a los de `EQUIPO_EMAILS` como «Fijo» sin botón para quitar, y a los agregados como «Agregado».
+12. Dar acceso a un correo de prueba de Joaquín (con mayúsculas y espacios: se guarda en minúsculas). Repetirlo da «Ese correo ya tiene acceso al panel.». Con ese correo, en otro navegador, pedir el código y entrar a `/panel/`: no ve «Usuarios del equipo» y si abre `/panel/usuarios/` a mano ve solo el aviso de que es para súper usuarios.
+13. Con el súper usuario, «Quitar acceso» a ese correo; en el otro navegador, recargar `/panel/`: vuelve a pedir el código, y pedirlo ya no manda correo (el mensaje es el mismo de siempre).
+14. `/panel/usuarios/` en el celular: el formulario en una columna, la tabla se desplaza de lado sin mover la página.
 
 - [ ] **Step 3b: Política de privacidad (requiere la aprobación de Joaquín; va en el mismo merge)**
 
@@ -2256,12 +2816,13 @@ git push origin reservas-pago
 
 - [ ] **Step 4: Publicar (solo con autorización de Joaquín)**
 
-Antes: (1) Joaquín aprobó y está en la rama el texto de privacidad del Step 3b (el único punto abierto del spec); (2) Joaquín verificó en el panel de Cloudflare que Web Analytics (la inyección automática del beacon) está apagado para el proyecto `ajl-landing`, porque ese beacon vería la URL con el token. Con el sí:
+Antes: (1) Joaquín aprobó y está en la rama el texto de privacidad del Step 3b (el único punto abierto del spec); (2) Joaquín verificó en el panel de Cloudflare que Web Analytics (la inyección automática del beacon) está apagado para el proyecto `ajl-landing`, porque ese beacon vería la URL con el token. Con el sí (Joaquín da el valor de `EQUIPO_ADMINS` de producción; `migrations apply` aplica `0007` y `0008`):
 
 ```bash
+npx wrangler pages secret put EQUIPO_ADMINS --project-name ajl-landing
 npx wrangler d1 migrations apply ajl-reservas --remote
 git checkout main && git pull && git merge --no-ff reservas-pago -m "Links de agenda de un solo uso" && git push origin main
 git checkout reservas-pago
 ```
 
-Luego `npm run smoke -- https://www.ajlnutricion.com`, entrar a `https://www.ajlnutricion.com/panel/links/` y crear un link real de prueba (vencerlo después a mano).
+Luego `npm run smoke -- https://www.ajlnutricion.com`, entrar a `https://www.ajlnutricion.com/panel/links/` y crear un link real de prueba (vencerlo después a mano). Entrar a `https://www.ajlnutricion.com/panel/usuarios/` con un súper usuario y ver la lista. Si Joaquín quiere poder quitar a Romi o a Irene desde el panel, primero se les da acceso ahí y después se sacan de `EQUIPO_EMAILS` (con `wrangler pages secret put EQUIPO_EMAILS`); mientras estén en el secreto se ven como «Fijo».
