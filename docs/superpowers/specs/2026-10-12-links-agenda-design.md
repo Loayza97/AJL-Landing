@@ -1,6 +1,6 @@
 # Links de agenda de un solo uso · diseño
 
-Fecha: 2026-10-12. Pedido de Alejandro, dictado por Joaquín. Figma (canvas): https://claude.ai/artifact/8PwjikrciMRqyK2VzPQZpa
+Fecha: 2026-10-12. Pedido de Alejandro, dictado por Joaquín. Figma (canvas): https://claude.ai/artifact/VozJpGpW2hpQddBoF2hgqM
 
 ## Para qué
 
