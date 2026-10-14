@@ -65,6 +65,28 @@ test('listar: buscar por apellido o DNI', async () => {
   }
 });
 
+test('buscar sin tildes ni mayúsculas: «maria» halla «María», «ramirez» halla «RAMÍREZ», «nunez» halla «NÚÑEZ»', async () => {
+  const d = deps();
+  await sembrar(d);
+  await agenda.crearLink(d.db, { id: 'usado2', tokenHash: 'h-usado2', tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date('2026-10-11T14:00:00Z') });
+  const maria = { ...lucia, nombre: 'María RAMÍREZ NÚÑEZ', nombres: 'María', apellido_paterno: 'RAMÍREZ', apellido_materno: 'NÚÑEZ', dni: '01234567', email: 'maria@x.pe' };
+  await agenda.agendarConLink(d.db, { link: 'usado2', reservaId: 'r-maria', token: 'tm', tipoId: 'c30v', cliente: maria, clienteId: 'c-maria',
+    hora: { inicio: '2026-10-15T15:00:00Z', fin: '2026-10-15T15:30:00Z', nutricionista_id: 'nico', modalidad: 'video', fecha_lima: '2026-10-15', duracion_min: 30 },
+    pacienteNuevo: true, condicionesVersion: 'v', ahora: new Date('2026-10-11T15:00:00Z') });
+  for (const q of ['maria', 'ramirez', 'nunez', 'MARÍA', 'Ramírez Núñez']) {
+    const links = await (await handleLinks(get(`/api/equipo/links?q=${encodeURIComponent(q)}`), env, d)).json();
+    assert.deepEqual(links.filas.map((f) => f.id), ['usado2'], `links ${q}`);
+    const ags = await (await handleAgendados(get(`/api/equipo/agendados?q=${encodeURIComponent(q)}`), env, d)).json();
+    assert.deepEqual(ags.filas.map((f) => f.id), ['r-maria'], `agendados ${q}`);
+  }
+  const lu = await (await handleAgendados(get('/api/equipo/agendados?q=lucia'), env, d)).json();
+  assert.deepEqual(lu.filas.map((f) => f.id), ['r-lucia']);
+  // Nombre guardado en forma descompuesta (letra + tilde suelta).
+  await d.db.prepare("UPDATE clientes SET nombre = ?1 WHERE id = 'c-maria'").bind('María Ramírez'.normalize('NFD')).run();
+  const nfd = await (await handleAgendados(get('/api/equipo/agendados?q=maria%20ramirez'), env, d)).json();
+  assert.deepEqual(nfd.filas.map((f) => f.id), ['r-maria']);
+});
+
 test('reactivar: el vencido vuelve a «sin usar» y aparece en los 30 días; uno vigente da 409', async () => {
   const d = deps();
   await sembrar(d);

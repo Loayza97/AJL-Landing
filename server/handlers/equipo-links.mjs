@@ -19,13 +19,23 @@ const ESTADOS = ['sin_usar', 'agendado', 'vencido'];
 const sinAcceso = () => json(401, { ok: false, error: 'Necesitas entrar con un correo autorizado del equipo.' });
 const bad = (status, error) => json(status, { ok: false, error });
 
+// Búsqueda sin tildes ni mayúsculas, sin migración: el texto buscado se
+// normaliza en JS y la columna en SQL con la misma tabla de letras (SQLite
+// lower() solo baja ASCII y no quita tildes).
+const sinMarcas = (t) => String(t || '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+const LETRAS = [['á', 'a'], ['é', 'e'], ['í', 'i'], ['ó', 'o'], ['ú', 'u'], ['ü', 'u'], ['ñ', 'n'],
+  ['Á', 'a'], ['É', 'e'], ['Í', 'i'], ['Ó', 'o'], ['Ú', 'u'], ['Ü', 'u'], ['Ñ', 'n'],
+  // Tildes sueltas (texto escrito en forma descompuesta, como en algunos teclados de Apple).
+  ['\u0301', ''], ['\u0303', ''], ['\u0308', '']];
+const sinTildesSql = (expr) => LETRAS.reduce((e, [de, a]) => `replace(${e}, '${de}', '${a}')`, `lower(${expr})`);
+
 function busqueda(q) {
-  const s = String(q || '').trim().toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`);
+  const s = sinMarcas(q).trim().replace(/[\\%_]/g, (c) => `\\${c}`);
   return s.length >= 2 ? `%${s}%` : '';
 }
 const pagina = (p) => Math.max(1, Math.min(1000, Number.parseInt(p, 10) || 1));
 const nombreCompleto = (r) => (r.nombres ? `${[r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' ')}, ${r.nombres}` : null);
-const filtroTexto = `(?3 = '' OR lower(COALESCE(c.nombre, '') || ' ' || COALESCE(c.dni, '')) LIKE ?3 ESCAPE '\\')`;
+const filtroTexto = `(?3 = '' OR ${sinTildesSql("COALESCE(c.nombre, '') || ' ' || COALESCE(c.dni, '')")} LIKE ?3 ESCAPE '\\')`;
 
 const BASE_LINKS = `SELECT l.id, l.tipo, l.creado_en, l.vence_en, l.reactivado_en, l.usado_en,
     CASE WHEN l.usado_en IS NOT NULL THEN 'agendado' WHEN l.vence_en <= ?4 THEN 'vencido' ELSE 'sin_usar' END AS estado,
