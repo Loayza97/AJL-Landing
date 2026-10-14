@@ -233,3 +233,79 @@ test('liberarRetencion suelta una hora apartada o en pago, pero nunca una confir
   assert.equal((await repo.reservaPorToken(db, 'tl2')).estado, 'confirmada');
   assert.equal(await repo.liberarRetencion(db, 'no-existe', mas(1)), false);
 });
+
+test('cruce: 30 min a las 10:30 contra 60 min a las 10:00, misma nutricionista: ocupada', async () => {
+  const db = d1DePrueba();
+  assert.equal((await ret(db, { inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video' })).ok, true);
+  assert.deepEqual(await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', modalidad: 'video', duracion_min: 30 }), { ok: false, motivo: 'ocupada' });
+});
+
+test('cruce: dos de 30 seguidas con la misma nutricionista sí entran', async () => {
+  const db = d1DePrueba();
+  assert.equal((await ret(db, { inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video', duracion_min: 30 })).ok, true);
+  assert.equal((await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', modalidad: 'video', duracion_min: 30 })).ok, true);
+  const r = await db.prepare("SELECT fin_utc, duracion_min FROM reservas WHERE inicio_utc = '2026-10-06T15:30:00Z'").first();
+  assert.deepEqual(r, { fin_utc: '2026-10-06T16:00:00Z', duracion_min: 30 });
+});
+
+test('cruce: presenciales de distintas nutricionistas chocan; videos no', async () => {
+  const db = d1DePrueba();
+  await ret(db, { inicio_utc: '2026-10-06T15:00:00Z', nutricionista_id: 'nico' });
+  assert.deepEqual(await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', nutricionista_id: 'jussara', duracion_min: 30 }), { ok: false, motivo: 'ocupada' });
+  assert.equal((await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', nutricionista_id: 'jussara', modalidad: 'video', duracion_min: 30 })).ok, true);
+});
+
+test('cruce: una retención vencida que se cruza no bloquea', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'vieja', inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video' });
+  assert.equal((await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', modalidad: 'video', duracion_min: 30, ahora: mas(16) })).ok, true);
+});
+
+test('cruce: una fila sin fin_utc cuenta como de 60 min', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima,
+    modalidad, estado, creado_en, actualizado_en) VALUES ('m', 'tm', 'constancia', 3, 0, 1, 'nico', '2026-10-06T15:00:00Z', '2026-10-06', 'video', 'confirmada', 'x', 'x')`).run();
+  assert.deepEqual(await ret(db, { inicio_utc: '2026-10-06T15:30:00Z', modalidad: 'video', duracion_min: 30 }), { ok: false, motivo: 'ocupada' });
+});
+
+test('cruce: el tope sigue dando «tope» y no «ocupada»', async () => {
+  const db = d1DePrueba();
+  assert.deepEqual(await ret(db, { primerasManuales: 3 }), { ok: false, motivo: 'tope' });
+});
+
+test('cruce: reubicar a una hora que se cruza da ocupada', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'otra', inicio_utc: '2026-10-07T15:00:00Z', fecha_lima: '2026-10-07', modalidad: 'video' });
+  await ret(db, { id: 'sin', inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video' });
+  await repo.marcarSinHora(db, 'sin', t0);
+  const res = await repo.reubicar(db, { id: 'sin', nutricionista_id: 'nico', inicio_utc: '2026-10-07T15:30:00Z', fecha_lima: '2026-10-07',
+    modalidad: 'video', primerasManuales: 0, tope: 3, ahora: t0 });
+  assert.deepEqual(res, { ok: false, motivo: 'ocupada' });
+});
+
+test('cruce: reubicar recalcula fin_utc con la duración de la reserva', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'sin', inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video', duracion_min: 30 });
+  await repo.marcarSinHora(db, 'sin', t0);
+  assert.deepEqual(await repo.reubicar(db, { id: 'sin', nutricionista_id: 'nico', inicio_utc: '2026-10-07T16:00:00Z', fecha_lima: '2026-10-07',
+    modalidad: 'video', primerasManuales: 0, tope: 3, ahora: t0 }), { ok: true });
+  const r = await repo.reservaPorId(db, 'sin');
+  assert.equal(r.fin_utc, '2026-10-07T16:30:00Z');
+});
+
+test('cruce: revivir una expirada que ahora se cruza con otra no confirma', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'tarde', inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video' });
+  await ret(db, { id: 'nueva', inicio_utc: '2026-10-06T15:30:00Z', modalidad: 'video', duracion_min: 30, ahora: mas(16) });
+  const res = await repo.confirmarReserva(db, { id: 'tarde', fecha_lima: '2026-10-06', primerasManuales: 0, tope: 3, ahora: mas(17) });
+  assert.equal(res.ok, false);
+  assert.equal((await repo.reservaPorId(db, 'tarde')).estado, 'expirada');
+});
+
+test('reservasActivasEntre devuelve fin y duración', async () => {
+  const db = d1DePrueba();
+  await ret(db, { inicio_utc: '2026-10-06T15:00:00Z', modalidad: 'video', duracion_min: 30 });
+  const [r] = await repo.reservasActivasEntre(db, '2026-10-06', '2026-10-07', t0);
+  assert.equal(r.fin_utc, '2026-10-06T15:30:00Z');
+  assert.equal(r.duracion_min, 30);
+});
