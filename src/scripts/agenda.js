@@ -14,9 +14,10 @@ function irA(paso) {
   window.scrollTo(0, 0);
 }
 
-function fin(titulo, detalle) {
+function fin(titulo, detalle, reintentar = false) {
   $('#a-fin-t').textContent = titulo;
   $('#a-fin-d').textContent = detalle;
+  $('#a-reintentar').hidden = !reintentar;
   irA('fin');
 }
 
@@ -36,12 +37,22 @@ function pintarResumen() {
 const fmt = new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', weekday: 'long', day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit' });
 const etiqueta = (iso) => { const s = fmt.format(new Date(iso)); return s.charAt(0).toUpperCase() + s.slice(1); };
 
+// Nunca lanza: una caída de red o una respuesta que no es JSON vuelven como
+// status 0 / cuerpo vacío, y cada llamador decide qué mensaje mostrar.
 async function api(ruta, cuerpo) {
-  const r = await fetch(ruta, cuerpo ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) } : undefined);
+  let r;
+  try {
+    r = await fetch(ruta, cuerpo ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) } : undefined);
+  } catch {
+    return { status: 0, d: {} };
+  }
   let d = {};
   try { d = await r.json(); } catch {}
   return { status: r.status, d };
 }
+
+const MSJ_RED = 'No pudimos conectarnos. Revisa tu conexión e inténtalo de nuevo.';
+const MSJ_RED_CONFIRMAR = 'No pudimos confirmar por un problema de conexión. Si te llega el correo de confirmación, tu cita ya quedó agendada; si no, inténtalo de nuevo.';
 
 function linkNoVigente() {
   fin('Este link ya no sirve', 'Ya se usó o venció. Escríbenos por WhatsApp y lo reactivamos.');
@@ -53,7 +64,9 @@ async function confirmar(datos, errorSel) {
   const h = estado.hora;
   const { status, d } = await api('/api/agenda/confirmar', { l: token, inicio: h.inicio, modalidad: h.modalidad, nutricionista: h.nutricionista, dni: estado.dni, datos });
   btns.forEach((b) => { b.disabled = false; });
-  if (status === 200) {
+  if (status === 0) {
+    $(errorSel).textContent = MSJ_RED_CONFIRMAR;
+  } else if (status === 200) {
     $('#a-listo').textContent = `${d.etiqueta} · ${d.titulo} · ${MOD[d.modalidad]} · con ${d.nutricionista}`;
     $('#a-gcal').href = d.google_calendar;
     $('#a-ics').href = d.ics;
@@ -78,6 +91,7 @@ $('#a-form-dni').addEventListener('submit', async (e) => {
   $('#a-error-dni').textContent = '';
   const { status, d } = await api('/api/agenda/dni', { l: token, dni });
   if (status === 410) return linkNoVigente();
+  if (status === 0) { $('#a-error-dni').textContent = MSJ_RED; return; }
   if (status !== 200) { $('#a-error-dni').textContent = d.error || 'No pudimos revisar tu DNI. Intenta de nuevo.'; return; }
   estado.dni = dni;
   if (!d.conocido) return irA('datos');
@@ -106,6 +120,8 @@ $('#a-form-datos').addEventListener('submit', (e) => {
   confirmar(datos, '#a-error-datos');
 });
 
+$('#a-reintentar').addEventListener('click', () => { irA('cargando'); iniciar(); });
+
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-volver], [data-ir]');
   if (b) irA(b.dataset.volver || b.dataset.ir);
@@ -114,6 +130,7 @@ document.addEventListener('click', (e) => {
 async function iniciar() {
   if (!token) return fin('Falta el link', 'Abre el link completo que te mandamos por WhatsApp.');
   const { status, d } = await api(`/api/agenda/link?l=${encodeURIComponent(token)}`);
+  if (status === 0) return fin('No pudimos abrir tu link', MSJ_RED, true);
   if (status === 404) return fin('Este link no existe', d.error || 'Escríbenos por WhatsApp y te mandamos uno nuevo.');
   if (status !== 200) return fin('No pudimos abrir tu link', 'Intenta de nuevo en un momento.');
   estado.link = d;
