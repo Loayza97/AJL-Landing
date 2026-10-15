@@ -28,7 +28,7 @@ export async function siguienteNutri(db, ids) {
 }
 
 export const linkPorHash = (db, hash) => db.prepare(
-  `SELECT l.*, r.inicio_utc, r.fin_utc, r.modalidad, r.nutricionista_id
+  `SELECT l.*, r.inicio_utc, r.fin_utc, r.modalidad, r.nutricionista_id, r.meet_url
    FROM links_agenda l LEFT JOIN reservas r ON r.id = l.reserva_id WHERE l.token_hash = ?1`,
 ).bind(hash).first();
 

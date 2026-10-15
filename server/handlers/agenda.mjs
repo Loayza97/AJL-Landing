@@ -47,7 +47,8 @@ export async function handleAgendaLink(request, env, deps) {
   const cuerpo = { ok: true, estado, tipo: tipoPublico(l.tipo), nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) };
   if (estado === 'sin_usar' && l.nutri_sugerida && nutriValida(deps, l.nutri_sugerida)) cuerpo.nutricionista_sugerida = l.nutri_sugerida;
   if (estado === 'agendado') {
-    cuerpo.cita = { etiqueta: etiquetaLima(l.inicio_utc), modalidad: l.modalidad,
+    // Con la modalidad va el link de Meet si ya existe: la pantalla muestra dónde es la cita.
+    cuerpo.cita = { etiqueta: etiquetaLima(l.inicio_utc), modalidad: l.modalidad, meet: l.meet_url ?? null,
       nutricionista: deps.nutricionistas.find((n) => n.id === l.nutricionista_id)?.nombre ?? 'el equipo' };
   }
   return json(200, cuerpo);

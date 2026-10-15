@@ -110,6 +110,7 @@ test('confirmar paciente nuevo: reserva, evento de 30 min con invitación, corre
   const link = await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json();
   assert.equal(link.estado, 'agendado');
   assert.equal(link.cita.nutricionista, 'Jussara');
+  assert.equal(link.cita.meet, 'https://meet/x');
 });
 
 test('confirmar dos veces el mismo link: la segunda 410', async () => {

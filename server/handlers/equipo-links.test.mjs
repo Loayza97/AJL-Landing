@@ -191,6 +191,23 @@ test('agendados: una cita recién agendada sale en próximas · 30 días con las
   assert.deepEqual([ags.total, ags.filas[0]?.id, ags.filas[0]?.etiqueta], [1, 'R', 'miércoles, 14 de octubre, 11:30 a. m.']);
 });
 
+// Alejandro (2026-10-15): primero la última que agendaron, no la cita más cercana.
+test('agendados: salen en el orden en que se agendaron, la última primero', async () => {
+  const ahora = new Date('2026-10-14T03:05:49.799Z');
+  const d = deps({ ahora: () => ahora });
+  const agendar = async (id, inicio, usado) => {
+    await agenda.crearLink(d.db, { id, tokenHash: `h-${id}`, tipo: 'c30v', creadoPor: 'romi@x.pe', ahora: new Date('2026-10-14T01:00:00Z') });
+    assert.deepEqual(await agenda.agendarConLink(d.db, { link: id, reservaId: `R${id}`, token: `tk${id}`, tipoId: 'c30v',
+      cliente: { ...lucia, dni: `7000000${id.length}` }, clienteId: `C${id}`,
+      hora: { inicio, fin: inicio.replace(':00:00', ':30:00'), nutricionista_id: 'nico', modalidad: 'video', fecha_lima: inicio.slice(0, 10), duracion_min: 30 },
+      pacienteNuevo: true, condicionesVersion: 'v', ahora: new Date(usado) }), { ok: true });
+  };
+  await agendar('A', '2026-10-16T15:00:00Z', '2026-10-14T02:00:00Z');
+  await agendar('BB', '2026-10-20T15:00:00Z', '2026-10-14T03:00:00Z');
+  const ags = await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json();
+  assert.deepEqual(ags.filas.map((f) => f.id), ['RBB', 'RA']);
+});
+
 test('borrar: sin sesión 401 sin leer la base', async () => {
   const d = deps({ acceso: fuera, db: { prepare() { throw new Error('no debía leer'); } } });
   assert.equal((await handleLinksBorrar(post('/api/equipo/links-borrar', { id: 'sin' }), env, d)).status, 401);
