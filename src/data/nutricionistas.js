@@ -6,6 +6,9 @@
 // `modalidad: null`: Alejandro no la indicó todavía. Se ofrece presencial y por
 // video (el consultorio único sigue mandando para las presenciales).
 //
+// `modalidad: 'presencial'` también se ofrece por video (Alejandro, 2026-10-15).
+// `modalidad: 'video'` es solo virtual.
+//
 // `apodos`: cómo nombra el equipo a cada una en el calendario. Un evento de día
 // completo que contenga cualquiera de estas palabras la saca ese día.
 //
