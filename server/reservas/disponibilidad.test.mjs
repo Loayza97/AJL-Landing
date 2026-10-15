@@ -199,3 +199,10 @@ test('presencial también se ofrece por video; una ventana solo virtual no se vu
   assert.deepEqual(nico, ['11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(horasLibres({ ...base, fecha: '2026-10-12', modalidad: 'presencial', filtroNutricionista: 'paola' }), []);
 });
+
+test('Paola los miércoles atiende de 14 a 19 (a las 7 p. m. da la clase), presencial o virtual', () => {
+  for (const modalidad of ['presencial', 'video']) {
+    const r = horas(horasLibres({ ...base, fecha: '2026-10-14', modalidad, filtroNutricionista: 'paola' }));
+    assert.deepEqual(r, ['14:00', '15:00', '16:00', '17:00', '18:00'], modalidad);
+  }
+});
