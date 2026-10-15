@@ -125,6 +125,7 @@ const vistaAgendado = (r, deps) => ({
   whatsapp: r.whatsapp, fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: r.paciente_nuevo,
 });
 
+// Las últimas agendadas primero (pedido de Alejandro, 2026-10-15), no por fecha de la cita.
 export async function handleAgendados(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
@@ -143,7 +144,7 @@ export async function handleAgendados(request, env, deps) {
   const args = [rango.desde, rango.hasta, busqueda(q.get('q')), ahoraIso];
   const { n } = await deps.db.prepare(`SELECT COUNT(*) AS n ${donde}`).bind(...args).first();
   const { results } = await deps.db.prepare(
-    `SELECT ${CAMPOS_AGENDADO} ${donde} ORDER BY r.inicio_utc ${tramo === 'proximas' ? 'ASC' : 'DESC'} LIMIT ${POR_PAGINA} OFFSET ?5`,
+    `SELECT ${CAMPOS_AGENDADO} ${donde} ORDER BY l.usado_en DESC, r.id DESC LIMIT ${POR_PAGINA} OFFSET ?5`,
   ).bind(...args, (p - 1) * POR_PAGINA).all();
   return json(200, { ok: true, filas: results.map((r) => vistaAgendado(r, deps)), total: n, pagina: p, por_pagina: POR_PAGINA });
 }
@@ -165,7 +166,7 @@ export async function handleAgendadosCsv(request, env, deps) {
   if (!ids.length || ids.length > MAX_CSV) return bad(400, `Elige entre 1 y ${MAX_CSV} citas.`);
   // Un solo parámetro JSON: D1 no acepta más de 100 parámetros por consulta.
   const { results } = await deps.db.prepare(
-    `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ORDER BY r.inicio_utc`,
+    `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ORDER BY l.usado_en DESC, r.id DESC`,
   ).bind(JSON.stringify(ids)).all();
   const cab = ['Cita (Lima)', 'Evento', 'Modalidad', 'Nutricionista', 'Plan', 'Cita', 'Apellido paterno', 'Apellido materno', 'Nombres', 'DNI', 'Correo',
     'WhatsApp', 'Fecha de nacimiento', 'Paciente'];
