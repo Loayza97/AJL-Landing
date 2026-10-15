@@ -1,6 +1,7 @@
 // Controlador del flujo /reservar/: P1 acompañamiento → P2 duración → P3 hora
 // → P4 datos → Mercado Pago. Montos, disponibilidad y vencimientos los decide
 // el servidor; esta página solo guía.
+import { NOMBRE_MODALIDAD, nodoDonde } from './donde.js';
 import { montarSelector } from './selector-horas.js';
 import { formatoSoles } from '../data/duraciones.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
@@ -120,7 +121,8 @@ function abrirP4(reserva) {
   $('#p4-resumen').innerHTML = '';
   const linea = (t) => { const p = document.createElement('div'); p.textContent = t; $('#p4-resumen').append(p); };
   linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}`);
-  linea(`${reserva.etiqueta} · ${reserva.modalidad === 'video' ? 'Videollamada' : 'En Lince'} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
+  linea(`${reserva.etiqueta} · ${NOMBRE_MODALIDAD[reserva.modalidad]} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
+  $('#p4-resumen').append(nodoDonde(reserva.modalidad));
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
   $('#p4-pagar').textContent = `Pagar ${soles(reserva.monto_centimos)}`;
   $('#p4-error').textContent = '';

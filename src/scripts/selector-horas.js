@@ -1,10 +1,10 @@
 // Selector de primera hora (P3): calendario del mes con las horas del día
 // elegido, separadas en mañana y tarde. Lo usan /reservar/ y /reservar/reubicar/.
 // La disponibilidad la decide el servidor; aquí solo se pinta y se elige.
+import { NOMBRE_MODALIDAD, nodoDonde } from './donde.js';
 const hoyLima = () => new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10);
 const sumarDias = (f, n) => { const d = new Date(`${f}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const hora12 = (h) => { const [hh, mm = '00'] = String(h).split(':'); const n = parseInt(hh, 10); return `${n % 12 || 12}:${mm} ${n >= 12 ? 'p. m.' : 'a. m.'}`; };
-const NOMBRE_MODALIDAD = { presencial: 'En Lince', video: 'Por videollamada' };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtDia = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const fmtMes = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -32,6 +32,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       <div class="sel-modalidad" role="group" aria-label="Modalidad"${modalidades.length < 2 ? ' hidden' : ''}>
         ${modalidades.map((m) => `<button type="button" data-modalidad="${m}">${NOMBRE_MODALIDAD[m]}</button>`).join('')}
       </div>
+      <div class="sel-donde"></div>
       <p class="sel-etq">Elige a tu nutricionista</p>
       <div class="sel-nutris"></div>
     </div>
@@ -76,6 +77,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
 
   function pintar() {
     raiz.querySelectorAll('[data-modalidad]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modalidad === estado.modalidad)));
+    $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad));
     const equipo = Object.fromEntries(estado.datos.nutricionistas.map((n) => [n.id, n]));
     $('.sel-nutris').innerHTML = estado.datos.nutricionistas.map((n) => `<button type="button" data-filtro="${esc(n.id)}" aria-pressed="${estado.nutricionista === n.id}">`
       + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}${esc(n.nombre)}</button>`).join('');
