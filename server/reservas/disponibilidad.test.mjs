@@ -35,6 +35,9 @@ test('Paolo (Romi, 2026-10-15): viernes fijo de 14 a 20; alterna martes 20 y sá
   assert.deepEqual(paolo('2026-10-20'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(paolo('2026-10-13'), []);
   assert.deepEqual(paolo('2026-10-12'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']); // lunes fijo
+  // Viernes y sábado son solo presenciales.
+  assert.deepEqual(paolo('2026-10-09', 'video'), []);
+  assert.deepEqual(paolo('2026-10-17', 'video'), []);
 });
 
 test('modalidad sin definir se ofrece en ambas: Jussara también por video', () => {
