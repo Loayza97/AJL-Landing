@@ -25,10 +25,10 @@ export const nutricionistas = [
     apodos: ['nico'],
     foto: '/equipo/nico.jpg',
     ventanas: [
-      { dia: 'lunes', modalidad: 'presencial', desde: 11, hasta: 20 },
-      { dia: 'martes', modalidad: 'presencial', desde: 11, hasta: 20 },
+      { dia: 'lunes', modalidad: null, desde: 11, hasta: 20 },
+      { dia: 'martes', modalidad: null, desde: 11, hasta: 20 },
       { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-28' },
-      { dia: 'jueves', modalidad: 'presencial', desde: 11, hasta: 20 },
+      { dia: 'jueves', modalidad: null, desde: 11, hasta: 20 },
       { dia: 'viernes', modalidad: 'video', desde: 11, hasta: 20 },
       { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-11-07' },
     ],
@@ -40,7 +40,7 @@ export const nutricionistas = [
     foto: '/equipo/paola.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: 'video', desde: 14, hasta: 20 },
-      { dia: 'miercoles', modalidad: 'presencial', desde: 14, hasta: 20 },
+      { dia: 'miercoles', modalidad: null, desde: 14, hasta: 19 }, // a las 7 p. m. da la clase (Romi, 2026-10-15)
       { dia: 'viernes', modalidad: 'presencial', desde: 14, hasta: 20 },
       { dia: 'sabado', modalidad: null, desde: 10, hasta: 19 },
     ],
@@ -65,11 +65,11 @@ export const nutricionistas = [
     apodos: ['paolo'],
     foto: '/equipo/paolo.jpg',
     ventanas: [
-      { dia: 'lunes', modalidad: 'presencial', desde: 14, hasta: 20 },
-      { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20, cadaDosSemanas: '2026-10-20' },
+      { dia: 'lunes', modalidad: null, desde: 14, hasta: 20 },
+      { dia: 'martes', modalidad: null, desde: 14, hasta: 20, cadaDosSemanas: '2026-10-20' },
       { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
-      { dia: 'viernes', modalidad: 'presencial', desde: 14, hasta: 20 },
-      { dia: 'sabado', modalidad: 'presencial', desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
+      { dia: 'viernes', modalidad: null, desde: 14, hasta: 20 },
+      { dia: 'sabado', modalidad: null, desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
     ],
   },
 ];
