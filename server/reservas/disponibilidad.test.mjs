@@ -18,20 +18,23 @@ test('martes presencial: de 10:00 a 19:00, recortado al consultorio', () => {
   assert.equal(r[0].inicio, '2026-10-06T15:00:00Z');
 });
 
-test('Nico alterna: miércoles 7 sí, miércoles 14 no; sábado 10 no, sábado 17 sí de 9 a 18', () => {
+test('Nico alterna (Romi, 2026-10-15): miércoles 14 sí, 21 no; sábado 10 sí de 9 a 18, 17 no', () => {
   const nico = (fecha) => horasLibres({ ...base, fecha, modalidad: 'presencial', filtroNutricionista: 'nico' });
-  assert.equal(horas(nico('2026-10-07'))[0], '11:00');
-  assert.deepEqual(nico('2026-10-14'), []);
-  assert.deepEqual(nico('2026-10-10'), []);
-  assert.deepEqual(horas(nico('2026-10-17')), ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']);
+  assert.equal(horas(nico('2026-10-14'))[0], '11:00');
+  assert.deepEqual(nico('2026-10-21'), []);
+  assert.deepEqual(nico('2026-10-17'), []);
+  assert.deepEqual(horas(nico('2026-10-10')), ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']);
 });
 
-test('Paolo no se ofrece viernes ni sábado mientras su alternancia no esté definida', () => {
-  for (const fecha of ['2026-10-09', '2026-10-10']) {
-    for (const modalidad of ['presencial', 'video']) {
-      assert.deepEqual(horasLibres({ ...base, fecha, modalidad, filtroNutricionista: 'paolo' }), [], `${fecha} ${modalidad}`);
-    }
-  }
+test('Paolo (Romi, 2026-10-15): viernes fijo de 14 a 20; alterna martes 20 y sábado 17 de 10 a 17', () => {
+  const paolo = (fecha, modalidad = 'presencial') => horas(horasLibres({ ...base, fecha, modalidad, filtroNutricionista: 'paolo' }));
+  assert.deepEqual(paolo('2026-10-09'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
+  assert.deepEqual(paolo('2026-10-17'), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00']);
+  assert.deepEqual(paolo('2026-10-10'), []);
+  assert.deepEqual(paolo('2026-10-24'), []);
+  assert.deepEqual(paolo('2026-10-20'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
+  assert.deepEqual(paolo('2026-10-13'), []);
+  assert.deepEqual(paolo('2026-10-12'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']); // lunes fijo
 });
 
 test('modalidad sin definir se ofrece en ambas: Jussara también por video', () => {

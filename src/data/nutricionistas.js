@@ -10,12 +10,10 @@
 // completo que contenga cualquiera de estas palabras la saca ese día.
 //
 // `cadaDosSemanas`: una fecha en la que esa ventana SÍ aplica; aplica también
-// cada 14 días antes y después. Nico alterna miércoles y sábado: viene el
-// miércoles 7-oct-2026 y el sábado 3-oct-2026 (el miércoles 30-sep no vino).
-//
-// Paolo alterna viernes y sábado, pero falta definir qué semanas: hasta
-// entonces no se ofrece ninguno de los dos. Mejor perder horas que vender una
-// que no atiende.
+// cada 14 días antes y después. Una semana viene un día y la siguiente el otro.
+// Nico alterna miércoles y sábado: viene el miércoles 28-oct-2026 y el sábado
+// 7-nov-2026 (Romi, 2026-10-15). Paolo alterna martes y sábado: viene el
+// sábado 17-oct-2026 y el martes 20-oct-2026 (Romi, 2026-10-15).
 
 export const nutricionistas = [
   {
@@ -26,10 +24,10 @@ export const nutricionistas = [
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 11, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 11, hasta: 20 },
-      { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-07' },
+      { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-28' },
       { dia: 'jueves', modalidad: 'presencial', desde: 11, hasta: 20 },
       { dia: 'viernes', modalidad: 'video', desde: 11, hasta: 20 },
-      { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-10-03' },
+      { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-11-07' },
     ],
   },
   {
@@ -65,8 +63,10 @@ export const nutricionistas = [
     foto: '/equipo/paolo.jpg',
     ventanas: [
       { dia: 'lunes', modalidad: 'presencial', desde: 14, hasta: 20 },
-      { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20 },
+      { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20, cadaDosSemanas: '2026-10-20' },
       { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'viernes', modalidad: null, desde: 14, hasta: 20 },
+      { dia: 'sabado', modalidad: null, desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
     ],
   },
 ];
