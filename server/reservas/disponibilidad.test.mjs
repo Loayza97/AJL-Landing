@@ -35,9 +35,9 @@ test('Paolo (Romi, 2026-10-15): viernes fijo de 14 a 20; alterna martes 20 y sá
   assert.deepEqual(paolo('2026-10-20'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(paolo('2026-10-13'), []);
   assert.deepEqual(paolo('2026-10-12'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']); // lunes fijo
-  // Viernes y sábado son solo presenciales.
-  assert.deepEqual(paolo('2026-10-09', 'video'), []);
-  assert.deepEqual(paolo('2026-10-17', 'video'), []);
+  // Viernes y sábado son presenciales y, como toda ventana presencial, también por video.
+  assert.deepEqual(paolo('2026-10-09', 'video'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
+  assert.deepEqual(paolo('2026-10-17', 'video'), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00']);
 });
 
 test('modalidad sin definir se ofrece en ambas: Jussara también por video', () => {
@@ -62,7 +62,7 @@ test('consultorio único: una presencial ocupa la hora para todas, pero no el vi
 test('nutricionista ocupada por video: la hora se le asigna a otra', () => {
   const reservas = [reserva({ inicio_utc: '2026-10-09T20:00:00Z', fecha_lima: '2026-10-09', nutricionista_id: 'nico', modalidad: 'video' })];
   const r = horasLibres({ ...base, reservas, fecha: '2026-10-09', modalidad: 'video' });
-  assert.equal(r.find((h) => h.hora === '15:00').nutricionista_id, 'jussara');
+  assert.notEqual(r.find((h) => h.hora === '15:00').nutricionista_id, 'nico');
 });
 
 test('máximo de horas al día, si se activa: con 5 horas tomadas no se ofrece nada', () => {
@@ -191,4 +191,11 @@ test('peso 0 (citas de link) no mira el tope de primeras sesiones', () => {
   const eventos = ['09', '10', '11', '12'].map((h) => conHora('1ra · X · Plan', `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`, { bloquea: false }));
   assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }), []);
   assert.ok(horasLibres({ ...base, peso: 0, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
+});
+
+test('presencial también se ofrece por video; una ventana solo virtual no se vuelve presencial', () => {
+  // Lunes: Nico es presencial de 11 a 20 y Paola solo virtual de 14 a 20.
+  const nico = horas(horasLibres({ ...base, fecha: '2026-10-12', modalidad: 'video', filtroNutricionista: 'nico' }));
+  assert.deepEqual(nico, ['11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
+  assert.deepEqual(horasLibres({ ...base, fecha: '2026-10-12', modalidad: 'presencial', filtroNutricionista: 'paola' }), []);
 });

@@ -60,7 +60,9 @@ function ventanaCubre(nutricionista, fecha, modalidad, m, dur) {
   const dow = diaSemana(fecha);
   return nutricionista.ventanas.some((v) => {
     if (v.dia !== DIAS[dow]) return false;
-    if (v.modalidad && v.modalidad !== modalidad) return false; // null = ambas
+    // null = ambas. Quien atiende presencial también puede atender por video
+    // (Alejandro, 2026-10-15); una ventana solo virtual no se vuelve presencial.
+    if (v.modalidad && v.modalidad !== modalidad && !(v.modalidad === 'presencial' && modalidad === 'video')) return false;
     if (v.cadaDosSemanas && Math.abs(diasEntre(v.cadaDosSemanas, fecha)) % 14 !== 0) return false;
     let desde = v.desde;
     let hasta = v.hasta;
