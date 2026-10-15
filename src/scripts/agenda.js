@@ -21,6 +21,7 @@ function irA(paso) {
 function fin(titulo, detalle, reintentar = false) {
   $('#a-fin-t').textContent = titulo;
   $('#a-fin-d').textContent = detalle;
+  $('#a-fin-donde').replaceChildren();
   $('#a-reintentar').hidden = !reintentar;
   irA('fin');
 }
@@ -147,7 +148,10 @@ async function iniciar() {
   if (status === 404) return fin('Este link no existe', d.error || 'Escríbenos por WhatsApp y te mandamos uno nuevo.');
   if (status !== 200) return fin('No pudimos abrir tu link', 'Intenta de nuevo en un momento.');
   estado.link = d;
-  if (d.estado === 'agendado') return fin('Este link ya se usó', `Con él se agendó tu cita: ${d.cita.etiqueta}, ${MOD[d.cita.modalidad]}, con ${d.cita.nutricionista}. Si necesitas cambiarla, escríbenos.`);
+  if (d.estado === 'agendado') {
+    fin('Este link ya se usó', `Con él se agendó tu cita: ${d.cita.etiqueta}, ${MOD[d.cita.modalidad]}, con ${d.cita.nutricionista}. Si necesitas cambiarla, escríbenos.`);
+    return $('#a-fin-donde').append(nodoDonde(d.cita.modalidad, d.cita.meet));
+  }
   if (d.estado === 'vencido') return fin('Este link venció', 'Escríbenos por WhatsApp y lo reactivamos.');
   $('#a-tipo').textContent = `${d.tipo.nombre} · ${d.tipo.etiqueta}`;
   estado.selector = montarSelector($('#a-selector'), {

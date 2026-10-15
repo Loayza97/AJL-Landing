@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- /agenda/: si el paciente abre otra vez un link ya usado, debajo de su cita sale la dirección del consultorio con Google Maps o el link de Google Meet.
 - /agenda/ y /reservar/: la modalidad dice «Presencial» o «Virtual»; debajo sale la dirección del consultorio con link a Google Maps o el aviso de Google Meet, y lo mismo en el paso de pago y en la pantalla final (con el link de Meet cuando ya existe).
 - Panel /panel/links/: el plan se elige en tres listas que dependen una de otra (producto, duración y qué cita es, como «2 de 7»; Constancia y Transformación suman una cita más el primer mes); «Seguimiento» pasa a llamarse «Acompañamiento» y ya no está «Otro».
 - Links: cualquier tipo de evento admite la primera cita; la sesión de 1 hora se ofrece solo en hora en punto y los controles de 30 min también a la media.
