@@ -65,8 +65,8 @@ export const nutricionistas = [
       { dia: 'lunes', modalidad: 'presencial', desde: 14, hasta: 20 },
       { dia: 'martes', modalidad: 'presencial', desde: 14, hasta: 20, cadaDosSemanas: '2026-10-20' },
       { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
-      { dia: 'viernes', modalidad: null, desde: 14, hasta: 20 },
-      { dia: 'sabado', modalidad: null, desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
+      { dia: 'viernes', modalidad: 'presencial', desde: 14, hasta: 20 },
+      { dia: 'sabado', modalidad: 'presencial', desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
     ],
   },
 ];
