@@ -28,11 +28,13 @@ export function paisDeTelefono(numero) {
   return POR_CODIGO.find(([, , c]) => n.startsWith(`+${c}`))?.[1] ?? '';
 }
 
-// Número con un espacio tras el código («+51 920399842») para pegar en Google
-// Sheets o Excel: sin el espacio lo toman como número y borran el +. Con un
-// código que no está en la lista se deja como vino.
+// Número para pegar en la base maestra: los de Perú van sin el +51 (962730636),
+// como el resto de la base (Romi, 2026-10-16). Los de otros países, con el código y
+// un espacio («+593 991234567»): sin el espacio Sheets lo toma como número y borra el +.
+// Con un código que no está en la lista se deja como vino.
 export function numeroParaPegar(numero) {
   const n = String(numero || '').replace(/[^\d+]/g, '');
   const codigo = n.startsWith('+') ? POR_CODIGO.find(([, , c]) => n.startsWith(`+${c}`))?.[2] : null;
+  if (codigo === '51') return n.slice(3);
   return codigo ? `+${codigo} ${n.slice(codigo.length + 1)}` : String(numero || '');
 }
