@@ -15,6 +15,7 @@ import { etiquetaPlan, etiquetaCita, planValido, citaValida, PRODUCTOS } from '.
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
+import { paisDeTelefono } from '../../src/data/telefono.js';
 
 const POR_PAGINA = 20;
 const MAX_CSV = 200; // ids por descarga: D1 recibe la lista en un solo parámetro JSON
@@ -146,7 +147,7 @@ const vistaAgendado = (r, deps) => {
     plan: (link ? etiquetaPlan(r.plan) : etiquetaPlan(planWeb(r)) ?? cotizar(r.producto, r.duracion_meses)?.titulo ?? r.producto) ?? SIN_DATO,
     cita: link ? etiquetaCita(r.plan, r.cita) ?? SIN_DATO : null,
     apellido_paterno: r.apellido_paterno, apellido_materno: r.apellido_materno, nombres: r.nombres || r.nombre, dni: r.dni, email: r.email,
-    whatsapp: r.whatsapp, fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: link ? r.paciente_nuevo : null,
+    whatsapp: r.whatsapp, pais: paisDeTelefono(r.whatsapp), fecha_nacimiento: r.fecha_nacimiento, paciente_nuevo: link ? r.paciente_nuevo : null,
     pago: link ? 'Pagó por fuera' : soles(r.monto_centimos),
     pago_detalle: link ? (quienCreo(r) ? `Link de ${quienCreo(r)}` : null)
       : r.estado === 'pagada_sin_hora' ? 'Pagó pero perdió la hora: elegir otra' : metodoPago(r.metodo),
@@ -203,13 +204,14 @@ export async function handleAgendadosCsv(request, env, deps) {
   const { results } = await deps.db.prepare(
     `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ${ORDEN_AGENDADO}`,
   ).bind(JSON.stringify(ids)).all();
-  // Mismo orden que la tabla del panel, que sigue a la base maestra (Apellidos, Nombres, DNI, Correo, Número…).
-  const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'WhatsApp', 'Fecha de nacimiento', 'Cita (Lima)', 'Evento', 'Plan', 'Cita', 'Pago',
+  // Mismo orden que la tabla del panel, que sigue a la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO,
+  // NACIMIENTO, PAÍS, FECHA (pedido de Alejandro, 2026-10-16) y después el resto.
+  const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'Número', 'Nacimiento', 'País', 'Fecha (Lima)', 'Evento', 'Plan', 'Cita', 'Pago',
     'Detalle del pago', 'Paciente', 'Modalidad', 'Nutricionista', 'Procedencia', 'Agendó (Lima)'];
   const filas = results.map((r) => {
     const v = vistaAgendado(r, deps);
     return [celda([v.apellido_paterno, v.apellido_materno].filter(Boolean).join(' ')), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
-      celda(v.fecha_nacimiento), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.plan), celda(v.cita ?? ''), celda(v.pago),
+      celda(v.fecha_nacimiento), celda(v.pais), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.plan), celda(v.cita ?? ''), celda(v.pago),
       celda(v.pago_detalle), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'),
       celda(v.modalidad === 'video' ? 'Virtual' : 'Presencial'), celda(v.nutricionista),
       celda(v.procedencia === 'link' ? 'Link enviado' : 'Página web'), celda(lima(v.agendado_en))].join(',');

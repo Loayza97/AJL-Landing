@@ -105,14 +105,14 @@ function pintar() {
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
     caja.addEventListener('change', () => { caja.checked ? est.sel.add(f.id) : est.sel.delete(f.id); pintar(); });
     const etq = document.createElement('label'); etq.className = 'lk-check'; etq.append(caja);
-    // Mismo orden que la base maestra: Apellidos, Nombres, DNI, Correo, Número, Nacimiento, Fecha…
+    // Mismo orden que la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO, NACIMIENTO, PAÍS, FECHA…
     const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), f.tipo) : td(citaCorta(f.inicio_utc), f.tipo);
     tr.append(td(etq), td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
-      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
+      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
       td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
       sinCorte(td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`)));
     return tr;
-  }) : [filaVacia(14, 'No hay citas con este filtro.')]));
+  }) : [filaVacia(15, 'No hay citas con este filtro.')]));
   limitarFilas($('#a-scroll'));
   $('#a-todos').checked = filas.length > 0 && filas.every((f) => est.sel.has(f.id));
   const n = est.sel.size;
@@ -134,6 +134,7 @@ function filaMaestra(f) {
   c[3] = f.email ?? ''; // D CORREO
   c[4] = f.whatsapp ?? ''; // E NÚMERO
   c[5] = dmy(f.fecha_nacimiento); // F NACIMIENTO
+  c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
   c[12] = f.producto ?? ''; // M PRODUCTO
   c[13] = f.soles == null ? '' : String(f.soles); // N SOLES
