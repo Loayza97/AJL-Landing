@@ -27,3 +27,12 @@ export function paisDeTelefono(numero) {
   if (!n.startsWith('+')) return '';
   return POR_CODIGO.find(([, , c]) => n.startsWith(`+${c}`))?.[1] ?? '';
 }
+
+// Número con un espacio tras el código («+51 920399842») para pegar en Google
+// Sheets o Excel: sin el espacio lo toman como número y borran el +. Con un
+// código que no está en la lista se deja como vino.
+export function numeroParaPegar(numero) {
+  const n = String(numero || '').replace(/[^\d+]/g, '');
+  const codigo = n.startsWith('+') ? POR_CODIGO.find(([, , c]) => n.startsWith(`+${c}`))?.[2] : null;
+  return codigo ? `+${codigo} ${n.slice(codigo.length + 1)}` : String(numero || '');
+}

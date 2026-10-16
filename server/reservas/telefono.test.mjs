@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PAISES, telefonoCompleto, paisDeTelefono } from '../../src/data/telefono.js';
+import { PAISES, telefonoCompleto, paisDeTelefono, numeroParaPegar } from '../../src/data/telefono.js';
 
 test('Perú es la primera opción y el número se arma con +51', () => {
   assert.deepEqual(PAISES[0], ['🇵🇪', 'Perú', '51']);
@@ -18,4 +18,11 @@ test('país según el código del número: el más largo gana y sin + queda vac�
   assert.equal(paisDeTelefono('+81312345678'), '');
   assert.equal(paisDeTelefono('947560349'), '');
   assert.equal(paisDeTelefono(null), '');
+});
+
+test('número para pegar en Sheets: espacio tras el código para que no borre el +', () => {
+  assert.equal(numeroParaPegar('+51920399842'), '+51 920399842');
+  assert.equal(numeroParaPegar('+593991234567'), '+593 991234567');
+  assert.equal(numeroParaPegar('+81312345678'), '+81312345678');
+  assert.equal(numeroParaPegar(null), '');
 });
