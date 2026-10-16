@@ -56,3 +56,5 @@ tr[data-sel=true] td { background: var(--gold-pale); }
 .lk-sin-corte { white-space: nowrap; }
 .lk-col-ancha { min-width: 150px; }
 #app:not([hidden]) { display: flex; flex-direction: column; gap: 36px; }
+/* Reservas: nada se parte en varias líneas (Romi, 2026-10-16); si no entra, la tabla se desliza de lado. */
+#a-scroll td, #a-scroll th { white-space: nowrap; }
