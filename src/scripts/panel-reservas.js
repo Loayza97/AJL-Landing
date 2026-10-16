@@ -3,6 +3,7 @@
 // maestra y CSV de las elegidas; y la pestaña de quién dejó datos sin pagar, con
 // «Marcar contactado». Todo el texto de la base se pinta con textContent.
 import { limitarFilas } from './panel-filas.js';
+import { numeroParaPegar } from '../data/telefono.js';
 import { mostrarLogin } from './panel-links.js';
 
 const $ = (s) => document.querySelector(s);
@@ -134,7 +135,7 @@ function filaMaestra(f) {
   c[1] = f.nombres ?? ''; // B NOMBRES
   c[2] = f.dni ?? ''; // C DNI
   c[3] = f.email ?? ''; // D CORREO
-  c[4] = f.whatsapp ?? ''; // E NÚMERO
+  c[4] = numeroParaPegar(f.whatsapp); // E NÚMERO, con espacio tras el código para que Sheets no borre el +
   c[5] = dmy(f.fecha_nacimiento); // F NACIMIENTO
   c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
