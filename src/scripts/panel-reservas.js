@@ -129,13 +129,15 @@ function pintar() {
 // es la O, RECURRENCIA la R, MODALIDAD la S y NUTRICIONISTA la W (Romi, 2026-10-16).
 // Solo se copian las elegidas que están en esta página de la tabla.
 const COLUMNAS_MAESTRA = 25; // A a Y
+// En la base Paola y Jussara van como Pao y Yuyu (Romi, 2026-10-16); solo al copiar, nunca para pacientes.
+const NOMBRE_EN_BASE = { Paola: 'Pao', Jussara: 'Yuyu' };
 function filaMaestra(f) {
   const c = Array(COLUMNAS_MAESTRA).fill('');
   c[0] = [f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '); // A APELLIDOS
   c[1] = f.nombres ?? ''; // B NOMBRES
   c[2] = f.dni ?? ''; // C DNI
   c[3] = f.email ?? ''; // D CORREO
-  c[4] = numeroParaPegar(f.whatsapp); // E NÚMERO, con espacio tras el código para que Sheets no borre el +
+  c[4] = numeroParaPegar(f.whatsapp); // E NÚMERO, los de Perú sin +51
   c[5] = dmy(f.fecha_nacimiento); // F NACIMIENTO
   c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
@@ -143,7 +145,7 @@ function filaMaestra(f) {
   c[14] = f.soles == null ? '' : String(f.soles); // O SOLES
   c[17] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // R RECURRENCIA
   c[18] = MOD[f.modalidad] ?? ''; // S MODALIDAD
-  c[22] = f.nutricionista ?? ''; // W NUTRICIONISTA
+  c[22] = NOMBRE_EN_BASE[f.nutricionista] ?? f.nutricionista ?? ''; // W NUTRICIONISTA
   return c.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t');
 }
 

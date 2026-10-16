@@ -20,8 +20,8 @@ test('país según el código del número: el más largo gana y sin + queda vac�
   assert.equal(paisDeTelefono(null), '');
 });
 
-test('número para pegar en Sheets: espacio tras el código para que no borre el +', () => {
-  assert.equal(numeroParaPegar('+51920399842'), '+51 920399842');
+test('número para pegar en la base: Perú sin +51; otros con código y espacio para que Sheets no borre el +', () => {
+  assert.equal(numeroParaPegar('+51920399842'), '920399842');
   assert.equal(numeroParaPegar('+593991234567'), '+593 991234567');
   assert.equal(numeroParaPegar('+81312345678'), '+81312345678');
   assert.equal(numeroParaPegar(null), '');
