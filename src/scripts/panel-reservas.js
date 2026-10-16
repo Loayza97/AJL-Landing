@@ -122,10 +122,12 @@ function pintar() {
   $('#a-copiar').textContent = n ? `Copiar ${n} para la base maestra` : 'Copiar para la base maestra';
 }
 
-// Filas para pegar en la base maestra (Excel), de la columna A (APELLIDOS) a la Y
-// (NOTA): lo que el panel no sabe va vacío para que cada dato caiga en su columna.
+// Filas para pegar en la base maestra (Excel), desde la columna A (APELLIDOS): lo
+// que el panel no sabe va vacío para que cada dato caiga en su columna. Después
+// de PRODUCTO (M) la base tiene una columna de sesiones (N, «1/1»), así que SOLES
+// es la O, RECURRENCIA la R, MODALIDAD la S y NUTRICIONISTA la W (Romi, 2026-10-16).
 // Solo se copian las elegidas que están en esta página de la tabla.
-const COLUMNAS_MAESTRA = 25;
+const COLUMNAS_MAESTRA = 25; // A a Y
 function filaMaestra(f) {
   const c = Array(COLUMNAS_MAESTRA).fill('');
   c[0] = [f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '); // A APELLIDOS
@@ -137,10 +139,10 @@ function filaMaestra(f) {
   c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
   c[12] = f.producto ?? ''; // M PRODUCTO
-  c[13] = f.soles == null ? '' : String(f.soles); // N SOLES
-  c[16] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // Q RECURRENCIA
-  c[17] = MOD[f.modalidad] ?? ''; // R MODALIDAD
-  c[21] = f.nutricionista ?? ''; // V NUTRICIONISTA
+  c[14] = f.soles == null ? '' : String(f.soles); // O SOLES
+  c[17] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // R RECURRENCIA
+  c[18] = MOD[f.modalidad] ?? ''; // S MODALIDAD
+  c[22] = f.nutricionista ?? ''; // W NUTRICIONISTA
   return c.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t');
 }
 
