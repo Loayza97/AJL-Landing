@@ -1,6 +1,7 @@
-// Panel /panel/links/: crea links, lista y filtra links, reactiva y borra los sin
-// usar. Las citas agendadas están en /panel/. Todo el texto de la base se pinta con textContent.
-import { montarLogin } from './panel-login.js';
+// Panel /panel/, partes de links: crea links, lista y filtra los creados, reactiva y
+// borra los sin usar. Las citas agendadas son panel-reservas.js; el login y la
+// carga inicial, panel.js. Todo el texto de la base se pinta con textContent.
+import { limitarFilas } from './panel-filas.js';
 import { duracionesDeProducto, clavePlan, citasDePlan } from '../../server/agenda/opciones.mjs';
 
 const $ = (s) => document.querySelector(s);
@@ -46,12 +47,13 @@ function paginar(prefijo, s) {
   $(`#${prefijo}-next`).disabled = s.pagina * 20 >= s.total;
 }
 
-async function cargarLinks() {
+// Devuelve false sin sesión (panel.js no pide entonces las reservas).
+export async function cargarLinks() {
   const p = periodo('l');
   if (!p) return;
   p.set('estado', est.links.estado); p.set('pagina', String(est.links.pagina));
   const r = await pedir(`/api/equipo/links?${p}`);
-  if (r?.status === 401) { mostrarLogin(); return; }
+  if (r?.status === 401) { mostrarLogin(); return false; }
   const d = r?.ok ? await jsonDe(r) : null;
   $('#login').hidden = true; $('#app').hidden = false;
   // Error del servidor o de red: se avisa y la tabla queda como estaba.
@@ -95,6 +97,7 @@ async function cargarLinks() {
     return tr;
   }) : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="4">No hay links con este filtro.</td>' })]));
   paginar('l', est.links);
+  limitarFilas($('#l-scroll'));
 }
 
 async function reactivar(id, b) {
@@ -212,20 +215,12 @@ function otro(tarjeta) {
   tarjeta.querySelector('[data-producto]').focus();
 }
 
-function mostrarLogin() {
+export function mostrarLogin() {
   $('#login').hidden = false; $('#app').hidden = true; $('#salir').hidden = true; $('#quien').textContent = '';
   $('#usuarios').hidden = true;
 }
 
-// Una sola petición para saber si hay sesión: la lista de links ya trae el
-// correo de quien entró (no se piden fichas de pacientes). Al volver a la
-// pestaña se recarga (un paciente pudo agendar mientras tanto).
 const refrescar = cargarLinks;
-const iniciar = refrescar;
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refrescar(); });
-
-// Login: el mismo módulo que /panel/ (código por correo, sesión en cookie).
-montarLogin({ onEntrar: iniciar });
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button, a');
@@ -250,5 +245,3 @@ for (const [prefijo, cargar, s] of [['l', cargarLinks, est.links]]) {
   $(`#${prefijo}-periodo`).addEventListener('change', (e) => { $(`#${prefijo}-rango`).hidden = e.target.value !== 'rango'; s.pagina = 1; cargar(); });
   for (const lado of ['desde', 'hasta']) $(`#${prefijo}-${lado}`).addEventListener('change', () => { s.pagina = 1; cargar(); });
 }
-
-iniciar();

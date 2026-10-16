@@ -138,10 +138,10 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   const texto = await res.text();
   const lineas = texto.replace(/^﻿/, '').trim().split('\r\n');
   // Sin la fila «sep=,» (Google Sheets la importaría como datos): la primera línea son los encabezados.
-  assert.equal(lineas[0], 'Procedencia,Agendó (Lima),Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente,Pago,Detalle del pago');
+  assert.equal(lineas[0], 'Apellidos,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Cita (Lima),Evento,Plan,Cita,Pago,Detalle del pago,Paciente,Modalidad,Nutricionista,Procedencia,Agendó (Lima)');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.match(lineas[1], /^Link enviado,2026-10-10 10:00,2026-10-14 10:00,Control de 30 min,Videollamada,Nico,"Constancia, 3 meses",2 de 7,Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo,Pagó por fuera,Link de romi$/);
+  assert.equal(lineas[1], 'Ramos Quispe,Lucía,"=""70123456""",lucia@x.pe,"=""+51987654321""",1992-03-08,2026-10-14 10:00,Control de 30 min,"Constancia, 3 meses",2 de 7,Pagó por fuera,Link de romi,Nuevo,Virtual,Nico,Link enviado,2026-10-10 10:00');
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 
@@ -240,7 +240,8 @@ test('reservas: una sola lista con los links y la web, la última agendada prime
   assert.deepEqual(ana.filas.map((f) => f.id), ['web', 'sinhora']);
   const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=web,nopago'), env, d)).text()).trim().split('\r\n');
   assert.equal(csv.length, 2);
-  assert.match(csv[1], /^Página web,2026-10-11 17:00,2026-10-20 15:00,Sesión de 1 hora,Presencial,Paola,"Constancia, 3 meses",,Pérez,,Ana,.*,,S\/1\.080,"Mercado Pago, VISA"$/);
+  assert.equal(csv[1], 'Pérez,Ana,"=""01234567""",web@x.pe,"=""+51911222333""",1990-05-04,2026-10-20 15:00,Sesión de 1 hora,"Constancia, 3 meses",,S/1.080,"Mercado Pago, VISA",,Presencial,Paola,Página web,2026-10-11 17:00');
+  assert.deepEqual([web.producto, web.soles, lu.producto, lu.soles], ['Constancia', 1080, 'Constancia', null]);
 });
 
 test('borrar: sin sesión 401 sin leer la base', async () => {
@@ -281,7 +282,7 @@ test('links viejos sin plan ni cita: agendados y CSV muestran «—», la lista 
   const l = (await (await handleLinks(get('/api/equipo/links'), env, d)).json()).filas[0];
   assert.deepEqual([l.plan, l.cita_link], [null, null]);
   const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=r-old'), env, d)).text()).trim().split('\r\n');
-  assert.match(csv[1], /,Nico,—,—,Ramos,/);
+  assert.match(csv[1], /,Control de 30 min,—,—,Pagó por fuera,/);
 });
 
 test('crear: cualquier tipo admite la 1ra cita (venta por WhatsApp)', async () => {

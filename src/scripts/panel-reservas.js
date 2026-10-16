@@ -1,13 +1,23 @@
-// Panel /panel/ (Reservas): una sola lista con las citas agendadas con link y las
-// pagadas en la página web, la última agendada primero; CSV de las elegidas; y la
-// pestaña de quién dejó datos sin pagar, con «Marcar contactado».
-// Todo el texto de la base se pinta con textContent.
-import { montarLogin } from './panel-login.js';
+// Panel /panel/, parte de Reservas: una sola lista con las citas agendadas con link
+// y las pagadas en la página web, la última agendada primero; copiar para la base
+// maestra y CSV de las elegidas; y la pestaña de quién dejó datos sin pagar, con
+// «Marcar contactado». Todo el texto de la base se pinta con textContent.
+import { limitarFilas } from './panel-filas.js';
+import { mostrarLogin } from './panel-links.js';
 
 const $ = (s) => document.querySelector(s);
 const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
 const lima = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '');
 const MOD = { presencial: 'Presencial', video: 'Virtual' };
+// «jue 15 oct, 5:00 p. m.»: entra en una línea (la fecha larga partía la columna en 6).
+const citaCorta = (iso) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    .formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  const sinPunto = (t) => t.replace(/\.$/, '');
+  return `${sinPunto(p.weekday)} ${p.day} ${sinPunto(p.month)}, ${p.hour}:${p.minute} ${p.dayPeriod}`;
+};
+const fechaLima = (iso) => new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
+const dmy = (f) => (f ? f.split('-').reverse().join('/') : '');
 const PROC = { web: 'Página web', link: 'Link enviado' };
 const DOCS = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
@@ -48,6 +58,8 @@ function filtros() {
   return p;
 }
 
+const sinCorte = (c) => { c.className = 'lk-sin-corte'; return c; };
+
 function entro(d) {
   $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
   $('#quien').textContent = `Entraste como ${d.email}`;
@@ -61,16 +73,17 @@ function pintarTramo() {
   $('#excel').hidden = !nopago; $('#tabla-nopago').hidden = !nopago;
 }
 
-async function cargar() {
+// Devuelve false sin sesión.
+export async function cargarReservas() {
   pintarTramo();
   if (est.tramo === 'no_pagaron') return cargarNoPago();
   const p = filtros();
   if (!p) return;
   p.set('tramo', est.tramo); p.set('pagina', String(est.pagina));
   const r = await pedir(`/api/equipo/agendados?${p}`);
-  if (r?.status === 401) return mostrarLogin();
+  if (r?.status === 401) { mostrarLogin(); return false; }
   const d = r?.ok ? await jsonDe(r) : null;
-  if (!d) { $('#login').hidden = true; $('#app').hidden = false; aviso(MSJ_CARGA); return; }
+  if (!d) { $('#login').hidden = true; $('#app').hidden = false; aviso(MSJ_CARGA); return true; }
   entro(d);
   aviso();
   est.total = d.total; est.filas = d.filas;
@@ -79,6 +92,7 @@ async function cargar() {
   $('#a-pag').textContent = est.total ? `${desde} a ${Math.min(est.pagina * 20, est.total)} de ${est.total}` : '0 resultados';
   $('#a-prev').disabled = est.pagina <= 1;
   $('#a-next').disabled = est.pagina * 20 >= est.total;
+  return true;
 }
 
 function pintar() {
@@ -91,26 +105,64 @@ function pintar() {
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
     caja.addEventListener('change', () => { caja.checked ? est.sel.add(f.id) : est.sel.delete(f.id); pintar(); });
     const etq = document.createElement('label'); etq.className = 'lk-check'; etq.append(caja);
-    const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), `${f.tipo} · ${MOD[f.modalidad]} · ${f.nutricionista}`)
-      : td(f.etiqueta, `${f.tipo} · ${MOD[f.modalidad]} · ${f.nutricionista}`);
-    tr.append(td(etq), td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`), cita, td(f.plan, f.cita),
-      td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), td(f.dni), td(f.email), td(f.whatsapp),
-      td(f.fecha_nacimiento ? f.fecha_nacimiento.split('-').reverse().join('/') : ''),
-      td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(f.pago, f.pago_detalle));
+    // Mismo orden que la base maestra: Apellidos, Nombres, DNI, Correo, Número, Nacimiento, Fecha…
+    const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), f.tipo) : td(citaCorta(f.inicio_utc), f.tipo);
+    tr.append(td(etq), td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
+      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
+      td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
+      sinCorte(td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`)));
     return tr;
-  }) : [filaVacia(12, 'No hay citas con este filtro.')]));
+  }) : [filaVacia(14, 'No hay citas con este filtro.')]));
+  limitarFilas($('#a-scroll'));
   $('#a-todos').checked = filas.length > 0 && filas.every((f) => est.sel.has(f.id));
   const n = est.sel.size;
   $('#a-descargar').disabled = n === 0;
-  $('#a-descargar').textContent = n ? `Descargar ${n} para Google Sheets (.csv)` : 'Elige a quiénes descargar';
+  $('#a-descargar').textContent = n ? `Descargar ${n} (.csv)` : 'Elige a quiénes descargar';
+  $('#a-copiar').disabled = n === 0;
+  $('#a-copiar').textContent = n ? `Copiar ${n} para la base maestra` : 'Copiar para la base maestra';
+}
+
+// Filas para pegar en la base maestra (Excel), de la columna A (APELLIDOS) a la Y
+// (NOTA): lo que el panel no sabe va vacío para que cada dato caiga en su columna.
+// Solo se copian las elegidas que están en esta página de la tabla.
+const COLUMNAS_MAESTRA = 25;
+function filaMaestra(f) {
+  const c = Array(COLUMNAS_MAESTRA).fill('');
+  c[0] = [f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '); // A APELLIDOS
+  c[1] = f.nombres ?? ''; // B NOMBRES
+  c[2] = f.dni ?? ''; // C DNI
+  c[3] = f.email ?? ''; // D CORREO
+  c[4] = f.whatsapp ?? ''; // E NÚMERO
+  c[5] = dmy(f.fecha_nacimiento); // F NACIMIENTO
+  c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
+  c[12] = f.producto ?? ''; // M PRODUCTO
+  c[13] = f.soles == null ? '' : String(f.soles); // N SOLES
+  c[16] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // Q RECURRENCIA
+  c[17] = MOD[f.modalidad] ?? ''; // R MODALIDAD
+  c[21] = f.nutricionista ?? ''; // V NUTRICIONISTA
+  return c.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t');
+}
+
+async function copiar() {
+  const elegidas = est.filas.filter((f) => est.sel.has(f.id));
+  if (!elegidas.length) { aviso('Las citas que elegiste están en otra página de la tabla. Vuelve a esa página para copiarlas.'); return; }
+  const texto = elegidas.map(filaMaestra).join('\r\n');
+  const b = $('#a-copiar');
+  try {
+    await navigator.clipboard.writeText(texto);
+    aviso();
+    b.textContent = elegidas.length === 1 ? 'Copiada. Pégala en la columna A' : `Copiadas ${elegidas.length}. Pégalas en la columna A`;
+  } catch {
+    aviso('No se pudo copiar. Usa «Descargar (.csv)».');
+  }
 }
 
 // No pagaron: la lista de /api/equipo/reservas (30 días), igual que antes en /panel/.
 async function cargarNoPago() {
   const r = await pedir('/api/equipo/reservas');
-  if (r?.status === 401) return mostrarLogin();
+  if (r?.status === 401) { mostrarLogin(); return false; }
   const d = r?.ok ? await jsonDe(r) : null;
-  if (!d) { aviso(MSJ_CARGA); return; }
+  if (!d) { aviso(MSJ_CARGA); return true; }
   entro(d);
   aviso();
   const filas = d.no_pagadas;
@@ -129,13 +181,15 @@ async function cargarNoPago() {
       td(f.etiqueta, `${MOD[f.modalidad]} · ${f.nutricionista}`), seg);
     return tr;
   }) : [filaVacia(7, 'Nadie dejó datos sin pagar en los últimos 30 días.')]));
+  limitarFilas($('#n-scroll'));
+  return true;
 }
 
 async function marcar(f, contactado, b) {
   b.disabled = true;
   const r = await pedir('/api/equipo/contactado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: f.id, contactado }) });
-  if (r?.status === 401) return mostrarLogin();
-  if (r?.ok) return cargarNoPago();
+  if (r?.status === 401) { mostrarLogin(); return; }
+  if (r?.ok) { await cargarNoPago(); return; }
   b.disabled = false;
   aviso('No se pudo guardar. Intenta de nuevo.');
 }
@@ -160,20 +214,14 @@ async function descargar() {
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }
 
-function mostrarLogin() {
-  $('#login').hidden = false; $('#app').hidden = true; $('#salir').hidden = true; $('#quien').textContent = '';
-  $('#usuarios').hidden = true;
-}
-
-montarLogin({ onEntrar: cargar });
-
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargar(); }
-  else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargar(); }
+  if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargarReservas(); }
+  else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargarReservas(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) aviso(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`);
-  else if (b.id === 'a-descargar' && est.sel.size) descargar();
+  else if (b.id === 'a-descargar' && est.sel.size) descargarReservas();
+  else if (b.id === 'a-copiar' && est.sel.size) copiar();
 });
 
 $('#a-todos').addEventListener('change', (e) => {
@@ -182,10 +230,6 @@ $('#a-todos').addEventListener('change', (e) => {
 });
 
 let espera;
-$('#a-q').addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(() => { est.pagina = 1; cargar(); }, 300); });
-$('#a-periodo').addEventListener('change', (e) => { $('#a-rango').hidden = e.target.value !== 'rango'; est.pagina = 1; cargar(); });
-for (const lado of ['desde', 'hasta']) $(`#a-${lado}`).addEventListener('change', () => { est.pagina = 1; cargar(); });
-// Al volver a la pestaña se recarga: un paciente pudo agendar o pagar mientras tanto.
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cargar(); });
-
-cargar();
+$('#a-q').addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(() => { est.pagina = 1; cargarReservas(); }, 300); });
+$('#a-periodo').addEventListener('change', (e) => { $('#a-rango').hidden = e.target.value !== 'rango'; est.pagina = 1; cargarReservas(); });
+for (const lado of ['desde', 'hasta']) $(`#a-${lado}`).addEventListener('change', () => { est.pagina = 1; cargarReservas(); });

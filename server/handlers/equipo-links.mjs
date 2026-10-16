@@ -11,7 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida, PRODUCTOS } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
@@ -151,6 +151,9 @@ const vistaAgendado = (r, deps) => {
     pago_detalle: link ? (quienCreo(r) ? `Link de ${quienCreo(r)}` : null)
       : r.estado === 'pagada_sin_hora' ? 'Pagó pero perdió la hora: elegir otra' : metodoPago(r.metodo),
     sin_hora: r.estado === 'pagada_sin_hora',
+    // Para pegar en la base maestra: el producto sin la duración y los soles como número.
+    producto: PRODUCTOS.find((x) => x.id === String(link ? r.plan : r.producto).split(':')[0])?.etiqueta ?? null,
+    soles: link ? null : r.monto_centimos / 100,
   };
 };
 
@@ -200,13 +203,16 @@ export async function handleAgendadosCsv(request, env, deps) {
   const { results } = await deps.db.prepare(
     `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ${ORDEN_AGENDADO}`,
   ).bind(JSON.stringify(ids)).all();
-  const cab = ['Procedencia', 'Agendó (Lima)', 'Cita (Lima)', 'Evento', 'Modalidad', 'Nutricionista', 'Plan', 'Cita', 'Apellido paterno', 'Apellido materno',
-    'Nombres', 'DNI', 'Correo', 'WhatsApp', 'Fecha de nacimiento', 'Paciente', 'Pago', 'Detalle del pago'];
+  // Mismo orden que la tabla del panel, que sigue a la base maestra (Apellidos, Nombres, DNI, Correo, Número…).
+  const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'WhatsApp', 'Fecha de nacimiento', 'Cita (Lima)', 'Evento', 'Plan', 'Cita', 'Pago',
+    'Detalle del pago', 'Paciente', 'Modalidad', 'Nutricionista', 'Procedencia', 'Agendó (Lima)'];
   const filas = results.map((r) => {
     const v = vistaAgendado(r, deps);
-    return [celda(v.procedencia === 'link' ? 'Link enviado' : 'Página web'), celda(lima(v.agendado_en)), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.modalidad === 'video' ? 'Videollamada' : 'Presencial'), celda(v.nutricionista),
-      celda(v.plan), celda(v.cita ?? ''), celda(v.apellido_paterno), celda(v.apellido_materno), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
-      celda(v.fecha_nacimiento), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), celda(v.pago), celda(v.pago_detalle)].join(',');
+    return [celda([v.apellido_paterno, v.apellido_materno].filter(Boolean).join(' ')), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
+      celda(v.fecha_nacimiento), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.plan), celda(v.cita ?? ''), celda(v.pago),
+      celda(v.pago_detalle), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'),
+      celda(v.modalidad === 'video' ? 'Virtual' : 'Presencial'), celda(v.nutricionista),
+      celda(v.procedencia === 'link' ? 'Link enviado' : 'Página web'), celda(lima(v.agendado_en))].join(',');
   });
   // Sin «sep=,»: es una directiva de Excel y Google Sheets la importa como una fila más.
   const csv = [cab.map(celda).join(','), ...filas].join('\r\n');

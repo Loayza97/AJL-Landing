@@ -4,7 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Panel /panel/: ahora se llama Reservas y es una sola lista con las citas agendadas con link y las pagadas en la página web, la última agendada primero. Suma las columnas Procedencia (con cuándo agendó) y Pago, y el CSV trae las mismas. «No pagaron (30 días)» pasa a ser una pestaña de la misma página. En /panel/links/ ya no está Agendados.
+- Panel del equipo: todo en una página, /panel/ (/panel/links/ lleva ahí). Arriba se crean los links, al medio Links creados y abajo Reservas, una sola lista con las citas agendadas con link y las pagadas en la página web, la última agendada primero. Cada tabla muestra 4 filas y el resto con scroll adentro. Las columnas de Reservas siguen el orden de la base maestra (Apellidos, Nombres, DNI, Correo, WhatsApp, Nacimiento, Cita…), la cita entra en una línea y «Copiar para la base maestra» deja las elegidas listas para pegar en la columna A. «No pagaron (30 días)» es una pestaña de Reservas.
 - Panel /panel/links/: Agendados y su CSV salen en el orden en que se agendaron, la última primero, en vez de por fecha de la cita.
 - /agenda/: si el paciente abre otra vez un link ya usado, debajo de su cita sale la dirección del consultorio con Google Maps o el link de Google Meet.
 - /agenda/ y /reservar/: la modalidad dice «Presencial» o «Virtual»; debajo sale la dirección del consultorio con link a Google Maps o el aviso de Google Meet, y lo mismo en el paso de pago y en la pantalla final (con el link de Meet cuando ya existe).
