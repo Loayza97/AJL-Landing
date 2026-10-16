@@ -138,10 +138,10 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   const texto = await res.text();
   const lineas = texto.replace(/^﻿/, '').trim().split('\r\n');
   // Sin la fila «sep=,» (Google Sheets la importaría como datos): la primera línea son los encabezados.
-  assert.equal(lineas[0], 'Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente');
+  assert.equal(lineas[0], 'Procedencia,Agendó (Lima),Cita (Lima),Evento,Modalidad,Nutricionista,Plan,Cita,Apellido paterno,Apellido materno,Nombres,DNI,Correo,WhatsApp,Fecha de nacimiento,Paciente,Pago,Detalle del pago');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.match(lineas[1], /,Nico,"Constancia, 3 meses",2 de 7,Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo$/);
+  assert.match(lineas[1], /^Link enviado,2026-10-10 10:00,2026-10-14 10:00,Control de 30 min,Videollamada,Nico,"Constancia, 3 meses",2 de 7,Ramos,Quispe,Lucía,"=""70123456""",lucia@x\.pe,"=""\+51987654321""",1992-03-08,Nuevo,Pagó por fuera,Link de romi$/);
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 
@@ -206,6 +206,41 @@ test('agendados: salen en el orden en que se agendaron, la última primero', asy
   await agendar('BB', '2026-10-20T15:00:00Z', '2026-10-14T03:00:00Z');
   const ags = await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json();
   assert.deepEqual(ags.filas.map((f) => f.id), ['RBB', 'RA']);
+});
+
+// Una reserva pagada en la página web, como la deja /api/reservas al confirmar el pago.
+async function reservaWeb(d, { id, estado = 'confirmada', inicio, pagado, producto = 'constancia', meses = 3, monto = 108000, metodo = 'visa', email }) {
+  await d.db.prepare(`INSERT INTO clientes (id, nombre, nombres, apellido_paterno, apellido_materno, tipo_documento, dni, fecha_nacimiento, whatsapp, email, creado_en)
+    VALUES (?1, 'Ana Pérez', 'Ana', 'Pérez', NULL, 'dni', '01234567', '1990-05-04', '+51911222333', ?2, 'x')`).bind(`c-${id}`, email ?? `${id}@x.pe`).run();
+  await d.db.prepare(`INSERT INTO reservas (id, token, cliente_id, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fecha_lima,
+    duracion_min, modalidad, estado, creado_en, actualizado_en) VALUES (?1, ?1, ?2, ?3, ?4, ?5, 1, 'paola', ?6, '2026-10-20', 60, 'presencial', ?7, '2026-10-01T00:00:00Z', 'x')`)
+    .bind(id, `c-${id}`, producto, meses, monto, inicio, estado).run();
+  if (pagado) await d.db.prepare(`INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en) VALUES (?1, ?1, ?1, 'approved', ?2, ?3, ?4)`)
+    .bind(id, monto, metodo, pagado).run();
+}
+
+test('reservas: una sola lista con los links y la web, la última agendada primero, y lo que no pagó no sale', async () => {
+  const d = deps();
+  await sembrar(d);
+  await d.db.prepare("INSERT INTO equipo_usuarios (email, nombre, creado_por, creado_en) VALUES ('romi@x.pe', 'Romi', 'x', 'x')").run();
+  await reservaWeb(d, { id: 'web', inicio: '2026-10-20T20:00:00Z', pagado: '2026-10-11T22:00:00Z' });
+  await reservaWeb(d, { id: 'sinhora', estado: 'pagada_sin_hora', inicio: '2026-10-05T20:00:00Z', pagado: '2026-10-09T10:00:00Z', producto: 'evaluacion', meses: 1, monto: 9000, metodo: 'yape' });
+  await reservaWeb(d, { id: 'webvieja', inicio: '2026-10-08T20:00:00Z', pagado: '2026-10-02T10:00:00Z', producto: 'basico', meses: 1, monto: 25000 });
+  await reservaWeb(d, { id: 'nopago', estado: 'expirada', inicio: '2026-10-21T20:00:00Z' });
+  const prox = await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json();
+  assert.deepEqual(prox.filas.map((f) => [f.id, f.procedencia]), [['web', 'web'], ['r-lucia', 'link'], ['sinhora', 'web']]);
+  const [web, lu, sh] = prox.filas;
+  assert.deepEqual([web.plan, web.cita, web.tipo, web.nutricionista, web.paciente_nuevo, web.pago, web.pago_detalle, web.agendado_en],
+    ['Constancia, 3 meses', null, 'Sesión de 1 hora', 'Paola', null, 'S/1.080', 'Mercado Pago, VISA', '2026-10-11T22:00:00Z']);
+  assert.deepEqual([lu.pago, lu.pago_detalle, lu.agendado_en], ['Pagó por fuera', 'Link de Romi', '2026-10-10T15:00:00.000Z']);
+  assert.deepEqual([sh.plan, sh.sin_hora, sh.pago, sh.pago_detalle], ['Evaluación', true, 'S/90', 'Pagó pero perdió la hora: elegir otra']);
+  const pas = await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json();
+  assert.deepEqual(pas.filas.map((f) => [f.id, f.plan]), [['webvieja', 'Básico']]);
+  const ana = await (await handleAgendados(get('/api/equipo/agendados?q=perez'), env, d)).json();
+  assert.deepEqual(ana.filas.map((f) => f.id), ['web', 'sinhora']);
+  const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=web,nopago'), env, d)).text()).trim().split('\r\n');
+  assert.equal(csv.length, 2);
+  assert.match(csv[1], /^Página web,2026-10-11 17:00,2026-10-20 15:00,Sesión de 1 hora,Presencial,Paola,"Constancia, 3 meses",,Pérez,,Ana,.*,,S\/1\.080,"Mercado Pago, VISA"$/);
 });
 
 test('borrar: sin sesión 401 sin leer la base', async () => {

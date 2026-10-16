@@ -1,9 +1,10 @@
 ---
 // Panel del equipo · links de agenda. Sin el Layout del sitio (no carga
-// analítica). Los datos los dan /api/equipo/links* y /api/equipo/agendados*, que exigen acceso.
+// analítica). Los datos los da /api/equipo/links*, que exige acceso. Las citas agendadas están en /panel/.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
 import { PRODUCTOS } from '../../../server/agenda/opciones.mjs';
 const tipos = Object.entries(TIPOS_LINK);
+import '../../styles/panel.css';
 ---
 <!doctype html>
 <html lang="es">
@@ -14,55 +15,12 @@ const tipos = Object.entries(TIPOS_LINK);
   <title>Links de agenda · AJL Nutrición</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap">
-  <style is:global>
-    [hidden] { display: none !important; }
-    :root { --ink: #111111; --muted: #6B6B6B; --hair: #E4E4E4; --gold: #C9A24B; --gold-ink: #9C7A2B; --gold-pale: #F8F3E6; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Montserrat, Arial, sans-serif; color: var(--ink); background: #F6F4EF; }
-    .lk { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; display: flex; flex-direction: column; gap: 32px; }
-    .lk-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    h1 { margin: 0; font-size: 1.6rem; font-weight: 800; } h2 { margin: 0 0 12px; font-size: 1.2rem; }
-    .lk-quien, .lk-nota { color: var(--muted); font-size: .85rem; }
-    .lk-tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-    .lk-tarjeta { background: #fff; border: 1px solid var(--hair); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .lk-chip { display: inline-block; font-size: .75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--gold-pale); color: #5A4512; margin-right: 6px; }
-    .lk-btn { min-height: 44px; border: 0; border-radius: 10px; background: var(--gold); color: var(--ink); font: inherit; font-weight: 700; padding: 0 16px; cursor: pointer; }
-    .lk-btn--borde { background: #fff; border: 1px solid var(--ink); }
-    .lk-btn--wa { background: #1F7A4D; color: #fff; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
-    .lk-btn--chico { min-height: 40px; background: #fff; border: 1px solid #CFCFCF; color: #9B2C2C; font-size: .8rem; padding: 0 12px; }
-    .lk-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-    .lk-btn:disabled { opacity: .5; cursor: not-allowed; }
-    .lk-campo { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 700; }
-    .lk-campo select { min-height: 44px; border: 1px solid #CFCFCF; border-radius: 10px; padding: 0 10px; font: inherit; font-size: .9rem; font-weight: 400; background: #fff; color: var(--ink); }
-    .lk-form { display: flex; flex-direction: column; gap: 10px; }
-    .lk-url { width: 100%; min-height: 44px; border: 1px solid #CFCFCF; border-radius: 10px; padding: 0 12px; font: inherit; }
-    .lk-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .lk-barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
-    .lk-barra input[type=search], .lk-barra select, .lk-barra input[type=date] { min-height: 44px; border: 1px solid #CFCFCF; border-radius: 10px; padding: 0 12px; font: inherit; background: #fff; }
-    .lk-barra input[type=search] { flex: 1 1 240px; }
-    .lk-grupo { display: flex; gap: 4px; padding: 4px; background: #EAE6DC; border-radius: 12px; flex-wrap: wrap; }
-    .lk-grupo button { min-height: 40px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: .85rem; font-weight: 700; padding: 0 12px; cursor: pointer; }
-    .lk-grupo button[aria-pressed=true] { background: var(--ink); color: #fff; }
-    .lk-scroll { overflow-x: auto; background: #fff; border: 1px solid var(--hair); border-radius: 14px; }
-    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 12px; white-space: nowrap; }
-    td { border-top: 1px solid var(--hair); padding: 12px; vertical-align: top; }
-    tr[data-sel=true] td { background: var(--gold-pale); }
-    .lk-estado { font-size: .75rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
-    .lk-estado--agendado { background: #E3F1E8; color: #145C38; } .lk-estado--sin_usar { background: #F3EBD8; color: #5A4512; } .lk-estado--vencido { background: #EDEDED; color: #4A4A4A; }
-    .lk-pie { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: .85rem; color: var(--muted); }
-    .lk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
-    .lk-login { max-width: 380px; display: flex; flex-direction: column; gap: 10px; }
-    .lk-login input { border: 1px solid #CFCFCF; border-radius: 10px; padding: 12px; font: inherit; }
-    .lk-error { margin: 0 0 10px; color: #9B2C2C; font-size: .85rem; font-weight: 600; }
-    .lk-enlace { background: none; border: 0; color: var(--gold-ink); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; }
-  </style>
 </head>
 <body>
   <main class="lk">
     <div class="lk-cab">
       <div><h1>Links de agenda</h1><span class="lk-quien" id="quien"></span> <button type="button" class="lk-enlace" id="salir" hidden>Salir</button></div>
-      <span><a class="lk-enlace" href="/panel/">‹ Reservas de la web</a><span id="usuarios" hidden> · <a class="lk-enlace" href="/panel/usuarios/">Usuarios del equipo</a></span></span>
+      <span><a class="lk-enlace" href="/panel/">‹ Reservas</a><span id="usuarios" hidden> · <a class="lk-enlace" href="/panel/usuarios/">Usuarios del equipo</a></span></span>
     </div>
 
     <form class="lk-login" id="login" hidden>
@@ -126,24 +84,8 @@ const tipos = Object.entries(TIPOS_LINK);
           <span><span id="l-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="l-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="l-next" aria-label="Página siguiente">›</button></span></div>
       </section>
 
-      <section>
-        <h2>Agendados</h2>
-        <div class="lk-barra">
-          <div class="lk-grupo" role="group" aria-label="Próximas o pasadas" id="a-tramos">
-            <button type="button" data-tramo="proximas" aria-pressed="true">Próximas</button>
-            <button type="button" data-tramo="pasadas" aria-pressed="false">Pasadas</button>
-          </div>
-          <input type="search" id="a-q" placeholder="Buscar por nombre, apellido o DNI" aria-label="Buscar agendados">
-          <select id="a-periodo" aria-label="Periodo"><option value="30">30 días</option><option value="mes">Este mes</option><option value="mes_anterior">Mes anterior</option><option value="rango">Elegir fechas…</option><option value="todo">Todo</option></select>
-          <span id="a-rango" hidden><input type="date" id="a-desde" aria-label="Desde"> <input type="date" id="a-hasta" aria-label="Hasta"></span>
-          <button type="button" class="lk-btn" id="a-descargar" disabled>Elige a quiénes descargar</button>
-        </div>
-        <p class="lk-error" id="a-msg" role="alert" hidden></p>
-        <div class="lk-scroll"><table><thead><tr>
-          <th><label class="lk-check"><input type="checkbox" id="a-todos"> Todos</label></th>
-          <th>Cita</th><th>Plan / Cita</th><th>Apellidos</th><th>Nombres</th><th>DNI</th><th>Correo</th><th>WhatsApp</th><th>Nacimiento</th><th>Paciente</th>
-        </tr></thead><tbody id="a-filas"></tbody></table></div>
-        <div class="lk-pie"><span></span><span><span id="a-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="a-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="a-next" aria-label="Página siguiente">›</button></span></div>
+      <section class="lk-aviso">
+        Las citas agendadas con link ahora están en <a class="lk-enlace" href="/panel/">Reservas</a>, junto con las de la página web.
       </section>
     </div>
   </main>
