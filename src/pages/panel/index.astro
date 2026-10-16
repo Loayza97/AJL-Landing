@@ -1,7 +1,13 @@
 ---
-// Panel del equipo (/panel/): quién pagó y quién dejó datos sin pagar. Página aparte, sin
-// el Layout del sitio: no carga analítica ni Clarity (que grabaría la pantalla
-// con datos de pacientes). Los datos los da /api/equipo/*, que exige acceso.
+// Panel del equipo (/panel/): crear links de agenda, los links creados y Reservas,
+// una sola lista con las citas de los links y las pagadas en la web (pedido de
+// Romi y Alejandro, 2026-10-16: todo en una página). Sin el Layout del sitio: no
+// carga analítica ni Clarity (que grabaría la pantalla con datos de pacientes).
+// Los datos los da /api/equipo/*, que exige acceso. /panel/links/ redirige aquí.
+import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
+import { PRODUCTOS } from '../../../server/agenda/opciones.mjs';
+const tipos = Object.entries(TIPOS_LINK);
+import '../../styles/panel.css';
 ---
 <!doctype html>
 <html lang="es">
@@ -12,148 +18,114 @@
   <title>Panel del equipo · AJL Nutrición</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap">
-  <style is:global>
-    [hidden] { display: none !important; }
-    :root { --ink: #111111; --muted: #6B6B6B; --hair: #E4E4E4; --gold-ink: #9C7A2B; --gold-pale: #F8F3E6; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: Montserrat, Arial, sans-serif; color: var(--ink); background: #FFFFFF; }
-    .eq { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
-    .eq-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
-    h1 { margin: 0; font-size: 1.6rem; font-weight: 800; letter-spacing: -.02em; }
-    .eq-quien { color: var(--muted); font-size: .85rem; }
-    .eq-btn { display: inline-block; border: 0; border-radius: 10px; background: var(--gold-ink); color: #fff; font: inherit; font-weight: 700; padding: 10px 16px; text-decoration: none; cursor: pointer; }
-    .eq-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-    .eq-tabs button { border: 1px solid var(--hair); background: #fff; border-radius: 999px; padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer; }
-    .eq-tabs button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
-    .eq-tabla { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    .eq-tabla th { text-align: left; white-space: nowrap; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); border-bottom: 1px solid var(--hair); padding: 8px 6px; }
-    .eq-tabla td { border-bottom: 1px solid var(--hair); padding: 12px 8px; vertical-align: top; line-height: 1.4; }
-    .eq-tabla td > span { display: block; font-weight: 600; }
-    .eq-tabla tbody tr:hover { background: var(--gold-pale); }
-    .eq-tabla small { display: block; color: var(--muted); font-size: .8rem; margin-top: 2px; }
-    .eq-wa { display: block; color: #128C4B; font-weight: 700; text-decoration: none; }
-    .eq-hecho { color: var(--muted); font-size: .8rem; }
-    .eq-marcar { border: 1px solid var(--ink); background: #fff; border-radius: 8px; padding: 6px 10px; font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
-    .eq-msg { color: var(--muted); padding: 24px 0; }
-    .eq-scroll { overflow-x: auto; }
-    .eq-login { max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding: 24px 0; }
-    .eq-login input { border: 1px solid #CFCFCF; border-radius: 10px; padding: 12px; font: inherit; font-size: 1rem; }
-    .eq-login p { margin: 0; color: var(--muted); font-size: .9rem; }
-    .eq-salir { background: none; border: 0; color: var(--gold-ink); font: inherit; font-weight: 600; cursor: pointer; padding: 0; margin-left: 8px; }
-  </style>
 </head>
 <body>
-  <main class="eq">
-    <div class="eq-cab">
-      <div><h1>Reservas de la web</h1><span class="eq-quien" id="quien"></span><button type="button" class="eq-salir" id="salir" hidden>Salir</button></div>
-      <a class="eq-salir" href="/panel/links/">Links de agenda ›</a>
-      <a class="eq-salir" href="/panel/usuarios/" id="usuarios" hidden>Usuarios del equipo ›</a>
-      <a class="eq-btn" href="/api/equipo/excel" id="excel" hidden>Descargar Excel</a>
+  <main class="lk lk--ancho">
+    <div class="lk-cab">
+      <div><h1>Panel del equipo</h1><span class="lk-quien" id="quien"></span> <button type="button" class="lk-enlace" id="salir" hidden>Salir</button></div>
+      <span id="usuarios" hidden><a class="lk-enlace" href="/panel/usuarios/">Usuarios del equipo ›</a></span>
     </div>
-    <form class="eq-login" id="login" hidden>
+
+    <form class="lk-login" id="login" hidden>
       <p id="login-msg">Escribe tu correo del equipo y te mandamos un código.</p>
       <input type="email" id="login-email" autocomplete="email" placeholder="tucorreo@gmail.com" required>
       <input type="text" id="login-codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" hidden>
-      <button type="submit" class="eq-btn" id="login-btn">Enviar código</button>
+      <button type="submit" class="lk-btn" id="login-btn">Enviar código</button>
     </form>
-    <div class="eq-tabs" role="group" aria-label="Grupo" id="tabs">
-      <button type="button" data-grupo="pagadas" aria-pressed="true">Pagaron</button>
-      <button type="button" data-grupo="no_pagadas" aria-pressed="false">No pagaron (30 días)</button>
+
+    <div id="app" hidden>
+      <section>
+        <h2>Agendar a un paciente que ya pagó</h2>
+        <p class="lk-nota">Crea un link, mándalo por WhatsApp y el paciente elige su hora. Sirve una sola vez y vence a los 7 días si no se usa.</p>
+        <div class="lk-tarjetas">
+          {tipos.map(([id, t]) => (
+            <article class="lk-tarjeta" data-tipo={id}>
+              <div><span class="lk-chip">{t.duracion_min === 60 ? '1 hora' : `${t.duracion_min} min`}</span><span class="lk-chip">{t.etiqueta}</span></div>
+              <b>{t.nombre}</b>
+              <div class="lk-form" data-form>
+                <label class="lk-campo">Producto
+                  <select data-producto required>
+                    <option value="">Elige el producto</option>
+                    {PRODUCTOS.map((p) => <option value={p.id}>{p.etiqueta}</option>)}
+                  </select>
+                </label>
+                <label class="lk-campo">Duración
+                  <select data-duracion required disabled><option value="">Primero elige el producto</option></select>
+                </label>
+                <label class="lk-campo">Qué cita es
+                  <select data-cita required disabled><option value="">Primero elige la duración</option></select>
+                </label>
+                <button type="button" class="lk-btn" data-crear={id} disabled>Crear link de un solo uso</button>
+              </div>
+              <div data-creado hidden>
+                <label class="lk-nota">Link nuevo · sirve una vez · vence en 7 días<input class="lk-url" readonly></label>
+                <div class="lk-dos"><button type="button" class="lk-btn lk-btn--borde" data-copiar>Copiar</button><a class="lk-btn lk-btn--wa" data-wa target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+                <p class="lk-error" data-copia-msg role="status"></p>
+                <button type="button" class="lk-enlace" data-otro>Crear otro link</button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>Links creados</h2>
+        <div class="lk-barra">
+          <input type="search" id="l-q" placeholder="Buscar por nombre, apellido o DNI" aria-label="Buscar links">
+          <select id="l-periodo" aria-label="Periodo"><option value="30">Últimos 30 días</option><option value="mes">Este mes</option><option value="mes_anterior">Mes anterior</option><option value="rango">Elegir fechas…</option><option value="todo">Todo</option></select>
+          <span id="l-rango" hidden><input type="date" id="l-desde" aria-label="Desde"> <input type="date" id="l-hasta" aria-label="Hasta"></span>
+          <div class="lk-grupo" role="group" aria-label="Filtrar por estado" id="l-estados">
+            <button type="button" data-estado="todos" aria-pressed="true">Todos <span></span></button>
+            <button type="button" data-estado="sin_usar" aria-pressed="false">Sin usar <span></span></button>
+            <button type="button" data-estado="agendado" aria-pressed="false">Agendados <span></span></button>
+            <button type="button" data-estado="vencido" aria-pressed="false">Vencidos <span></span></button>
+          </div>
+        </div>
+        <p class="lk-error" id="l-msg" role="alert" hidden></p>
+        <div class="lk-scroll" id="l-scroll"><table><thead><tr><th>Creado</th><th>Evento</th><th>Estado</th><th>Detalle</th></tr></thead><tbody id="l-filas"></tbody></table></div>
+        <div class="lk-pie"><span>Los vencidos con más de 30 días se archivan solos. Siguen en «Vencidos» con el periodo «Todo».</span>
+          <span><span id="l-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="l-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="l-next" aria-label="Página siguiente">›</button></span></div>
+      </section>
+
+      <section>
+        <h2>Reservas</h2>
+        <div class="lk-barra">
+          <div class="lk-grupo" role="group" aria-label="Qué citas ver" id="a-tramos">
+            <button type="button" data-tramo="proximas" aria-pressed="true">Próximas</button>
+            <button type="button" data-tramo="pasadas" aria-pressed="false">Pasadas</button>
+            <button type="button" data-tramo="no_pagaron" aria-pressed="false">No pagaron (30 días)</button>
+          </div>
+          <span class="lk-barra" id="a-filtros">
+            <input type="search" id="a-q" placeholder="Buscar por nombre, apellido o DNI" aria-label="Buscar reservas">
+            <select id="a-periodo" aria-label="Periodo"><option value="30">30 días</option><option value="mes">Este mes</option><option value="mes_anterior">Mes anterior</option><option value="rango">Elegir fechas…</option><option value="todo">Todo</option></select>
+            <span id="a-rango" hidden><input type="date" id="a-desde" aria-label="Desde"> <input type="date" id="a-hasta" aria-label="Hasta"></span>
+            <button type="button" class="lk-btn" id="a-copiar" disabled>Copiar para la base maestra</button>
+            <button type="button" class="lk-btn lk-btn--borde" id="a-descargar" disabled>Elige a quiénes descargar</button>
+          </span>
+          <a class="lk-btn lk-btn--borde lk-btn--link" href="/api/equipo/excel" id="excel" hidden>Descargar Excel</a>
+        </div>
+        <p class="lk-error" id="a-msg" role="alert" hidden></p>
+
+        <div id="tabla-reservas">
+          <div class="lk-scroll" id="a-scroll"><table><thead><tr>
+            <th><label class="lk-check"><input type="checkbox" id="a-todos"> Todos</label></th>
+            <th>Apellidos</th><th>Nombres</th><th>DNI</th><th>Correo</th><th>Número</th><th>Nacimiento</th><th>País</th><th>Fecha</th><th>Plan / Cita</th><th>Pago</th><th>Paciente</th><th>Modalidad</th><th>Nutricionista</th><th>Procedencia</th>
+          </tr></thead><tbody id="a-filas"></tbody></table></div>
+          <div class="lk-pie"><span>Salen primero los últimos que agendaron. «Copiar» deja las elegidas listas para pegar en la columna A de la base maestra.</span>
+            <span><span id="a-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="a-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="a-next" aria-label="Página siguiente">›</button></span></div>
+        </div>
+
+        <div id="tabla-nopago" hidden>
+          <div class="lk-scroll" id="n-scroll"><table><thead><tr>
+            <th>Venció</th><th>Paciente</th><th>Documento</th><th>Contacto</th><th>Plan</th><th>Cita</th><th>Seguimiento</th>
+          </tr></thead><tbody id="n-filas"></tbody></table></div>
+          <div class="lk-pie"><span>Dejaron sus datos en la página web y no terminaron de pagar en los últimos 30 días.</span></div>
+        </div>
+      </section>
     </div>
-    <div class="eq-scroll"><div id="contenido"><p class="eq-msg">Cargando…</p></div></div>
   </main>
-
   <script>
-    import { montarLogin } from '../../scripts/panel-login.js';
-    const DOCS: Record<string, string> = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
-    const estado: { grupo: 'pagadas' | 'no_pagadas'; datos: any } = { grupo: 'pagadas', datos: null };
-    const $ = (s: string) => document.querySelector(s) as HTMLElement;
-    const h = (tag: string, texto?: string | null, cls?: string) => {
-      const e = document.createElement(tag);
-      if (texto != null) e.textContent = texto;
-      if (cls) e.className = cls;
-      return e;
-    };
-    const lima = (iso: string | null) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)) : '');
-    const soles = (c: number) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-
-    function celda(...partes: (HTMLElement | string | null | undefined)[]) {
-      const td = document.createElement('td');
-      partes.filter(Boolean).forEach((p, i) => td.append(i === 0 || typeof p !== 'string' ? (typeof p === 'string' ? h('span', p) : p as HTMLElement) : h('small', p)));
-      return td;
-    }
-
-    function pintar() {
-      document.querySelectorAll<HTMLButtonElement>('[data-grupo]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.grupo === estado.grupo)));
-      const filas = estado.datos[estado.grupo] as any[];
-      const cont = $('#contenido');
-      if (!filas.length) { cont.replaceChildren(h('p', estado.grupo === 'pagadas' ? 'Todavía no hay reservas pagadas.' : 'Nadie dejó datos sin pagar en los últimos 30 días.', 'eq-msg')); return; }
-      const pagadas = estado.grupo === 'pagadas';
-      const tabla = h('table', null, 'eq-tabla');
-      const cab = h('tr');
-      [pagadas ? 'Pagó' : 'Venció', 'Paciente', 'Documento', 'Contacto', 'Plan', 'Cita', pagadas ? 'Pago' : 'Seguimiento'].forEach((t) => cab.append(h('th', t)));
-      tabla.append(h('thead').appendChild(cab).parentElement!);
-      const cuerpo = h('tbody');
-      for (const r of filas) {
-        const tr = h('tr');
-        const wa = h('a', r.whatsapp, 'eq-wa') as HTMLAnchorElement;
-        wa.href = `https://wa.me/${String(r.whatsapp || '').replace(/\D/g, '')}`; wa.target = '_blank'; wa.rel = 'noopener';
-        tr.append(
-          celda(lima(pagadas ? r.pagado_en : r.retencion_hasta)),
-          celda([r.nombres || r.nombre, r.apellido_paterno, r.apellido_materno].filter(Boolean).join(' '), r.fecha_nacimiento ? `Nació el ${r.fecha_nacimiento.split('-').reverse().join('/')}` : null),
-          celda(`${DOCS[r.tipo_documento] ?? ''} ${r.dni ?? ''}`.trim()),
-          celda(wa, r.email),
-          celda(r.titulo, soles(r.monto_centimos)),
-          celda(r.etiqueta, `${r.modalidad === 'video' ? 'Videollamada' : 'Presencial'} · ${r.nutricionista}`),
-        );
-        if (pagadas) {
-          tr.append(celda((r.metodo || '').toUpperCase(), r.estado === 'pagada_sin_hora' ? 'Pagó pero perdió la hora: elegir otra' : null));
-        } else {
-          const td = document.createElement('td');
-          const b = h('button', r.contactado_en ? 'Desmarcar' : 'Marcar contactado', 'eq-marcar') as HTMLButtonElement;
-          b.addEventListener('click', () => marcar(r, !r.contactado_en, b));
-          if (r.contactado_en) td.append(h('div', `Contactado ${lima(r.contactado_en)} por ${r.contactado_por}`, 'eq-hecho'));
-          td.append(b);
-          tr.append(td);
-        }
-        cuerpo.append(tr);
-      }
-      tabla.append(cuerpo);
-      cont.replaceChildren(tabla);
-    }
-
-    async function marcar(r: any, contactado: boolean, b: HTMLButtonElement) {
-      b.disabled = true;
-      const res = await fetch('/api/equipo/contactado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, contactado }) });
-      if (res.ok) { await cargar(); } else { b.disabled = false; alert('No se pudo guardar. Intenta de nuevo.'); }
-    }
-
-    async function cargar() {
-      const res = await fetch('/api/equipo/reservas', { cache: 'no-store' });
-      if (res.status === 401) { mostrarLogin(); return; }
-      if (!res.ok) { $('#contenido').replaceChildren(h('p', 'No pudimos cargar las reservas. Recarga la página.', 'eq-msg')); return; }
-      $('#login').hidden = true; $('#tabs').hidden = false; $('#salir').hidden = false;
-      estado.datos = await res.json();
-      $('#quien').textContent = `Entraste como ${estado.datos.email}`;
-      $('#usuarios').hidden = !estado.datos.admin;
-      $('#excel').hidden = false;
-      pintar();
-    }
-
-    function mostrarLogin() {
-      $('#login').hidden = false; $('#tabs').hidden = true; $('#excel').hidden = true; $('#salir').hidden = true;
-      $('#quien').textContent = '';
-      $('#usuarios').hidden = true;
-      $('#contenido').replaceChildren();
-    }
-
-    montarLogin({ onEntrar: cargar });
-
-    document.addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-grupo]');
-      if (b && estado.datos) { estado.grupo = b.dataset.grupo as any; pintar(); }
-    });
-    cargar();
+    import '../../scripts/panel.js';
   </script>
 </body>
 </html>

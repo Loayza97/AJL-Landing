@@ -17,3 +17,13 @@ export function telefonoCompleto(codigo, escrito) {
 }
 
 export const placeholderTelefono = (codigo) => (codigo === '51' ? '9__ ___ ___' : (codigo ? 'Tu número' : '+código y número'));
+
+// País según el código del número (+51… es Perú), para la columna PAÍS de la base
+// maestra. Gana el código más largo (+593 es Ecuador, no +59…); +1 queda como
+// EE.UU. (Canadá comparte el código). Sin + o con un código que no está: vacío.
+const POR_CODIGO = PAISES.filter(([, , c]) => c).sort((a, b) => b[2].length - a[2].length);
+export function paisDeTelefono(numero) {
+  const n = String(numero || '').replace(/[^\d+]/g, '');
+  if (!n.startsWith('+')) return '';
+  return POR_CODIGO.find(([, , c]) => n.startsWith(`+${c}`))?.[1] ?? '';
+}
