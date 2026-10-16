@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel del equipo: cada persona entra con su correo y su propia contraseña, y el navegador puede guardarlas. El código por correo se pide solo la primera vez (para crear la contraseña), si la olvidó o al entrar desde un celular o computadora nueva (o tras 30 días). Requiere la migración 0011.
 - Panel del equipo: todo en una página, /panel/ (/panel/links/ lleva ahí). Arriba se crean los links, al medio Links creados y abajo Reservas, una sola lista con las citas agendadas con link y las pagadas en la página web, la última agendada primero. Cada tabla muestra 4 filas y el resto con scroll adentro. Las columnas de Reservas siguen el orden de la base maestra (Apellidos, Nombres, DNI, Correo, Número, Nacimiento, País y Fecha; el país sale del código del número), la cita entra en una línea y «Copiar para la base maestra» deja las elegidas listas para pegar en la columna A. «No pagaron (30 días)» es una pestaña de Reservas.
 - Panel /panel/links/: Agendados y su CSV salen en el orden en que se agendaron, la última primero, en vez de por fecha de la cita.
 - /agenda/: si el paciente abre otra vez un link ya usado, debajo de su cita sale la dirección del consultorio con Google Maps o el link de Google Meet.

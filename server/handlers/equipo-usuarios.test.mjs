@@ -24,7 +24,7 @@ async function entrar(d, email) {
   const antes = d.correos.length;
   await handlePedirCodigo(post('/api/equipo/codigo', { email }), env, d);
   assert.equal(d.correos.length, antes + 1, `le llega el código a ${email}`);
-  const r = await handleEntrar(post('/api/equipo/entrar', { email, codigo: codigoDe(d) }), env, d);
+  const r = await handleEntrar(post('/api/equipo/entrar', { email, codigo: codigoDe(d), clave_nueva: 'una clave larga' }), env, d);
   assert.equal(r.status, 200, `entra ${email}`);
   return r.headers.get('Set-Cookie').split(';')[0];
 }

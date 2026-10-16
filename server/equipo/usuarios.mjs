@@ -48,12 +48,14 @@ export async function agregarUsuario(db, { email, nombre, creadoPor, ahora }) {
   return r.meta.changes === 1;
 }
 
-// Un solo batch: o se quita todo (usuario, sesiones y código pendiente) o nada.
+// Un solo batch: o se quita todo (usuario, sesiones, dispositivos, contraseña y código pendiente) o nada.
 export async function quitarUsuario(db, email) {
   const [usuario] = await db.batch([
     db.prepare('DELETE FROM equipo_usuarios WHERE email = ?1').bind(email),
     db.prepare('DELETE FROM equipo_sesiones WHERE email = ?1').bind(email),
     db.prepare('DELETE FROM equipo_codigos WHERE email = ?1').bind(email),
+    db.prepare('DELETE FROM equipo_dispositivos WHERE email = ?1').bind(email),
+    db.prepare('DELETE FROM equipo_claves WHERE email = ?1').bind(email),
   ]);
   return usuario.meta.changes === 1;
 }
