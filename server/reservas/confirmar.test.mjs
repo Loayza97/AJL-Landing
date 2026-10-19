@@ -32,13 +32,15 @@ async function preparar({ pagos = {}, eventosCalendario = [], fallaCalendario = 
 }
 const aprobado = (o = {}) => ({ id: 555, status: 'approved', external_reference: 'r1', transaction_amount: 1080, currency_id: 'PEN', payment_method_id: 'visa', ...o });
 
-test('aprobado a tiempo: confirma, crea el evento «1ra» y manda dos correos', async () => {
+test('aprobado a tiempo: confirma, crea el evento «1 de N» y manda dos correos', async () => {
   const { db, deps, correos, creados } = await preparar({ pagos: { 555: aprobado() } });
   assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
   const r = await repo.reservaPorId(db, 'r1');
   assert.equal(r.estado, 'confirmada');
   assert.equal(r.google_event_id, 'ev1');
-  assert.match(creados[0].titulo, /^1ra · Ana Pérez · 2 sesiones al mes · 3 meses$/);
+  assert.equal(creados[0].titulo, 'Ana Pérez · 2 sesiones al mes · 1 de 7');
+  assert.match(creados[0].descripcion, /^Producto: Constancia · 3 meses$/m);
+  assert.match(creados[0].descripcion, /^Procedencia: Web \(pagado\)$/m);
   assert.deepEqual(correos.map((c) => c.to).sort(), ['ana@x.pe', 'equipo@x.pe']);
 });
 

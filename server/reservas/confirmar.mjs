@@ -10,6 +10,7 @@ import { TOPE_PRIMERAS } from './constantes.mjs';
 import { correoConfirmacion, correoEquipoConfirmada, correoSinHora, correoEquipoAlerta } from './correos.mjs';
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
+import { eventoEquipo } from './evento-equipo.mjs';
 
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
@@ -33,14 +34,12 @@ export async function finalizarConfirmacion(deps, env, r) {
   const precio = cotizar(r.producto, r.duracion_meses);
   const titulo = precio ? precio.titulo : r.producto;
   const etiqueta = etiquetaLima(r.inicio_utc);
-  const prefijo = r.producto === 'evaluacion' ? 'Eval' : '1ra';
   let meet = null;
   let pendiente = false;
   try {
     const ev = await deps.google.crearEvento({
       reservaId: r.id,
-      titulo: `${prefijo} · ${r.nombre} · ${titulo}`,
-      descripcion: `WhatsApp: ${r.whatsapp}\nCorreo: ${r.email}\nPlan: ${titulo}\nNutricionista: ${nutricionista.nombre}\nReservado y pagado en la web (${r.id}).`,
+      ...eventoEquipo(r, nutricionista),
       inicioUtc: r.inicio_utc,
       finUtc: finDeReserva(r),
       modalidad: r.modalidad,

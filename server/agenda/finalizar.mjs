@@ -7,6 +7,7 @@ import { correoCitaAgenda, correoEquipoAlerta } from '../reservas/correos.mjs';
 import { tipoDeReserva } from './tipos.mjs';
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
+import { eventoEquipo } from '../reservas/evento-equipo.mjs';
 
 // Otra copia del remitente (confirmar.mjs y acceso.mjs tienen la misma);
 // unificarlas queda fuera de esta entrega. Se exporta para la alerta de agenda.mjs.
@@ -19,8 +20,7 @@ export async function finalizarAgenda(deps, env, r) {
   try {
     const ev = await deps.google.crearEvento({
       reservaId: r.id,
-      titulo: `Agenda · ${r.nombre} · ${tipo.nombre}`,
-      descripcion: `WhatsApp: ${r.whatsapp}\nCorreo: ${r.email}\nNutricionista: ${n.nombre}\nAgendado con link de un solo uso (${r.id}).`,
+      ...eventoEquipo(r, n),
       inicioUtc: r.inicio_utc,
       finUtc: finDeReserva(r),
       modalidad: r.modalidad,
