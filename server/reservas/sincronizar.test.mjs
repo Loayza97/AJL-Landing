@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { d1DePrueba } from './d1-prueba.mjs';
 import * as repo from './repo.mjs';
-import { compararEvento, textoCambios, sincronizarCalendario, CURSOR } from './sincronizar.mjs';
+import { compararEvento, textoCambios, sincronizarCalendario, CURSOR, MAX_CAMBIOS_POR_CORRIDA } from './sincronizar.mjs';
 
 const ahora = new Date('2026-10-19T17:00:00Z');
 const r = { id: 'r1', estado: 'confirmada', inicio_utc: '2026-10-21T15:00:00Z', fin_utc: '2026-10-21T15:30:00Z', duracion_min: 30,
@@ -147,5 +147,61 @@ test('sincronizar: un evento que falla al aplicarse se reporta y el resto sigue'
   d.db.prepare = (sql) => (sql.startsWith('UPDATE reservas SET inicio_utc') ? { bind: () => ({ run: async () => { throw new Error('D1 caído'); } }) } : prepareReal(sql));
   const res = await sincronizarCalendario(d);
   assert.deepEqual(res, { aplicados: 0, revisar: 0, fallidos: ['ev1'] });
+  assert.equal(await repo.leerSync(d.db, CURSOR), ahora.toISOString());
+});
+
+test('sincronizar: pasa el tiempo máximo a Google solo si se pide', async () => {
+  const opciones = [];
+  const d = deps([], { google: { listarCambios: async (_desde, o) => { opciones.push(o); return []; } } });
+  await sincronizarCalendario(d, { timeoutMs: 3000 });
+  await sincronizarCalendario(d);
+  assert.deepEqual(opciones, [{ timeoutMs: 3000 }, undefined]);
+});
+
+test('sincronizar: busca todas las reservas en una sola consulta, sin una por evento', async () => {
+  const cambios = [];
+  const d = deps(cambios);
+  for (let i = 1; i <= 5; i++) {
+    await sembrar(d.db, { id: `r${i}`, evento: `ev${i}`, inicio: `2026-10-2${i}T15:00:00Z`, fin: `2026-10-2${i}T15:30:00Z`, fecha: `2026-10-2${i}` });
+    cambios.push(c({ id: `ev${i}`, reservaId: `r${i}`, inicio: `2026-10-2${i}T15:00:00Z`, fin: `2026-10-2${i}T15:30:00Z` }));
+  }
+  const lecturas = [];
+  const prepareReal = d.db.prepare.bind(d.db);
+  d.db.prepare = (sql) => { if (/FROM reservas WHERE google_event_id/.test(sql)) lecturas.push(sql); return prepareReal(sql); };
+  assert.deepEqual(await sincronizarCalendario(d), { aplicados: 0, revisar: 0, fallidos: [] });
+  assert.equal(lecturas.length, 1);
+});
+
+test('sincronizar: evento repetido con el mismo id privado pero otro id de evento se salta', async () => {
+  const d = deps([c({ id: 'copia', reservaId: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z' })]);
+  await sembrar(d.db); // r1 es del evento ev1
+  const res = await sincronizarCalendario(d);
+  assert.deepEqual(res, { aplicados: 0, revisar: 0, fallidos: [] });
+  assert.equal((await fila(d)).inicio_utc, '2026-10-21T15:00:00Z');
+});
+
+test('sincronizar: una reserva sin evento guardado se encuentra por el id privado', async () => {
+  const d = deps([c({ id: 'nuevo', reservaId: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z' })]);
+  await sembrar(d.db);
+  await d.db.prepare(`UPDATE reservas SET google_event_id = NULL WHERE id = 'r1'`).run();
+  assert.equal((await sincronizarCalendario(d)).aplicados, 1);
+});
+
+test('sincronizar: con más cambios que el tope atiende los primeros, no guarda el cursor y avisa pendientes; la repetición termina', async () => {
+  const total = MAX_CAMBIOS_POR_CORRIDA + 3;
+  const cambios = [];
+  const d = deps(cambios);
+  for (let i = 1; i <= total; i++) {
+    const dia = String(i).padStart(2, '0');
+    await sembrar(d.db, { id: `r${i}`, evento: `ev${i}`, inicio: `2026-11-${dia}T15:00:00Z`, fin: `2026-11-${dia}T15:30:00Z`, fecha: `2026-11-${dia}` });
+    cambios.push(c({ id: `ev${i}`, reservaId: `r${i}`, inicio: `2026-11-${dia}T14:00:00Z`, fin: `2026-11-${dia}T14:30:00Z` }));
+  }
+  const res = await sincronizarCalendario(d);
+  assert.deepEqual(res, { aplicados: MAX_CAMBIOS_POR_CORRIDA, revisar: 0, fallidos: [], pendientes: true });
+  assert.equal(await repo.leerSync(d.db, CURSOR), null);
+  assert.equal((await fila(d, 'r1')).inicio_utc, '2026-11-01T14:00:00Z');
+  assert.equal((await fila(d, `r${total}`)).inicio_utc, `2026-11-${total}T15:00:00Z`);
+  // Segunda corrida: lo ya aplicado no cuenta y entran los que faltaban.
+  assert.deepEqual(await sincronizarCalendario(d), { aplicados: 3, revisar: 0, fallidos: [] });
   assert.equal(await repo.leerSync(d.db, CURSOR), ahora.toISOString());
 });

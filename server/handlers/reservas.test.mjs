@@ -279,3 +279,18 @@ test('sincronizar-calendario: si un evento falla, avisa al equipo', async () => 
   assert.equal(correos[0].to, 'equipo@x.pe');
   assert.match(correos[0].subject, /Calendario sin sincronizar/);
 });
+
+test('sincronizar-calendario: si el correo de alerta falla, la sincronización sigue en 200', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fin_utc, duracion_min,
+     fecha_lima, modalidad, estado, retencion_hasta, creado_en, actualizado_en, google_event_id)
+     VALUES ('r1', 'r1', 'link_c30p', 1, 0, 0, 'jussara', '2026-10-21T15:00:00Z', '2026-10-21T15:30:00Z', 30, '2026-10-21', 'presencial', 'confirmada', NULL, 'x', 'x', 'ev1')`).run();
+  const prepareReal = db.prepare.bind(db);
+  db.prepare = (sql) => (sql.startsWith('UPDATE reservas SET inicio_utc') ? { bind: () => ({ run: async () => { throw new Error('D1 caído'); } }) } : prepareReal(sql));
+  const d = { db, ahora: () => new Date('2026-10-19T17:00:00Z'), sendEmail: async () => { throw new Error('Resend caído'); },
+    google: { listarCambios: async () => [{ id: 'ev1', borrado: false, reservaId: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', meet: false, ubicacion: true }] } };
+  const r = await handleSincronizarCalendario(new Request('https://x.test/', { method: 'POST', headers: { Authorization: 'Bearer tok' } }),
+    { RESUMEN_TOKEN: 'tok', NOTIFICATION_EMAIL: 'equipo@x.pe' }, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual((await r.json()).fallidos, ['ev1']);
+});

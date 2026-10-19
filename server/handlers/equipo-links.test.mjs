@@ -318,6 +318,22 @@ test('agendados: sincroniza el calendario al abrir, máximo una vez por minuto, 
   assert.equal((await r.json()).filas.length, 1);
 });
 
+test('agendados: si un evento del calendario no se puede aplicar, avisa al equipo y el panel carga', async () => {
+  const correos = [];
+  const cambio = { id: 'ev-lucia', borrado: false, reservaId: 'r-lucia', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', meet: false, ubicacion: true };
+  const d = deps({ sendEmail: async (m) => { correos.push(m); return true; }, google: { listarCambios: async () => [cambio] } });
+  await sembrar(d);
+  await d.db.prepare(`UPDATE reservas SET google_event_id = 'ev-lucia' WHERE id = 'r-lucia'`).run();
+  const prepareReal = d.db.prepare.bind(d.db);
+  d.db.prepare = (sql) => (sql.startsWith('UPDATE reservas SET inicio_utc') ? { bind: () => ({ run: async () => { throw new Error('D1 caído'); } }) } : prepareReal(sql));
+  const r = await handleAgendados(get('/api/equipo/agendados'), { ...env, NOTIFICATION_EMAIL: 'equipo@x.pe' }, d);
+  assert.equal(r.status, 200);
+  assert.equal(correos.length, 1);
+  assert.equal(correos[0].to, 'equipo@x.pe');
+  assert.match(correos[0].subject, /Calendario sin sincronizar/);
+  assert.match(JSON.stringify(correos[0]), /ev-lucia/);
+});
+
 test('agendados: marcas de calendario y la cancelada desde el panel sigue en la lista; el CSV no la incluye', async () => {
   const d = deps();
   await sembrar(d);

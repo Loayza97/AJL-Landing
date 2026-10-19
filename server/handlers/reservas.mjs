@@ -13,8 +13,8 @@ import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
-import { correoResumenNoPagadas, correoEquipoAlerta } from '../reservas/correos.mjs';
-import { sincronizarCalendario } from '../reservas/sincronizar.mjs';
+import { correoResumenNoPagadas } from '../reservas/correos.mjs';
+import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
@@ -309,12 +309,6 @@ export async function handleSincronizarCalendario(request, env, deps) {
     console.error('sincronizar-calendario', e);
     return bad(503, 'No se pudo leer el calendario');
   }
-  if (res.fallidos?.length) {
-    await deps.sendEmail({
-      from: env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>', to: env.NOTIFICATION_EMAIL,
-      ...correoEquipoAlerta({ asunto: 'Calendario sin sincronizar',
-        detalle: `No se pudieron pasar a la base ${res.fallidos.length} cambios del calendario (eventos ${res.fallidos.join(', ')}). Revisa esas citas en el panel.` }),
-    });
-  }
+  await alertarFallidos(deps, env, res.fallidos);
   return json(200, { ok: true, ...res });
 }
