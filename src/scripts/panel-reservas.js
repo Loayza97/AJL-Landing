@@ -258,7 +258,7 @@ document.addEventListener('click', (e) => {
   if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargarReservas(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargarReservas(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) aviso(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`);
-  else if (b.id === 'a-descargar' && est.sel.size) descargarReservas();
+  else if (b.id === 'a-descargar' && est.sel.size) descargar();
   else if (b.id === 'a-copiar' && est.sel.size) copiar();
 });
 
