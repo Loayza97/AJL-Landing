@@ -99,6 +99,7 @@ export async function cargarReservas() {
 
 function pintar() {
   const filas = est.filas;
+  est.filas.forEach((f) => { if (f.cancelada) est.sel.delete(f.id); });
   $('#a-filas').replaceChildren(...(filas.length ? filas.map((f) => {
     const tr = document.createElement('tr');
     tr.dataset.sel = String(est.sel.has(f.id));
