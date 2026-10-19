@@ -35,8 +35,10 @@ export const expirar = (db, ahoraIso) => db.prepare(
    WHERE estado IN ('apartada', 'pagando') AND retencion_hasta < ?1`,
 ).bind(ahoraIso);
 
-const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento
-  FROM reservas r LEFT JOIN clientes c ON c.id = r.cliente_id`;
+// link_plan y link_cita: el evento del calendario los muestra (evento-equipo.mjs).
+const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento,
+  l.plan AS link_plan, l.cita AS link_cita
+  FROM reservas r LEFT JOIN clientes c ON c.id = r.cliente_id LEFT JOIN links_agenda l ON l.id = r.link_id`;
 
 export async function crearRetencion(db, r) {
   const ahoraIso = r.ahora.toISOString();

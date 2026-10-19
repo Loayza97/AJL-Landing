@@ -102,10 +102,11 @@ test('confirmar paciente nuevo: reserva, evento de 30 min con invitación, corre
   assert.equal(new URL(v.google_calendar).searchParams.get('location'), 'https://meet/x');
   assert.equal(v.titulo, 'Control de 30 min');
   assert.equal(d.eventos[0].finUtc, '2026-10-06T16:00:00Z');
-  assert.match(d.eventos[0].titulo, /^Agenda · Lucía Ramos Quispe · Control de 30 min$/);
+  assert.equal(d.eventos[0].titulo, 'Lucía Ramos Quispe · 4 sesiones al mes · Evaluación de fin de mes');
   assert.equal(d.eventos[0].invitado.email, 'lucia@x.pe');
-  // El paciente está invitado al evento y ve la descripción: plan y cita solo van en el panel.
-  assert.doesNotMatch(d.eventos[0].descripcion, /Plan:|Cita:/);
+  // El paciente está invitado y ve la descripción: su plan y su cita también (2026-10-19).
+  assert.match(d.eventos[0].descripcion, /^Producto: Transformación · 6 meses$/m);
+  assert.match(d.eventos[0].descripcion, /^Procedencia: Link de un solo uso$/m);
   assert.deepEqual(d.correos.map((c) => c.to), ['lucia@x.pe']);
   const link = await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json();
   assert.equal(link.estado, 'agendado');
