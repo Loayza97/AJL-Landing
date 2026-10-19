@@ -22,6 +22,22 @@ export function normalizarEvento(ev) {
   };
 }
 
+const isoUtc = (dt) => (dt ? new Date(dt).toISOString().replace('.000Z', 'Z') : null);
+
+// Lo que la sincronización necesita de cada evento modificado. Un evento borrado
+// puede venir solo con id y status: el resto queda en null/false.
+export function cambioDeEvento(ev) {
+  return {
+    id: ev.id,
+    borrado: ev.status === 'cancelled',
+    reservaId: ev.extendedProperties?.private?.ajl_reserva_id ?? null,
+    inicio: isoUtc(ev.start?.dateTime),
+    fin: isoUtc(ev.end?.dateTime),
+    meet: Boolean(ev.hangoutLink || ev.conferenceData?.entryPoints?.length),
+    ubicacion: Boolean(String(ev.location ?? '').trim()),
+  };
+}
+
 export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
   const calendario = encodeURIComponent(env.GOOGLE_CALENDAR_ID || '');
 
@@ -62,6 +78,25 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     return eventos;
   }
 
+  // Eventos modificados desde `desdeIso`, incluidos los borrados (con updatedMin
+  // Google siempre los devuelve). Sin caché: lo usa la sincronización.
+  async function listarCambios(desdeIso) {
+    const cambios = [];
+    let pageToken;
+    do {
+      const q = new URLSearchParams({ updatedMin: desdeIso, singleEvents: 'true', showDeleted: 'true', maxResults: '2500' });
+      if (pageToken) q.set('pageToken', pageToken);
+      const r = await fetchImpl(`${API}/calendars/${calendario}/events?${q}`, {
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      if (!r.ok) throw new Error(`Google events.list ${r.status}: ${await r.text()}`);
+      const d = await r.json();
+      cambios.push(...(d.items || []).map(cambioDeEvento));
+      pageToken = d.nextPageToken;
+    } while (pageToken);
+    return cambios;
+  }
+
   async function crearEvento(e) {
     const cuerpo = {
       summary: e.titulo,
@@ -85,5 +120,5 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     return { id: d.id, meet: d.hangoutLink || null };
   }
 
-  return { listarEventos, crearEvento };
+  return { listarEventos, listarCambios, crearEvento };
 }
