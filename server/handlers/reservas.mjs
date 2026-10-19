@@ -13,7 +13,8 @@ import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../
 import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
-import { correoResumenNoPagadas } from '../reservas/correos.mjs';
+import { correoResumenNoPagadas, correoEquipoAlerta } from '../reservas/correos.mjs';
+import { sincronizarCalendario } from '../reservas/sincronizar.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
@@ -294,4 +295,26 @@ export async function handleResumenDiario(request, env, deps) {
     return bad(503, 'No se pudo enviar el resumen');
   }
   return json(200, { ok: true, enviados: personas.length });
+}
+
+// Lo llama el cron cada 10 min (workers/resumen-cron). Mismo token que el resumen.
+export async function handleSincronizarCalendario(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Sincronización sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  let res;
+  try {
+    res = await sincronizarCalendario(deps);
+  } catch (e) {
+    console.error('sincronizar-calendario', e);
+    return bad(503, 'No se pudo leer el calendario');
+  }
+  if (res.fallidos?.length) {
+    await deps.sendEmail({
+      from: env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>', to: env.NOTIFICATION_EMAIL,
+      ...correoEquipoAlerta({ asunto: 'Calendario sin sincronizar',
+        detalle: `No se pudieron pasar a la base ${res.fallidos.length} cambios del calendario (eventos ${res.fallidos.join(', ')}). Revisa esas citas en el panel.` }),
+    });
+  }
+  return json(200, { ok: true, ...res });
 }
