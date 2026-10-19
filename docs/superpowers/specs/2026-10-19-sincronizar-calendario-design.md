@@ -99,4 +99,4 @@ Orden de publicación: 0012 en preview (`--env preview`), luego en `ajl-reservas
 
 ## Limpieza de datos
 
-`purgarNoPagadas` (`server/reservas/repo.mjs`) borra a los 30 días los datos de quien no pagó, y hoy también los de una reserva `cancelada`. Las canceladas desde el panel quedan fuera: se agrega `AND cancelada_en_panel IS NULL` a la condición de `cancelada`, y la reserva sigue visible en el panel. La política de privacidad ya cubre conservar datos de pacientes atendidos; revisar el texto antes de publicar.
+`purgarNoPagadas` (`server/reservas/repo.mjs`) borra a los 30 días los datos de quien no pagó, y hoy también los de una reserva `cancelada`. Las canceladas desde el panel quedan fuera: se agrega `AND cancelada_en_panel IS NULL` a la condición de `cancelada`, y la reserva sigue visible en el panel. Antes de publicar, revisar que la política de privacidad cubra conservar estos datos (código y política deben decir lo mismo).
