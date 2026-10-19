@@ -111,3 +111,16 @@ test('listarCambios: error de Google lanza', async () => {
   ]);
   await assert.rejects(crearGoogle(env, f, () => 1000).listarCambios('2026-10-19T16:58:00.000Z'), /events\.list 500/);
 });
+
+test('listarCambios: con timeoutMs pasa una señal de cancelación; sin él, no', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events', { items: [] }],
+  ]);
+  const g = crearGoogle(env, f, () => 1000);
+  await g.listarCambios('2026-10-19T16:58:00.000Z', { timeoutMs: 3000 });
+  await g.listarCambios('2026-10-19T16:58:00.000Z');
+  const eventos = f.llamadas.filter((l) => l.url.includes('/events'));
+  assert.ok(eventos[0].init.signal instanceof AbortSignal);
+  assert.equal(eventos[1].init.signal, undefined);
+});

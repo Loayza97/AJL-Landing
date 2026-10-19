@@ -80,7 +80,7 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
 
   // Eventos modificados desde `desdeIso`, incluidos los borrados (con updatedMin
   // Google siempre los devuelve). Sin caché: lo usa la sincronización.
-  async function listarCambios(desdeIso) {
+  async function listarCambios(desdeIso, { timeoutMs } = {}) {
     const cambios = [];
     let pageToken;
     do {
@@ -88,6 +88,7 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
       if (pageToken) q.set('pageToken', pageToken);
       const r = await fetchImpl(`${API}/calendars/${calendario}/events?${q}`, {
         headers: { Authorization: `Bearer ${await token()}` },
+        ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
       });
       if (!r.ok) throw new Error(`Google events.list ${r.status}: ${await r.text()}`);
       const d = await r.json();
