@@ -20,12 +20,22 @@ test('cursor: vacío al inicio, se guarda y se reescribe', async () => {
   assert.equal(await repo.leerSync(db, 'calendario_cursor'), '2026-10-19T16:10:00.000Z');
 });
 
-test('reservaPorEvento: por id de evento o por id de reserva; null si no existe', async () => {
+test('reservasPorEventos: una consulta trae por id de evento y por id de reserva; vacío si no hay nada', async () => {
   const db = d1DePrueba();
-  await reserva(db);
-  assert.equal((await repo.reservaPorEvento(db, { eventoId: 'ev1', reservaId: null })).id, 'r1');
-  assert.equal((await repo.reservaPorEvento(db, { eventoId: 'otro', reservaId: 'r1' })).id, 'r1');
-  assert.equal(await repo.reservaPorEvento(db, { eventoId: 'nada', reservaId: null }), null);
+  await reserva(db, { id: 'r1', evento: 'ev1' });
+  await reserva(db, { id: 'r2', evento: 'ev2', inicio: '2026-10-22T15:00:00Z', fin: '2026-10-22T15:30:00Z', fecha: '2026-10-22' });
+  await reserva(db, { id: 'r3', evento: 'ev3', inicio: '2026-10-23T15:00:00Z', fin: '2026-10-23T15:30:00Z', fecha: '2026-10-23' });
+  let consultas = 0;
+  const prepareReal = db.prepare.bind(db);
+  db.prepare = (sql) => { consultas++; return prepareReal(sql); };
+  const filas = await repo.reservasPorEventos(db, { eventoIds: ['ev1', 'nada'], reservaIds: ['r2'] });
+  assert.equal(consultas, 1);
+  assert.deepEqual(filas.map((f) => f.id).sort(), ['r1', 'r2']);
+  assert.equal(filas.find((f) => f.id === 'r1').google_event_id, 'ev1');
+  assert.deepEqual(await repo.reservasPorEventos(db, { eventoIds: ['nada'], reservaIds: [] }), []);
+  assert.equal(consultas, 2);
+  assert.deepEqual(await repo.reservasPorEventos(db, { eventoIds: [], reservaIds: [] }), []);
+  assert.equal(consultas, 2); // sin candidatos no consulta
 });
 
 test('aplicarCambioCalendario: mueve hora y modalidad, deja rastro y quita la marca', async () => {
@@ -50,7 +60,17 @@ test('aplicarCambioCalendario: choque con índice único → cruce, sin mover', 
   const res = await repo.aplicarCambioCalendario(db, { id: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', duracion: 30,
     fecha: '2026-10-21', modalidad: 'presencial', cambios: '10:00 → 9:00', ahora });
   assert.deepEqual(res, { ok: false, motivo: 'cruce' });
-  assert.equal((await repo.reservaPorEvento(db, { eventoId: 'ev1' })).inicio_utc, '2026-10-21T15:00:00Z');
+  assert.equal((await db.prepare('SELECT inicio_utc FROM reservas WHERE id = ?1').bind('r1').first()).inicio_utc, '2026-10-21T15:00:00Z');
+});
+
+test('aplicarCambioCalendario: moverla encima de otra cita (no a la misma hora de inicio) → cruce, sin mover', async () => {
+  const db = d1DePrueba();
+  await reserva(db, { id: 'r1', nutri: 'jussara' });
+  await reserva(db, { id: 'r2', nutri: 'jussara', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', evento: 'ev2' });
+  const res = await repo.aplicarCambioCalendario(db, { id: 'r1', inicio: '2026-10-21T13:45:00Z', fin: '2026-10-21T14:15:00Z', duracion: 30,
+    fecha: '2026-10-21', modalidad: 'presencial', cambios: '10:00 → 8:45', ahora });
+  assert.deepEqual(res, { ok: false, motivo: 'cruce' });
+  assert.equal((await db.prepare('SELECT inicio_utc FROM reservas WHERE id = ?1').bind('r1').first()).inicio_utc, '2026-10-21T15:00:00Z');
 });
 
 test('aplicarCambioCalendario: una reserva no confirmada no se toca', async () => {
@@ -65,9 +85,9 @@ test('marcarRevisar y quitarBorrado', async () => {
   const db = d1DePrueba();
   await reserva(db);
   await repo.marcarRevisar(db, { id: 'r1', motivo: 'borrado', cambios: null, ahora });
-  assert.equal((await repo.reservaPorEvento(db, { eventoId: 'ev1' })).calendario_revisar, 'borrado');
+  assert.equal((await db.prepare('SELECT calendario_revisar AS c FROM reservas WHERE id = ?1').bind('r1').first()).c, 'borrado');
   await repo.quitarBorrado(db, 'r1');
-  assert.equal((await repo.reservaPorEvento(db, { eventoId: 'ev1' })).calendario_revisar, null);
+  assert.equal((await db.prepare('SELECT calendario_revisar AS c FROM reservas WHERE id = ?1').bind('r1').first()).c, null);
   await repo.marcarRevisar(db, { id: 'r1', motivo: 'cruce', cambios: '10:00 → 9:00', ahora });
   await repo.quitarBorrado(db, 'r1'); // solo quita «borrado», no «cruce»
   const r = await db.prepare('SELECT calendario_revisar, calendario_cambios FROM reservas WHERE id = ?1').bind('r1').first();

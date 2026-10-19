@@ -266,22 +266,33 @@ export const guardarSync = (db, clave, valor) => db.prepare(
   'INSERT INTO sync_estado (clave, valor) VALUES (?1, ?2) ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor',
 ).bind(clave, valor).run();
 
-// Un evento borrado puede llegar de Google sin el id privado: por eso se busca
-// primero por el id del evento que guardamos al crearlo.
-export const reservaPorEvento = (db, { eventoId = null, reservaId = null }) => db.prepare(
-  `SELECT id, estado, inicio_utc, fin_utc, duracion_min, fecha_lima, modalidad, nutricionista_id, calendario_revisar
-   FROM reservas WHERE google_event_id = ?1 OR id = ?2 LIMIT 1`,
-).bind(eventoId, reservaId).first();
+// Todas las reservas candidatas de un lote de eventos en UNA consulta (D1 limita las
+// consultas por invocación). Un evento borrado puede llegar de Google sin el id
+// privado: por eso se busca también por el id del evento que guardamos al crearlo.
+// Las listas van como un solo parámetro JSON.
+export async function reservasPorEventos(db, { eventoIds = [], reservaIds = [] }) {
+  if (!eventoIds.length && !reservaIds.length) return [];
+  const { results } = await db.prepare(
+    `SELECT id, estado, inicio_utc, fin_utc, duracion_min, fecha_lima, modalidad, nutricionista_id, calendario_revisar, google_event_id
+     FROM reservas WHERE google_event_id IN (SELECT value FROM json_each(?1)) OR id IN (SELECT value FROM json_each(?2))`,
+  ).bind(JSON.stringify(eventoIds), JSON.stringify(reservaIds)).all();
+  return results;
+}
 
+// El cruce se comprueba dentro del mismo UPDATE (CRUCE): entre mirar y escribir
+// nadie se cuela. Si no cambió nada, se lee el estado para saber por qué.
 export async function aplicarCambioCalendario(db, { id, inicio, fin, duracion, fecha, modalidad, cambios, ahora }) {
   const ahoraIso = ahora.toISOString();
   try {
     const r = await db.prepare(
       `UPDATE reservas SET inicio_utc = ?2, fin_utc = ?3, duracion_min = ?4, fecha_lima = ?5, modalidad = ?6,
          calendario_cambios = ?7, calendario_editado_en = ?8, calendario_revisar = NULL, actualizado_en = ?8
-       WHERE id = ?1 AND estado = 'confirmada'`,
+       WHERE id = ?1 AND estado = 'confirmada'
+         AND NOT ${CRUCE({ ini: '?2', fin: '?3', nutri: 'reservas.nutricionista_id', modalidad: '?6', excluir: 'reservas.id' })}`,
     ).bind(id, inicio, fin, duracion, fecha, modalidad, cambios, ahoraIso).run();
-    return r.meta.changes === 1 ? { ok: true } : { ok: false, motivo: 'no_confirmada' };
+    if (r.meta.changes === 1) return { ok: true };
+    const fila = await db.prepare('SELECT estado FROM reservas WHERE id = ?1').bind(id).first();
+    return { ok: false, motivo: fila?.estado === 'confirmada' ? 'cruce' : 'no_confirmada' };
   } catch (e) {
     if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'cruce' };
     throw e;
