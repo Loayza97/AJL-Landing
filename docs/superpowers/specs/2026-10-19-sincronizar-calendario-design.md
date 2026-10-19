@@ -54,8 +54,9 @@ La lógica de comparación es una función pura (`compararEvento(reserva, evento
 
 - En Reservas, si `calendario_editado_en` existe, la fila lleva la marca «Editada en calendario: <cambios> · <fecha>».
 - Si `calendario_revisar` tiene valor, la fila se resalta con «Evento borrado, revisar» o «Movida a una hora ocupada, revisar», y dos botones:
-  - **Cancelar reserva**: `estado = 'cancelada'` (libera la hora) y limpia la marca.
+  - **Cancelar reserva**: `estado = 'cancelada'` (libera la hora en la web), `cancelada_en_panel` = ahora y limpia la marca. La reserva NO sale del panel: sigue en Reservas, con toda la fila en rojo y «Cancelada». Sus datos y la ficha del paciente se conservan (Joaquín, 2026-10-19).
   - **Mantener**: limpia la marca; la reserva queda como está.
+- `/api/equipo/agendados` incluye las reservas con `cancelada_en_panel`, además de las `confirmada` y `pagada_sin_hora`. Las canceladas no entran en «Copiar para la base maestra».
 - Ruta nueva `POST /api/equipo/revision` `{ id, accion: 'cancelar' | 'mantener' }`, con la misma sesión del panel que el resto de `/api/equipo/*`.
 - Las columnas nuevas no entran en el CSV ni en «Copiar para la base maestra».
 
@@ -67,6 +68,7 @@ Migración `db/d1/0012_sincronizar_calendario.sql` (solo agrega):
 ALTER TABLE reservas ADD COLUMN calendario_editado_en TEXT;
 ALTER TABLE reservas ADD COLUMN calendario_cambios TEXT;
 ALTER TABLE reservas ADD COLUMN calendario_revisar TEXT CHECK (calendario_revisar IN ('borrado', 'cruce'));
+ALTER TABLE reservas ADD COLUMN cancelada_en_panel TEXT;
 CREATE TABLE sync_estado (clave TEXT PRIMARY KEY, valor TEXT NOT NULL);
 ```
 
@@ -83,7 +85,7 @@ Orden de publicación: 0012 en preview (`--env preview`), luego en `ajl-reservas
 
 - `compararEvento`: mover hora, cambiar duración, presencial→virtual, virtual→presencial, sin Meet ni ubicación, borrado, deshacer borrado, reserva no confirmada, sin cambios.
 - Handler con Google y D1 de prueba: aplica cambios, marca cruce sin mover, idempotente al repetir, cursor no avanza si Google falla, 401 sin token.
-- Panel: `/api/equipo/revision` cancelar y mantener; `/api/equipo/agendados` devuelve las columnas nuevas y no sincroniza dos veces en 60 s.
+- Panel: `/api/equipo/revision` cancelar y mantener; la cancelada sigue en agendados y libera la hora; `purgarNoPagadas` no borra su ficha; `/api/equipo/agendados` devuelve las columnas nuevas y no sincroniza dos veces en 60 s.
 - Worker: el cron de 10 min llama a `SYNC_URL`, el diario al resumen.
 - Prueba real en preview: crear una cita, moverla a mano en Google Calendar, recargar el panel y verla actualizada; borrar el evento y ver la marca. Borrar luego la cita de prueba.
 
@@ -95,6 +97,6 @@ Orden de publicación: 0012 en preview (`--env preview`), luego en `ajl-reservas
 - Avisar al paciente de un cambio (lo hace Google si quien edita elige notificar).
 - Eventos creados a mano por el equipo (sin id de reserva): siguen bloqueando horas como hoy.
 
-## Pendiente de decidir
+## Limpieza de datos
 
-- Al cancelar desde el panel, la limpieza de datos de 30 días (`purgarNoPagadas` en `server/reservas/repo.mjs`) borra la ficha del paciente si no tiene otra reserva confirmada. Para un paciente que ya atendimos puede no convenir. Propuesta: dejarlo como está en esta entrega y revisarlo aparte.
+`purgarNoPagadas` (`server/reservas/repo.mjs`) borra a los 30 días los datos de quien no pagó, y hoy también los de una reserva `cancelada`. Las canceladas desde el panel quedan fuera: se agrega `AND cancelada_en_panel IS NULL` a la condición de `cancelada`, y la reserva sigue visible en el panel. La política de privacidad ya cubre conservar datos de pacientes atendidos; revisar el texto antes de publicar.
