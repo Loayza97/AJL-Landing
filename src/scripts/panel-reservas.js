@@ -109,6 +109,7 @@ function pintar() {
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
     caja.addEventListener('change', () => { caja.checked ? est.sel.add(f.id) : est.sel.delete(f.id); pintar(); });
     const etq = document.createElement('label'); etq.className = 'lk-check'; etq.append(caja);
+    const celdaCaja = f.cancelada ? td() : td(etq);
     // Mismo orden que la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO, NACIMIENTO, PAÍS, FECHA…
     const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), f.tipo) : td(citaCorta(f.inicio_utc), f.tipo);
     if (f.cancelada) cita.prepend(chip('Cancelada', 'lk-alerta lk-bloque'));
@@ -120,19 +121,21 @@ function pintar() {
       for (const [accion, texto] of [['cancelar', 'Cancelar reserva'], ['mantener', 'Mantener']]) {
         const bt = document.createElement('button');
         bt.type = 'button'; bt.className = `lk-btn lk-btn--${accion}`; bt.textContent = texto;
+        bt.setAttribute('aria-label', `${texto} de ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
         bt.dataset.revision = accion; bt.dataset.id = f.id;
         cajaRevisar.append(bt);
       }
       cita.append(cajaRevisar);
     }
-    tr.append(td(etq), td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
+    tr.append(celdaCaja, td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
       sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
       td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
       sinCorte(td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`)));
     return tr;
   }) : [filaVacia(15, 'No hay citas con este filtro.')]));
   limitarFilas($('#a-scroll'));
-  $('#a-todos').checked = filas.length > 0 && filas.every((f) => est.sel.has(f.id));
+  const elegibles = filas.filter((f) => !f.cancelada);
+  $('#a-todos').checked = elegibles.length > 0 && elegibles.every((f) => est.sel.has(f.id));
   const n = est.sel.size;
   $('#a-descargar').disabled = n === 0;
   $('#a-descargar').textContent = n ? `Descargar ${n} (.csv)` : 'Elige a quiénes descargar';
@@ -260,7 +263,7 @@ document.addEventListener('click', (e) => {
 });
 
 $('#a-todos').addEventListener('change', (e) => {
-  est.filas.forEach((f) => (e.target.checked ? est.sel.add(f.id) : est.sel.delete(f.id)));
+  est.filas.filter((f) => !f.cancelada).forEach((f) => (e.target.checked ? est.sel.add(f.id) : est.sel.delete(f.id)));
   pintar();
 });
 

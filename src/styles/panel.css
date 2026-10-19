@@ -60,10 +60,10 @@ tr[data-sel=true] td { background: var(--gold-pale); }
 #a-scroll td, #a-scroll th { white-space: nowrap; }
 
 /* Sincronización con Google Calendar */
-.lk-fila--cancelada td { background: #FBE9E9; color: #7A1F1F; }
-.lk-fila--revisar td { background: #FFF4E5; }
+tr.lk-fila--cancelada td, tr.lk-fila--cancelada[data-sel=true] td { background: #FBE9E9; color: #7A1F1F; }
+tr.lk-fila--revisar td, tr.lk-fila--revisar[data-sel=true] td { background: #FFF4E5; }
 .lk-bloque { display: block; margin-bottom: 4px; }
 .lk-nota-cal { display: block; font-size: .75rem; color: #5C4A1F; margin-top: 4px; white-space: normal; }
 .lk-revisar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; white-space: normal; }
-.lk-btn--cancelar { background: #9B2C2C; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; min-height: 36px; font: inherit; font-weight: 700; cursor: pointer; }
-.lk-btn--mantener { background: #fff; color: #141414; border: 1px solid #CFC9BD; border-radius: 8px; padding: 8px 12px; min-height: 36px; font: inherit; cursor: pointer; }
+.lk-btn--cancelar { background: #9B2C2C; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; min-height: 44px; font: inherit; font-weight: 700; cursor: pointer; }
+.lk-btn--mantener { background: #fff; color: #141414; border: 1px solid #CFC9BD; border-radius: 8px; padding: 8px 12px; min-height: 44px; font: inherit; cursor: pointer; }
