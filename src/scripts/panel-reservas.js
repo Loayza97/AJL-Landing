@@ -20,6 +20,7 @@ const citaCorta = (iso) => {
 const fechaLima = (iso) => new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
 const dmy = (f) => (f ? f.split('-').reverse().join('/') : '');
 const PROC = { web: 'Página web', link: 'Link enviado' };
+const REVISAR = { borrado: 'Evento borrado en el calendario, revisar', cruce: 'Movida en el calendario a una hora ocupada, revisar' };
 const DOCS = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null };
@@ -101,6 +102,8 @@ function pintar() {
   $('#a-filas').replaceChildren(...(filas.length ? filas.map((f) => {
     const tr = document.createElement('tr');
     tr.dataset.sel = String(est.sel.has(f.id));
+    if (f.cancelada) tr.classList.add('lk-fila--cancelada');
+    else if (f.revisar) tr.classList.add('lk-fila--revisar');
     const caja = document.createElement('input');
     caja.type = 'checkbox'; caja.checked = est.sel.has(f.id);
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
@@ -108,6 +111,20 @@ function pintar() {
     const etq = document.createElement('label'); etq.className = 'lk-check'; etq.append(caja);
     // Mismo orden que la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO, NACIMIENTO, PAÍS, FECHA…
     const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), f.tipo) : td(citaCorta(f.inicio_utc), f.tipo);
+    if (f.cancelada) cita.prepend(chip('Cancelada', 'lk-alerta lk-bloque'));
+    if (f.calendario) cita.append(chip(`Editada en calendario: ${f.calendario.cambios || 'sin cambios de hora'} · ${lima(f.calendario.editado_en)}`, 'lk-nota-cal'));
+    if (f.revisar && !f.cancelada) {
+      const cajaRevisar = document.createElement('div');
+      cajaRevisar.className = 'lk-revisar';
+      cajaRevisar.append(chip(REVISAR[f.revisar], 'lk-alerta lk-bloque'));
+      for (const [accion, texto] of [['cancelar', 'Cancelar reserva'], ['mantener', 'Mantener']]) {
+        const bt = document.createElement('button');
+        bt.type = 'button'; bt.className = `lk-btn lk-btn--${accion}`; bt.textContent = texto;
+        bt.dataset.revision = accion; bt.dataset.id = f.id;
+        cajaRevisar.append(bt);
+      }
+      cita.append(cajaRevisar);
+    }
     tr.append(td(etq), td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
       sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
       td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
@@ -150,8 +167,8 @@ function filaMaestra(f) {
 }
 
 async function copiar() {
-  const elegidas = est.filas.filter((f) => est.sel.has(f.id));
-  if (!elegidas.length) { aviso('Las citas que elegiste están en otra página de la tabla. Vuelve a esa página para copiarlas.'); return; }
+  const elegidas = est.filas.filter((f) => est.sel.has(f.id) && !f.cancelada);
+  if (!elegidas.length) { aviso('No hay citas para copiar: las canceladas no se copian, y las elegidas pueden estar en otra página de la tabla.'); return; }
   const texto = elegidas.map(filaMaestra).join('\r\n');
   const b = $('#a-copiar');
   try {
@@ -191,6 +208,17 @@ async function cargarNoPago() {
   return true;
 }
 
+async function revisar(b) {
+  const accion = b.dataset.revision;
+  if (accion === 'cancelar' && !confirm('¿Cancelar esta reserva? La hora queda libre en la web y la fila se queda en rojo.')) return;
+  b.disabled = true;
+  const r = await pedir('/api/equipo/revision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.id, accion }) });
+  if (r?.status === 401) { mostrarLogin(); return; }
+  if (r?.ok) { aviso(); await cargarReservas(); return; }
+  b.disabled = false;
+  aviso((await jsonDe(r))?.error || 'No se pudo guardar. Intenta de nuevo.');
+}
+
 async function marcar(f, contactado, b) {
   b.disabled = true;
   const r = await pedir('/api/equipo/contactado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: f.id, contactado }) });
@@ -223,6 +251,7 @@ async function descargar() {
 document.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
+  if (b.dataset.revision) { revisar(b); return; }
   if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargarReservas(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargarReservas(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) aviso(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`);
