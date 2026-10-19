@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as agenda from '../agenda/repo.mjs';
-import { handleLinks, handleLinksReactivar, handleLinksBorrar, handleAgendados, handleAgendadosCsv } from './equipo-links.mjs';
+import { handleLinks, handleLinksReactivar, handleLinksBorrar, handleAgendados, handleAgendadosCsv, handleRevision } from './equipo-links.mjs';
+import * as repo from '../reservas/repo.mjs';
 
 const t0 = new Date('2026-10-12T20:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com' };
@@ -301,4 +302,49 @@ test('crear: la nutricionista sugerida va por turnos y vuelve a empezar', async 
     vistas.push((await d.db.prepare('SELECT nutri_sugerida AS n FROM links_agenda ORDER BY rowid DESC LIMIT 1').first()).n);
   }
   assert.deepEqual(vistas, [...ids, ids[0]]);
+});
+
+test('agendados: sincroniza el calendario al abrir, máximo una vez por minuto, y si falla carga igual', async () => {
+  let llamadas = 0;
+  const d = deps({ google: { listarCambios: async () => { llamadas++; return []; } } });
+  await sembrar(d);
+  assert.equal((await handleAgendados(get('/api/equipo/agendados'), env, d)).status, 200);
+  await handleAgendados(get('/api/equipo/agendados'), env, d);
+  assert.equal(llamadas, 1);
+  const cae = deps({ google: { listarCambios: async () => { throw new Error('Google events.list 500'); } } });
+  await sembrar(cae);
+  const r = await handleAgendados(get('/api/equipo/agendados'), env, cae);
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).filas.length, 1);
+});
+
+test('agendados: marcas de calendario y la cancelada desde el panel sigue en la lista; el CSV no la incluye', async () => {
+  const d = deps();
+  await sembrar(d);
+  await d.db.prepare(`UPDATE reservas SET calendario_editado_en = '2026-10-12T19:00:00Z', calendario_cambios = '10:00 → 9:00' WHERE id = 'r-lucia'`).run();
+  let f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
+  assert.deepEqual(f.calendario, { editado_en: '2026-10-12T19:00:00Z', cambios: '10:00 → 9:00' });
+  assert.equal(f.revisar, null);
+  assert.equal(f.cancelada, false);
+  await repo.marcarRevisar(d.db, { id: 'r-lucia', motivo: 'borrado', cambios: null, ahora: t0 });
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 'r-lucia', accion: 'cancelar' }), env, d)).status, 200);
+  f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
+  assert.equal(f.id, 'r-lucia');
+  assert.equal(f.cancelada, true);
+  const csv = await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=r-lucia'), env, d)).text();
+  assert.doesNotMatch(csv, /Ramos/);
+});
+
+test('revision: 401 sin acceso, 400 datos inválidos, 404 sin marca, mantener quita la marca', async () => {
+  const d = deps();
+  await sembrar(d);
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 'r-lucia', accion: 'mantener' }), env, deps({ acceso: fuera }))).status, 401);
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 'r-lucia', accion: 'borrar' }), env, d)).status, 400);
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 1, accion: 'mantener' }), env, d)).status, 400);
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 'r-lucia', accion: 'mantener' }), env, d)).status, 404);
+  await repo.marcarRevisar(d.db, { id: 'r-lucia', motivo: 'cruce', cambios: '10:00 → 9:00', ahora: t0 });
+  assert.equal((await handleRevision(post('/api/equipo/revision', { id: 'r-lucia', accion: 'mantener' }), env, d)).status, 200);
+  const f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
+  assert.equal(f.revisar, null);
+  assert.equal(f.cancelada, false);
 });
