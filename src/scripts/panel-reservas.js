@@ -146,7 +146,7 @@ function pintar() {
       cita.append(cajaRevisar);
     }
     tr.append(celdaCaja, td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
-      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.pago_detalle)),
+      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.neto && `Neto ${f.neto}`, f.pago_detalle)),
       td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
       sinCorte(td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`)));
     return tr;

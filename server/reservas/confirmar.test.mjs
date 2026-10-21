@@ -44,6 +44,20 @@ test('aprobado a tiempo: confirma, crea el evento «1 de N» y manda dos correos
   assert.deepEqual(correos.map((c) => c.to).sort(), ['ana@x.pe', 'equipo@x.pe']);
 });
 
+test('guarda el neto de Mercado Pago; un aviso posterior sin neto no lo borra', async () => {
+  const { db, deps } = await preparar({ pagos: { 555: aprobado({ transaction_details: { net_received_amount: 1031.7 } }) } });
+  await procesarPago(deps, env, '555');
+  assert.equal((await db.prepare("SELECT neto_centimos FROM pagos WHERE mp_payment_id = '555'").first()).neto_centimos, 103170);
+  await repo.registrarPago(db, { reserva_id: 'r1', mp_payment_id: '555', estado: 'approved', monto_centimos: 108000, metodo: 'visa', ahora: new Date() });
+  assert.equal((await db.prepare("SELECT neto_centimos FROM pagos WHERE mp_payment_id = '555'").first()).neto_centimos, 103170);
+});
+
+test('pago pendiente con neto 0: queda sin neto', async () => {
+  const { db, deps } = await preparar({ pagos: { 9: aprobado({ id: 9, status: 'pending', transaction_details: { net_received_amount: 0 } }) } });
+  await procesarPago(deps, env, '9');
+  assert.equal((await db.prepare("SELECT neto_centimos FROM pagos WHERE mp_payment_id = '9'").first()).neto_centimos, null);
+});
+
 test('procesar dos veces el mismo pago: un solo evento y un solo par de correos', async () => {
   const { deps, correos, creados } = await preparar({ pagos: { 555: aprobado() } });
   await Promise.all([procesarPago(deps, env, '555'), procesarPago(deps, env, '555')]);

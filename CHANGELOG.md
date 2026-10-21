@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel, Reservas: los pagos de la web muestran el neto que deja Mercado Pago después de su comisión («Neto S/1045,12»), también en el CSV. Solo para pagos nuevos; los links pagan por fuera y no llevan neto. Requiere la migración 0014.
 - Panel, links: nuevo producto «Renovación Constancia», de pago único y con 2 citas («1 de 2» y «2 de 2»).
 - Panel y calendario: se quita la revisión automática de Google Calendar (cada 10 min y al abrir el panel). Los cambios hechos a mano en el calendario ya no pasan solos al panel.
 - Panel: al abrirlo, las citas agendadas desde tu última visita salen resaltadas en verde con «Nueva», y arriba de Reservas dice cuántas son. Cada persona del equipo tiene su propia última visita (la primera vez se marcan las de las últimas 24 horas). Requiere la migración 0013.
