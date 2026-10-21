@@ -6,7 +6,6 @@ import { inicioUtcMin, fechaLima, diaSemana, diasEntre, finDeReserva } from './t
 export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
 export const HORARIO_CLINICA = { 1: [10, 20], 2: [10, 20], 3: [10, 20], 4: [10, 20], 5: [10, 20], 6: [9, 19] };
-const HORA_MS = 3600 * 1000;
 const MIN_MS = 60 * 1000;
 // De 1 a 2 p. m. es el almuerzo del equipo, todos los días: esa hora no se ofrece.
 export const HORA_ALMUERZO = 13;
@@ -20,7 +19,6 @@ function contienePalabra(texto, palabra) {
 }
 
 const cubreDia = (ev, fecha) => ev.todoElDia && ev.desde <= fecha && fecha < ev.hasta;
-const seCruza = (ev, ini, fin) => !ev.todoElDia && Date.parse(ev.desde) < fin && Date.parse(ev.hasta) > ini;
 
 export function ausenciasDelDia(eventos, fecha, nutricionistas) {
   const ausentes = new Set();
@@ -38,19 +36,14 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
   return { ausentes, cerrada };
 }
 
-export function primerasManuales(eventos, fecha) {
-  return eventos.filter((ev) => !ev.todoElDia && !ev.propio
-    && fechaLima(new Date(ev.desde)) === fecha
-    && normalizar(ev.titulo).trim().startsWith('1ra')).length;
-}
+// Solo cuentan las citas de la web y de los links (Alejandro y Joaquín,
+// 2026-10-21): los eventos con hora puestos a mano en Google no bloquean horas
+// ni suman al tope, porque no dicen quién atiende ni en qué modalidad. Del
+// calendario solo se leen los eventos de día completo (cerrado, feriado, ausencias).
 
-// Horas ya tomadas ese día: cada reserva ocupa su duración y los eventos manuales
-// con hora, su duración. Solo se usa si MAX_HORAS_DIA está activo.
-function horasOcupadas(eventos, delDia, fecha) {
-  const manuales = eventos
-    .filter((ev) => !ev.todoElDia && !ev.propio && ev.bloquea && fechaLima(new Date(ev.desde)) === fecha)
-    .reduce((s, ev) => s + (Date.parse(ev.hasta) - Date.parse(ev.desde)) / HORA_MS, 0);
-  return delDia.reduce((s, r) => s + (r.duracion_min ?? 60) / 60, 0) + manuales;
+// Horas ya tomadas ese día por reservas. Solo se usa si MAX_HORAS_DIA está activo.
+function horasOcupadas(delDia) {
+  return delDia.reduce((s, r) => s + (r.duracion_min ?? 60) / 60, 0);
 }
 
 // ¿La nutricionista atiende de `m` a `m + dur` (minutos desde la medianoche de
@@ -88,10 +81,10 @@ export function horasLibres({
   if (cerrada) return [];
 
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
-  const suma = delDia.reduce((s, r) => s + r.peso_tope, 0) + primerasManuales(eventos, fecha);
+  const suma = delDia.reduce((s, r) => s + r.peso_tope, 0);
   // Las citas de link (peso 0) no son primeras sesiones: el tope no las frena.
   if (peso > 0 && suma + peso > tope) return [];
-  if (maxHorasDia !== null && horasOcupadas(eventos, delDia, fecha) >= maxHorasDia) return [];
+  if (maxHorasDia !== null && horasOcupadas(delDia) >= maxHorasDia) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;
   const cruza = (r, ini, fin) => Date.parse(r.inicio_utc) < fin && Date.parse(finDeReserva(r)) > ini;
@@ -101,8 +94,6 @@ export function horasLibres({
     const ini = Date.parse(inicio);
     const fin = ini + duracionMin * MIN_MS;
     if (ini <= ahora.getTime()) continue;
-    // Eventos manuales: no dicen quién atiende, así que bloquean ese tramo entero.
-    if (eventos.some((ev) => !ev.propio && ev.bloquea && seCruza(ev, ini, fin))) continue;
     if (modalidad === 'presencial'
       && delDia.some((r) => r.modalidad === 'presencial' && cruza(r, ini, fin))) continue;
 

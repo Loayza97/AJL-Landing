@@ -3,7 +3,7 @@
 // vez, así que todo es idempotente y solo el que confirma en la base crea el
 // evento y manda los correos.
 import * as repo from './repo.mjs';
-import { horasLibres, primerasManuales } from './disponibilidad.mjs';
+import { horasLibres } from './disponibilidad.mjs';
 import { cotizar } from './catalogo.mjs';
 import { etiquetaLima, finDeReserva, inicioUtc, sumarDias } from './tiempo.mjs';
 import { TOPE_PRIMERAS } from './constantes.mjs';
@@ -95,13 +95,11 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
     return { estado: 'monto_invalido' };
   }
 
-  let manuales = 0;
   if (r.estado === 'expirada') {
     // Pagó tarde: solo se revive si la hora sigue libre de verdad.
     try {
       const eventos = await deps.google.listarEventos(inicioUtc(r.fecha_lima, 0), inicioUtc(sumarDias(r.fecha_lima, 1), 0));
       const reservas = await repo.reservasActivasEntre(deps.db, r.fecha_lima, sumarDias(r.fecha_lima, 1), deps.ahora());
-      manuales = primerasManuales(eventos, r.fecha_lima);
       const sigue = horasLibres({ fecha: r.fecha_lima, modalidad: r.modalidad, peso: r.peso_tope, nutricionistas: deps.nutricionistas,
         eventos, reservas, ahora: deps.ahora(), filtroNutricionista: r.nutricionista_id, tope: TOPE_PRIMERAS, desdeDias: 0,
         // Con la duración real de la cita; paso de 30 porque una cita corta puede empezar a y media.
@@ -114,7 +112,7 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
     }
   }
 
-  const res = await repo.confirmarReserva(deps.db, { id: r.id, fecha_lima: r.fecha_lima, primerasManuales: manuales, tope: TOPE_PRIMERAS, ahora: deps.ahora() });
+  const res = await repo.confirmarReserva(deps.db, { id: r.id, fecha_lima: r.fecha_lima, tope: TOPE_PRIMERAS, ahora: deps.ahora() });
   if (!res.ok) {
     if (res.motivo === 'ya_confirmada') return { estado: 'confirmada' };
     return sinHora(deps, env, r);
