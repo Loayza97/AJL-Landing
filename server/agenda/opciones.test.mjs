@@ -8,15 +8,15 @@ test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
   assert.deepEqual(esperado.map((_, i) => ordinal(i + 1)), esperado);
 });
 
-test('productos: los 5 del catálogo con el nombre interno del equipo', () => {
+test('productos: los 5 del catálogo con el nombre interno del equipo, más Renovación Constancia', () => {
   assert.deepEqual(PRODUCTOS.map((p) => [p.id, p.etiqueta]), [
     ['evaluacion', 'Evaluación'], ['basico', 'Básico'], ['acompanamiento', 'Acompañamiento'],
-    ['constancia', 'Constancia'], ['transformacion', 'Transformación'],
+    ['constancia', 'Constancia'], ['renovacion_constancia', 'Renovación Constancia'], ['transformacion', 'Transformación'],
   ]);
 });
 
-test('duración depende del producto: pago único solo en evaluación y básico', () => {
-  for (const p of ['evaluacion', 'basico']) assert.deepEqual(duracionesDeProducto(p), [{ id: 'unico', etiqueta: 'Pago único' }]);
+test('duración depende del producto: pago único solo en evaluación, básico y renovación', () => {
+  for (const p of ['evaluacion', 'basico', 'renovacion_constancia']) assert.deepEqual(duracionesDeProducto(p), [{ id: 'unico', etiqueta: 'Pago único' }]);
   for (const p of ['acompanamiento', 'constancia', 'transformacion']) {
     assert.deepEqual(duracionesDeProducto(p).map((d) => d.etiqueta), ['1 mes', '3 meses', '6 meses']);
   }
@@ -59,4 +59,12 @@ test('etiquetas y validación', () => {
   assert.equal(citaValida('constancia:3', 'evaluacion_mes'), false);
   assert.equal(citaValida('evaluacion', '1'), true);
   assert.equal(citaValida('evaluacion', 1), false);
+});
+
+test('Renovación Constancia: pago único con 2 citas, «1 de 2» y «2 de 2»', () => {
+  assert.equal(clavePlan('renovacion_constancia', 'unico'), 'renovacion_constancia');
+  assert.deepEqual(citasDePlan('renovacion_constancia').map((c) => c.etiqueta), ['1 de 2', '2 de 2']);
+  assert.equal(etiquetaPlan('renovacion_constancia'), 'Renovación Constancia');
+  assert.ok(citaValida('renovacion_constancia', '2'));
+  assert.ok(!citaValida('renovacion_constancia', '3'));
 });

@@ -8,12 +8,17 @@ import { duracionesDe } from '../../src/data/duraciones.js';
 
 const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
 
-// Producto con el nombre interno del equipo. Evaluación y Básico son de pago único.
+// Producto con el nombre interno del equipo. Evaluación, Básico y Renovación
+// Constancia son de pago único; la renovación trae 2 sesiones (Joaquín, 2026-10-21).
 export const PRODUCTOS = [
   { id: 'evaluacion', etiqueta: 'Evaluación' },
-  ...['basico', 'acompanamiento', 'constancia', 'transformacion'].map((id) => ({ id, etiqueta: plans[id].internalName })),
+  ...['basico', 'acompanamiento', 'constancia'].map((id) => ({ id, etiqueta: plans[id].internalName })),
+  { id: 'renovacion_constancia', etiqueta: 'Renovación Constancia' },
+  { id: 'transformacion', etiqueta: plans.transformacion.internalName },
 ];
-const UNICO = new Set(['evaluacion', 'basico']);
+// Citas de cada producto de pago único.
+const CITAS_UNICO = { evaluacion: 1, basico: 1, renovacion_constancia: 2 };
+const UNICO = new Set(Object.keys(CITAS_UNICO));
 export const PAGO_UNICO = 'unico';
 
 // Duraciones de un producto: «Pago único» o los meses de sus paquetes (1, 3 y 6).
@@ -26,10 +31,10 @@ export function duracionesDeProducto(producto) {
 // Clave que va a la base: el producto solo si es de pago único, si no `producto:meses`.
 export const clavePlan = (producto, duracion) => (duracion === PAGO_UNICO ? producto : `${producto}:${duracion}`);
 
-// Citas de un plan (Alejandro, 2026-10-14): pago único 1; los planes por meses,
+// Citas de un plan (Alejandro, 2026-10-14): pago único, las de CITAS_UNICO; los planes por meses,
 // sus sesiones al mes × meses, y Constancia y Transformación una más el primer
 // mes (la evaluación sin costo de plans.js, `firstMonthEval`).
-const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? 1
+const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? CITAS_UNICO[producto]
   : plans[producto].sessionsPerMonth * Number(duracion) + (plans[producto].firstMonthEval ? 1 : 0));
 const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
   { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(p.id, d.id) }])));
