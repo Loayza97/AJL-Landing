@@ -255,3 +255,23 @@ export async function handleRevision(request, env, deps) {
   if (!hecho) return bad(404, 'Esa reserva ya no está para revisar. Recarga la página.');
   return json(200, { ok: true });
 }
+
+// Citas nuevas desde la última visita de quien abre el panel. Se llama una vez
+// al cargar la página: devuelve la visita anterior (la primera vez, las últimas
+// 24 h) y cuántas citas se agendaron después, y guarda esta visita.
+const PRIMERA_VISITA_MS = 24 * 3600 * 1000;
+
+export async function handleVisita(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  const acceso = await deps.acceso(request, env);
+  if (!acceso.ok) return sinAcceso();
+  const ahora = deps.ahora();
+  const previa = await deps.db.prepare('SELECT visto_en FROM equipo_visitas WHERE email = ?1').bind(acceso.email).first();
+  const desde = previa?.visto_en ?? new Date(ahora.getTime() - PRIMERA_VISITA_MS).toISOString();
+  const { n } = await deps.db.prepare(
+    `SELECT COUNT(*) AS n ${FROM_AGENDADO} AND r.cancelada_en_panel IS NULL AND COALESCE(l.usado_en, p.creado_en, r.creado_en) > ?1`,
+  ).bind(desde).first();
+  await deps.db.prepare(`INSERT INTO equipo_visitas (email, visto_en) VALUES (?1, ?2)
+    ON CONFLICT (email) DO UPDATE SET visto_en = excluded.visto_en`).bind(acceso.email, ahora.toISOString()).run();
+  return json(200, { ok: true, desde, primera: !previa, nuevas: n });
+}

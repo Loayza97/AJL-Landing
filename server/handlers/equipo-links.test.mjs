@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as agenda from '../agenda/repo.mjs';
-import { handleLinks, handleLinksReactivar, handleLinksBorrar, handleAgendados, handleAgendadosCsv, handleRevision } from './equipo-links.mjs';
+import { handleLinks, handleLinksReactivar, handleLinksBorrar, handleAgendados, handleAgendadosCsv, handleRevision, handleVisita } from './equipo-links.mjs';
 import * as repo from '../reservas/repo.mjs';
 
 const t0 = new Date('2026-10-12T20:00:00Z');
@@ -33,7 +33,8 @@ test('sin acceso: 401 en todo y no se lee nada', async () => {
   for (const r of [await handleLinks(get('/api/equipo/links'), env, d), await handleLinks(post('/api/equipo/links', { tipo: 'c30v' }), env, d),
     await handleLinksReactivar(post('/api/equipo/links-reactivar', { id: 'x' }), env, d), await handleAgendados(get('/api/equipo/agendados'), env, d),
     await handleLinksBorrar(post('/api/equipo/links-borrar', { id: 'x' }), env, d),
-    await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=x'), env, d)]) assert.equal(r.status, 401);
+    await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=x'), env, d),
+    await handleVisita(post('/api/equipo/visita', {}), env, d)]) assert.equal(r.status, 401);
 });
 
 test('crear: devuelve la URL una sola vez; en la base solo queda el hash', async () => {
@@ -363,4 +364,28 @@ test('revision: 401 sin acceso, 400 datos inválidos, 404 sin marca, mantener qu
   const f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
   assert.equal(f.revisar, null);
   assert.equal(f.cancelada, false);
+});
+
+test('visita: la primera vez cuenta las citas de las últimas 24 h; después, las agendadas desde la visita anterior', async () => {
+  const d = deps({ ahora: () => new Date('2026-10-11T10:00:00Z') });
+  await sembrar(d); // Lucía agendó el 10-oct a las 15:00 UTC
+  let r = await (await handleVisita(post('/api/equipo/visita', {}), env, d)).json();
+  assert.deepEqual(r, { ok: true, desde: '2026-10-10T10:00:00.000Z', primera: true, nuevas: 1 });
+  r = await (await handleVisita(post('/api/equipo/visita', {}), env, d)).json();
+  assert.deepEqual(r, { ok: true, desde: '2026-10-11T10:00:00.000Z', primera: false, nuevas: 0 });
+});
+
+test('visita: cada persona tiene la suya y una cancelada no cuenta', async () => {
+  const d = deps({ ahora: () => new Date('2026-10-11T10:00:00Z') });
+  await sembrar(d);
+  await handleVisita(post('/api/equipo/visita', {}), env, d);
+  const ale = { ...d, acceso: async () => ({ ok: true, email: 'ale@x.pe' }) };
+  assert.equal((await (await handleVisita(post('/api/equipo/visita', {}), env, ale)).json()).nuevas, 1);
+  await d.db.prepare("UPDATE reservas SET cancelada_en_panel = ?1, estado = 'cancelada' WHERE id = 'r-lucia'").bind('2026-10-11T09:00:00Z').run();
+  const otra = { ...d, acceso: async () => ({ ok: true, email: 'pao@x.pe' }) };
+  assert.equal((await (await handleVisita(post('/api/equipo/visita', {}), env, otra)).json()).nuevas, 0);
+});
+
+test('visita: solo POST', async () => {
+  assert.equal((await handleVisita(get('/api/equipo/visita'), env, deps())).status, 405);
 });

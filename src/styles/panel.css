@@ -67,3 +67,8 @@ tr.lk-fila--revisar td, tr.lk-fila--revisar[data-sel=true] td { background: #FFF
 .lk-revisar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; white-space: normal; }
 .lk-btn--cancelar { background: #9B2C2C; color: #fff; border: 0; border-radius: 8px; padding: 8px 12px; min-height: 44px; font: inherit; font-weight: 700; cursor: pointer; }
 .lk-btn--mantener { background: #fff; color: #141414; border: 1px solid #CFC9BD; border-radius: 8px; padding: 8px 12px; min-height: 44px; font: inherit; cursor: pointer; }
+
+/* Citas agendadas desde la última visita */
+tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
+.lk-nueva { display: inline-block; font-size: .75rem; font-weight: 700; color: #fff; background: #1F7A4D; padding: 2px 8px; border-radius: 999px; width: fit-content; }
+.lk-nuevas { margin: 0 0 10px; color: #1F5E3D; font-size: .9rem; font-weight: 700; }
