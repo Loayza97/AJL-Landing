@@ -57,3 +57,9 @@ test('link viejo sin plan válido: etiqueta de cita del panel o 1ra sesión', ()
   const evalMes = eventoEquipo({ ...base, producto: 'link_c30v', link_id: 'L1', link_plan: 'transformacion:6', link_cita: 'evaluacion_mes' }, nutri);
   assert.equal(evalMes.titulo, 'Cecilia Chau Pérez · 4 sesiones al mes · Evaluación de fin de mes');
 });
+
+test('link de Renovación Constancia: sin sesiones al mes, 2 de 2', () => {
+  const e = eventoEquipo({ ...base, producto: 'link_c30p', link_id: 'L1', link_plan: 'renovacion_constancia', link_cita: '2' }, nutri);
+  assert.equal(e.titulo, 'Cecilia Chau Pérez · 2 de 2');
+  assert.match(e.descripcion, /^Producto: Renovación Constancia$/m);
+});
