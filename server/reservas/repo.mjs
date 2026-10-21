@@ -213,7 +213,7 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
              (estado IN ('expirada', 'cancelada') AND actualizado_en < ?1)
              OR (estado IN ('apartada', 'pagando') AND retencion_hasta < ?1)))
        AND id NOT IN (SELECT cliente_id FROM reservas
-             WHERE cliente_id IS NOT NULL AND estado IN ('confirmada', 'pagada_sin_hora'))`,
+             WHERE cliente_id IS NOT NULL AND (estado IN ('confirmada', 'pagada_sin_hora') OR cancelada_en_panel IS NOT NULL))`,
   ).bind(limite)]);
 };
 
@@ -255,4 +255,70 @@ export async function liberarRetencion(db, token, ahora) {
 export async function ultimoResumen(db) {
   const r = await db.prepare('SELECT MAX(enviado_en) AS en FROM resumenes_enviados').first();
   return r?.en ?? null;
+}
+
+// ─── Sincronización con Google Calendar (spec 2026-10-19-sincronizar-calendario) ───
+
+export const leerSync = async (db, clave) =>
+  (await db.prepare('SELECT valor FROM sync_estado WHERE clave = ?1').bind(clave).first())?.valor ?? null;
+
+export const guardarSync = (db, clave, valor) => db.prepare(
+  'INSERT INTO sync_estado (clave, valor) VALUES (?1, ?2) ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor',
+).bind(clave, valor).run();
+
+// Todas las reservas candidatas de un lote de eventos en UNA consulta (D1 limita las
+// consultas por invocación). Un evento borrado puede llegar de Google sin el id
+// privado: por eso se busca también por el id del evento que guardamos al crearlo.
+// Las listas van como un solo parámetro JSON.
+export async function reservasPorEventos(db, { eventoIds = [], reservaIds = [] }) {
+  if (!eventoIds.length && !reservaIds.length) return [];
+  const { results } = await db.prepare(
+    `SELECT id, estado, inicio_utc, fin_utc, duracion_min, fecha_lima, modalidad, nutricionista_id, calendario_revisar, google_event_id
+     FROM reservas WHERE google_event_id IN (SELECT value FROM json_each(?1)) OR id IN (SELECT value FROM json_each(?2))`,
+  ).bind(JSON.stringify(eventoIds), JSON.stringify(reservaIds)).all();
+  return results;
+}
+
+// El cruce se comprueba dentro del mismo UPDATE (CRUCE): entre mirar y escribir
+// nadie se cuela. Si no cambió nada, se lee el estado para saber por qué.
+export async function aplicarCambioCalendario(db, { id, inicio, fin, duracion, fecha, modalidad, cambios, ahora }) {
+  const ahoraIso = ahora.toISOString();
+  try {
+    const r = await db.prepare(
+      `UPDATE reservas SET inicio_utc = ?2, fin_utc = ?3, duracion_min = ?4, fecha_lima = ?5, modalidad = ?6,
+         calendario_cambios = ?7, calendario_editado_en = ?8, calendario_revisar = NULL, actualizado_en = ?8
+       WHERE id = ?1 AND estado = 'confirmada'
+         AND NOT ${CRUCE({ ini: '?2', fin: '?3', nutri: 'reservas.nutricionista_id', modalidad: '?6', excluir: 'reservas.id' })}`,
+    ).bind(id, inicio, fin, duracion, fecha, modalidad, cambios, ahoraIso).run();
+    if (r.meta.changes === 1) return { ok: true };
+    const fila = await db.prepare('SELECT estado FROM reservas WHERE id = ?1').bind(id).first();
+    return { ok: false, motivo: fila?.estado === 'confirmada' ? 'cruce' : 'no_confirmada' };
+  } catch (e) {
+    if (UNIQUE.test(String(e?.message))) return { ok: false, motivo: 'cruce' };
+    throw e;
+  }
+}
+
+export const marcarRevisar = (db, { id, motivo, cambios = null, ahora }) => db.prepare(
+  `UPDATE reservas SET calendario_revisar = ?2, calendario_cambios = COALESCE(?3, calendario_cambios), calendario_editado_en = ?4
+   WHERE id = ?1`,
+).bind(id, motivo, cambios, ahora.toISOString()).run();
+
+export const quitarBorrado = (db, id) => db.prepare(
+  `UPDATE reservas SET calendario_revisar = NULL WHERE id = ?1 AND calendario_revisar = 'borrado'`,
+).bind(id).run();
+
+// Botones del panel. Cancelar libera la hora (deja de ser activa para los índices
+// y el motor) pero la reserva sigue visible en rojo (cancelada_en_panel).
+export async function resolverRevision(db, { id, accion, ahora }) {
+  const ahoraIso = ahora.toISOString();
+  const r = accion === 'cancelar'
+    ? await db.prepare(
+      `UPDATE reservas SET estado = 'cancelada', cancelada_en_panel = ?2, calendario_revisar = NULL, actualizado_en = ?2
+       WHERE id = ?1 AND estado = 'confirmada' AND calendario_revisar IS NOT NULL`,
+    ).bind(id, ahoraIso).run()
+    : await db.prepare(
+      `UPDATE reservas SET calendario_revisar = NULL WHERE id = ?1 AND calendario_revisar IS NOT NULL`,
+    ).bind(id).run();
+  return r.meta.changes === 1;
 }

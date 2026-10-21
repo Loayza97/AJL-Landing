@@ -15,6 +15,8 @@ import { etiquetaPlan, etiquetaCita, planValido, citaValida, PRODUCTOS } from '.
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
+import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
+import { resolverRevision } from '../reservas/repo.mjs';
 import { paisDeTelefono } from '../../src/data/telefono.js';
 
 const POR_PAGINA = 20;
@@ -120,13 +122,14 @@ export async function handleLinksBorrar(request, env, deps) {
 const CAMPOS_AGENDADO = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.duracion_min, r.inicio_utc, r.modalidad, r.nutricionista_id,
   r.link_id, l.paciente_nuevo, l.plan, l.cita, l.creado_por, u.nombre AS creado_por_nombre, p.metodo,
   COALESCE(l.usado_en, p.creado_en, r.creado_en) AS agendado_en,
-  c.apellido_paterno, c.apellido_materno, c.nombres, c.nombre, c.dni, c.email, c.whatsapp, c.fecha_nacimiento`;
+  c.apellido_paterno, c.apellido_materno, c.nombres, c.nombre, c.dni, c.email, c.whatsapp, c.fecha_nacimiento,
+  r.calendario_editado_en, r.calendario_cambios, r.calendario_revisar, r.cancelada_en_panel`;
 const FROM_AGENDADO = `FROM reservas r JOIN clientes c ON c.id = r.cliente_id
   LEFT JOIN links_agenda l ON l.reserva_id = r.id AND r.link_id IS NOT NULL
   LEFT JOIN equipo_usuarios u ON u.email = l.creado_por
   LEFT JOIN pagos p ON p.id = (SELECT id FROM pagos WHERE reserva_id = r.id AND estado = 'approved' ORDER BY creado_en DESC LIMIT 1)
-  WHERE ((r.link_id IS NOT NULL AND l.id IS NOT NULL AND r.estado = 'confirmada')
-    OR (r.link_id IS NULL AND r.estado IN ('confirmada', 'pagada_sin_hora')))`;
+  WHERE ((r.link_id IS NOT NULL AND l.id IS NOT NULL AND (r.estado = 'confirmada' OR r.cancelada_en_panel IS NOT NULL))
+    OR (r.link_id IS NULL AND (r.estado IN ('confirmada', 'pagada_sin_hora') OR r.cancelada_en_panel IS NOT NULL)))`;
 const ORDEN_AGENDADO = 'ORDER BY agendado_en DESC, r.id DESC';
 
 // Clave del plan como la guardan los links, para que la web y los links digan lo mismo.
@@ -155,6 +158,9 @@ const vistaAgendado = (r, deps) => {
     // Para pegar en la base maestra: el producto sin la duración y los soles como número.
     producto: PRODUCTOS.find((x) => x.id === String(link ? r.plan : r.producto).split(':')[0])?.etiqueta ?? null,
     soles: link ? null : r.monto_centimos / 100,
+    cancelada: r.cancelada_en_panel != null,
+    revisar: r.calendario_revisar ?? null,
+    calendario: r.calendario_editado_en ? { editado_en: r.calendario_editado_en, cambios: r.calendario_cambios } : null,
   };
 };
 
@@ -164,6 +170,16 @@ export async function handleAgendados(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
+  // Trae al panel los cambios manuales del calendario (como mucho una vez por minuto).
+  // Si Google falla, el panel carga igual con lo que hay.
+  // Google lento: a los 3 s se corta y el panel carga igual. Los eventos que no se
+  // pudieron aplicar se avisan al equipo (el cursor ya avanzó, el cron no los vería).
+  if (deps.google) {
+    try {
+      const res = await sincronizarCalendario(deps, { minIntervaloMs: 60 * 1000, timeoutMs: 3000 });
+      await alertarFallidos(deps, env, res.fallidos);
+    } catch (e) { console.error('agendados/sincronizar', e); }
+  }
   const q = new URL(request.url).searchParams;
   const tramo = q.get('tramo') || 'proximas';
   if (!['proximas', 'pasadas'].includes(tramo)) return bad(400, 'Filtros inválidos');
@@ -202,7 +218,7 @@ export async function handleAgendadosCsv(request, env, deps) {
   if (!ids.length || ids.length > MAX_CSV) return bad(400, `Elige entre 1 y ${MAX_CSV} citas.`);
   // Un solo parámetro JSON: D1 no acepta más de 100 parámetros por consulta.
   const { results } = await deps.db.prepare(
-    `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.id IN (SELECT value FROM json_each(?1)) ${ORDEN_AGENDADO}`,
+    `SELECT ${CAMPOS_AGENDADO} ${FROM_AGENDADO} AND r.cancelada_en_panel IS NULL AND r.id IN (SELECT value FROM json_each(?1)) ${ORDEN_AGENDADO}`,
   ).bind(JSON.stringify(ids)).all();
   // Mismo orden que la tabla del panel, que sigue a la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO,
   // NACIMIENTO, PAÍS, FECHA (pedido de Alejandro, 2026-10-16) y después el resto.
@@ -226,4 +242,16 @@ export async function handleAgendadosCsv(request, env, deps) {
       'Cache-Control': 'no-store',
     },
   });
+}
+
+// Botones de las reservas marcadas para revisar (evento borrado o movido a una hora ocupada).
+export async function handleRevision(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  const acceso = await deps.acceso(request, env);
+  if (!acceso.ok) return sinAcceso();
+  const d = await readJson(request);
+  if (typeof d.id !== 'string' || !['cancelar', 'mantener'].includes(d.accion)) return bad(400, 'Datos inválidos');
+  const hecho = await resolverRevision(deps.db, { id: d.id, accion: d.accion, ahora: deps.ahora() });
+  if (!hecho) return bad(404, 'Esa reserva ya no está para revisar. Recarga la página.');
+  return json(200, { ok: true });
 }

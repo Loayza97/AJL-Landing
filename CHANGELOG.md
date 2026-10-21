@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel y calendario: si alguien cambia a mano en Google Calendar la hora, la duración o si una cita es presencial o virtual, la reserva se actualiza sola en 10 minutos o al abrir el panel, y la fila muestra «Editada en calendario» con el cambio. Si borran el evento o lo mueven a una hora ocupada, la fila queda marcada para revisar con los botones «Cancelar reserva» (libera la hora; la fila se queda en rojo y no se copia a la base maestra) y «Mantener». Requiere la migración 0012 y desplegar el Worker del cron.
 - Google Calendar: el evento de cada cita nueva (web y link) se titula «Nombre · 2 sesiones al mes · 2 de 7» (pago único: «Nombre · 1 de 1»). La descripción lleva producto con nombre interno y meses, cita, nutricionista, WhatsApp, correo, procedencia (web o link) y el id de la reserva. El paciente invitado también lo ve.
 - Portada: ya no aparece el pop-up del newsletter (10% OFF). Las rutas de confirmar y darse de baja siguen funcionando para quienes ya se suscribieron.
 - Panel del equipo: cada persona entra con su correo y su propia contraseña, y el navegador puede guardarlas. El código por correo se pide solo la primera vez (para crear la contraseña), si la olvidó o al entrar desde un celular o computadora nueva (o tras 30 días). Requiere la migración 0011.

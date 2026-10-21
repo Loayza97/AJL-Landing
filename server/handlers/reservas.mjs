@@ -14,6 +14,7 @@ import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
+import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
 import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
@@ -294,4 +295,20 @@ export async function handleResumenDiario(request, env, deps) {
     return bad(503, 'No se pudo enviar el resumen');
   }
   return json(200, { ok: true, enviados: personas.length });
+}
+
+// Lo llama el cron cada 10 min (workers/resumen-cron). Mismo token que el resumen.
+export async function handleSincronizarCalendario(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Sincronización sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  let res;
+  try {
+    res = await sincronizarCalendario(deps);
+  } catch (e) {
+    console.error('sincronizar-calendario', e);
+    return bad(503, 'No se pudo leer el calendario');
+  }
+  await alertarFallidos(deps, env, res.fallidos);
+  return json(200, { ok: true, ...res });
 }

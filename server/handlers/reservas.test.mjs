@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
-import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar } from './reservas.mjs';
+import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar, handleSincronizarCalendario } from './reservas.mjs';
 import * as repo from '../reservas/repo.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
@@ -244,4 +244,53 @@ test('reubicar: una cita de 30 min se valida como de 30 (cabe antes de otra que 
   const r = await repo.reservaPorToken(d.db, ap.token);
   assert.equal(r.estado, 'confirmada');
   assert.equal(r.inicio_utc, '2026-10-06T17:00:00Z');
+});
+
+test('sincronizar-calendario: 401 sin token, 200 con token, 503 si Google falla', async () => {
+  const envS = { RESUMEN_TOKEN: 'tok', NOTIFICATION_EMAIL: 'equipo@x.pe' };
+  const correos = [];
+  const base = { db: d1DePrueba(), ahora: () => new Date('2026-10-19T17:00:00Z'), sendEmail: async (m) => { correos.push(m); return true; } };
+  const req = (auth) => new Request('https://x.test/api/reservas/sincronizar-calendario', { method: 'POST', headers: auth ? { Authorization: auth } : {} });
+  const ok = { ...base, google: { listarCambios: async () => [] } };
+  assert.equal((await handleSincronizarCalendario(req(), envS, ok)).status, 401);
+  assert.equal((await handleSincronizarCalendario(req('Bearer otro'), envS, ok)).status, 401);
+  const r = await handleSincronizarCalendario(req('Bearer tok'), envS, ok);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, aplicados: 0, revisar: 0, fallidos: [] });
+  const cae = { ...base, google: { listarCambios: async () => { throw new Error('Google events.list 500'); } } };
+  assert.equal((await handleSincronizarCalendario(req('Bearer tok'), envS, cae)).status, 503);
+  assert.equal(correos.length, 0);
+});
+
+test('sincronizar-calendario: si un evento falla, avisa al equipo', async () => {
+  const envS = { RESUMEN_TOKEN: 'tok', NOTIFICATION_EMAIL: 'equipo@x.pe' };
+  const correos = [];
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fin_utc, duracion_min,
+     fecha_lima, modalidad, estado, retencion_hasta, creado_en, actualizado_en, google_event_id)
+     VALUES ('r1', 'r1', 'link_c30p', 1, 0, 0, 'jussara', '2026-10-21T15:00:00Z', '2026-10-21T15:30:00Z', 30, '2026-10-21', 'presencial', 'confirmada', NULL, 'x', 'x', 'ev1')`).run();
+  const prepareReal = db.prepare.bind(db);
+  db.prepare = (sql) => (sql.startsWith('UPDATE reservas SET inicio_utc') ? { bind: () => ({ run: async () => { throw new Error('D1 caído'); } }) } : prepareReal(sql));
+  const d = { db, ahora: () => new Date('2026-10-19T17:00:00Z'), sendEmail: async (m) => { correos.push(m); return true; },
+    google: { listarCambios: async () => [{ id: 'ev1', borrado: false, reservaId: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', meet: false, ubicacion: true }] } };
+  const r = await handleSincronizarCalendario(new Request('https://x.test/', { method: 'POST', headers: { Authorization: 'Bearer tok' } }), envS, d);
+  assert.equal(r.status, 200);
+  assert.equal(correos.length, 1);
+  assert.equal(correos[0].to, 'equipo@x.pe');
+  assert.match(correos[0].subject, /Calendario sin sincronizar/);
+});
+
+test('sincronizar-calendario: si el correo de alerta falla, la sincronización sigue en 200', async () => {
+  const db = d1DePrueba();
+  await db.prepare(`INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fin_utc, duracion_min,
+     fecha_lima, modalidad, estado, retencion_hasta, creado_en, actualizado_en, google_event_id)
+     VALUES ('r1', 'r1', 'link_c30p', 1, 0, 0, 'jussara', '2026-10-21T15:00:00Z', '2026-10-21T15:30:00Z', 30, '2026-10-21', 'presencial', 'confirmada', NULL, 'x', 'x', 'ev1')`).run();
+  const prepareReal = db.prepare.bind(db);
+  db.prepare = (sql) => (sql.startsWith('UPDATE reservas SET inicio_utc') ? { bind: () => ({ run: async () => { throw new Error('D1 caído'); } }) } : prepareReal(sql));
+  const d = { db, ahora: () => new Date('2026-10-19T17:00:00Z'), sendEmail: async () => { throw new Error('Resend caído'); },
+    google: { listarCambios: async () => [{ id: 'ev1', borrado: false, reservaId: 'r1', inicio: '2026-10-21T14:00:00Z', fin: '2026-10-21T14:30:00Z', meet: false, ubicacion: true }] } };
+  const r = await handleSincronizarCalendario(new Request('https://x.test/', { method: 'POST', headers: { Authorization: 'Bearer tok' } }),
+    { RESUMEN_TOKEN: 'tok', NOTIFICATION_EMAIL: 'equipo@x.pe' }, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual((await r.json()).fallidos, ['ev1']);
 });

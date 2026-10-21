@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { crearGoogle, normalizarEvento, _limpiarCachesGoogle } from './google.mjs';
+import { crearGoogle, normalizarEvento, cambioDeEvento, _limpiarCachesGoogle } from './google.mjs';
 
 const env = { GOOGLE_CLIENT_ID: 'c', GOOGLE_CLIENT_SECRET: 's', GOOGLE_REFRESH_TOKEN: 'r', GOOGLE_CALENDAR_ID: 'cal@group.calendar.google.com' };
 beforeEach(() => _limpiarCachesGoogle());
@@ -70,4 +70,57 @@ test('crearEvento presencial lleva la dirección y no pide Meet', async () => {
   const cuerpo = JSON.parse(f.llamadas[1].init.body);
   assert.equal(cuerpo.location, 'Jr. Almirante 1461, Lince, Lima');
   assert.equal(cuerpo.conferenceData, undefined);
+});
+
+test('cambioDeEvento: propio presencial, propio virtual, borrado mínimo y de día completo', () => {
+  assert.deepEqual(cambioDeEvento({ id: 'e1', status: 'confirmed', location: 'Jr. Almirante Manuel Villavicencio 1461',
+    start: { dateTime: '2026-10-21T10:00:00-05:00' }, end: { dateTime: '2026-10-21T10:30:00-05:00' },
+    extendedProperties: { private: { ajl_reserva_id: 'r1' } } }),
+  { id: 'e1', borrado: false, reservaId: 'r1', inicio: '2026-10-21T15:00:00Z', fin: '2026-10-21T15:30:00Z', meet: false, ubicacion: true });
+  const v = cambioDeEvento({ id: 'e2', hangoutLink: 'https://meet.google.com/x', start: { dateTime: '2026-10-21T14:00:00Z' }, end: { dateTime: '2026-10-21T14:30:00Z' } });
+  assert.equal(v.meet, true);
+  assert.equal(v.ubicacion, false);
+  assert.equal(v.reservaId, null);
+  assert.deepEqual(cambioDeEvento({ id: 'e3', status: 'cancelled' }),
+    { id: 'e3', borrado: true, reservaId: null, inicio: null, fin: null, meet: false, ubicacion: false });
+  assert.equal(cambioDeEvento({ id: 'e4', start: { date: '2026-10-21' }, end: { date: '2026-10-22' } }).inicio, null);
+});
+
+test('listarCambios: updatedMin y showDeleted, pagina, incluye borrados y no cachea', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events', (url) => (String(url).includes('pageToken=p2')
+      ? { items: [{ id: 'b', status: 'cancelled' }] }
+      : { items: [{ id: 'a', start: { dateTime: '2026-10-21T15:00:00Z' }, end: { dateTime: '2026-10-21T15:30:00Z' } }], nextPageToken: 'p2' })],
+  ]);
+  const g = crearGoogle(env, f, () => 1000);
+  const cambios = await g.listarCambios('2026-10-19T16:58:00.000Z');
+  assert.deepEqual(cambios.map((c) => [c.id, c.borrado]), [['a', false], ['b', true]]);
+  const url = new URL(f.llamadas[1].url);
+  assert.equal(url.searchParams.get('updatedMin'), '2026-10-19T16:58:00.000Z');
+  assert.equal(url.searchParams.get('showDeleted'), 'true');
+  assert.equal(url.searchParams.get('singleEvents'), 'true');
+  await g.listarCambios('2026-10-19T16:58:00.000Z');
+  assert.equal(f.llamadas.filter((l) => l.url.includes('/events')).length, 4); // 2 páginas × 2 llamadas: sin caché
+});
+
+test('listarCambios: error de Google lanza', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events', { error: 'x' }, 500],
+  ]);
+  await assert.rejects(crearGoogle(env, f, () => 1000).listarCambios('2026-10-19T16:58:00.000Z'), /events\.list 500/);
+});
+
+test('listarCambios: con timeoutMs pasa una señal de cancelación; sin él, no', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events', { items: [] }],
+  ]);
+  const g = crearGoogle(env, f, () => 1000);
+  await g.listarCambios('2026-10-19T16:58:00.000Z', { timeoutMs: 3000 });
+  await g.listarCambios('2026-10-19T16:58:00.000Z');
+  const eventos = f.llamadas.filter((l) => l.url.includes('/events'));
+  assert.ok(eventos[0].init.signal instanceof AbortSignal);
+  assert.equal(eventos[1].init.signal, undefined);
 });
