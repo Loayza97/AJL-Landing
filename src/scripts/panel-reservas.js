@@ -23,7 +23,7 @@ const PROC = { web: 'Página web', link: 'Link enviado' };
 const REVISAR = { borrado: 'Evento borrado en el calendario, revisar', cruce: 'Movida en el calendario a una hora ocupada, revisar' };
 const DOCS = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null };
+const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null, visita: null };
 
 const MSJ_CARGA = 'No pudimos cargar. Revisa tu conexión y recarga la página.';
 function aviso(texto = '') { $('#a-msg').textContent = texto; $('#a-msg').hidden = !texto; }
@@ -75,6 +75,20 @@ function pintarTramo() {
   $('#excel').hidden = !nopago; $('#tabla-nopago').hidden = !nopago;
 }
 
+// Una vez por carga de página: trae la visita anterior y guarda esta. Las citas
+// agendadas después se marcan «Nueva» hasta que se vuelva a abrir el panel.
+async function registrarVisita() {
+  const r = await pedir('/api/equipo/visita', { method: 'POST' });
+  const d = r?.ok ? await jsonDe(r) : null;
+  if (!d) return;
+  est.visita = d;
+  const n = d.nuevas;
+  const cuando = d.primera ? 'en las últimas 24 horas' : `desde tu última visita (${lima(d.desde)})`;
+  $('#a-nuevas').textContent = n ? `${n} ${n === 1 ? 'cita nueva' : 'citas nuevas'} ${cuando}` : '';
+  $('#a-nuevas').hidden = !n;
+}
+const esNueva = (f) => est.visita && !f.cancelada && Date.parse(f.agendado_en) > Date.parse(est.visita.desde);
+
 // Devuelve false sin sesión.
 export async function cargarReservas() {
   pintarTramo();
@@ -88,6 +102,7 @@ export async function cargarReservas() {
   if (!d) { $('#login').hidden = true; $('#app').hidden = false; aviso(MSJ_CARGA); return true; }
   entro(d);
   aviso();
+  if (!est.visita) await registrarVisita();
   est.total = d.total; est.filas = d.filas;
   pintar();
   const desde = est.total ? (est.pagina - 1) * 20 + 1 : 0;
@@ -105,6 +120,7 @@ function pintar() {
     tr.dataset.sel = String(est.sel.has(f.id));
     if (f.cancelada) tr.classList.add('lk-fila--cancelada');
     else if (f.revisar) tr.classList.add('lk-fila--revisar');
+    else if (esNueva(f)) tr.classList.add('lk-fila--nueva');
     const caja = document.createElement('input');
     caja.type = 'checkbox'; caja.checked = est.sel.has(f.id);
     caja.setAttribute('aria-label', `Seleccionar a ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
@@ -114,6 +130,7 @@ function pintar() {
     // Mismo orden que la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO, NACIMIENTO, PAÍS, FECHA…
     const cita = f.sin_hora ? td(chip('Sin hora', 'lk-alerta'), f.tipo) : td(citaCorta(f.inicio_utc), f.tipo);
     if (f.cancelada) cita.prepend(chip('Cancelada', 'lk-alerta lk-bloque'));
+    else if (esNueva(f)) cita.prepend(chip('Nueva', 'lk-nueva lk-bloque'));
     if (f.calendario) cita.append(chip(`Editada en calendario: ${f.calendario.cambios || 'sin cambios de hora'} · ${lima(f.calendario.editado_en)}`, 'lk-nota-cal'));
     if (f.revisar && !f.cancelada) {
       const cajaRevisar = document.createElement('div');

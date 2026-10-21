@@ -10,7 +10,7 @@
 import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
 import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
-import { horasLibres, primerasManuales } from '../reservas/disponibilidad.mjs';
+import { horasLibres } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
@@ -132,7 +132,7 @@ export async function handleApartar(request, env, deps) {
     const res = await repo.crearRetencion(deps.db, {
       id: crypto.randomUUID(), token, producto: d.producto, duracion_meses: precio.duracion_meses, monto_centimos: precio.monto_centimos,
       peso_tope: precio.peso, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha, modalidad: d.modalidad,
-      primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora,
+      tope: TOPE_PRIMERAS, ahora,
       huella: await huellaDe(request, fechaLima(ahora)), maxRetenciones: MAX_RETENCIONES,
       // Versión del botón de la portada que vio (prueba A/B); cualquier otra cosa se descarta.
       variante: ['hero_a', 'hero_b'].includes(d.variante) ? d.variante.slice(-1) : null,
@@ -246,7 +246,7 @@ export async function handleReubicar(request, env, deps) {
       duracionMin: r.duracion_min ?? 60 }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const res = await repo.reubicar(deps.db, { id: r.id, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha,
-      modalidad: d.modalidad, primerasManuales: primerasManuales(ctx.eventos, fecha), tope: TOPE_PRIMERAS, ahora: deps.ahora() });
+      modalidad: d.modalidad, tope: TOPE_PRIMERAS, ahora: deps.ahora() });
     if (!res.ok) return bad(409, res.motivo === 'tope' ? MSJ_TOPE : MSJ_OCUPADA, { motivo: res.motivo });
     const actual = await repo.reservaPorToken(deps.db, r.token);
     await finalizarConfirmacion(deps, env, actual);

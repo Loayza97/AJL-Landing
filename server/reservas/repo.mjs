@@ -62,7 +62,7 @@ export async function crearRetencion(db, r) {
             WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14
        AND NOT ${CRUCE({ ini: '?8', fin: '?17', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales, r.tope, huella, r.variante ?? null, fin, duracion);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales ?? 0, r.tope, huella, r.variante ?? null, fin, duracion);
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
     if (res.meta.changes === 0) {
@@ -134,7 +134,7 @@ export const otroPagoAprobado = (db, reservaId, mpPaymentId) => db.prepare(
   `SELECT mp_payment_id FROM pagos WHERE reserva_id = ?1 AND estado = 'approved' AND mp_payment_id <> ?2`,
 ).bind(reservaId, mpPaymentId).first();
 
-export async function confirmarReserva(db, { id, fecha_lima, primerasManuales, tope, ahora }) {
+export async function confirmarReserva(db, { id, fecha_lima, primerasManuales = 0, tope, ahora }) {
   const ahoraIso = ahora.toISOString();
   try {
     // Expirar primero, en la misma transacción: si otra retención de esa hora
@@ -187,7 +187,7 @@ export async function reubicar(db, r) {
          AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}
          AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
               WHERE fecha_lima = ?4 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?7 <= ?8`,
-    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.primerasManuales, r.tope)]);
+    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.primerasManuales ?? 0, r.tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, r.id);
     const ocupada = await hayCruce(db, { id: r.id, nutri: r.nutricionista_id, inicio: r.inicio_utc, modalidad: r.modalidad,
