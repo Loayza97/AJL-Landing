@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel y calendario: se quita la revisión automática de Google Calendar (cada 10 min y al abrir el panel). Los cambios hechos a mano en el calendario ya no pasan solos al panel.
 - Panel: al abrirlo, las citas agendadas desde tu última visita salen resaltadas en verde con «Nueva», y arriba de Reservas dice cuántas son. Cada persona del equipo tiene su propia última visita (la primera vez se marcan las de las últimas 24 horas). Requiere la migración 0013.
 - /reservar/ y /agenda/: las horas que se ofrecen dependen solo de las citas hechas por la web o por un link. Los eventos con hora que el equipo pone a mano en Google Calendar ya no bloquean horas ni cuentan para el tope de 3 primeras sesiones por día. Siguen contando los eventos de día completo: «cerrado» o «feriado» cierran el día y uno con el nombre de una nutricionista la saca ese día.
 - Panel y calendario: si alguien cambia a mano en Google Calendar la hora, la duración o si una cita es presencial o virtual, la reserva se actualiza sola en 10 minutos o al abrir el panel, y la fila muestra «Editada en calendario» con el cambio. Si borran el evento o lo mueven a una hora ocupada, la fila queda marcada para revisar con los botones «Cancelar reserva» (libera la hora; la fila se queda en rojo y no se copia a la base maestra) y «Mantener». Requiere la migración 0012 y desplegar el Worker del cron.

@@ -15,7 +15,6 @@ import { etiquetaPlan, etiquetaCita, planValido, citaValida, PRODUCTOS } from '.
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
-import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
 import { resolverRevision } from '../reservas/repo.mjs';
 import { paisDeTelefono } from '../../src/data/telefono.js';
 
@@ -170,16 +169,6 @@ export async function handleAgendados(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
-  // Trae al panel los cambios manuales del calendario (como mucho una vez por minuto).
-  // Si Google falla, el panel carga igual con lo que hay.
-  // Google lento: a los 3 s se corta y el panel carga igual. Los eventos que no se
-  // pudieron aplicar se avisan al equipo (el cursor ya avanzó, el cron no los vería).
-  if (deps.google) {
-    try {
-      const res = await sincronizarCalendario(deps, { minIntervaloMs: 60 * 1000, timeoutMs: 3000 });
-      await alertarFallidos(deps, env, res.fallidos);
-    } catch (e) { console.error('agendados/sincronizar', e); }
-  }
   const q = new URL(request.url).searchParams;
   const tramo = q.get('tramo') || 'proximas';
   if (!['proximas', 'pasadas'].includes(tramo)) return bad(400, 'Filtros inválidos');
