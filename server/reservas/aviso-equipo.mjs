@@ -1,15 +1,15 @@
 // Aviso al equipo de cada cita agendada, cambiada o cancelada (Joaquín,
-// 2026-10-22): siempre a Romina e Irene, y a la nutricionista de la cita. Si
+// 2026-10-22): siempre a Romina, Irene y Alejandro, y a la nutricionista de la cita. Si
 // cambia de nutricionista, la anterior recibe un aviso de que ya no la atiende.
 // Los correos viven en el secreto CORREOS_EQUIPO (el repo es público):
-// {"romina":"…","irene":"…","nico":"…","paola":"…","jussara":"…","paolo":"…"}.
+// {"romina":"…","irene":"…","alejandro":"…","nico":"…","paola":"…","jussara":"…","paolo":"…"}.
 // Nunca lanza: un correo que falla no debe tumbar la cita.
 import { etiquetaLima } from './tiempo.mjs';
 import { eventoEquipo } from './evento-equipo.mjs';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CORREO = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
-const FIJAS = ['romina', 'irene'];
+const FIJAS = ['romina', 'irene', 'alejandro'];
 const MOD = { presencial: 'Presencial', video: 'Virtual' };
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
