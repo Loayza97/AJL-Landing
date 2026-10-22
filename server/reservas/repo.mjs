@@ -331,12 +331,13 @@ export async function editarReserva(db, r) {
   const ahoraIso = r.ahora.toISOString();
   const fin = `strftime('%Y-%m-%dT%H:%M:%SZ', ?3, '+' || COALESCE(reservas.duracion_min, 60) || ' minutes')`;
   try {
-    const res = await db.prepare(
+    // Expirar antes de comprobar el destino, como reubicar: un cupo vencido sin marcar no debe bloquear.
+    const [, res] = await db.batch([expirar(db, ahoraIso), db.prepare(
       `UPDATE reservas SET nutricionista_id = ?2, inicio_utc = ?3, fecha_lima = ?4, modalidad = ?5, fin_utc = ${fin},
          editada_en = ?6, editada_por = ?7, edicion_cambios = ?8, actualizado_en = ?6
        WHERE id = ?1 AND estado = 'confirmada' AND inicio_utc > strftime('%Y-%m-%dT%H:%M:%SZ', ?6)
          AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}`,
-    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.editadaPor, r.cambios).run();
+    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.editadaPor, r.cambios)]);
     if (res.meta.changes === 1) return { ok: true };
   } catch (e) {
     if (!UNIQUE.test(String(e?.message))) throw e;

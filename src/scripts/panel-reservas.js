@@ -24,7 +24,7 @@ const PROC = { web: 'Página web', link: 'Link enviado' };
 const REVISAR = { borrado: 'Evento borrado en el calendario, revisar', cruce: 'Movida en el calendario a una hora ocupada, revisar' };
 const DOCS = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null, visita: null, editando: null, inicio: null };
+const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null, visita: null, editando: null, inicio: null, seqHoras: 0 };
 
 const MSJ_CARGA = 'No pudimos cargar. Revisa tu conexión y recarga la página.';
 function aviso(texto = '') { $('#a-msg').textContent = texto; $('#a-msg').hidden = !texto; }
@@ -322,23 +322,26 @@ function abrirEditar(f) {
   cargarHoras();
 }
 
+const igualActual = (f, inicio) => inicio === f.inicio_utc && $('#e-nutri').value === f.nutricionista_id && $('#e-modalidad').value === f.modalidad;
+
 async function cargarHoras() {
   const f = est.editando;
+  const seq = ++est.seqHoras;
   est.inicio = null; $('#e-guardar').disabled = true;
   const caja = $('#e-horas');
   if (!f || !$('#e-fecha').value) { caja.replaceChildren(); return; }
   const p = new URLSearchParams({ id: f.id, fecha: $('#e-fecha').value, modalidad: $('#e-modalidad').value, nutricionista: $('#e-nutri').value });
   const r = await pedir(`/api/equipo/editar-horas?${p}`);
-  if (est.editando !== f) return;
+  if (seq !== est.seqHoras || est.editando !== f) return;
   if (r?.status === 401) { $('#e-dialogo').close(); mostrarLogin(); return; }
   const d = await jsonDe(r);
+  if (seq !== est.seqHoras || est.editando !== f) return;
   if (!r?.ok || !d?.horas) { caja.replaceChildren(); mensajeEditar(d?.error || 'No se pudieron cargar las horas. Intenta de nuevo.'); return; }
   mensajeEditar();
   if (!d.horas.length) { caja.textContent = 'No hay horas libres ese día.'; return; }
   caja.replaceChildren(...d.horas.map((h) => {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = h.hora; b.dataset.inicio = h.inicio;
-    b.setAttribute('role', 'radio');
     // La hora actual sale marcada, pero «Guardar cambio» espera a que se elija una.
     b.setAttribute('aria-pressed', String(h.inicio === f.inicio_utc));
     return b;
@@ -349,6 +352,7 @@ async function guardarEdicion(e) {
   e.preventDefault();
   const f = est.editando;
   if (!f || !est.inicio) return;
+  if (fechaIsoLima(new Date(est.inicio)) !== $('#e-fecha').value) { await cargarHoras(); mensajeEditar('Esa hora no es del día elegido. Elige otra.'); return; }
   $('#e-guardar').disabled = true;
   const r = await pedir('/api/equipo/editar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id: f.id, inicio: est.inicio, modalidad: $('#e-modalidad').value, nutricionista: $('#e-nutri').value }) });
@@ -356,8 +360,8 @@ async function guardarEdicion(e) {
   const d = await jsonDe(r);
   if (r?.ok && d?.ok) {
     $('#e-dialogo').close();
-    aviso(d.calendario === 'pendiente' ? 'Cita cambiada. El calendario no se pudo actualizar: revisa el evento a mano.' : '');
     await cargarReservas();
+    if (d.calendario === 'pendiente') aviso('Cita cambiada. El calendario no se pudo actualizar: revisa el evento a mano.');
     return;
   }
   await cargarHoras();
@@ -369,8 +373,9 @@ $('#e-horas').addEventListener('click', (e) => {
   if (!b) return;
   est.inicio = b.dataset.inicio;
   document.querySelectorAll('#e-horas button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-  $('#e-guardar').disabled = false;
+  $('#e-guardar').disabled = !est.editando || igualActual(est.editando, est.inicio);
 });
+$('#e-dialogo').addEventListener('close', () => { est.editando = null; est.inicio = null; est.seqHoras++; });
 for (const id of ['e-nutri', 'e-modalidad', 'e-fecha']) $(`#${id}`).addEventListener('change', cargarHoras);
 $('#e-form').addEventListener('submit', guardarEdicion);
 $('#e-cancelar').addEventListener('click', () => $('#e-dialogo').close());
