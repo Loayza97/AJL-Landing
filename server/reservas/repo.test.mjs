@@ -331,3 +331,49 @@ test('guardar datos sin ficha previa con la retención vencida: no crea ficha', 
   assert.deepEqual(res, { ok: false, motivo: 'vencida' });
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM clientes').first()).n, 0);
 });
+
+const confirmada = async (db, o) => { await ret(db, o); await db.prepare("UPDATE reservas SET estado = 'confirmada', retencion_hasta = NULL WHERE id = ?1").bind(o.id).run(); };
+const editar = (db, o) => repo.editarReserva(db, { id: 'e', nutricionista_id: 'nico', inicio_utc: '2026-10-07T16:00:00Z', fecha_lima: '2026-10-07',
+  modalidad: 'video', editadaPor: 'romi@x.pe', cambios: 'x', ahora: mas(5), ...o });
+
+test('editarReserva: mueve hora, nutri y modalidad, conserva la duración y guarda quién', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e', duracion_min: 30, modalidad: 'presencial' });
+  assert.deepEqual(await editar(db, { nutricionista_id: 'paola', cambios: '10:00 → 11:00' }), { ok: true });
+  const r = await repo.reservaPorId(db, 'e');
+  assert.deepEqual([r.nutricionista_id, r.inicio_utc, r.fin_utc, r.fecha_lima, r.modalidad, r.estado, r.editada_por, r.edicion_cambios],
+    ['paola', '2026-10-07T16:00:00Z', '2026-10-07T16:30:00Z', '2026-10-07', 'video', 'confirmada', 'romi@x.pe', '10:00 → 11:00']);
+  assert.equal(r.editada_en, mas(5).toISOString());
+});
+
+test('editarReserva: se puede solapar consigo misma (media hora después)', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e', inicio_utc: '2026-10-06T17:00:00Z' });
+  assert.deepEqual(await editar(db, { nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial' }), { ok: true });
+});
+
+test('editarReserva: cruce con otra cita de la nutri o con otra presencial da ocupada y no cambia nada', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e' });
+  await confirmada(db, { id: 'otra', nutricionista_id: 'paola', inicio_utc: '2026-10-07T16:00:00Z', fecha_lima: '2026-10-07', modalidad: 'presencial' });
+  assert.deepEqual(await editar(db, { nutricionista_id: 'paola' }), { ok: false, motivo: 'ocupada' });
+  assert.deepEqual(await editar(db, { nutricionista_id: 'jussara', modalidad: 'presencial' }), { ok: false, motivo: 'ocupada' });
+  assert.equal((await repo.reservaPorId(db, 'e')).inicio_utc, '2026-10-06T17:00:00Z');
+});
+
+test('editarReserva: no mira el tope del día', async () => {
+  const db = d1DePrueba();
+  for (const h of ['14', '15', '16', '17', '19']) await confirmada(db, { id: `l${h}`, inicio_utc: `2026-10-07T${h}:00:00Z`, fecha_lima: '2026-10-07', nutricionista_id: `n${h}`, modalidad: 'video' });
+  await confirmada(db, { id: 'e' });
+  assert.deepEqual(await editar(db, { inicio_utc: '2026-10-07T21:00:00Z' }), { ok: true });
+});
+
+test('editarReserva: cita pasada, cancelada o pagada sin hora da estado', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e' });
+  assert.deepEqual(await editar(db, { ahora: new Date('2026-10-06T17:00:00Z') }), { ok: false, motivo: 'estado' });
+  await db.prepare("UPDATE reservas SET estado = 'pagada_sin_hora' WHERE id = 'e'").run();
+  assert.deepEqual(await editar(db), { ok: false, motivo: 'estado' });
+  await db.prepare("UPDATE reservas SET estado = 'cancelada' WHERE id = 'e'").run();
+  assert.deepEqual(await editar(db), { ok: false, motivo: 'estado' });
+});

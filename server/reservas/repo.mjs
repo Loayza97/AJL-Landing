@@ -325,3 +325,25 @@ export async function resolverRevision(db, { id, accion, ahora }) {
     ).bind(id).run();
   return r.meta.changes === 1;
 }
+
+// Editar desde el panel (2026-10-22): misma duración, sin tope, nunca encima de
+// otra cita. La propia cita se excluye del cruce, así puede moverse media hora.
+export async function editarReserva(db, r) {
+  const ahoraIso = r.ahora.toISOString();
+  const fin = `strftime('%Y-%m-%dT%H:%M:%SZ', ?3, '+' || COALESCE(reservas.duracion_min, 60) || ' minutes')`;
+  try {
+    const res = await db.prepare(
+      `UPDATE reservas SET nutricionista_id = ?2, inicio_utc = ?3, fecha_lima = ?4, modalidad = ?5, fin_utc = ${fin},
+         editada_en = ?6, editada_por = ?7, edicion_cambios = ?8, actualizado_en = ?6
+       WHERE id = ?1 AND estado = 'confirmada' AND inicio_utc > strftime('%Y-%m-%dT%H:%M:%SZ', ?6)
+         AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}`,
+    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.editadaPor, r.cambios).run();
+    if (res.meta.changes === 1) return { ok: true };
+  } catch (e) {
+    if (!UNIQUE.test(String(e?.message))) throw e;
+    return { ok: false, motivo: 'ocupada' };
+  }
+  const actual = await reservaPorId(db, r.id);
+  if (!actual || actual.estado !== 'confirmada' || new Date(actual.inicio_utc) <= r.ahora) return { ok: false, motivo: 'estado' };
+  return { ok: false, motivo: 'ocupada' };
+}
