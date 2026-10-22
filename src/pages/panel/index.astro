@@ -107,6 +107,21 @@ import '../../styles/panel.css';
             <th><label class="lk-check"><input type="checkbox" id="a-todos"> Todos</label></th>
             <th>Apellidos</th><th>Nombres</th><th>DNI</th><th>Correo</th><th>Número</th><th>Nacimiento</th><th>País</th><th>Fecha</th><th>Plan / Cita</th><th>Pago</th><th>Paciente</th><th>Modalidad</th><th>Nutricionista</th><th>Procedencia</th>
           </tr></thead><tbody id="a-filas"></tbody></table></div>
+          <dialog id="e-dialogo" class="lk-dialogo" aria-labelledby="e-titulo">
+            <form method="dialog" id="e-form">
+              <h3 id="e-titulo">Editar cita</h3>
+              <p id="e-paciente" class="lk-sub"></p>
+              <label>Nutricionista <select id="e-nutri" required></select></label>
+              <label>Modalidad <select id="e-modalidad" required><option value="presencial">Presencial</option><option value="video">Virtual</option></select></label>
+              <label>Fecha <input type="date" id="e-fecha" required></label>
+              <fieldset><legend>Hora</legend><div id="e-horas" class="lk-horas" role="radiogroup"></div></fieldset>
+              <p id="e-msg" class="lk-error" role="alert" hidden></p>
+              <div class="lk-acciones">
+                <button type="button" id="e-cancelar" class="lk-btn lk-btn--mantener">Cancelar</button>
+                <button type="submit" id="e-guardar" class="lk-btn" disabled>Guardar cambio</button>
+              </div>
+            </form>
+          </dialog>
           <div class="lk-pie"><span>Salen primero los últimos que agendaron. «Copiar» deja las elegidas listas para pegar en la columna A de la base maestra.</span>
             <span><span id="a-pag"></span> <button type="button" class="lk-btn lk-btn--borde" id="a-prev" aria-label="Página anterior">‹</button> <button type="button" class="lk-btn lk-btn--borde" id="a-next" aria-label="Página siguiente">›</button></span></div>
         </div>

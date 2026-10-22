@@ -5,6 +5,7 @@
 import { limitarFilas } from './panel-filas.js';
 import { numeroParaPegar } from '../data/telefono.js';
 import { mostrarLogin } from './panel-links.js';
+import { nutricionistas } from '../data/nutricionistas.js';
 
 const $ = (s) => document.querySelector(s);
 const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
@@ -23,7 +24,7 @@ const PROC = { web: 'Página web', link: 'Link enviado' };
 const REVISAR = { borrado: 'Evento borrado en el calendario, revisar', cruce: 'Movida en el calendario a una hora ocupada, revisar' };
 const DOCS = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null, visita: null };
+const est = { tramo: 'proximas', pagina: 1, total: 0, filas: [], sel: new Set(), nopago: null, visita: null, editando: null, inicio: null };
 
 const MSJ_CARGA = 'No pudimos cargar. Revisa tu conexión y recarga la página.';
 function aviso(texto = '') { $('#a-msg').textContent = texto; $('#a-msg').hidden = !texto; }
@@ -132,6 +133,14 @@ function pintar() {
     if (f.cancelada) cita.prepend(chip('Cancelada', 'lk-alerta lk-bloque'));
     else if (esNueva(f)) cita.prepend(chip('Nueva', 'lk-nueva lk-bloque'));
     if (f.calendario) cita.append(chip(`Editada en calendario: ${f.calendario.cambios || 'sin cambios de hora'} · ${lima(f.calendario.editado_en)}`, 'lk-nota-cal'));
+    if (f.edicion) cita.append(chip(`Editada por ${String(f.edicion.por).split('@')[0]} · ${lima(f.edicion.en)}: ${f.edicion.cambios}`, 'lk-nota-cal'));
+    if (f.editable && !f.revisar) {
+      const be = document.createElement('button');
+      be.type = 'button'; be.className = 'lk-btn lk-btn--mantener'; be.textContent = 'Editar';
+      be.setAttribute('aria-label', `Editar cita de ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
+      be.dataset.editar = f.id;
+      cita.append(be);
+    }
     if (f.revisar && !f.cancelada) {
       const cajaRevisar = document.createElement('div');
       cajaRevisar.className = 'lk-revisar';
@@ -273,6 +282,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.dataset.revision) { revisar(b); return; }
+  if (b.dataset.editar) { abrirEditar(est.filas.find((f) => f.id === b.dataset.editar)); return; }
   if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargarReservas(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargarReservas(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) aviso(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`);
@@ -289,3 +299,78 @@ let espera;
 $('#a-q').addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(() => { est.pagina = 1; cargarReservas(); }, 300); });
 $('#a-periodo').addEventListener('change', (e) => { $('#a-rango').hidden = e.target.value !== 'rango'; est.pagina = 1; cargarReservas(); });
 for (const lado of ['desde', 'hasta']) $(`#a-${lado}`).addEventListener('change', () => { est.pagina = 1; cargarReservas(); });
+
+// Editar cita: nutricionista, modalidad, fecha y hora. Las horas libres las da el
+// servidor (/api/equipo/editar-horas); solo se pinta lo que devuelve, con textContent.
+const fechaIsoLima = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Lima' }).format(d);
+const DIAS_MAX_EDITAR = 60;
+function mensajeEditar(texto = '') { $('#e-msg').textContent = texto; $('#e-msg').hidden = !texto; }
+
+function abrirEditar(f) {
+  if (!f) return;
+  est.editando = f; est.inicio = null;
+  $('#e-paciente').textContent = `${[f.nombres, f.apellido_paterno].filter(Boolean).join(' ')} · ${citaCorta(f.inicio_utc)}`;
+  $('#e-nutri').replaceChildren(...nutricionistas.map((n) => Object.assign(document.createElement('option'), { value: n.id, textContent: n.nombre })));
+  $('#e-nutri').value = f.nutricionista_id;
+  $('#e-modalidad').value = f.modalidad;
+  const hoy = new Date();
+  $('#e-fecha').min = fechaIsoLima(hoy);
+  $('#e-fecha').max = fechaIsoLima(new Date(hoy.getTime() + DIAS_MAX_EDITAR * 86400000));
+  $('#e-fecha').value = fechaIsoLima(new Date(f.inicio_utc));
+  mensajeEditar();
+  $('#e-dialogo').showModal();
+  cargarHoras();
+}
+
+async function cargarHoras() {
+  const f = est.editando;
+  est.inicio = null; $('#e-guardar').disabled = true;
+  const caja = $('#e-horas');
+  if (!f || !$('#e-fecha').value) { caja.replaceChildren(); return; }
+  const p = new URLSearchParams({ id: f.id, fecha: $('#e-fecha').value, modalidad: $('#e-modalidad').value, nutricionista: $('#e-nutri').value });
+  const r = await pedir(`/api/equipo/editar-horas?${p}`);
+  if (est.editando !== f) return;
+  if (r?.status === 401) { $('#e-dialogo').close(); mostrarLogin(); return; }
+  const d = await jsonDe(r);
+  if (!r?.ok || !d?.horas) { caja.replaceChildren(); mensajeEditar(d?.error || 'No se pudieron cargar las horas. Intenta de nuevo.'); return; }
+  mensajeEditar();
+  if (!d.horas.length) { caja.textContent = 'No hay horas libres ese día.'; return; }
+  caja.replaceChildren(...d.horas.map((h) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = h.hora; b.dataset.inicio = h.inicio;
+    b.setAttribute('role', 'radio');
+    // La hora actual sale marcada, pero «Guardar cambio» espera a que se elija una.
+    b.setAttribute('aria-pressed', String(h.inicio === f.inicio_utc));
+    return b;
+  }));
+}
+
+async function guardarEdicion(e) {
+  e.preventDefault();
+  const f = est.editando;
+  if (!f || !est.inicio) return;
+  $('#e-guardar').disabled = true;
+  const r = await pedir('/api/equipo/editar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: f.id, inicio: est.inicio, modalidad: $('#e-modalidad').value, nutricionista: $('#e-nutri').value }) });
+  if (r?.status === 401) { $('#e-dialogo').close(); mostrarLogin(); return; }
+  const d = await jsonDe(r);
+  if (r?.ok && d?.ok) {
+    $('#e-dialogo').close();
+    aviso(d.calendario === 'pendiente' ? 'Cita cambiada. El calendario no se pudo actualizar: revisa el evento a mano.' : '');
+    await cargarReservas();
+    return;
+  }
+  await cargarHoras();
+  mensajeEditar(d?.error || 'No se pudo guardar. Intenta de nuevo.');
+}
+
+$('#e-horas').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-inicio]');
+  if (!b) return;
+  est.inicio = b.dataset.inicio;
+  document.querySelectorAll('#e-horas button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  $('#e-guardar').disabled = false;
+});
+for (const id of ['e-nutri', 'e-modalidad', 'e-fecha']) $(`#${id}`).addEventListener('change', cargarHoras);
+$('#e-form').addEventListener('submit', guardarEdicion);
+$('#e-cancelar').addEventListener('click', () => $('#e-dialogo').close());

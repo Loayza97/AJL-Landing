@@ -122,7 +122,8 @@ const CAMPOS_AGENDADO = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_c
   r.link_id, l.paciente_nuevo, l.plan, l.cita, l.creado_por, u.nombre AS creado_por_nombre, p.metodo,
   COALESCE(l.usado_en, p.creado_en, r.creado_en) AS agendado_en,
   c.apellido_paterno, c.apellido_materno, c.nombres, c.nombre, c.dni, c.email, c.whatsapp, c.fecha_nacimiento,
-  r.calendario_editado_en, r.calendario_cambios, r.calendario_revisar, r.cancelada_en_panel`;
+  r.calendario_editado_en, r.calendario_cambios, r.calendario_revisar, r.cancelada_en_panel,
+  r.editada_en, r.editada_por, r.edicion_cambios`;
 const FROM_AGENDADO = `FROM reservas r JOIN clientes c ON c.id = r.cliente_id
   LEFT JOIN links_agenda l ON l.reserva_id = r.id AND r.link_id IS NOT NULL
   LEFT JOIN equipo_usuarios u ON u.email = l.creado_por
@@ -139,7 +140,7 @@ const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\
 const metodoPago = (m) => (!m ? 'Mercado Pago' : m === 'account_money' ? 'Saldo de Mercado Pago' : `Mercado Pago, ${m === 'yape' ? 'Yape' : m.toUpperCase()}`);
 const quienCreo = (r) => r.creado_por_nombre || String(r.creado_por || '').split('@')[0] || null;
 
-const vistaAgendado = (r, deps) => {
+const vistaAgendado = (r, deps, ahoraIso) => {
   const link = r.link_id != null;
   return {
     id: r.id, procedencia: link ? 'link' : 'web', agendado_en: r.agendado_en,
@@ -158,6 +159,9 @@ const vistaAgendado = (r, deps) => {
     producto: PRODUCTOS.find((x) => x.id === String(link ? r.plan : r.producto).split(':')[0])?.etiqueta ?? null,
     soles: link ? null : r.monto_centimos / 100,
     cancelada: r.cancelada_en_panel != null,
+    nutricionista_id: r.nutricionista_id, duracion_min: r.duracion_min ?? 60,
+    editable: r.estado === 'confirmada' && r.cancelada_en_panel == null && r.inicio_utc > ahoraIso,
+    edicion: r.editada_en ? { en: r.editada_en, por: r.editada_por, cambios: r.edicion_cambios } : null,
     revisar: r.calendario_revisar ?? null,
     calendario: r.calendario_editado_en ? { editado_en: r.calendario_editado_en, cambios: r.calendario_cambios } : null,
   };
@@ -187,7 +191,7 @@ export async function handleAgendados(request, env, deps) {
     `SELECT ${CAMPOS_AGENDADO} ${donde} ${ORDEN_AGENDADO} LIMIT ${POR_PAGINA} OFFSET ?5`,
   ).bind(...args, (p - 1) * POR_PAGINA).all();
   return json(200, { ok: true, email: acceso.email, admin: acceso.admin === true,
-    filas: results.map((r) => vistaAgendado(r, deps)), total: n, pagina: p, por_pagina: POR_PAGINA });
+    filas: results.map((r) => vistaAgendado(r, deps, ahoraIso)), total: n, pagina: p, por_pagina: POR_PAGINA });
 }
 
 // DNI y WhatsApp como texto en Google Sheets y en Excel: la celda va como
@@ -214,7 +218,7 @@ export async function handleAgendadosCsv(request, env, deps) {
   const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'Número', 'Nacimiento', 'País', 'Fecha (Lima)', 'Evento', 'Plan', 'Cita', 'Pago',
     'Detalle del pago', 'Paciente', 'Modalidad', 'Nutricionista', 'Procedencia', 'Agendó (Lima)'];
   const filas = results.map((r) => {
-    const v = vistaAgendado(r, deps);
+    const v = vistaAgendado(r, deps, deps.ahora().toISOString());
     return [celda([v.apellido_paterno, v.apellido_materno].filter(Boolean).join(' ')), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
       celda(v.fecha_nacimiento), celda(v.pais), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.plan), celda(v.cita ?? ''), celda(v.pago),
       celda(v.pago_detalle), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'),
