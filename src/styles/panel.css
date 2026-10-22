@@ -72,3 +72,15 @@ tr.lk-fila--revisar td, tr.lk-fila--revisar[data-sel=true] td { background: #FFF
 tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
 .lk-nueva { display: inline-block; font-size: .75rem; font-weight: 700; color: #fff; background: #1F7A4D; padding: 2px 8px; border-radius: 999px; width: fit-content; }
 .lk-nuevas { margin: 0 0 10px; color: #1F5E3D; font-size: .9rem; font-weight: 700; }
+
+.lk-dialogo { border: 0; border-radius: 12px; padding: 20px; width: min(420px, calc(100vw - 32px)); }
+.lk-dialogo::backdrop { background: rgb(0 0 0 / .4); }
+.lk-dialogo form { display: grid; gap: 12px; }
+.lk-dialogo label { display: grid; gap: 4px; font-size: .875rem; }
+.lk-dialogo select, .lk-dialogo input[type=date] { min-height: 44px; font: inherit; }
+.lk-dialogo fieldset { margin: 0; padding: 0; border: 0; min-width: 0; }
+.lk-horas { display: flex; flex-wrap: wrap; gap: 6px; }
+.lk-horas button { min-height: 44px; padding: 8px 12px; border: 1px solid #CFC9BD; border-radius: 8px; background: #fff; font: inherit; cursor: pointer; }
+.lk-horas button[aria-pressed=true] { background: #141414; color: #fff; border-color: #141414; }
+.lk-acciones { display: flex; gap: 8px; justify-content: flex-end; }
+.lk-dialogo .lk-sub { margin: 0; font-size: .875rem; color: #5C5C5C; }
