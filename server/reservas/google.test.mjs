@@ -124,3 +124,50 @@ test('listarCambios: con timeoutMs pasa una señal de cancelación; sin él, no'
   assert.ok(eventos[0].init.signal instanceof AbortSignal);
   assert.equal(eventos[1].init.signal, undefined);
 });
+
+test('actualizarEvento a virtual: PATCH con hora y título nuevos, pide Meet y quita la ubicación', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev1?', { id: 'ev1', hangoutLink: 'https://meet.google.com/n' }]]);
+  const g = crearGoogle(env, f);
+  const r = await g.actualizarEvento('ev1', { titulo: 'Ana · 1 de 1', descripcion: 'd', inicioUtc: '2026-10-09T20:00:00Z', finUtc: '2026-10-09T21:00:00Z', modalidad: 'video', direccion: 'Lince', cambiaModalidad: true });
+  assert.deepEqual(r, { id: 'ev1', meet: 'https://meet.google.com/n' });
+  const { url, init } = f.llamadas[1];
+  assert.equal(init.method, 'PATCH');
+  assert.match(url, /events\/ev1\?conferenceDataVersion=1&sendUpdates=all/);
+  const c = JSON.parse(init.body);
+  assert.equal(c.summary, 'Ana · 1 de 1');
+  assert.equal(c.start.dateTime, '2026-10-09T20:00:00Z');
+  assert.equal(c.location, null);
+  assert.equal(c.conferenceData.createRequest.conferenceSolutionKey.type, 'hangoutsMeet');
+});
+
+test('actualizarEvento a presencial: dirección y sin Meet', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev2?', { id: 'ev2' }]]);
+  const g = crearGoogle(env, f);
+  assert.deepEqual(await g.actualizarEvento('ev2', { titulo: 't', descripcion: 'd', inicioUtc: '2026-10-06T17:00:00Z', finUtc: '2026-10-06T18:00:00Z', modalidad: 'presencial', direccion: 'Jr. X', cambiaModalidad: true }),
+    { id: 'ev2', meet: null });
+  const c = JSON.parse(f.llamadas[1].init.body);
+  assert.equal(c.location, 'Jr. X');
+  assert.equal(c.conferenceData, null);
+});
+
+test('actualizarEvento sin cambio de modalidad: no toca location ni conferenceData y conserva el Meet', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev4?', { id: 'ev4', hangoutLink: 'https://meet.google.com/viejo' }]]);
+  const g = crearGoogle(env, f);
+  const r = await g.actualizarEvento('ev4', { titulo: 't', descripcion: 'd', inicioUtc: '2026-10-06T17:00:00Z', finUtc: '2026-10-06T18:00:00Z', modalidad: 'video', cambiaModalidad: false });
+  assert.deepEqual(r, { id: 'ev4', meet: 'https://meet.google.com/viejo' });
+  const c = JSON.parse(f.llamadas[1].init.body);
+  assert.ok(!('location' in c));
+  assert.ok(!('conferenceData' in c));
+  assert.equal(c.summary, 't');
+});
+
+test('actualizarEvento: 404 o 410 avisan que el evento no existe; 500 es otro error', async () => {
+  for (const [status, noExiste] of [[404, true], [410, true], [500, undefined]]) {
+    _limpiarCachesGoogle();
+    const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev3?', { error: 'x' }, status]]);
+    const g = crearGoogle(env, f);
+    const e = await g.actualizarEvento('ev3', { titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'video' }).catch((x) => x);
+    assert.ok(e instanceof Error);
+    assert.equal(e.noExiste, noExiste, String(status));
+  }
+});
