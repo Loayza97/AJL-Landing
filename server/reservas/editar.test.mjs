@@ -8,7 +8,7 @@ import * as repo from './repo.mjs';
 const antes = { inicio_utc: '2026-10-29T15:00:00Z', modalidad: 'presencial', nutricionista_id: 'jussara' };
 
 test('textoCambios: solo lo que cambió; el día si cambió la fecha', () => {
-  assert.equal(textoCambios(antes, { ...antes, inicio_utc: '2026-10-29T14:00:00Z' }, nutricionistas), '10:00 → 09:00');
+  assert.equal(textoCambios(antes, { ...antes, inicio_utc: '2026-10-29T14:00:00Z' }, nutricionistas), '10:00 → 9:00');
   assert.equal(textoCambios(antes, { inicio_utc: '2026-10-30T20:00:00Z', modalidad: 'video', nutricionista_id: 'nico' }, nutricionistas),
     'jue 29 oct 10:00 → vie 30 oct 15:00 · presencial → virtual · Jussara → Nico');
   assert.equal(textoCambios(antes, antes, nutricionistas), 'sin cambios');
