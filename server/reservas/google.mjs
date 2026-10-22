@@ -121,5 +121,38 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     return { id: d.id, meet: d.hangoutLink || null };
   }
 
-  return { listarEventos, listarCambios, crearEvento };
+  // Editar desde el panel: mismo evento (un solo aviso al paciente). Solo si cambia
+  // la modalidad se tocan ubicación y Meet; si no, el Meet existente se conserva.
+  async function actualizarEvento(eventId, e) {
+    const cuerpo = {
+      summary: e.titulo,
+      description: e.descripcion,
+      start: { dateTime: e.inicioUtc, timeZone: 'America/Lima' },
+      end: { dateTime: e.finUtc, timeZone: 'America/Lima' },
+    };
+    if (e.cambiaModalidad) {
+      if (e.modalidad === 'presencial') {
+        cuerpo.location = e.direccion;
+        cuerpo.conferenceData = null;
+      } else {
+        cuerpo.location = null;
+        cuerpo.conferenceData = { createRequest: { requestId: `${eventId}-${Date.now()}`, conferenceSolutionKey: { type: 'hangoutsMeet' } } };
+      }
+    }
+    const r = await fetchImpl(`${API}/calendars/${calendario}/events/${encodeURIComponent(eventId)}?conferenceDataVersion=1&sendUpdates=all`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${await token()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(cuerpo),
+    });
+    if (!r.ok) {
+      const err = new Error(`Google events.patch ${r.status}: ${await r.text()}`);
+      if (r.status === 404 || r.status === 410) err.noExiste = true;
+      throw err;
+    }
+    const d = await r.json();
+    eventosCacheados.clear();
+    return { id: d.id, meet: e.modalidad === 'presencial' ? null : d.hangoutLink || null };
+  }
+
+  return { listarEventos, listarCambios, crearEvento, actualizarEvento };
 }
