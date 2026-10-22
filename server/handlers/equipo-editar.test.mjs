@@ -174,3 +174,30 @@ test('cancelar: sin evento en Google, solo cancela', async () => {
   await d.db.prepare('UPDATE reservas SET google_event_id = NULL WHERE id = ?1').bind(id).run();
   assert.deepEqual(await (await handleCancelar(postCancelar({ id }), env, d)).json(), { ok: true, calendario: 'ok' });
 });
+
+const conEquipo = { ...env, CORREOS_EQUIPO: JSON.stringify({ romina: 'romi@x.pe', irene: 'irene@x.pe', jussara: 'yuyu@x.pe', nico: 'nico@x.pe' }) };
+
+test('editar con otra nutri: «Cita cambiada» a Romina, Irene y la nueva; la anterior recibe «Ya no atiendes»', async () => {
+  const correos = [];
+  const d = deps({ sendEmail: async (c) => { correos.push(c); } });
+  const id = await cita(d.db);
+  const libres = await (await handleEditarHoras(get(`/api/equipo/editar-horas?id=${id}&nutricionista=nico&fecha=2026-10-06&modalidad=presencial`), conEquipo, d)).json();
+  const r = await handleEditar(post({ id, inicio: libres.horas[0].inicio, modalidad: 'presencial', nutricionista: 'nico' }), conEquipo, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual(correos.map((c) => [c.subject.split(':')[0], c.to]), [
+    ['Cita cambiada', ['romi@x.pe', 'irene@x.pe', 'nico@x.pe']],
+    [correos[1].subject.split(':')[0], ['yuyu@x.pe']],
+  ]);
+  assert.match(correos[1].subject, /^Ya no atiendes a /);
+});
+
+test('cancelar: «Cita cancelada» a Romina, Irene y la nutri', async () => {
+  const correos = [];
+  const d = deps({ sendEmail: async (c) => { correos.push(c); } });
+  d.google.eliminarEvento = async () => {};
+  const id = await cita(d.db);
+  await handleCancelar(postCancelar({ id }), conEquipo, d);
+  assert.equal(correos.length, 1);
+  assert.match(correos[0].subject, /^Cita cancelada: /);
+  assert.deepEqual(correos[0].to, ['romi@x.pe', 'irene@x.pe', 'yuyu@x.pe']);
+});

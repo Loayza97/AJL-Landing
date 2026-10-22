@@ -8,6 +8,7 @@ import { horasLibres } from '../reservas/disponibilidad.mjs';
 import { fechaLima } from '../reservas/tiempo.mjs';
 import { contexto } from './reservas.mjs';
 import { textoCambios, sincronizarEventoEditado, borrarEventoCancelado } from '../reservas/editar.mjs';
+import { avisarEquipo } from '../reservas/aviso-equipo.mjs';
 
 const MODALIDADES = new Set(['presencial', 'video']);
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -70,7 +71,9 @@ export async function handleEditar(request, env, deps) {
     console.error('editar', e);
     return bad(503, 'No pudimos guardar el cambio. Intenta en un momento.');
   }
-  const calendario = await sincronizarEventoEditado(deps, env, await repo.reservaPorId(deps.db, d.id), { modalidadAnterior: antes.modalidad });
+  const editada = await repo.reservaPorId(deps.db, d.id);
+  const calendario = await sincronizarEventoEditado(deps, env, editada, { modalidadAnterior: antes.modalidad });
+  await avisarEquipo(deps, env, { tipo: 'cambiada', r: editada, antes });
   return json(200, { ok: true, calendario });
 }
 
@@ -82,6 +85,8 @@ export async function handleCancelar(request, env, deps) {
   if (typeof d.id !== 'string' || !d.id) return bad(400, 'Datos inválidos');
   const hecho = await repo.cancelarCita(deps.db, { id: d.id, por: acceso.email, ahora: deps.ahora() });
   if (!hecho) return bad(409, 'Esta cita ya no se puede cancelar.');
-  const calendario = await borrarEventoCancelado(deps, env, await repo.reservaPorId(deps.db, d.id));
+  const cancelada = await repo.reservaPorId(deps.db, d.id);
+  const calendario = await borrarEventoCancelado(deps, env, cancelada);
+  await avisarEquipo(deps, env, { tipo: 'cancelada', r: cancelada });
   return json(200, { ok: true, calendario });
 }
