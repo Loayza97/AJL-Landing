@@ -133,13 +133,24 @@ function pintar() {
     if (f.cancelada) cita.prepend(chip('Cancelada', 'lk-alerta lk-bloque'));
     else if (esNueva(f)) cita.prepend(chip('Nueva', 'lk-nueva lk-bloque'));
     if (f.calendario) cita.append(chip(`Editada en calendario: ${f.calendario.cambios || 'sin cambios de hora'} · ${lima(f.calendario.editado_en)}`, 'lk-nota-cal'));
-    if (f.edicion) cita.append(chip(`Editada por ${String(f.edicion.por).split('@')[0]} · ${lima(f.edicion.en)}: ${f.edicion.cambios}`, 'lk-nota-cal'));
+    if (f.edicion) {
+      const quien = String(f.edicion.por).split('@')[0];
+      cita.append(chip(f.edicion.cambios === 'Cancelada' ? `Cancelada por ${quien} · ${lima(f.edicion.en)}`
+        : `Editada por ${quien} · ${lima(f.edicion.en)}: ${f.edicion.cambios}`, 'lk-nota-cal'));
+    }
     if (f.editable && !f.revisar) {
       const be = document.createElement('button');
       be.type = 'button'; be.className = 'lk-btn lk-btn--mantener'; be.textContent = 'Editar';
       be.setAttribute('aria-label', `Editar cita de ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
       be.dataset.editar = f.id;
-      cita.append(be);
+      const bc = document.createElement('button');
+      bc.type = 'button'; bc.className = 'lk-btn lk-btn--cancelar'; bc.textContent = 'Cancelar cita';
+      bc.setAttribute('aria-label', `Cancelar cita de ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
+      bc.dataset.cancelar = f.id;
+      const acciones = document.createElement('div');
+      acciones.className = 'lk-revisar';
+      acciones.append(be, bc);
+      cita.append(acciones);
     }
     if (f.revisar && !f.cancelada) {
       const cajaRevisar = document.createElement('div');
@@ -249,6 +260,23 @@ async function revisar(b) {
   aviso((await jsonDe(r))?.error || 'No se pudo guardar. Intenta de nuevo.');
 }
 
+// Cancela desde el panel: la hora queda libre, la fila sigue en rojo y Google
+// borra el evento y le avisa al paciente.
+async function cancelarCita(b) {
+  if (!confirm('¿Cancelar esta cita? La hora queda libre, se borra el evento de Google Calendar y Google le avisa al paciente.')) return;
+  b.disabled = true;
+  const r = await pedir('/api/equipo/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.cancelar }) });
+  if (r?.status === 401) { mostrarLogin(); return; }
+  const d = await jsonDe(r);
+  if (r?.ok && d?.ok) {
+    await cargarReservas();
+    if (d.calendario === 'pendiente') aviso('Cita cancelada. El evento de Google Calendar no se pudo borrar: bórralo a mano.');
+    return;
+  }
+  b.disabled = false;
+  aviso(d?.error || 'No se pudo cancelar. Intenta de nuevo.');
+}
+
 async function marcar(f, contactado, b) {
   b.disabled = true;
   const r = await pedir('/api/equipo/contactado', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: f.id, contactado }) });
@@ -283,6 +311,7 @@ document.addEventListener('click', (e) => {
   if (!b) return;
   if (b.dataset.revision) { revisar(b); return; }
   if (b.dataset.editar) { abrirEditar(est.filas.find((f) => f.id === b.dataset.editar)); return; }
+  if (b.dataset.cancelar) { cancelarCita(b); return; }
   if (b.dataset.tramo) { est.tramo = b.dataset.tramo; est.pagina = 1; cargarReservas(); }
   else if (b.id === 'a-prev' || b.id === 'a-next') { est.pagina += b.id === 'a-next' ? 1 : -1; cargarReservas(); }
   else if (b.id === 'a-descargar' && est.sel.size > MAX_CSV) aviso(`Puedes descargar hasta ${MAX_CSV} citas a la vez. Quita algunas de la selección.`);

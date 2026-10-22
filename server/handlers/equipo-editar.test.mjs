@@ -4,7 +4,7 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as repo from '../reservas/repo.mjs';
 import { textoCambios } from '../reservas/editar.mjs';
-import { handleEditar, handleEditarHoras } from './equipo-editar.mjs';
+import { handleEditar, handleEditarHoras, handleCancelar } from './equipo-editar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { NOTIFICATION_EMAIL: 'equipo@x.pe' };
@@ -124,4 +124,53 @@ test('editar: sin cambios 400 y no toca Google ni marca editada', async () => {
   assert.deepEqual(await r.json(), { ok: false, error: 'No cambiaste nada de la cita.' });
   assert.equal(d.llamadas.length, 0);
   assert.equal((await repo.reservaPorId(d.db, id)).editada_en, null);
+});
+
+const postCancelar = (cuerpo) => new Request('https://x.test/api/equipo/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+
+test('cancelar: sin acceso 401; datos inválidos 400; cita pasada 409', async () => {
+  const d = deps();
+  const id = await cita(d.db);
+  assert.equal((await handleCancelar(postCancelar({ id }), env, { ...d, acceso: fuera })).status, 401);
+  assert.equal((await handleCancelar(postCancelar({}), env, d)).status, 400);
+  const r = await handleCancelar(postCancelar({ id }), env, { ...d, ahora: () => new Date('2026-10-06T16:00:00Z') });
+  assert.equal(r.status, 409);
+  assert.equal((await r.json()).error, 'Esta cita ya no se puede cancelar.');
+});
+
+test('cancelar: cancela, borra el evento de Google y responde ok', async () => {
+  const borrados = [];
+  const d = deps();
+  d.google.eliminarEvento = async (id) => { borrados.push(id); };
+  const id = await cita(d.db);
+  const r = await handleCancelar(postCancelar({ id }), env, d);
+  assert.deepEqual(await r.json(), { ok: true, calendario: 'ok' });
+  assert.deepEqual(borrados, ['ev1']);
+  const fila = await repo.reservaPorId(d.db, id);
+  assert.equal(fila.estado, 'cancelada');
+  assert.equal(fila.editada_por, 'romi@x.pe');
+});
+
+test('cancelar: si Google falla, la cita queda cancelada, pendiente y con alerta al equipo', async () => {
+  const correos = [];
+  const d = deps({ sendEmail: async (c) => { correos.push(c); } });
+  d.google.eliminarEvento = async () => { throw new Error('caído'); };
+  const id = await cita(d.db);
+  const original = console.error; console.error = () => {};
+  const r = await handleCancelar(postCancelar({ id }), env, d);
+  console.error = original;
+  assert.deepEqual(await r.json(), { ok: true, calendario: 'pendiente' });
+  const fila = await repo.reservaPorId(d.db, id);
+  assert.equal(fila.estado, 'cancelada');
+  assert.equal(fila.calendario_pendiente, 1);
+  assert.equal(correos.length, 1);
+  assert.equal(correos[0].to, 'equipo@x.pe');
+});
+
+test('cancelar: sin evento en Google, solo cancela', async () => {
+  const d = deps();
+  d.google.eliminarEvento = async () => { throw new Error('no debería llamarse'); };
+  const id = await cita(d.db);
+  await d.db.prepare('UPDATE reservas SET google_event_id = NULL WHERE id = ?1').bind(id).run();
+  assert.deepEqual(await (await handleCancelar(postCancelar({ id }), env, d)).json(), { ok: true, calendario: 'ok' });
 });

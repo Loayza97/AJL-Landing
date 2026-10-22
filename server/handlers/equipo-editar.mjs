@@ -1,12 +1,13 @@
 // ─── Panel del equipo · editar cita ─────────────────────────────────────────
 // GET  /api/equipo/editar-horas   horas libres para mover una cita (sin tope)
 // POST /api/equipo/editar         mueve la cita y actualiza el evento de Google
+// POST /api/equipo/cancelar       cancela la cita y borra el evento de Google
 import { json, readJson } from '../http.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { horasLibres } from '../reservas/disponibilidad.mjs';
 import { fechaLima } from '../reservas/tiempo.mjs';
 import { contexto } from './reservas.mjs';
-import { textoCambios, sincronizarEventoEditado } from '../reservas/editar.mjs';
+import { textoCambios, sincronizarEventoEditado, borrarEventoCancelado } from '../reservas/editar.mjs';
 
 const MODALIDADES = new Set(['presencial', 'video']);
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -70,5 +71,17 @@ export async function handleEditar(request, env, deps) {
     return bad(503, 'No pudimos guardar el cambio. Intenta en un momento.');
   }
   const calendario = await sincronizarEventoEditado(deps, env, await repo.reservaPorId(deps.db, d.id), { modalidadAnterior: antes.modalidad });
+  return json(200, { ok: true, calendario });
+}
+
+export async function handleCancelar(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  const acceso = await deps.acceso(request, env);
+  if (!acceso.ok) return sinAcceso();
+  const d = await readJson(request);
+  if (typeof d.id !== 'string' || !d.id) return bad(400, 'Datos inválidos');
+  const hecho = await repo.cancelarCita(deps.db, { id: d.id, por: acceso.email, ahora: deps.ahora() });
+  if (!hecho) return bad(409, 'Esta cita ya no se puede cancelar.');
+  const calendario = await borrarEventoCancelado(deps, env, await repo.reservaPorId(deps.db, d.id));
   return json(200, { ok: true, calendario });
 }

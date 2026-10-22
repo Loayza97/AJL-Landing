@@ -157,5 +157,15 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     return { id: d.id, meet: e.modalidad === 'presencial' ? null : d.hangoutLink || null };
   }
 
-  return { listarEventos, listarCambios, crearEvento, actualizarEvento };
+  // Cancelar desde el panel: Google avisa al paciente. Si ya no existe, no hay nada que borrar.
+  async function eliminarEvento(eventId) {
+    const r = await fetchImpl(`${API}/calendars/${calendario}/events/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${await token()}` },
+    });
+    if (!r.ok && r.status !== 404 && r.status !== 410) throw new Error(`Google events.delete ${r.status}: ${await r.text()}`);
+    eventosCacheados.clear();
+  }
+
+  return { listarEventos, listarCambios, crearEvento, actualizarEvento, eliminarEvento };
 }
