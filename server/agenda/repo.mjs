@@ -1,7 +1,9 @@
 // Acceso a D1 de los links de agenda. Agendar es una sola transacción: cliente
 // (si es nuevo), reserva y link usado, cada sentencia con las mismas condiciones
-// (link vigente y sin cruce), así nunca queda una mitad guardada.
-import { CRUCE, hayCruce, expirar } from '../reservas/repo.mjs';
+// (link vigente, sin cruce y con cupo en el tope del día), así nunca queda una
+// mitad guardada.
+import { CRUCE, MINUTOS_DIA, hayCruce, expirar } from '../reservas/repo.mjs';
+import { topeMinutosDia } from '../reservas/disponibilidad.mjs';
 import { VENCE_DIAS, REACTIVAR_DIAS } from './tipos.mjs';
 
 const DIA = 86400000;
@@ -70,6 +72,7 @@ const VIGENTE = (id, ahora) => `EXISTS (SELECT 1 FROM links_agenda WHERE id = ${
 export async function agendarConLink(db, a) {
   const ahoraIso = a.ahora.toISOString();
   const h = a.hora;
+  const tope = topeMinutosDia(h.fecha_lima);
   const sentencias = [expirar(db, ahoraIso)];
   if (a.cliente) {
     const c = a.cliente;
@@ -77,9 +80,10 @@ export async function agendarConLink(db, a) {
       `INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno, fecha_nacimiento, tipo_documento, creado_en)
        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'dni', ?10
        WHERE ${VIGENTE('?11', '?10')}
-         AND NOT ${CRUCE({ ini: '?12', fin: '?13', nutri: '?14', modalidad: '?15', excluir: "''" })}`,
+         AND NOT ${CRUCE({ ini: '?12', fin: '?13', nutri: '?14', modalidad: '?15', excluir: "''" })}
+         AND ${MINUTOS_DIA('?16')} + ?17 <= ?18`,
     ).bind(a.clienteId, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno ?? null, c.fecha_nacimiento,
-      ahoraIso, a.link, h.inicio, h.fin, h.nutricionista_id, h.modalidad));
+      ahoraIso, a.link, h.inicio, h.fin, h.nutricionista_id, h.modalidad, h.fecha_lima, h.duracion_min, tope));
   }
   sentencias.push(db.prepare(
     `INSERT INTO reservas (id, token, cliente_id, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fin_utc,
@@ -87,9 +91,10 @@ export async function agendarConLink(db, a) {
      SELECT ?1, ?2, ?3, ?4, 0, 0, 0, ?5, ?6, ?7, ?8, ?9, ?10, 'confirmada', ?11, ?12, ?13, ?13
      WHERE EXISTS (SELECT 1 FROM clientes WHERE id = ?3)
        AND ${VIGENTE('?12', '?13')}
-       AND NOT ${CRUCE({ ini: '?6', fin: '?7', nutri: '?5', modalidad: '?10', excluir: '?1' })}`,
+       AND NOT ${CRUCE({ ini: '?6', fin: '?7', nutri: '?5', modalidad: '?10', excluir: '?1' })}
+       AND ${MINUTOS_DIA('?9')} + ?8 <= ?14`,
   ).bind(a.reservaId, a.token, a.clienteId, `link_${a.tipoId}`, h.nutricionista_id, h.inicio, h.fin, h.duracion_min, h.fecha_lima, h.modalidad,
-    a.condicionesVersion ?? null, a.link, ahoraIso));
+    a.condicionesVersion ?? null, a.link, ahoraIso, tope));
   sentencias.push(db.prepare(
     `UPDATE links_agenda SET usado_en = ?2, reserva_id = ?3, paciente_nuevo = ?4
      WHERE id = ?1 AND usado_en IS NULL AND EXISTS (SELECT 1 FROM reservas WHERE id = ?3)`,
@@ -104,5 +109,5 @@ export async function agendarConLink(db, a) {
   const l = await db.prepare('SELECT usado_en, vence_en FROM links_agenda WHERE id = ?1').bind(a.link).first();
   if (!l || l.usado_en || Date.parse(l.vence_en) <= a.ahora.getTime()) return { ok: false, motivo: 'link' };
   const ocupada = await hayCruce(db, { id: a.reservaId, nutri: h.nutricionista_id, inicio: h.inicio, modalidad: h.modalidad, fin: h.fin });
-  return { ok: false, motivo: ocupada ? 'ocupada' : 'link' };
+  return { ok: false, motivo: ocupada ? 'ocupada' : 'tope' };
 }
