@@ -2,6 +2,7 @@
 // eventos del calendario ya normalizados y las reservas activas, y devuelve qué
 // horas se pueden vender y a quién se le asignan. Toda regla del spec vive aquí.
 import { inicioUtcMin, fechaLima, diaSemana, diasEntre, finDeReserva } from './tiempo.mjs';
+import { TOPE_MINUTOS } from './constantes.mjs';
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
@@ -36,14 +37,30 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
   return { ausentes, cerrada };
 }
 
-// Solo cuentan las citas de la web y de los links (Alejandro y Joaquín,
-// 2026-10-21): los eventos con hora puestos a mano en Google no bloquean horas
-// ni suman al tope, porque no dicen quién atiende ni en qué modalidad. Del
-// calendario solo se leen los eventos de día completo (cerrado, feriado, ausencias).
+// Tope diario en minutos (Alejandro, 2026-10-22): suman las citas de la web y
+// de los links por su duración; de lunes a viernes 300 (5 de una hora, 10 de
+// media o cualquier mezcla) y el sábado 480. Lleno, el día se cierra para los
+// dos. Los eventos puestos a mano en Google no suman.
+export function topeMinutosDia(fecha) {
+  return diaSemana(fecha) === 6 ? TOPE_MINUTOS.sabado : TOPE_MINUTOS.semana;
+}
 
-// Horas ya tomadas ese día por reservas. Solo se usa si MAX_HORAS_DIA está activo.
-function horasOcupadas(delDia) {
-  return delDia.reduce((s, r) => s + (r.duracion_min ?? 60) / 60, 0);
+const minutosDe = (r) => r.duracion_min ?? 60;
+const seCruza = (ev, ini, fin) => !ev.todoElDia && Date.parse(ev.desde) < fin && Date.parse(ev.hasta) > ini;
+
+// Un evento con hora puesto a mano en Google ocupa su tramo: si el título
+// nombra a una nutricionista (por su apodo), solo a ella; si no nombra a
+// nadie, a todas (Alejandro y Joaquín, 2026-10-22). Los que creó el sistema
+// (propio) ya están en la base y los marcados como libres no cuentan.
+function bloqueadasPorEventos(eventos, nutricionistas, ini, fin) {
+  const bloqueadas = new Set();
+  for (const ev of eventos) {
+    if (ev.propio || !ev.bloquea || !seCruza(ev, ini, fin)) continue;
+    const t = normalizar(ev.titulo);
+    const nombradas = nutricionistas.filter((n) => n.apodos.some((a) => contienePalabra(t, a)));
+    for (const n of nombradas.length ? nombradas : nutricionistas) bloqueadas.add(n.id);
+  }
+  return bloqueadas;
 }
 
 // ¿La nutricionista atiende de `m` a `m + dur` (minutos desde la medianoche de
@@ -70,8 +87,8 @@ function ventanaCubre(nutricionista, fecha, modalidad, m, dur) {
 }
 
 export function horasLibres({
-  fecha, modalidad, peso, nutricionistas, eventos, reservas, ahora,
-  filtroNutricionista = null, tope = 3, desdeDias = 1, hastaDias = 21, maxHorasDia = null,
+  fecha, modalidad, nutricionistas, eventos, reservas, ahora,
+  filtroNutricionista = null, desdeDias = 1, hastaDias = 21,
   duracionMin = 60, pasoMin = 60,
 }) {
   const distancia = diasEntre(fechaLima(ahora), fecha);
@@ -81,10 +98,8 @@ export function horasLibres({
   if (cerrada) return [];
 
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
-  const suma = delDia.reduce((s, r) => s + r.peso_tope, 0);
-  // Las citas de link (peso 0) no son primeras sesiones: el tope no las frena.
-  if (peso > 0 && suma + peso > tope) return [];
-  if (maxHorasDia !== null && horasOcupadas(delDia) >= maxHorasDia) return [];
+  const usados = delDia.reduce((s, r) => s + minutosDe(r), 0);
+  if (usados + duracionMin > topeMinutosDia(fecha)) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;
   const cruza = (r, ini, fin) => Date.parse(r.inicio_utc) < fin && Date.parse(finDeReserva(r)) > ini;
@@ -97,7 +112,8 @@ export function horasLibres({
     if (modalidad === 'presencial'
       && delDia.some((r) => r.modalidad === 'presencial' && cruza(r, ini, fin))) continue;
 
-    const candidatas = nutricionistas.filter((n) => !ausentes.has(n.id)
+    const bloqueadas = bloqueadasPorEventos(eventos, nutricionistas, ini, fin);
+    const candidatas = nutricionistas.filter((n) => !ausentes.has(n.id) && !bloqueadas.has(n.id)
       && (!filtroNutricionista || n.id === filtroNutricionista)
       && ventanaCubre(n, fecha, modalidad, m, duracionMin)
       && !delDia.some((r) => r.nutricionista_id === n.id && cruza(r, ini, fin)));

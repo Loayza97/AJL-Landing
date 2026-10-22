@@ -1,16 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { horasLibres, ausenciasDelDia } from './disponibilidad.mjs';
+import { horasLibres, ausenciasDelDia, topeMinutosDia } from './disponibilidad.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 
 // Lunes 5-oct-2026, 10:00 en Lima.
 const ahora = new Date('2026-10-05T15:00:00Z');
-const base = { peso: 1, nutricionistas, eventos: [], reservas: [], ahora };
+const base = { nutricionistas, eventos: [], reservas: [], ahora };
 const horas = (r) => r.map((h) => h.hora);
 const de = (r, nutri) => r.filter((h) => h.nutricionista_id === nutri);
 const diaCompleto = (titulo, desde, hasta) => ({ titulo, todoElDia: true, desde, hasta, propio: false, bloquea: true });
 const conHora = (titulo, desde, hasta, extra = {}) => ({ titulo, todoElDia: false, desde, hasta, propio: false, bloquea: true, ...extra });
-const reserva = (o) => ({ peso_tope: 1, modalidad: 'presencial', ...o });
+const reserva = (o) => ({ modalidad: 'presencial', ...o });
 
 test('martes presencial: de 10:00 a 19:00, recortado al consultorio', () => {
   const r = horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'presencial' });
@@ -65,27 +65,6 @@ test('nutricionista ocupada por video: la hora se le asigna a otra', () => {
   assert.notEqual(r.find((h) => h.hora === '15:00').nutricionista_id, 'nico');
 });
 
-test('máximo de horas al día, si se activa: con 5 horas de reservas no se ofrece nada; los eventos manuales no suman', () => {
-  const reservas = ['14', '15', '16', '17', '18'].map((h, i) => reserva({ inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: `n${i}`, peso_tope: 0 }));
-  const eventos = [conHora('Control', '2026-10-06T17:00:00-05:00', '2026-10-06T19:00:00-05:00')];
-  assert.deepEqual(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial', maxHorasDia: 5 }), []);
-  assert.ok(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial', maxHorasDia: 6 }).length > 0);
-  assert.ok(horasLibres({ ...base, reservas, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
-});
-
-test('eventos con hora puestos a mano no bloquean: solo cuentan las reservas de la web y los links', () => {
-  const eventos = [
-    conHora('Carolina Wimpon', '2026-10-06T15:00:00-05:00', '2026-10-06T16:00:00-05:00'),
-    conHora('Reunión equipo', '2026-10-06T16:00:00-05:00', '2026-10-06T18:00:00-05:00'),
-  ];
-  const sin = horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'presencial' });
-  for (const modalidad of ['presencial', 'video']) {
-    assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad }),
-      horasLibres({ ...base, fecha: '2026-10-06', modalidad }), modalidad);
-  }
-  assert.ok(horas(sin).includes('15:00'));
-});
-
 test('ausencias: «vacas yuyu» saca a Jussara varios días; «nico viene» no saca a Nico', () => {
   const eventos = [diaCompleto('vacas yuyu', '2026-10-06', '2026-10-09'), diaCompleto('nico viene', '2026-10-06', '2026-10-07')];
   const r = horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' });
@@ -104,19 +83,6 @@ test('ausencias: «Paola no viene» no saca a Paolo; tildes y mayúsculas no imp
 test('feriado o cerrado cierra la clínica', () => {
   const eventos = [diaCompleto('Feriado', '2026-10-08', '2026-10-09')];
   assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-08', modalidad: 'presencial' }), []);
-});
-
-test('tope: 3 primeras llenan el día; 2,5 deja pasar una evaluación pero no un plan', () => {
-  const r3 = [1, 2, 3].map((i) => reserva({ inicio_utc: `2026-10-06T1${i}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: 'x' }));
-  assert.deepEqual(horasLibres({ ...base, reservas: r3, fecha: '2026-10-06', modalidad: 'presencial' }), []);
-  const r25 = [...r3.slice(0, 2), reserva({ inicio_utc: '2026-10-06T19:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'x', peso_tope: 0.5 })];
-  assert.deepEqual(horasLibres({ ...base, reservas: r25, fecha: '2026-10-06', modalidad: 'presencial' }), []);
-  assert.ok(horasLibres({ ...base, reservas: r25, peso: 0.5, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
-});
-
-test('tope: los eventos manuales que empiezan con «1ra» ya no cuentan', () => {
-  const eventos = ['10', '11', '12'].map((h) => conHora(`1ra Juan ${h}`, `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`));
-  assert.ok(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
 });
 
 test('ventana: nada para hoy ni más allá de 21 días', () => {
@@ -186,12 +152,6 @@ test('una reserva de 30 min ocupa solo esa media hora de su nutricionista', () =
   assert.ok(r.includes('10:30'));
 });
 
-test('peso 0 (citas de link) no mira el tope de primeras sesiones', () => {
-  const reservas = [1, 2, 3].map((i) => reserva({ inicio_utc: `2026-10-06T1${i}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: 'x' }));
-  assert.deepEqual(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'presencial' }), []);
-  assert.ok(horasLibres({ ...base, peso: 0, reservas, fecha: '2026-10-06', modalidad: 'presencial' }).length > 0);
-});
-
 test('presencial también se ofrece por video; una ventana solo virtual no se vuelve presencial', () => {
   // Lunes: Nico es presencial de 11 a 20 y Paola solo virtual de 14 a 20.
   const nico = horas(horasLibres({ ...base, fecha: '2026-10-12', modalidad: 'video', filtroNutricionista: 'nico' }));
@@ -204,4 +164,70 @@ test('Paola los miércoles atiende de 14 a 19 (a las 7 p. m. da la clase), prese
     const r = horas(horasLibres({ ...base, fecha: '2026-10-14', modalidad, filtroNutricionista: 'paola' }));
     assert.deepEqual(r, ['14:00', '15:00', '16:00', '17:00', '18:00'], modalidad);
   }
+});
+
+// Martes 6-oct a las horas dadas (Lima), cada una de otra nutricionista ficticia.
+const delMartes = (horasLima, extra = {}) => horasLima.map((h, i) => reserva({
+  inicio_utc: `2026-10-06T${String(h + 5).padStart(2, '0')}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: `n${i}`, ...extra }));
+
+test('tope diario (Alejandro, 2026-10-22): 300 minutos de lunes a viernes, 480 el sábado', () => {
+  assert.equal(topeMinutosDia('2026-10-05'), 300);
+  assert.equal(topeMinutosDia('2026-10-09'), 300);
+  assert.equal(topeMinutosDia('2026-10-10'), 480);
+});
+
+test('tope: 5 citas de una hora llenan un martes, sean de la web o de links', () => {
+  const llenas = delMartes([10, 11, 12, 14, 15]);
+  assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video' }), []);
+  assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }), []);
+  assert.ok(horasLibres({ ...base, reservas: llenas.slice(1), fecha: '2026-10-06', modalidad: 'video' }).length > 0);
+});
+
+test('tope: se combinan citas de 30 y de 60; con 30 minutos libres entra un link de 30 pero no una cita de una hora', () => {
+  const reservas = [...delMartes([10, 11, 12, 14]), ...delMartes([15], { duracion_min: 30, nutricionista_id: 'n9' })];
+  assert.deepEqual(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'video' }), []);
+  assert.ok(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }).length > 0);
+  const diez = delMartes([10, 11, 12, 14, 15, 16, 17, 18, 19, 20], { duracion_min: 30 });
+  assert.deepEqual(horasLibres({ ...base, reservas: diez, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }), []);
+});
+
+test('tope: el sábado caben 8 horas', () => {
+  const sabado = (horasLima) => horasLima.map((h, i) => reserva({
+    inicio_utc: `2026-10-10T${h + 5}:00:00Z`, fecha_lima: '2026-10-10', nutricionista_id: `n${i}` }));
+  assert.ok(horasLibres({ ...base, reservas: sabado([9, 10, 11, 12, 14]), fecha: '2026-10-10', modalidad: 'video' }).length > 0);
+  assert.deepEqual(horasLibres({ ...base, reservas: sabado([9, 10, 11, 12, 14, 15, 16, 17]), fecha: '2026-10-10', modalidad: 'video' }), []);
+});
+
+test('tope: los eventos puestos a mano no suman', () => {
+  const eventos = ['16', '17', '18'].map((h) => conHora(`Control ${h}`, `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`));
+  const r = horasLibres({ ...base, reservas: delMartes([10, 11, 12, 14]), eventos, fecha: '2026-10-06', modalidad: 'video' });
+  assert.ok(r.length > 0);
+});
+
+test('evento manual con hora que nombra a una nutricionista: la bloquea solo a ella', () => {
+  const eventos = [conHora('Juan Pérez · Yuyu', '2026-10-06T11:00:00-05:00', '2026-10-06T12:00:00-05:00')];
+  const r = horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' });
+  assert.equal(r.find((h) => h.hora === '11:00').nutricionista_id, 'nico');
+  assert.ok(horas(r).includes('10:00'));
+  const jussara = horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial', filtroNutricionista: 'jussara' });
+  assert.ok(!horas(jussara).includes('11:00'));
+  assert.ok(horas(jussara).includes('12:00'));
+});
+
+test('evento manual con hora que no nombra a nadie: bloquea esa hora para todas, en ambas modalidades', () => {
+  const eventos = [conHora('Reunión equipo', '2026-10-06T11:30:00-05:00', '2026-10-06T12:00:00-05:00')];
+  for (const modalidad of ['presencial', 'video']) {
+    const r = horas(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad }));
+    assert.ok(!r.includes('11:00'), modalidad);
+    assert.ok(r.includes('10:00') && r.includes('12:00'), modalidad);
+  }
+});
+
+test('no bloquean: eventos marcados como libres en Google ni los que creó el sistema', () => {
+  const eventos = [
+    conHora('Reunión equipo', '2026-10-06T11:00:00-05:00', '2026-10-06T12:00:00-05:00', { bloquea: false }),
+    conHora('Cecilia · 1 de 1', '2026-10-06T12:00:00-05:00', '2026-10-06T13:00:00-05:00', { propio: true }),
+  ];
+  assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }),
+    horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'presencial' }));
 });

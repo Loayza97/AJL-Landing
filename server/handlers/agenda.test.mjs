@@ -143,7 +143,7 @@ test('confirmar con datos inválidos o sin aceptar: 400 y el link sigue sin usar
 test('confirmar una hora que ya no se ofrece (reserva web encima): 409 y el link sigue', async () => {
   const d = deps();
   await repo.crearRetencion(d.db, { id: 'web', token: 'tw', producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
-    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T15:00:00Z', fecha_lima: '2026-10-06', modalidad: 'video', primerasManuales: 0, tope: 3, ahora: t0 });
+    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T15:00:00Z', fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
   const l = await conLink(d);
   const r = await confirmar(d, l, { nutricionista: 'jussara' });
   assert.equal(r.status, 409);

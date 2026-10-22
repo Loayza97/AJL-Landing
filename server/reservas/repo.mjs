@@ -6,6 +6,11 @@ const ACTIVOS = "('apartada', 'pagando', 'confirmada')";
 const UNIQUE = /UNIQUE constraint failed/i;
 const MIN = 60000;
 
+// Minutos ya tomados ese día por citas activas (web y links): el tope diario se
+// compara con esto dentro de la misma sentencia que escribe.
+export const MINUTOS_DIA = (fecha, excluir = null) => `(SELECT COALESCE(SUM(COALESCE(duracion_min, 60)), 0) FROM reservas
+  WHERE fecha_lima = ${fecha} AND estado IN ${ACTIVOS}${excluir ? ` AND id <> ${excluir}` : ''})`;
+
 const FIN = (col) => `COALESCE(${col}.fin_utc, strftime('%Y-%m-%dT%H:%M:%SZ', ${col}.inicio_utc, '+60 minutes'))`;
 
 // Otra cita activa que se cruza con [ini, fin): de la misma nutricionista o, si
@@ -57,12 +62,11 @@ export async function crearRetencion(db, r) {
   const insertar = db.prepare(
     `INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
        inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante, fin_utc, duracion_min)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?15, ?12, ?12, ?16, ?17, ?18
-     WHERE (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
-            WHERE fecha_lima = ?9 AND estado IN ${ACTIVOS}) + ?6 + ?13 <= ?14
-       AND NOT ${CRUCE({ ini: '?8', fin: '?17', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?14, ?12, ?12, ?15, ?16, ?17
+     WHERE ${MINUTOS_DIA('?9')} + ?17 <= ?13
+       AND NOT ${CRUCE({ ini: '?8', fin: '?16', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.primerasManuales ?? 0, r.tope, huella, r.variante ?? null, fin, duracion);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.tope, huella, r.variante ?? null, fin, duracion);
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
     if (res.meta.changes === 0) {
@@ -135,7 +139,7 @@ export const otroPagoAprobado = (db, reservaId, mpPaymentId) => db.prepare(
   `SELECT mp_payment_id FROM pagos WHERE reserva_id = ?1 AND estado = 'approved' AND mp_payment_id <> ?2`,
 ).bind(reservaId, mpPaymentId).first();
 
-export async function confirmarReserva(db, { id, fecha_lima, primerasManuales = 0, tope, ahora }) {
+export async function confirmarReserva(db, { id, fecha_lima, tope, ahora }) {
   const ahoraIso = ahora.toISOString();
   try {
     // Expirar primero, en la misma transacción: si otra retención de esa hora
@@ -146,9 +150,8 @@ export async function confirmarReserva(db, { id, fecha_lima, primerasManuales = 
        WHERE id = ?1 AND NOT ${CRUCE({ ini: 'reservas.inicio_utc', fin: FIN('reservas'), nutri: 'reservas.nutricionista_id', modalidad: 'reservas.modalidad', excluir: 'reservas.id' })}
          AND (
          estado IN ('apartada', 'pagando')
-         OR (estado = 'expirada' AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
-               WHERE fecha_lima = ?3 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?4 <= ?5))`,
-    ).bind(id, ahoraIso, fecha_lima, primerasManuales, tope)]);
+         OR (estado = 'expirada' AND ${MINUTOS_DIA('?3', '?1')} + COALESCE(duracion_min, 60) <= ?4))`,
+    ).bind(id, ahoraIso, fecha_lima, tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, id);
     if (actual?.estado === 'confirmada') return { ok: false, motivo: 'ya_confirmada' };
@@ -186,9 +189,8 @@ export async function reubicar(db, r) {
          estado = 'confirmada', google_event_id = NULL, meet_url = NULL, actualizado_en = ?6
        WHERE id = ?1 AND estado = 'pagada_sin_hora'
          AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}
-         AND (SELECT COALESCE(SUM(peso_tope), 0) FROM reservas
-              WHERE fecha_lima = ?4 AND estado IN ${ACTIVOS} AND id <> ?1) + peso_tope + ?7 <= ?8`,
-    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.primerasManuales ?? 0, r.tope)]);
+         AND ${MINUTOS_DIA('?4', '?1')} + COALESCE(duracion_min, 60) <= ?7`,
+    ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, r.id);
     const ocupada = await hayCruce(db, { id: r.id, nutri: r.nutricionista_id, inicio: r.inicio_utc, modalidad: r.modalidad,

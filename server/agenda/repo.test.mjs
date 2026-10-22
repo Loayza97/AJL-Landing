@@ -62,11 +62,23 @@ test('agendar con link vencido: motivo link', async () => {
 test('agendar sobre una hora que se cruza con una reserva web: ocupada, y el link sigue sin usar', async () => {
   const db = d1DePrueba();
   await repo.crearRetencion(db, { id: 'web', token: 'tw', producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
-    nutricionista_id: 'nico', inicio_utc: '2026-10-06T15:00:00Z', fecha_lima: '2026-10-06', modalidad: 'video', primerasManuales: 0, tope: 3, ahora: t0 });
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T15:00:00Z', fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
   const id = await link(db);
   assert.deepEqual(await agendar(db, id, { hora: hora({ inicio: '2026-10-06T15:30:00Z', fin: '2026-10-06T16:00:00Z' }) }), { ok: false, motivo: 'ocupada' });
   const l = await db.prepare('SELECT usado_en FROM links_agenda WHERE id = ?1').bind(id).first();
   assert.equal(l.usado_en, null);
+});
+
+test('agendar con el día lleno (tope en minutos, Alejandro 2026-10-22): motivo tope, sin cliente nuevo y el link sigue sin usar', async () => {
+  const db = d1DePrueba();
+  for (const h of ['15', '16', '17', '19', '20']) {
+    await repo.crearRetencion(db, { id: `w${h}`, token: `tw${h}`, producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
+      nutricionista_id: `n${h}`, inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
+  }
+  const id = await link(db);
+  assert.deepEqual(await agendar(db, id, { hora: hora({ inicio: '2026-10-06T22:00:00Z', fin: '2026-10-06T22:30:00Z' }) }), { ok: false, motivo: 'tope' });
+  assert.equal((await db.prepare('SELECT usado_en FROM links_agenda WHERE id = ?1').bind(id).first()).usado_en, null);
+  assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM clientes').first()).n, 0);
 });
 
 test('paciente conocido: agenda con su cliente existente, sin crear otro', async () => {

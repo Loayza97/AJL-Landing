@@ -10,12 +10,12 @@
 import { json, readJson, siteUrl, clientIp } from '../http.mjs';
 import { randomToken } from '../tokens.mjs';
 import { inicioUtc, sumarDias, fechaLima, etiquetaLima, finDeReserva } from '../reservas/tiempo.mjs';
-import { horasLibres } from '../reservas/disponibilidad.mjs';
+import { horasLibres, topeMinutosDia } from '../reservas/disponibilidad.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
-import { TOPE_PRIMERAS, DESDE_DIAS, HASTA_DIAS, MAX_HORAS_DIA, MAX_RETENCIONES } from '../reservas/constantes.mjs';
+import { DESDE_DIAS, HASTA_DIAS, MAX_RETENCIONES } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
 import { firmaValida } from '../reservas/mercadopago.mjs';
@@ -29,7 +29,7 @@ const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
 const MODALIDADES = new Set(['presencial', 'video']);
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
 const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
-const MSJ_TOPE = 'Ese día ya no tiene cupos para primeras sesiones. Elige otro día.';
+const MSJ_TOPE = 'Ese día ya no tiene cupos. Elige otro día.';
 
 const nutriValida = (deps, id) => !id || deps.nutricionistas.some((n) => n.id === id);
 
@@ -47,10 +47,9 @@ export async function contexto(deps, desde, dias) {
   return { eventos, reservas };
 }
 
-export function libresDelDia(deps, ctx, { fecha, modalidad, peso, filtro, duracionMin = 60, pasoMin = 60 }) {
-  return horasLibres({ fecha, modalidad, peso, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
-    ahora: deps.ahora(), filtroNutricionista: filtro || null, tope: TOPE_PRIMERAS, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS,
-    maxHorasDia: MAX_HORAS_DIA, duracionMin, pasoMin });
+export function libresDelDia(deps, ctx, { fecha, modalidad, filtro, duracionMin = 60, pasoMin = 60 }) {
+  return horasLibres({ fecha, modalidad, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
+    ahora: deps.ahora(), filtroNutricionista: filtro || null, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS, duracionMin, pasoMin });
 }
 
 // Datos de la cita para el .ics y para el enlace de Google Calendar.
@@ -106,7 +105,7 @@ export async function handleHoras(request, env, deps) {
     const dias = [];
     for (let i = 0; i < n; i++) {
       const fecha = sumarDias(desde, i);
-      dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, peso: precio.peso, filtro }) });
+      dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, filtro }) });
     }
     return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) });
   } catch (e) {
@@ -126,13 +125,13 @@ export async function handleApartar(request, env, deps) {
     // Si eligió otra hora en la misma visita, primero se suelta la anterior.
     if (typeof d.liberar === 'string' && d.liberar) await repo.liberarRetencion(deps.db, d.liberar, ahora);
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: precio.peso, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
+    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, filtro: d.nutricionista }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const token = randomToken();
     const res = await repo.crearRetencion(deps.db, {
       id: crypto.randomUUID(), token, producto: d.producto, duracion_meses: precio.duracion_meses, monto_centimos: precio.monto_centimos,
       peso_tope: precio.peso, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha, modalidad: d.modalidad,
-      tope: TOPE_PRIMERAS, ahora,
+      tope: topeMinutosDia(fecha), ahora,
       huella: await huellaDe(request, fechaLima(ahora)), maxRetenciones: MAX_RETENCIONES,
       // Versión del botón de la portada que vio (prueba A/B); cualquier otra cosa se descarta.
       variante: ['hero_a', 'hero_b'].includes(d.variante) ? d.variante.slice(-1) : null,
@@ -242,11 +241,11 @@ export async function handleReubicar(request, env, deps) {
   const fecha = fechaLima(new Date(d.inicio));
   try {
     const ctx = await contexto(deps, fecha, 1);
-    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, peso: r.peso_tope, filtro: d.nutricionista,
+    const hora = libresDelDia(deps, ctx, { fecha, modalidad: d.modalidad, filtro: d.nutricionista,
       duracionMin: r.duracion_min ?? 60 }).find((h) => h.inicio === d.inicio);
     if (!hora) return bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
     const res = await repo.reubicar(deps.db, { id: r.id, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha,
-      modalidad: d.modalidad, tope: TOPE_PRIMERAS, ahora: deps.ahora() });
+      modalidad: d.modalidad, tope: topeMinutosDia(fecha), ahora: deps.ahora() });
     if (!res.ok) return bad(409, res.motivo === 'tope' ? MSJ_TOPE : MSJ_OCUPADA, { motivo: res.motivo });
     const actual = await repo.reservaPorToken(deps.db, r.token);
     await finalizarConfirmacion(deps, env, actual);

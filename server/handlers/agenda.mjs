@@ -24,6 +24,7 @@ const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...e
 const MSJ_NO_EXISTE = 'Este link no existe. Escríbenos por WhatsApp y te mandamos uno nuevo.';
 const MSJ_NO_VIGENTE = 'Este link ya se usó o venció. Escríbenos por WhatsApp y lo reactivamos.';
 const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
+const MSJ_TOPE = 'Ese día ya no tiene cupos. Elige otro día.';
 const MSJ_INTENTOS = 'Demasiados intentos con este link. Escríbenos por WhatsApp.';
 const dniLimpio = (s) => String(s ?? '').replace(/[\s.-]+/g, '');
 
@@ -34,10 +35,10 @@ async function cargar(deps, token) {
 
 const tipoPublico = (id) => ({ id, ...TIPOS_LINK[id] });
 const nutriValida = (deps, id) => !id || deps.nutricionistas.some((n) => n.id === id);
-// Las horas salen del mismo motor de la web (libresDelDia): peso 0, la duración
-// del tipo y paso de 30.
+// Las horas salen del mismo motor de la web (libresDelDia), con la duración
+// del tipo; el tope diario de minutos vale igual para los links.
 // La sesión de 1 hora empieza solo en hora en punto; los controles de 30 min, también a la media.
-const delTipo = (tipo) => ({ peso: 0, duracionMin: tipo.duracion_min, pasoMin: tipo.duracion_min });
+const delTipo = (tipo) => ({ duracionMin: tipo.duracion_min, pasoMin: tipo.duracion_min });
 
 export async function handleAgendaLink(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
@@ -142,7 +143,8 @@ export async function handleAgendaConfirmar(request, env, deps) {
         modalidad: d.modalidad, fecha_lima: fecha, duracion_min: tipo.duracion_min },
       pacienteNuevo: !previo, condicionesVersion: cliente ? CONDICIONES_VERSION : null, ahora,
     });
-    if (!res.ok) return res.motivo === 'link' ? bad(410, MSJ_NO_VIGENTE, { motivo: 'link' }) : bad(409, MSJ_OCUPADA, { motivo: 'ocupada' });
+    if (!res.ok && res.motivo === 'link') return bad(410, MSJ_NO_VIGENTE, { motivo: 'link' });
+    if (!res.ok) return bad(409, res.motivo === 'tope' ? MSJ_TOPE : MSJ_OCUPADA, { motivo: res.motivo });
   } catch (e) {
     console.error('agenda/confirmar', e);
     return bad(503, 'No pudimos agendar tu cita. Intenta en un momento.');

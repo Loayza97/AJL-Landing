@@ -238,7 +238,7 @@ test('reubicar: una cita de 30 min se valida como de 30 (cabe antes de otra que 
   await handlePagar(post('/api/reservas/pagar', { ...datos, token: ap.token }), env, d);
   await d.db.prepare("UPDATE reservas SET estado = 'pagada_sin_hora', duracion_min = 30, fin_utc = '2026-10-06T15:30:00Z' WHERE token = ?1").bind(ap.token).run();
   await repo.crearRetencion(d.db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1, duracion_min: 30,
-    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: d.ahora() });
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 300, ahora: d.ahora() });
   const res = await handleReubicar(post('/api/reservas/reubicar', { token: ap.token, modalidad: 'presencial', inicio: '2026-10-06T17:00:00Z', nutricionista: 'nico' }), env, d);
   assert.equal(res.status, 200);
   const r = await repo.reservaPorToken(d.db, ap.token);

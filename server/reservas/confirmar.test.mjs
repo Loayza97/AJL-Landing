@@ -24,7 +24,7 @@ async function preparar({ pagos = {}, eventosCalendario = [], fallaCalendario = 
     mp: { obtenerPago: async (id) => pagos[id] },
   };
   await repo.crearRetencion(db, { id: 'r1', token: 'tok1', producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
-    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: t0 });
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 300, ahora: t0 });
   const r = await repo.reservaPorToken(db, 'tok1');
   await repo.guardarDatosYPagar(db, { reserva: r, cliente: { nombre: 'Ana Pérez', whatsapp: '+51987654321', email: 'ana@x.pe', dni: '12345678' },
     condicionesVersion: 'v', novedades: false, ahora: t0 });
@@ -85,7 +85,7 @@ test('aprobado tarde con la hora tomada: pagada_sin_hora y link para reubicar', 
   const { db, deps, correos, mover } = await preparar({ pagos: { 555: aprobado() } });
   mover(40);
   await repo.crearRetencion(db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1,
-    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: deps.ahora() });
+    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 300, ahora: deps.ahora() });
   assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'pagada_sin_hora' });
   assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'pagada_sin_hora');
   const alPaciente = correos.find((c) => c.to === 'ana@x.pe');
@@ -96,7 +96,7 @@ test('aprobado tarde con la hora todavía libre: confirma igual', async () => {
   const { db, deps, mover } = await preparar({ pagos: { 555: aprobado() } });
   mover(40);
   await repo.crearRetencion(db, { id: 'x', token: 'tx', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1,
-    nutricionista_id: 'paolo', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: deps.ahora() });
+    nutricionista_id: 'paolo', inicio_utc: '2026-10-07T19:00:00Z', fecha_lima: '2026-10-07', modalidad: 'presencial', tope: 300, ahora: deps.ahora() });
   assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
 });
 
@@ -145,7 +145,7 @@ test('aprobado tarde con la hora tomada, procesado dos veces a la vez: un solo c
   const { db, deps, correos, mover } = await preparar({ pagos: { 555: aprobado() } });
   mover(40);
   await repo.crearRetencion(db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1,
-    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: deps.ahora() });
+    nutricionista_id: 'jussara', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 300, ahora: deps.ahora() });
   await Promise.all([procesarPago(deps, env, '555'), procesarPago(deps, env, '555')]);
   assert.equal(correos.filter((c) => c.to === 'ana@x.pe').length, 1);
 });
@@ -163,7 +163,7 @@ test('aprobado tarde: una cita de 30 min se valida como de 30, no de 60', async 
   mover(40);
   // Otra cita de 30 min pegada a la de r1: con 60 min se cruzaría, con 30 no.
   await repo.crearRetencion(db, { id: 'otro', token: 'tok2', producto: 'basico', duracion_meses: 1, monto_centimos: 25000, peso_tope: 1, duracion_min: 30,
-    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', primerasManuales: 0, tope: 3, ahora: deps.ahora() });
+    nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:30:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 300, ahora: deps.ahora() });
   assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
   assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
 });
