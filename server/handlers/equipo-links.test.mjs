@@ -140,10 +140,10 @@ test('csv: solo los ids pedidos, con columnas en el orden del formulario y DNI c
   const texto = await res.text();
   const lineas = texto.replace(/^﻿/, '').trim().split('\r\n');
   // Sin la fila «sep=,» (Google Sheets la importaría como datos): la primera línea son los encabezados.
-  assert.equal(lineas[0], 'Apellidos,Nombres,DNI,Correo,Número,Nacimiento,País,Fecha (Lima),Evento,Plan,Cita,Pago,Detalle del pago,Paciente,Modalidad,Nutricionista,Procedencia,Agendó (Lima)');
+  assert.equal(lineas[0], 'Apellidos,Nombres,DNI,Correo,Número,Nacimiento,País,Fecha (Lima),Evento,Plan,Cita,Pago,Neto,Detalle del pago,Paciente,Modalidad,Nutricionista,Procedencia,Agendó (Lima)');
   assert.equal(lineas.length, 2);
   // DNI y WhatsApp como fórmula de texto ="…": Sheets y Excel conservan el cero inicial y el +.
-  assert.equal(lineas[1], 'Ramos Quispe,Lucía,"=""70123456""",lucia@x.pe,"=""+51987654321""",1992-03-08,Perú,2026-10-14 10:00,Control de 30 min,"Constancia, 3 meses",2 de 7,Pagó por fuera,Link de romi,Nuevo,Virtual,Nico,Link enviado,2026-10-10 10:00');
+  assert.equal(lineas[1], 'Ramos Quispe,Lucía,"=""70123456""",lucia@x.pe,"=""+51987654321""",1992-03-08,Perú,2026-10-14 10:00,Control de 30 min,"Constancia, 3 meses",2 de 7,Pagó por fuera,,Link de romi,Nuevo,Virtual,Nico,Link enviado,2026-10-10 10:00');
   assert.equal((await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids='), env, d)).status, 400);
 });
 
@@ -229,12 +229,15 @@ test('reservas: una sola lista con los links y la web, la última agendada prime
   await reservaWeb(d, { id: 'sinhora', estado: 'pagada_sin_hora', inicio: '2026-10-05T20:00:00Z', pagado: '2026-10-09T10:00:00Z', producto: 'evaluacion', meses: 1, monto: 9000, metodo: 'yape' });
   await reservaWeb(d, { id: 'webvieja', inicio: '2026-10-08T20:00:00Z', pagado: '2026-10-02T10:00:00Z', producto: 'basico', meses: 1, monto: 25000 });
   await reservaWeb(d, { id: 'nopago', estado: 'expirada', inicio: '2026-10-21T20:00:00Z' });
+  await d.db.prepare("UPDATE pagos SET neto_centimos = 104512 WHERE reserva_id = 'web'").run();
   const prox = await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json();
   assert.deepEqual(prox.filas.map((f) => [f.id, f.procedencia]), [['web', 'web'], ['r-lucia', 'link'], ['sinhora', 'web']]);
   const [web, lu, sh] = prox.filas;
   assert.deepEqual([web.plan, web.cita, web.tipo, web.nutricionista, web.paciente_nuevo, web.pago, web.pago_detalle, web.agendado_en],
     ['Constancia, 3 meses', null, 'Sesión de 1 hora', 'Paola', null, 'S/1.080', 'Mercado Pago, VISA', '2026-10-11T22:00:00Z']);
-  assert.deepEqual([lu.pago, lu.pago_detalle, lu.agendado_en], ['Pagó por fuera', 'Link de Romi', '2026-10-10T15:00:00.000Z']);
+  assert.deepEqual([web.neto, sh.neto], ['S/1045,12', null], 'neto de Mercado Pago; sin dato, vacío');
+  assert.deepEqual([web.neto_soles, sh.neto_soles, lu.neto_soles], [1045.12, null, null], 'neto como número para la base maestra');
+  assert.deepEqual([lu.pago, lu.pago_detalle, lu.agendado_en, lu.neto], ['Pagó por fuera', 'Link de Romi', '2026-10-10T15:00:00.000Z', null]);
   assert.deepEqual([sh.plan, sh.sin_hora, sh.pago, sh.pago_detalle], ['Evaluación', true, 'S/90', 'Pagó pero perdió la hora: elegir otra']);
   const pas = await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json();
   assert.deepEqual(pas.filas.map((f) => [f.id, f.plan]), [['webvieja', 'Básico']]);
@@ -242,7 +245,7 @@ test('reservas: una sola lista con los links y la web, la última agendada prime
   assert.deepEqual(ana.filas.map((f) => f.id), ['web', 'sinhora']);
   const csv = (await (await handleAgendadosCsv(get('/api/equipo/agendados-csv?ids=web,nopago'), env, d)).text()).trim().split('\r\n');
   assert.equal(csv.length, 2);
-  assert.equal(csv[1], 'Pérez,Ana,"=""01234567""",web@x.pe,"=""+51911222333""",1990-05-04,Perú,2026-10-20 15:00,Sesión de 1 hora,"Constancia, 3 meses",,S/1.080,"Mercado Pago, VISA",,Presencial,Paola,Página web,2026-10-11 17:00');
+  assert.equal(csv[1], 'Pérez,Ana,"=""01234567""",web@x.pe,"=""+51911222333""",1990-05-04,Perú,2026-10-20 15:00,Sesión de 1 hora,"Constancia, 3 meses",,S/1.080,"S/1045,12","Mercado Pago, VISA",,Presencial,Paola,Página web,2026-10-11 17:00');
   assert.deepEqual([web.producto, web.soles, lu.producto, lu.soles], ['Constancia', 1080, 'Constancia', null]);
 });
 

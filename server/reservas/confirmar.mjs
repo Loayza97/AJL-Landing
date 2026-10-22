@@ -76,8 +76,11 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
   if (!r) return { estado: 'desconocido' };
 
   const montoPagado = Math.round(Number(pago.transaction_amount) * 100);
+  // Lo que queda tras la comisión de Mercado Pago; un pago pendiente aún no lo trae (0 o sin dato).
+  const neto = Number(pago.transaction_details?.net_received_amount);
   await repo.registrarPago(deps.db, { reserva_id: r.id, mp_payment_id: String(pago.id), estado: pago.status,
-    monto_centimos: montoPagado, metodo: pago.payment_method_id || null, ahora: deps.ahora() });
+    monto_centimos: montoPagado, metodo: pago.payment_method_id || null, neto_centimos: neto > 0 ? Math.round(neto * 100) : null,
+    ahora: deps.ahora() });
 
   if (pago.status !== 'approved') return { estado: r.estado, pago: pago.status };
   if (r.estado === 'confirmada' || r.estado === 'pagada_sin_hora') {

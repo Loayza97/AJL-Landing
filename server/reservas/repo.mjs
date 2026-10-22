@@ -125,10 +125,11 @@ export const guardarPreferencia = (db, id, pref, ahora) => db.prepare(
 ).bind(id, pref, ahora.toISOString()).run();
 
 export const registrarPago = (db, p) => db.prepare(
-  `INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-   ON CONFLICT (mp_payment_id) DO UPDATE SET estado = excluded.estado`,
-).bind(crypto.randomUUID(), p.reserva_id, p.mp_payment_id, p.estado, p.monto_centimos, p.metodo, p.ahora.toISOString()).run();
+  `INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en, neto_centimos)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+   ON CONFLICT (mp_payment_id) DO UPDATE SET estado = excluded.estado,
+     neto_centimos = COALESCE(excluded.neto_centimos, pagos.neto_centimos)`,
+).bind(crypto.randomUUID(), p.reserva_id, p.mp_payment_id, p.estado, p.monto_centimos, p.metodo, p.ahora.toISOString(), p.neto_centimos ?? null).run();
 
 export const ultimoPago = (db, reservaId) => db.prepare(
   'SELECT estado FROM pagos WHERE reserva_id = ?1 ORDER BY creado_en DESC LIMIT 1',

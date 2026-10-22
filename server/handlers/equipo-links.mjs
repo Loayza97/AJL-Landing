@@ -119,7 +119,7 @@ export async function handleLinksBorrar(request, env, deps) {
 // las pagadas en la página web (pedido de Alejandro, 2026-10-15). «Agendó» es
 // cuándo se usó el link o, en la web, cuándo se aprobó el pago.
 const CAMPOS_AGENDADO = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.duracion_min, r.inicio_utc, r.modalidad, r.nutricionista_id,
-  r.link_id, l.paciente_nuevo, l.plan, l.cita, l.creado_por, u.nombre AS creado_por_nombre, p.metodo,
+  r.link_id, l.paciente_nuevo, l.plan, l.cita, l.creado_por, u.nombre AS creado_por_nombre, p.metodo, p.neto_centimos,
   COALESCE(l.usado_en, p.creado_en, r.creado_en) AS agendado_en,
   c.apellido_paterno, c.apellido_materno, c.nombres, c.nombre, c.dni, c.email, c.whatsapp, c.fecha_nacimiento,
   r.calendario_editado_en, r.calendario_cambios, r.calendario_revisar, r.cancelada_en_panel,
@@ -136,6 +136,8 @@ const ORDEN_AGENDADO = 'ORDER BY agendado_en DESC, r.id DESC';
 const planWeb = (r) => (['evaluacion', 'basico'].includes(r.producto) ? r.producto : `${r.producto}:${r.duracion_meses}`);
 const eventoWeb = (min) => (min === 60 ? 'Sesión de 1 hora' : `Sesión de ${min} min`);
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+// El neto lleva céntimos (la comisión no es redonda): «S/305,12».
+const solesExactos = (c) => `S/${(c / 100).toFixed(2).replace('.', ',')}`;
 // metodo es el payment_method_id de Mercado Pago (visa, master, yape, account_money…).
 const metodoPago = (m) => (!m ? 'Mercado Pago' : m === 'account_money' ? 'Saldo de Mercado Pago' : `Mercado Pago, ${m === 'yape' ? 'Yape' : m.toUpperCase()}`);
 const quienCreo = (r) => r.creado_por_nombre || String(r.creado_por || '').split('@')[0] || null;
@@ -158,6 +160,10 @@ const vistaAgendado = (r, deps, ahoraIso) => {
     // Para pegar en la base maestra: el producto sin la duración y los soles como número.
     producto: PRODUCTOS.find((x) => x.id === String(link ? r.plan : r.producto).split(':')[0])?.etiqueta ?? null,
     soles: link ? null : r.monto_centimos / 100,
+    // Neto de Mercado Pago (pagos web desde 2026-10-21). Los links pagan por fuera, sin descuento.
+    neto: link || r.neto_centimos == null ? null : solesExactos(r.neto_centimos),
+    // El mismo neto como número, para la columna P de la base maestra (Romi, 2026-10-22).
+    neto_soles: link || r.neto_centimos == null ? null : r.neto_centimos / 100,
     cancelada: r.cancelada_en_panel != null,
     nutricionista_id: r.nutricionista_id, duracion_min: r.duracion_min ?? 60,
     editable: r.estado === 'confirmada' && r.cancelada_en_panel == null && r.inicio_utc > ahoraIso,
@@ -215,13 +221,13 @@ export async function handleAgendadosCsv(request, env, deps) {
   ).bind(JSON.stringify(ids)).all();
   // Mismo orden que la tabla del panel, que sigue a la base maestra: APELLIDOS, NOMBRES, DNI, CORREO, NÚMERO,
   // NACIMIENTO, PAÍS, FECHA (pedido de Alejandro, 2026-10-16) y después el resto.
-  const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'Número', 'Nacimiento', 'País', 'Fecha (Lima)', 'Evento', 'Plan', 'Cita', 'Pago',
+  const cab = ['Apellidos', 'Nombres', 'DNI', 'Correo', 'Número', 'Nacimiento', 'País', 'Fecha (Lima)', 'Evento', 'Plan', 'Cita', 'Pago', 'Neto',
     'Detalle del pago', 'Paciente', 'Modalidad', 'Nutricionista', 'Procedencia', 'Agendó (Lima)'];
   const filas = results.map((r) => {
     const v = vistaAgendado(r, deps, deps.ahora().toISOString());
     return [celda([v.apellido_paterno, v.apellido_materno].filter(Boolean).join(' ')), celda(v.nombres), textoFijo(v.dni), celda(v.email), textoFijo(v.whatsapp),
       celda(v.fecha_nacimiento), celda(v.pais), celda(v.sin_hora ? 'Sin hora' : lima(v.inicio_utc)), celda(v.tipo), celda(v.plan), celda(v.cita ?? ''), celda(v.pago),
-      celda(v.pago_detalle), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'),
+      celda(v.neto ?? ''), celda(v.pago_detalle), celda(v.paciente_nuevo == null ? '' : v.paciente_nuevo ? 'Nuevo' : 'Ya paciente'),
       celda(v.modalidad === 'video' ? 'Virtual' : 'Presencial'), celda(v.nutricionista),
       celda(v.procedencia === 'link' ? 'Link enviado' : 'Página web'), celda(lima(v.agendado_en))].join(',');
   });
