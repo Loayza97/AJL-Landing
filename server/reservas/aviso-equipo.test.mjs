@@ -64,11 +64,16 @@ test('cancelada: a Romina, Irene y la nutri', async () => {
 
 test('sin secreto no manda nada; correos repetidos o inválidos se saltan; un envío que falla no lanza', async () => {
   const d = deps();
+  const avisos = [];
+  const warn = console.warn; console.warn = (...a) => avisos.push(a.join(' '));
   await avisarEquipo(d, {}, { tipo: 'nueva', r });
   assert.equal(d.enviados.length, 0);
   const raro = { CORREOS_EQUIPO: JSON.stringify({ romina: 'romi@x.pe', irene: 'romi@x.pe', jussara: 'no-es-correo' }) };
   await avisarEquipo(d, raro, { tipo: 'nueva', r });
+  console.warn = warn;
   assert.deepEqual(d.enviados[0].to, ['romi@x.pe']);
+  assert.equal(avisos.at(-1), 'CORREOS_EQUIPO sin correo válido para: alejandro, jussara');
+  assert.ok(avisos.every((a) => !a.includes('@')), 'el registro no muestra correos');
   const original = console.error; console.error = () => {};
   await avisarEquipo({ nutricionistas, sendEmail: async () => { throw new Error('caído'); } }, env, { tipo: 'nueva', r });
   console.error = original;

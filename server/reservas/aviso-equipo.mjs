@@ -24,6 +24,9 @@ export function correosEquipo(env) {
 
 function destinatarios(env, claves) {
   const c = correosEquipo(env);
+  // Solo el nombre de la clave al registro, nunca el correo.
+  const faltan = claves.filter((k) => !CORREO.test(String(c[k] ?? '').trim()));
+  if (faltan.length) console.warn('CORREOS_EQUIPO sin correo válido para:', faltan.join(', '));
   return [...new Set(claves.map((k) => String(c[k] ?? '').trim()).filter((e) => CORREO.test(e)))];
 }
 
