@@ -148,7 +148,7 @@ function pintar() {
       bc.setAttribute('aria-label', `Cancelar cita de ${f.nombres} ${f.apellido_paterno ?? ''}`.trim());
       bc.dataset.cancelar = f.id;
       const acciones = document.createElement('div');
-      acciones.className = 'lk-revisar';
+      acciones.className = 'lk-acciones-cita';
       acciones.append(be, bc);
       cita.append(acciones);
     }
