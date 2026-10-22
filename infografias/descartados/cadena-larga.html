@@ -1,0 +1,205 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>AJL · De tu historia a tu plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.card{width:1080px;background:var(--crema);display:flex;flex-direction:column}
+
+/* ── cabecera ── */
+.head{padding:64px 60px 44px;background:var(--verde-osc);color:#fff}
+.head .kick{font-size:19px;letter-spacing:.16em;text-transform:uppercase;
+font-weight:700;color:var(--terra-claro)}
+.head h1{font-family:var(--head);font-weight:600;font-size:62px;line-height:1.07;margin-top:16px}
+.head p{font-size:25px;color:rgba(255,255,255,.86);margin-top:18px;line-height:1.45;max-width:40ch}
+
+/* ── etapas ── */
+.etapa{padding:44px 60px 10px}
+.etnum{display:flex;align-items:center;gap:16px;margin-bottom:8px}
+.etnum i{width:52px;height:52px;border-radius:50%;background:var(--terra-osc);color:#fff;
+font-family:var(--head);font-style:normal;font-weight:700;font-size:26px;
+display:grid;place-items:center;flex:none}
+.etnum .t{font-family:var(--head);font-size:38px;font-weight:600;color:var(--verde-osc);line-height:1.15}
+.etnum .c{margin-left:auto;background:var(--verde-claro);color:var(--verde);
+font-size:19px;font-weight:700;padding:8px 18px;border-radius:99px;flex:none}
+.etapa > p.lead{font-size:23px;color:var(--gris);line-height:1.45;margin:6px 0 22px 68px}
+
+/* ── mapeo pregunta → parte del plan ── */
+.mapa{display:flex;flex-direction:column;gap:10px}
+.par{background:#fff;border:1px solid rgba(23,60,44,.09);border-radius:18px;
+display:grid;grid-template-columns:1fr 54px 1fr;align-items:center}
+.par .q{padding:20px 22px}
+.par .q b{display:block;font-size:22px;color:var(--verde-osc);margin-bottom:5px;
+font-family:var(--head);font-weight:600}
+.par .q span{font-size:20px;color:var(--gris);line-height:1.35;display:block}
+.par .fl{display:grid;place-items:center;color:var(--terra-osc);font-size:26px;font-weight:700}
+.par .a{padding:20px 22px;background:var(--verde-claro);border-radius:0 18px 18px 0;
+align-self:stretch;display:flex;flex-direction:column;justify-content:center}
+.par .a b{display:block;font-size:21px;color:var(--verde-osc);margin-bottom:4px}
+.par .a span{font-size:19px;color:var(--verde);line-height:1.35}
+
+/* ── bloque generico ── */
+.bloques{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bq{background:#fff;border:1px solid rgba(23,60,44,.09);border-radius:18px;padding:22px 24px}
+.bq b{display:block;font-family:var(--head);font-size:24px;color:var(--verde-osc);margin-bottom:6px}
+.bq span{font-size:20px;color:var(--gris);line-height:1.4}
+.bq em{font-style:normal;color:var(--terra-osc);font-weight:700}
+
+/* ── franja de enfasis ── */
+.franja{margin:22px 60px 0;background:var(--terra-claro);border-radius:20px;
+padding:26px 30px;border-left:7px solid var(--terra-osc)}
+.franja b{font-family:var(--head);font-size:26px;color:var(--terra-osc);display:block;margin-bottom:7px}
+.franja span{font-size:21px;color:var(--ink);line-height:1.45}
+.franja .aclara{display:block;margin-top:14px;padding-top:13px;
+border-top:1px solid rgba(190,110,66,.28);font-size:19px;color:var(--terra-osc);font-weight:600}
+
+/* ── conector ── */
+.conector{display:flex;flex-direction:column;align-items:center;padding:22px 0 6px;gap:6px}
+.conector .ln{width:3px;height:34px;background:repeating-linear-gradient(180deg,
+var(--terra) 0 9px,transparent 9px 18px)}
+.conector .tx{font-size:20px;color:var(--terra-osc);font-weight:700}
+
+/* ── el reinicio ── */
+.reinicio{margin:40px 60px 0;background:var(--verde-osc);border-radius:24px;padding:38px 40px;color:#fff}
+.reinicio h3{font-family:var(--head);font-size:38px;font-weight:600;margin-bottom:14px}
+.reinicio p{font-size:23px;color:rgba(255,255,255,.9);line-height:1.5}
+.vueltas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.v{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);
+border-radius:16px;padding:20px 22px}
+.v b{display:block;font-size:20px;color:var(--terra-claro);margin-bottom:6px;
+letter-spacing:.08em;text-transform:uppercase;font-weight:800}
+.v span{font-size:20px;color:rgba(255,255,255,.92);line-height:1.35}
+
+.pie-marca{margin-top:44px;padding:28px 60px;display:flex;justify-content:space-between;
+align-items:center;border-top:1px solid rgba(23,60,44,.12);font-size:20px;color:var(--gris)}
+.pie-marca b{color:var(--terra-osc)}
+.marca{font-family:var(--head);font-weight:700;font-size:26px;color:var(--verde-osc)}
+</style></head><body><div class="card">
+
+<div class="head">
+  <p class="kick">Cómo trabajamos</p>
+  <h1>Tu historia entra.<br>Tu plan sale.</h1>
+  <p>Nada de lo que nos cuentas se queda en una libreta. Cada respuesta decide una parte de tu plan.</p>
+</div>
+
+<!-- ETAPA 1 -->
+<div class="etapa">
+  <div class="etnum"><i>1</i><span class="t">Te preguntamos</span><span class="c">60 min</span></div>
+  <p class="lead">Una hora entera. Esto es lo que buscamos, y para qué sirve cada respuesta.</p>
+  <div class="mapa">
+
+    <div class="par">
+      <div class="q"><b>Dónde estás hoy</b><span>Te pesamos y te tallamos. Otras medidas, si en tu caso se pueden tomar.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Tu punto de partida</b><span>Contra esto comparamos en cada control.</span></div>
+    </div>
+
+    <div class="par">
+      <div class="q"><b>Cómo es tu semana de verdad</b><span>Días de oficina, días de entreno, días que sales. Dónde comes y si cocinas.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>La forma de tu plan</b><span>Cuántas comidas, a qué hora, y qué pedir cuando comes fuera.</span></div>
+    </div>
+
+    <div class="par">
+      <div class="q"><b>Qué intentaste antes</b><span>Qué probaste, en qué semana lo dejaste y por qué.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Lo que no va a estar</b><span>No repetimos lo que ya te hizo abandonar.</span></div>
+    </div>
+
+    <div class="par">
+      <div class="q"><b>Cómo te llevas con la comida</b><span>Qué te da culpa, qué crees que no puedes comer, qué no piensas dejar.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Tus permitidos</b><span>Lo que no negocias entra al plan. No se saca.</span></div>
+    </div>
+
+    <div class="par">
+      <div class="q"><b>Qué quieres lograr</b><span>Tu objetivo, en cuánto tiempo, y qué sería un buen resultado para ti.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>La meta y el ritmo</b><span>Y qué vamos a mirar para saber si vas bien.</span></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="conector"><span class="ln"></span><span class="tx">2 o 3 días después</span><span class="ln"></span></div>
+
+<!-- ETAPA 2 -->
+<div class="etapa">
+  <div class="etnum"><i>2</i><span class="t">Te entregamos</span><span class="c">Tu plan</span></div>
+  <p class="lead">No es un menú genérico. Cada parte viene de algo que dijiste.</p>
+  <div class="bloques">
+    <div class="bq"><b>Tus comidas</b><span>Armadas para <em>tus horarios</em>, no para un día ideal.</span></div>
+    <div class="bq"><b>Tus porciones</b><span>Con la mano, la taza y el plato. <em>Tú no pesas ni cuentas.</em></span></div>
+    <div class="bq"><b>Tus salidas</b><span>Qué pedir en la calle y en el delivery <em>los días que sales</em>.</span></div>
+    <div class="bq"><b>Tus permitidos</b><span>Lo que dijiste que no ibas a dejar, <em>dentro del plan</em>.</span></div>
+  </div>
+</div>
+
+<div class="franja"><b>Los números los llevamos nosotros</b>
+<span>Las calorías y los macros se calculan por detrás. Tú solo ves porciones. Esa es la única forma de que puedas sostenerlo cuando no estemos mirando.</span></div>
+
+<div class="conector"><span class="ln"></span><span class="tx">y desde ese día</span><span class="ln"></span></div>
+
+<!-- ETAPA 3 -->
+<div class="etapa">
+  <div class="etnum"><i>3</i><span class="t">Te acompañamos</span><span class="c">Toda la semana</span></div>
+  <p class="lead">Acá es donde aparece lo que ningún plan puede prever.</p>
+  <div class="bloques">
+    <div class="bq"><b>WhatsApp</b><span>De lunes a sábado, para las decisiones del día: una reunión, un viaje, una comida que no estaba.</span></div>
+    <div class="bq"><b>Clases en vivo</b><span>2 por semana, y quedan grabadas si no puedes entrar.</span></div>
+    <div class="bq"><b>Grupo privado</b><span>Otros pacientes pasando por lo mismo que tú.</span></div>
+    <div class="bq"><b>Y algo más importante</b><span><em>Cada vez que escribes, anotamos qué se interpuso.</em></span></div>
+  </div>
+</div>
+
+<div class="franja"><b>Los tropiezos no son fallas. Son datos.</b>
+<span>Si el almuerzo del martes nunca te calzó, eso no se te reprocha en el control: se corrige en el plan. Acá nadie te juzga por lo que comiste.</span></div>
+
+<div class="conector"><span class="ln"></span><span class="tx">en tu control</span><span class="ln"></span></div>
+
+<!-- ETAPA 4 -->
+<div class="etapa">
+  <div class="etnum"><i>4</i><span class="t">Revisamos juntos</span><span class="c">Según tu plan</span></div>
+  <p class="lead">Nos vemos cada semana, cada 15 días o cada mes, según tu plan. No miramos solo la balanza. Miramos tres cosas, en este orden.</p>
+  <div class="mapa">
+    <div class="par">
+      <div class="q"><b>Qué pudiste cumplir</b><span>Qué partes del plan sí entraron en tu semana.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Eso se queda</b><span>Lo que funciona no se toca.</span></div>
+    </div>
+    <div class="par">
+      <div class="q"><b>Qué se interpuso</b><span>Los obstáculos que fuimos anotando durante las semanas.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Eso se cambia</b><span>Cambiamos la estrategia, no te cambiamos a ti.</span></div>
+    </div>
+    <div class="par">
+      <div class="q"><b>Cómo van tus números</b><span>Comparados con el día uno, no con los de otra persona.</span></div>
+      <div class="fl">&#8594;</div>
+      <div class="a"><b>Ajustamos el ritmo</b><span>Subimos la exigencia solo donde ya estás listo.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="franja"><b>No te damos un plan nuevo cada vez</b>
+<span>En los controles ajustamos estrategias. El plan se rehace según lo que hayas contratado, una o dos veces al mes. Cambiar todo cada quince días sería empezar de cero, y de eso justamente venimos huyendo.</span>
+<span class="aclara">El plan Básico es una sola sesión con su plan. No lleva seguimiento ni control: los pasos 3 y 4 empiezan desde Acompañamiento.</span></div>
+
+<!-- REINICIO -->
+<div class="reinicio">
+  <h3>Y cuando renuevas, no empezamos de cero</h3>
+  <p>Volvemos al paso 1, pero ya sabemos qué te funciona, qué te aburre, qué semana se te complica y qué no vas a dejar de comer nunca. Por eso cada mes el plan se parece más a tu vida y menos a un manual.</p>
+  <div class="vueltas">
+    <div class="v"><b>Mes 1</b><span>Te conocemos y armamos la primera versión.</span></div>
+    <div class="v"><b>Mes 2</b><span>Corregimos con lo que pasó de verdad.</span></div>
+    <div class="v"><b>Mes 3 y los que vengan</b><span>Cada vez tocamos menos, porque cada vez calza mejor.</span></div>
+  </div>
+</div>
+
+<div class="pie-marca"><span class="marca">AJL Nutrición</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div>
+</div></body></html>

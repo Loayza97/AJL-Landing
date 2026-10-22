@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>¿Cuántas latas sin azúcar? · AJL Nutrición</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;600&display=swap">
+<style>
+/* Layout: nota de guion estilo diapositiva de Majo — fondo rosado empolvado, una hoja blanca con la tabla de tres columnas, rojo Rímac solo para lo que hay que ver */
+:root {
+  --bg: #ecdcd6;
+  --sheet: #ffffff;
+  --ink: #2b2626;
+  --muted: #8a7b77;
+  --line: #eadfdb;
+  --red: #c8102e;
+  --red-ink: #ffffff;
+  --font: "Work Sans", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #211b1c; --sheet: #2d2627; --ink: #f2e8e5; --muted: #ad9d99; --line: #403637; --red: #ff4d5e; --red-ink: #1d1718;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #211b1c; --sheet: #2d2627; --ink: #f2e8e5; --muted: #ad9d99; --line: #403637; --red: #ff4d5e; --red-ink: #1d1718;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-weight: 300; font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 56px 80px;
+}
+main { max-width: 1000px; margin: 0 auto; display: grid; gap: 48px; }
+h1, h2 { font-weight: 300; text-transform: uppercase; letter-spacing: .08em; text-wrap: balance; margin: 0; text-align: center; }
+h1 { font-size: clamp(28px, 5.5vw, 44px); line-height: 1.15; }
+h2 { font-size: 17px; letter-spacing: .14em; }
+b { font-weight: 600; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: 11px; color: var(--muted); text-align: center; }
+.hl { background: var(--red); color: var(--red-ink); font-weight: 600; font-style: italic; padding: 0 .28em; }
+header { display: grid; gap: 16px; }
+.lead { text-align: center; max-width: 58ch; margin: 0 auto; color: var(--muted); }
+.lead strong { color: var(--ink); font-weight: 400; }
+
+.sheet { background: var(--sheet); }
+section { display: grid; gap: 18px; }
+
+/* Tabla del guion */
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; font-weight: 400; font-size: 11px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--muted); padding: 18px 20px 12px; border-bottom: 1px solid var(--line);
+}
+tbody td { vertical-align: top; padding: 22px 20px; border-bottom: 1px solid var(--line); }
+tbody tr:last-child td { border-bottom: 0; }
+col.c-txt { width: 44%; }
+col.c-vis { width: 36%; }
+col.c-ref { width: 20%; }
+.tag { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
+.tag b { color: var(--ink); font-weight: 600; letter-spacing: .12em; }
+.voz { font-size: 17px; line-height: 1.55; margin: 0; }
+.opt { margin: 12px 0 0; padding-left: 12px; border-left: 2px solid var(--red); font-size: 15px; color: var(--muted); }
+.opt em { font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--red); display: block; }
+.vis { margin: 0; color: var(--ink); }
+.ref { display: grid; gap: 6px; }
+.ref img { display: block; width: 100%; max-width: 150px; aspect-ratio: 9 / 16; object-fit: cover; border: 1px solid var(--line); }
+.ref canvas { display: block; width: 100%; max-width: 150px; aspect-ratio: 9 / 16; border: 1px solid var(--line); background: #1a1314; }
+.ref span { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.total { text-align: center; font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+
+/* Paleta de latas */
+.palette { padding: 24px; display: grid; gap: 18px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 14px 18px; justify-content: center; }
+.sw { display: grid; justify-items: center; gap: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.can { width: 34px; height: 54px; border-radius: 6px 6px 4px 4px; border: 1px solid var(--line); position: relative; }
+.can::before { content: ""; position: absolute; left: 4px; right: 4px; top: -4px; height: 4px; border-radius: 3px 3px 0 0; background: #c9ccd1; }
+.no .can { opacity: .5; }
+.no .can::after { content: ""; position: absolute; left: -6px; right: -6px; top: 50%; height: 2px; background: var(--red); transform: rotate(-58deg); }
+.palette p { margin: 0; text-align: center; color: var(--muted); font-size: 14px; }
+.rowlabel { text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .14em; }
+
+/* Listas finales */
+.notes { padding: 24px 28px; }
+.notes ul { margin: 0; padding-left: 1.1em; display: grid; gap: 10px; }
+.notes li::marker { color: var(--red); }
+.src li { font-size: 14px; }
+
+@media (max-width: 720px) {
+  thead { display: none; }
+  table, tbody, tr, td { display: block; }
+  tbody tr { display: grid; grid-template-columns: 1fr 108px; grid-template-areas: "txt txt" "vis ref"; border-bottom: 1px solid var(--line); padding: 18px 16px; gap: 14px; }
+  tbody tr:last-child { border-bottom: 0; }
+  tbody td { padding: 0; border: 0; min-width: 0; }
+  td.txt { grid-area: txt; }
+  td.vis-c { grid-area: vis; }
+  td.ref-c { grid-area: ref; }
+  td.vis-c::before { content: "Lo que se ve"; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 4px; }
+  .voz { font-size: 16px; }
+  .vis { font-size: 14px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Rímac · Comunidad diabetes · Propuesta de guion · 20-oct-2026</div>
+    <h1>¿Cuántas latas<br>sin azúcar?</h1>
+    <p class="lead"><strong>Que sea dulce <span class="hl">no</span> significa que tenga azúcar.</strong></p>
+  </header>
+
+  <section>
+    <div class="sheet">
+      <table>
+        <colgroup><col class="c-txt"><col class="c-vis"><col class="c-ref"></colgroup>
+        <thead>
+          <tr><th>Texto</th><th>Lo que se ve</th><th>Referencia · Nippard</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="txt"><span class="tag">0–5 s · <b>Gancho</b></span>
+              <p class="voz">¿Cuántas gaseosas sin azúcar puedes tomar al día? ¿Una? ¿Diez? ¿Cien? ¿Y esto cambia si tienes diabetes?</p></td>
+            <td class="vis-c"><p class="vis">Escritorio con pirámide de latas lisas de colores, de varios tamaños. Al decir «una» se ilumina una lata; al decir «diez», diez; luego aparece un «?» grande.</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-04.jpg" alt="Nippard junto a una pirámide de latas, sosteniendo una lata iluminada en dorado"><span>0:03</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">5–12 s · <b>La etiqueta</b></span>
+              <p class="voz">Leamos la etiqueta: azúcares, <b>cero</b>. Calorías, <b>cero</b>. ¿Y por qué es dulce? Es por el <b>aspartame</b>. Endulza unas doscientas veces más que el azúcar.</p>
+</td>
+            <td class="vis-c"><p class="vis">Plano cenital de la tabla nutricional de una lata, con el logo fuera de cuadro. Se resaltan en rojo, una por una: «Azúcares 0 g», «Energía 0 kcal» y «aspartame» en la lista de ingredientes.</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-27.jpg" alt="Pantalla con títulos de estudios resaltados línea por línea"><span>0:26</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">12–22 s · <b>La composición</b></span>
+              <p class="voz">Está compuesto por dos aminoácidos: <b>ácido aspártico</b> y <b>fenilalanina</b>. No tiene azúcar. Por eso no te sube la glucosa.</p></td>
+            <td class="vis-c"><p class="vis">Motion graphic: aparecen por separado «ácido aspártico» y «fenilalanina», y cada una brilla al nombrarla. Luego, un emoji de azúcar tachado con una X, con sonido. Al final, «sin glucosa» en rojo.</p></td>
+            <td class="ref-c"><div class="ref"><canvas class="mg" role="img" aria-label="Mockup animado: ácido aspártico y fenilalanina brillan por turnos, luego un cubo de azúcar cae, se tacha con una X y aparece «sin glucosa»"></canvas><span>Mockup propio · loop 8 s</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">22–32 s · <b>La regla</b></span>
+              <p class="voz">La OMS dice que puedes consumir <b>cuarenta miligramos por kilo de peso</b> al día, de forma segura. Ese es tu límite.</p></td>
+            <td class="vis-c"><p class="vis">Tarjeta blanca flotante con borde rojo que se arma frase por frase: «40 mg» → «por kilo de peso» → «por día» → «toda la vida». Abajo, en letra pequeña: «OMS/JECFA, julio 2023».</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-17.jpg" alt="Tarjeta flotante de la FDA con la ingesta diaria admisible"><span>0:16</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">32–37 s · <b>En tu cuerpo</b></span>
+              <p class="voz">Si pesas 70 kilos, esta es la cantidad que podrías consumir diariamente sin ningún tipo de efecto adverso.</p></td>
+            <td class="vis-c"><p class="vis">Primer plano de una cucharita con polvo blanco frente a la bata. Rótulo: «2.800 mg». Antes, un segundo de silueta con «70 kg».</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-19.jpg" alt="Cuchara con polvo blanco y el rótulo 4,000 mg"><span>0:18</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">37–45 s · <b>El margen</b></span>
+              <p class="voz">Y ese límite está <b>cien veces por debajo</b> de la cantidad que se vio segura en estudios con animales.</p></td>
+            <td class="vis-c"><p class="vis">Gráfico flotante de dos barras: una alta en gris («sin daño en animales») y una mínima en rojo («límite OMS»). Una flecha baja entre las dos con «100×».</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-33.jpg" alt="Gráfico de barras flotante con una flecha hacia abajo"><span>0:32</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">45–52 s · <b>La lata</b></span>
+              <p class="voz">Una lata tiene unos doscientos miligramos. O sea, tendrías que tomar <b>catorce latas diarias</b> solo para llegar al límite.</p></td>
+            <td class="vis-c"><p class="vis">Una lata en la mano con el chip «200 mg». Luego arma sobre el escritorio una pirámide de 14 latas de colores mientras dice «catorce».</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-46.jpg" alt="Nippard armando una pirámide de 20 latas sobre un pedestal"><span>0:45</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">52–55 s · <b>El absurdo</b></span>
+              <p class="voz">Y para llegar al techo seguro que se vio en animales, necesitarías unas <b>mil cuatrocientas</b> latas al día. Tres tinas llenas.</p></td>
+            <td class="vis-c"><p class="vis">Corte a animación: tres tinas blancas desbordando latas de colores. Rótulo «1.400 latas al día».</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-54.jpg" alt="Tres tinas llenas de latas con el rótulo 2,000 cans every day"><span>0:53</span></div></td>
+          </tr>
+          <tr>
+            <td class="txt"><span class="tag">55–65 s · <b>Cierre</b></span>
+              <p class="voz">Así que si te provoca algo dulce, disfrútala sin culpa. No reemplaza al agua, pero sí a la gaseosa con azúcar. Cuidarte no es dejarlo todo: es elegir algo que puedas sostener. <b>Asegura estar bien hoy, para estar mejor mañana.</b></p></td>
+            <td class="vis-c"><p class="vis">Plano medio con la pirámide al lado y una sola lata en la mano. El eslogan aparece en pantalla en blanco sobre el fondo rojo, con el cierre que indique la agencia.</p></td>
+            <td class="ref-c"><div class="ref"><img src="frames/ref-57.jpg" alt="Nippard sentado junto a la pirámide de latas en el cierre"><span>0:56</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="total">~205 palabras base, ~225 con opcionales · ≈ 54–59 s hablados, más el tiempo del motion graphic (≈ 65 s en total)</p>
+  </section>
+
+  <section>
+    <h2>Las latas</h2>
+    <div class="sheet palette">
+      <p>Latas lisas, sin logos ni texto. Colores variados dentro de lo que permite Rímac.</p>
+      <div class="rowlabel">Sí</div>
+      <div class="swatches">
+        <div class="sw"><div class="can" style="background:#c8102e"></div>Rojo</div>
+        <div class="sw"><div class="can" style="background:#7a1f2b"></div>Granate</div>
+        <div class="sw"><div class="can" style="background:#e9a6b4"></div>Rosado</div>
+        <div class="sw"><div class="can" style="background:#6b3fa0"></div>Morado</div>
+        <div class="sw"><div class="can" style="background:#ffffff"></div>Blanco</div>
+        <div class="sw"><div class="can" style="background:#c9ccd1"></div>Plateado</div>
+        <div class="sw"><div class="can" style="background:#1e1b1c"></div>Negro</div>
+      </div>
+      <div class="rowlabel">No</div>
+      <div class="swatches">
+        <div class="sw no"><div class="can" style="background:#1f4fbf"></div>Azul</div>
+        <div class="sw no"><div class="can" style="background:#7cc6ea"></div>Celeste</div>
+        <div class="sw no"><div class="can" style="background:#2e9b4f"></div>Verde</div>
+        <div class="sw no"><div class="can" style="background:#f07c1e"></div>Naranja</div>
+      </div>
+    </div>
+  </section>
+
+
+  <section>
+    <h2>Fuentes</h2>
+    <div class="sheet notes src">
+      <ul>
+        <li><a href="https://www.who.int/news/item/14-07-2023-aspartame-hazard-and-risk-assessment-results-released">OMS · Aspartame hazard and risk assessment results (14-jul-2023)</a>: IDA de 40 mg/kg; 9 a 14 latas para 70 kg; IARC 2B.</li>
+        <li><a href="https://efsa.europa.eu/en/efsajournal/pub/3496">EFSA 2013 · Re-evaluation of aspartame (E 951)</a>: 4.000 mg/kg/día sin daño en animales.</li>
+        <li><a href="https://www.paho.org/en/news/15-5-2023-who-advises-not-use-non-sugar-sweeteners-weight-control-newly-released-guideline">OPS/OMS 2023 · Guía de edulcorantes</a>: no aplica a personas con diabetes.</li>
+        <li><a href="https://pubmed.ncbi.nlm.nih.gov/35285920/">McGlynn et al. 2022, JAMA Netw Open</a>: cambiar bebidas azucaradas por sin azúcar da una mejora pequeña, parecida a cambiarlas por agua.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const cv = document.querySelector('canvas.mg');
+  if (!cv || !cv.getContext) return;
+  const W = 270, H = 480;
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.width = W * dpr; cv.height = H * dpr;
+  const c = cv.getContext('2d');
+  c.scale(dpr, dpr);
+  const RED = '#ff3048', INK = '#f3e9e6', MUTED = '#a8948f', BG = '#1a1314', CARD = '#2a1f21', EDGE = '#4a3b3d';
+  const FONT = '"Work Sans", "Helvetica Neue", Arial, sans-serif';
+  const LOOP = 8;
+  const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+  const seg = (t, a, b) => clamp((t - a) / (b - a));
+  const out = x => 1 - Math.pow(1 - x, 3);
+  const bounce = x => {
+    const n = 7.5625, d = 2.75;
+    if (x < 1 / d) return n * x * x;
+    if (x < 2 / d) return n * (x -= 1.5 / d) * x + 0.75;
+    if (x < 2.5 / d) return n * (x -= 2.25 / d) * x + 0.9375;
+    return n * (x -= 2.625 / d) * x + 0.984375;
+  };
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const grains = Array.from({ length: 28 }, () => [rnd(), rnd()]);
+
+  function rr(x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+  }
+
+  // Fórmulas esquemáticas: cadena con dos grupos ácidos (aspártico) y anillo aromático (fenilalanina)
+  function icon(kind, x, cy, col) {
+    c.save();
+    c.strokeStyle = col; c.fillStyle = col; c.lineWidth = 2.5; c.lineJoin = 'round'; c.lineCap = 'round';
+    if (kind === 'asp') {
+      const pts = [[x + 10, cy + 6], [x + 20, cy - 8], [x + 30, cy + 6], [x + 40, cy - 8], [x + 50, cy + 6]];
+      c.beginPath(); pts.forEach(([px, py], i) => i ? c.lineTo(px, py) : c.moveTo(px, py)); c.stroke();
+      [pts[0], pts[4]].forEach(([px, py]) => { c.beginPath(); c.arc(px, py, 4.5, 0, Math.PI * 2); c.fill(); });
+    } else {
+      c.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = Math.PI / 6 + i * Math.PI / 3;
+        const px = x + 22 + 13 * Math.cos(a), py = cy + 13 * Math.sin(a);
+        i ? c.lineTo(px, py) : c.moveTo(px, py);
+      }
+      c.closePath(); c.stroke();
+      c.beginPath(); c.arc(x + 22, cy, 6, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.moveTo(x + 33, cy - 6); c.lineTo(x + 43, cy + 2); c.lineTo(x + 53, cy - 6); c.stroke();
+      c.beginPath(); c.arc(x + 53, cy - 6, 4.5, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  }
+
+  function card(label, kind, y, a, g, dim) {
+    if (a <= 0) return;
+    const x = 20 - (1 - out(a)) * 40, w = 230, h = 78;
+    const on = g > 0.05;
+    c.save();
+    c.globalAlpha *= out(a) * (1 - 0.6 * dim);
+    if (on) { c.shadowColor = RED; c.shadowBlur = 28 * g; }
+    rr(x, y, w, h, 14); c.fillStyle = CARD; c.fill();
+    c.shadowBlur = 0;
+    c.lineWidth = 2; c.strokeStyle = on ? RED : EDGE; c.stroke();
+    icon(kind, x + 8, y + h / 2, on ? RED : INK);
+    c.fillStyle = INK; c.font = `600 18px ${FONT}`;
+    c.fillText(label, x + 76, y + 42);
+    c.fillStyle = MUTED; c.font = `400 10px ${FONT}`;
+    c.fillText('AMINOÁCIDO', x + 76, y + 59);
+    c.restore();
+  }
+
+  function cube(cx, cy, s) {
+    const d = s * 0.32, l = cx - s / 2, t = cy - s / 2;
+    c.beginPath(); c.moveTo(l, t); c.lineTo(l + d, t - d); c.lineTo(l + s + d, t - d); c.lineTo(l + s, t); c.closePath();
+    c.fillStyle = '#ffffff'; c.fill();
+    c.beginPath(); c.moveTo(l + s, t); c.lineTo(l + s + d, t - d); c.lineTo(l + s + d, t + s - d); c.lineTo(l + s, t + s); c.closePath();
+    c.fillStyle = '#cfc6c1'; c.fill();
+    c.fillStyle = '#efe8e3'; c.fillRect(l, t, s, s);
+    c.fillStyle = 'rgba(120,100,95,.35)';
+    grains.forEach(([gx, gy]) => c.fillRect(l + 4 + gx * (s - 8), t + 4 + gy * (s - 8), 2, 2));
+  }
+
+  function stroke(x1, y1, x2, y2, p) {
+    if (p <= 0) return;
+    const xe = x1 + (x2 - x1) * p, ye = y1 + (y2 - y1) * p;
+    c.lineCap = 'round';
+    c.strokeStyle = BG; c.lineWidth = 16; c.beginPath(); c.moveTo(x1, y1); c.lineTo(xe, ye); c.stroke();
+    c.strokeStyle = RED; c.lineWidth = 10; c.beginPath(); c.moveTo(x1, y1); c.lineTo(xe, ye); c.stroke();
+  }
+
+  function sound(x, y, p) {
+    if (p <= 0 || p >= 1) return;
+    c.save();
+    c.strokeStyle = INK; c.lineWidth = 2.5; c.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      const q = clamp(p * 1.4 - i * 0.2);
+      if (q <= 0) continue;
+      c.globalAlpha = 1 - q;
+      c.beginPath(); c.arc(x, y, 10 + i * 9 + q * 8, -0.6, 0.6); c.stroke();
+    }
+    c.globalAlpha = 1 - p; c.fillStyle = INK; c.font = `600 22px ${FONT}`;
+    c.fillText('♪', x + 34, y - 16);
+    c.restore();
+  }
+
+  function frame(t) {
+    c.globalAlpha = 1;
+    c.fillStyle = BG; c.fillRect(0, 0, W, H);
+    const glow = c.createRadialGradient(W / 2, H, 10, W / 2, H, 300);
+    glow.addColorStop(0, 'rgba(200,16,46,.35)'); glow.addColorStop(1, 'rgba(200,16,46,0)');
+    c.fillStyle = glow; c.fillRect(0, 0, W, H);
+
+    c.save();
+    c.globalAlpha = 1 - seg(t, 7.4, 8);
+    const up = out(seg(t, 4, 4.5)) * 70;
+    const pulse = 0.65 + 0.35 * Math.sin(t * 9);
+    const after = seg(t, 4, 4.5);
+    card('Ácido aspártico', 'asp', 110 - up, seg(t, 0, 0.8), t >= 1 && t < 2.2 ? pulse : 0, t < 2.2 ? 0 : 0.5 + 0.5 * after);
+    card('Fenilalanina', 'phe', 210 - up, seg(t, 2, 2.8), t >= 3 && t < 4.2 ? pulse : 0, seg(t, 4.2, 4.6));
+
+    if (t >= 4.4) {
+      const cy = -60 + 360 * bounce(seg(t, 4.4, 5.0));
+      cube(128, cy, 74);
+      stroke(94, 242, 186, 334, out(seg(t, 5.0, 5.25)));
+      stroke(186, 242, 94, 334, out(seg(t, 5.25, 5.5)));
+      sound(206, 282, seg(t, 5.0, 5.9));
+    }
+
+    const a = seg(t, 5.6, 6.1);
+    if (a > 0) {
+      c.save();
+      c.globalAlpha *= a;
+      c.translate(W / 2, 418);
+      const s = 0.8 + 0.2 * out(a);
+      c.scale(s, s);
+      c.textAlign = 'center';
+      if ('letterSpacing' in c) c.letterSpacing = '3px';
+      c.fillStyle = RED; c.font = `600 26px ${FONT}`;
+      c.fillText('SIN GLUCOSA', 0, 0);
+      c.restore();
+    }
+    c.restore();
+  }
+
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const still = () => frame(reduce ? 6.6 : 1.4);
+  still();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(still);
+  if (reduce) return;
+  const t0 = performance.now() - 1400;
+  const tick = now => { frame(((now - t0) / 1000) % LOOP); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+})();
+</script>
+
+</body>
+</html>

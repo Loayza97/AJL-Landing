@@ -1,0 +1,78 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>1 · Dos cajas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.card{width:1080px;min-height:1350px;background:var(--crema);position:relative;
+display:flex;flex-direction:column;overflow:hidden}
+.marca{font-family:var(--head);font-weight:700;font-size:26px;color:var(--verde-osc);
+letter-spacing:.02em}
+.pie-marca{margin-top:auto;padding:26px 60px;display:flex;justify-content:space-between;
+align-items:center;border-top:1px solid rgba(23,60,44,.12);font-size:20px;color:var(--gris)}
+.pie-marca b{color:var(--terra-osc)}
+h1{font-family:var(--head);font-weight:600;color:var(--verde-osc);line-height:1.08}
+.kicker{font-size:19px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;
+color:var(--terra-osc)}
+
+.top{padding:60px 60px 34px}
+.top h1{font-size:64px;margin-top:14px}
+.cajas{padding:0 60px;display:flex;flex-direction:column;gap:22px}
+.caja{background:#fff;border-radius:26px;padding:38px 40px;box-shadow:0 12px 34px rgba(23,60,44,.10)}
+.caja--plan{background:var(--verde-osc)}
+.caja h2{font-family:var(--head);font-size:40px;font-weight:600;color:var(--verde-osc);
+display:flex;align-items:baseline;gap:16px;margin-bottom:8px}
+.caja--plan h2{color:#fff}
+.caja .dur{font-family:var(--font);font-size:21px;font-weight:700;color:#fff;
+background:var(--terra-osc);padding:6px 16px;border-radius:99px}
+.caja--plan .dur{background:var(--terra)}
+.caja ul{list-style:none;margin-top:22px;display:flex;flex-direction:column;gap:16px}
+.caja li{font-size:25px;line-height:1.4;padding-left:44px;position:relative;color:var(--ink)}
+.caja--plan li{color:rgba(255,255,255,.94)}
+.caja li::before{content:'';position:absolute;left:0;top:6px;width:26px;height:26px;
+border-radius:50%;background:var(--verde-claro);
+box-shadow:inset 0 0 0 2px var(--verde)}
+.caja--plan li::before{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 2px var(--terra)}
+
+
+.extras{margin:26px 60px 34px;background:var(--terra-claro);border-radius:22px;padding:28px 34px}
+.extras h4{font-family:var(--head);font-size:27px;color:var(--terra-osc);margin-bottom:14px}
+.extras ul{list-style:none;display:flex;flex-direction:column;gap:11px}
+.extras li{font-size:23px;color:var(--ink);line-height:1.35;padding-left:32px;position:relative}
+.extras li::before{content:'';position:absolute;left:0;top:9px;width:14px;height:8px;
+border-left:4px solid var(--terra-osc);border-bottom:4px solid var(--terra-osc);
+transform:rotate(-45deg)}
+.extras small{display:block;margin-top:12px;font-size:19px;color:var(--terra-osc);font-weight:600}
+</style></head><body><div class="card">
+<div class="top"><p class="kicker">Lo que recibes</p>
+<h1>Tu cita y tu plan,<br>en claro.</h1></div>
+<div class="cajas">
+  <div class="caja">
+    <h2>Tu cita <span class="dur">60 min</span></h2>
+    <ul>
+      <li>Te pesamos y medimos cuánta grasa y músculo tienes</li>
+      <li>Vemos tu día real: horarios, viajes, dónde comes</li>
+      <li>Revisamos qué intentaste antes y por qué se cayó</li>
+      <li>Te explicamos el método y qué te vamos a pedir</li>
+    </ul>
+  </div>
+  <div class="caja caja--plan">
+    <h2>Tu plan <span class="dur">en 2 o 3 días</span></h2>
+    <ul>
+      <li>Armado sobre tus horarios, no sobre los de otro</li>
+      <li>Porciones con tu mano, taza y plato</li>
+      <li>Tú no pesas ni cuentas calorías. Eso lo hacemos nosotros</li>
+      <li>Lo ajustamos cada vez que nos vemos</li>
+    </ul>
+  </div>
+</div><div class="extras"><h4>Y todas las semanas</h4><ul>
+<li>Nos escribes por WhatsApp de lunes a s&aacute;bado</li>
+<li>2 clases en vivo, y quedan grabadas</li>
+<li>Grupo privado con otros pacientes como t&uacute;</li>
+</ul><small>Seg&uacute;n el plan que elijas.</small></div><div class="pie-marca"><span class="marca">AJL Nutrición</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div></div></body></html>

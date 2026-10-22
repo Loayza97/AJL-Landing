@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJL Nutrición · Comparador de variantes</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F5F5F7; color: #1D1D1F; -webkit-font-smoothing: antialiased; }
+
+  header {
+    background: rgba(245,245,247,0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid #E8E8EC;
+    position: sticky; top: 0; z-index: 100;
+    padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+  .logo-mark {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, #D4A843, #A07020);
+    display: grid; place-items: center;
+    color: #fff; font-size: 12px; font-weight: 800;
+    box-shadow: 0 3px 10px rgba(212,168,67,0.4);
+  }
+  .meta { font-size: 13px; color: #6E6E73; }
+  .new-link {
+    font-family: 'Plus Jakarta Sans'; font-size: 13px; font-weight: 600;
+    background: #1D1D1F; color: #fff;
+    padding: 8px 16px; border-radius: 999px;
+    text-decoration: none; transition: background 0.2s;
+  }
+  .new-link:hover { background: #5B6CFF; }
+
+  .section-label {
+    text-align: center; padding: 32px 24px 20px;
+    font-family: 'Plus Jakarta Sans'; font-weight: 700;
+    font-size: clamp(18px, 3vw, 24px);
+  }
+  .section-label span { color: #6E6E73; font-weight: 500; font-size: 14px; display: block; margin-top: 4px; }
+
+  /* Comparison grid */
+  .comparison {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 0 20px 20px;
+    max-width: 1600px; margin: 0 auto;
+  }
+
+  .variant-col {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .variant-label {
+    background: #fff;
+    border: 1px solid #E8E8EC;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .variant-letter {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 14px; color: #fff;
+    flex-shrink: 0;
+  }
+  .variant-info { flex: 1; }
+  .variant-name { font-family: 'Plus Jakarta Sans'; font-weight: 700; font-size: 14px; }
+  .variant-desc { font-size: 12px; color: #6E6E73; margin-top: 2px; }
+  .open-btn {
+    font-size: 12px; font-weight: 600; color: #1D1D1F;
+    text-decoration: none; padding: 6px 12px;
+    border: 1px solid #E8E8EC; border-radius: 8px;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .open-btn:hover { border-color: #1D1D1F; }
+
+  .iframe-wrap {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid #E8E8EC;
+    background: #fff;
+    height: 720px;
+    position: relative;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    transition: box-shadow 0.3s, transform 0.3s;
+  }
+  .iframe-wrap:hover {
+    box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+  }
+
+  iframe {
+    width: 1280px;
+    border: none;
+    transform-origin: top left;
+    display: block;
+  }
+
+  .tag-pill {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 999px;
+  }
+
+  /* Divider to new mockups */
+  .divider {
+    margin: 40px 20px 0;
+    padding: 28px 32px;
+    background: #1D1D1F;
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 20px;
+    max-width: 1600px; margin-left: auto; margin-right: auto;
+    position: relative; overflow: hidden;
+  }
+  .divider::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(91,108,255,0.25), transparent 60%),
+                radial-gradient(circle at 70% 50%, rgba(212,168,67,0.2), transparent 60%);
+    pointer-events: none;
+  }
+  .divider-text { position: relative; }
+  .divider-text h2 { font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 22px; color: #fff; margin-bottom: 4px; }
+  .divider-text p { font-size: 14px; color: rgba(255,255,255,0.6); }
+  .divider-actions { display: flex; gap: 10px; position: relative; flex-shrink: 0; }
+  .divider-btn {
+    font-family: 'Plus Jakarta Sans'; font-size: 13px; font-weight: 600;
+    padding: 10px 20px; border-radius: 10px; text-decoration: none;
+    transition: all 0.2s;
+  }
+  .divider-btn-primary { background: #fff; color: #1D1D1F; }
+  .divider-btn-primary:hover { background: #D4A843; color: #fff; }
+  .divider-btn-ghost { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.15); }
+  .divider-btn-ghost:hover { background: rgba(255,255,255,0.15); }
+
+  /* New mockups grid */
+  .new-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 20px;
+    max-width: 1600px; margin: 0 auto;
+  }
+
+  .new-card {
+    background: #fff;
+    border: 1px solid #E8E8EC;
+    border-radius: 20px;
+    overflow: hidden;
+    transition: box-shadow 0.3s, transform 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .new-card:hover {
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  }
+
+  .new-card-header {
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #F0F0F2;
+  }
+  .new-card-meta { display: flex; align-items: center; gap: 10px; }
+  .new-card-letter {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: grid; place-items: center;
+    font-family: 'Plus Jakarta Sans'; font-weight: 800; font-size: 15px; color: #fff;
+    flex-shrink: 0;
+  }
+  .new-card-name { font-family: 'Plus Jakarta Sans'; font-weight: 700; font-size: 15px; }
+  .new-card-style { font-size: 12px; color: #6E6E73; margin-top: 1px; }
+  .new-card-open {
+    font-size: 12px; font-weight: 600; color: #1D1D1F;
+    text-decoration: none; padding: 7px 14px;
+    border: 1px solid #E8E8EC; border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .new-card-open:hover { background: #1D1D1F; color: #fff; border-color: #1D1D1F; }
+
+  .new-card-preview {
+    height: 580px; position: relative; overflow: hidden;
+  }
+  .new-card-preview iframe {
+    width: 1280px;
+    height: 900px;
+    border: none;
+    transform-origin: top left;
+    pointer-events: none;
+  }
+
+  @media (max-width: 1100px) {
+    .comparison { grid-template-columns: 1fr; }
+    .new-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Script to set iframe scales */
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">A</div>
+    AJL Nutrición
+  </div>
+  <span class="meta">Comparador de variantes visuales · 7 mockups</span>
+  <a href="mock-a-light-bento.html" class="new-link">Ver nuevos mockups →</a>
+</header>
+
+<p class="section-label">
+  Variantes iniciales · Fase 1
+  <span>3 direcciones visuales — Obsidian Gold · Bento Dark · Editorial</span>
+</p>
+
+<div class="comparison">
+
+  <!-- A -->
+  <div class="variant-col">
+    <div class="variant-label">
+      <div class="variant-letter" style="background:linear-gradient(135deg,#D4A843,#7A5200);">A</div>
+      <div class="variant-info">
+        <div class="variant-name">Obsidian Gold</div>
+        <div class="variant-desc">Negro absoluto · Bodoni Moda · Lujo editorial</div>
+      </div>
+      <a href="variante-a-obsidian-gold.html" class="open-btn" target="_blank">Abrir →</a>
+    </div>
+    <div class="iframe-wrap" id="wrap-a">
+      <iframe src="variante-a-obsidian-gold.html" id="frame-a" title="Obsidian Gold"></iframe>
+    </div>
+  </div>
+
+  <!-- B -->
+  <div class="variant-col">
+    <div class="variant-label">
+      <div class="variant-letter" style="background:linear-gradient(135deg,#F5C518,#7C3AED);">B</div>
+      <div class="variant-info">
+        <div class="variant-name">Bento Dark</div>
+        <div class="variant-desc">Tech oscuro · Space Grotesk · Dorado + verde + púrpura</div>
+      </div>
+      <a href="variante-b-bento-dark.html" class="open-btn" target="_blank">Abrir →</a>
+    </div>
+    <div class="iframe-wrap" id="wrap-b">
+      <iframe src="variante-b-bento-dark.html" id="frame-b" title="Bento Dark"></iframe>
+    </div>
+  </div>
+
+  <!-- C -->
+  <div class="variant-col">
+    <div class="variant-label">
+      <div class="variant-letter" style="background:linear-gradient(135deg,#C8973A,#6B8F71);">C</div>
+      <div class="variant-info">
+        <div class="variant-name">Editorial Cream</div>
+        <div class="variant-desc">Crema + tinta · Fraunces · Revista de lujo</div>
+      </div>
+      <a href="variante-c-editorial.html" class="open-btn" target="_blank">Abrir →</a>
+    </div>
+    <div class="iframe-wrap" id="wrap-c">
+      <iframe src="variante-c-editorial.html" id="frame-c" title="Editorial Cream"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<!-- Divider -->
+<div class="divider" style="margin:40px 20px;">
+  <div class="divider-text">
+    <h2>Nuevos mockups — Estándar premium</h2>
+    <p>Plus Jakarta Sans · Bento grid · Reveal animations · Glass nav · 4 direcciones visuales</p>
+  </div>
+  <div class="divider-actions">
+    <a href="mock-a-light-bento.html" class="divider-btn divider-btn-primary" target="_blank">Ver mockup A →</a>
+    <a href="mock-b-dark-gold.html" class="divider-btn divider-btn-ghost" target="_blank">Ver todos</a>
+  </div>
+</div>
+
+<!-- New mockups 2x2 -->
+<div class="new-grid">
+
+  <!-- Mock A -->
+  <div class="new-card">
+    <div class="new-card-header">
+      <div class="new-card-meta">
+        <div class="new-card-letter" style="background:linear-gradient(135deg,#5B6CFF,#34C77B);">A</div>
+        <div>
+          <div class="new-card-name">Light Bento</div>
+          <div class="new-card-style">Apple-like · Multicolor · Plus Jakarta Sans</div>
+        </div>
+      </div>
+      <a href="mock-a-light-bento.html" class="new-card-open" target="_blank">Abrir →</a>
+    </div>
+    <div class="new-card-preview" id="wrap-ma">
+      <iframe src="mock-a-light-bento.html" id="frame-ma" title="Light Bento"></iframe>
+    </div>
+  </div>
+
+  <!-- Mock B -->
+  <div class="new-card">
+    <div class="new-card-header">
+      <div class="new-card-meta">
+        <div class="new-card-letter" style="background:linear-gradient(135deg,#D4A843,#1D1D1F);">B</div>
+        <div>
+          <div class="new-card-name">Dark Gold</div>
+          <div class="new-card-style">Oscuro premium · Dorado líquido · Bento</div>
+        </div>
+      </div>
+      <a href="mock-b-dark-gold.html" class="new-card-open" target="_blank">Abrir →</a>
+    </div>
+    <div class="new-card-preview" id="wrap-mb">
+      <iframe src="mock-b-dark-gold.html" id="frame-mb" title="Dark Gold"></iframe>
+    </div>
+  </div>
+
+  <!-- Mock C -->
+  <div class="new-card">
+    <div class="new-card-header">
+      <div class="new-card-meta">
+        <div class="new-card-letter" style="background:linear-gradient(135deg,#F59E0B,#DC6B3A);">C</div>
+        <div>
+          <div class="new-card-name">Warm Premium</div>
+          <div class="new-card-style">Terracota + crema · Orgánico moderno</div>
+        </div>
+      </div>
+      <a href="mock-c-warm.html" class="new-card-open" target="_blank">Abrir →</a>
+    </div>
+    <div class="new-card-preview" id="wrap-mc">
+      <iframe src="mock-c-warm.html" id="frame-mc" title="Warm Premium"></iframe>
+    </div>
+  </div>
+
+  <!-- Mock D -->
+  <div class="new-card">
+    <div class="new-card-header">
+      <div class="new-card-meta">
+        <div class="new-card-letter" style="background:linear-gradient(135deg,#0EA5E9,#8B5CF6);">D</div>
+        <div>
+          <div class="new-card-name">Aurora</div>
+          <div class="new-card-style">Blanco + aura · Gradiente iridiscente</div>
+        </div>
+      </div>
+      <a href="mock-d-aurora.html" class="new-card-open" target="_blank">Abrir →</a>
+    </div>
+    <div class="new-card-preview" id="wrap-md">
+      <iframe src="mock-d-aurora.html" id="frame-md" title="Aurora"></iframe>
+    </div>
+  </div>
+
+</div>
+
+<div style="height:48px;"></div>
+
+<script>
+  // Altura generosa para que la página tenga espacio de scroll dentro del iframe
+  const IFRAME_CONTENT_HEIGHT = 5200; // px en coordenadas del iframe (antes de escalar)
+
+  function scaleIframe(wrapId, frameId) {
+    const wrap = document.getElementById(wrapId);
+    const frame = document.getElementById(frameId);
+    if (!wrap || !frame) return;
+    const scale = wrap.clientWidth / 1280;
+    frame.style.transform = `scale(${scale})`;
+    // Alto visual = IFRAME_CONTENT_HEIGHT * scale, recortado por overflow:hidden del wrap
+    frame.style.height = IFRAME_CONTENT_HEIGHT + 'px';
+  }
+
+  const pairs = [
+    ['wrap-a','frame-a'],['wrap-b','frame-b'],['wrap-c','frame-c'],
+    ['wrap-ma','frame-ma'],['wrap-mb','frame-mb'],['wrap-mc','frame-mc'],['wrap-md','frame-md']
+  ];
+
+  function scaleAll() { pairs.forEach(([w,f]) => scaleIframe(w,f)); }
+  window.addEventListener('load', scaleAll);
+  window.addEventListener('resize', scaleAll);
+  scaleAll();
+</script>
+</body>
+</html>

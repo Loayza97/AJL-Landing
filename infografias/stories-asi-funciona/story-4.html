@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --verde: #2F6E52; --verde-osc: #173C2C; --verde-claro: #E9F1EB;
+  --dorado: #D68A5C; --dorado-osc: #BE6E42; --dorado-claro: #F6E5D9;
+  --crema: #FBF7F1; --ink: #20302A; --gris: #5E6B63; --white: #fff;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+body {
+  background: var(--crema); color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  display: flex; flex-direction: column;
+  padding: 220px 90px 240px;   /* zonas seguras de Instagram arriba y abajo */
+}
+.kicker {
+  font-size: 30px; font-weight: 700; letter-spacing: 6px; text-transform: uppercase;
+  color: var(--dorado); margin-bottom: 18px;
+}
+.entry { font-size: 34px; line-height: 1.4; color: var(--ink); margin-bottom: 40px; }
+.entry strong { color: var(--verde-osc); }
+.card {
+  position: relative; background: var(--white); border-radius: 44px;
+  padding: 44px 44px 60px; box-shadow: 0 30px 80px rgba(23,60,44,.12);
+  flex: 1; display: flex; flex-direction: column;
+}
+.card--acomp { border: 6px solid var(--dorado-claro); }
+.art {
+  background: var(--verde-claro); border-radius: 32px; padding: 60px 50px;
+  flex: 1; display: flex; align-items: center; margin-bottom: 52px;
+}
+.card--acomp .art { background: var(--dorado-claro); }
+.art svg { width: 100%; height: auto; max-height: 100%; }
+.num {
+  position: absolute; top: 20px; left: 20px; width: 120px; height: 120px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--verde-osc); color: var(--white);
+  font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 62px;
+  box-shadow: 0 12px 30px rgba(23,60,44,.3);
+}
+.card--acomp .num { background: var(--dorado); }
+.tag {
+  align-self: flex-start; font-size: 26px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--dorado-osc); background: var(--dorado-claro);
+  padding: 14px 30px; border-radius: 999px; margin-bottom: 26px;
+}
+h1 {
+  font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 74px;
+  line-height: 1.12; color: var(--verde-osc); letter-spacing: -1px; margin-bottom: 26px;
+}
+.line { font-size: 40px; line-height: 1.45; color: var(--gris); }
+.line + .line { margin-top: 14px; }
+.foot { margin-top: 40px; font-size: 32px; font-weight: 600; color: var(--verde-osc); }
+.brand {
+  position: absolute; left: 0; right: 0; bottom: 120px; text-align: center;
+  font-size: 28px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--verde);
+}
+/* Colores de los dibujos (heredan de la paleta) */
+.f-osc      { fill: var(--verde-osc); }
+.f-verde    { fill: var(--verde); }
+.f-verde-op { fill: rgba(47, 110, 82, 0.35); }
+.f-claro    { fill: var(--verde-claro); }
+.f-terra    { fill: var(--dorado); }
+.f-terra-op { fill: rgba(214, 138, 92, 0.4); }
+.f-pale     { fill: var(--dorado-claro); }
+.f-white    { fill: #fff; }
+.f-wa       { fill: #25D366; }
+.s-osc      { stroke: var(--verde-osc); stroke-width: 2; }
+.s-verde    { stroke: var(--verde); stroke-width: 3; }
+.s-verde-w  { stroke: var(--verde); stroke-width: 7; stroke-linecap: round; }
+.s-terra    { stroke: var(--dorado); stroke-width: 2.5; stroke-linecap: round; }
+.s-terra-w  { stroke: var(--dorado); stroke-width: 8; stroke-linecap: round; }
+.s-white    { stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+
+</style></head>
+<body>
+  <p class="kicker">Así funciona · Paso 4 de 5</p>
+  
+  <div class="card card--acomp">
+    <span class="num">4</span>
+    <div class="art"><svg viewBox="0 0 240 160" class="hiw-svg">
+                <!-- chat con el equipo -->
+                <path d="M14 36 h84 a10 10 0 0 1 10 10 v26 a10 10 0 0 1 -10 10 h-58 l-14 12 v-12 h-12 a10 10 0 0 1 -10 -10 v-26 a10 10 0 0 1 10 -10 z" class="f-wa" />
+                <rect x="22" y="48" width="56" height="5" rx="2.5" class="f-white" />
+                <rect x="22" y="58" width="40" height="5" rx="2.5" class="f-white" />
+                <rect x="22" y="68" width="48" height="5" rx="2.5" class="f-white" />
+                <path d="M46 96 h64 a9 9 0 0 1 9 9 v18 a9 9 0 0 1 -9 9 h-10 v10 l-12 -10 h-42 a9 9 0 0 1 -9 -9 v-18 a9 9 0 0 1 9 -9 z" class="f-claro" />
+                <rect x="54" y="106" width="44" height="5" rx="2.5" class="f-verde" />
+                <rect x="54" y="116" width="30" height="5" rx="2.5" class="f-verde-op" />
+                <!-- clase en vivo: gente, no una app -->
+                <rect x="138" y="28" width="90" height="60" rx="8" class="f-osc" />
+                <circle cx="150" cy="40" r="4" class="f-terra" />
+                <circle cx="166" cy="58" r="8" class="f-white" />
+                <path d="M152 88 C152 74 180 74 180 88 Z" class="f-white" />
+                <circle cx="198" cy="58" r="8" class="f-white" />
+                <path d="M184 88 C184 74 212 74 212 88 Z" class="f-white" />
+                <!-- quienes entran -->
+                <circle cx="156" cy="112" r="9" class="f-verde" />
+                <path d="M140 146 C140 128 172 128 172 146 Z" class="f-verde" />
+                <circle cx="184" cy="112" r="9" class="f-terra" />
+                <path d="M168 146 C168 128 200 128 200 146 Z" class="f-terra" />
+                <circle cx="212" cy="112" r="9" class="f-verde" />
+                <path d="M196 146 C196 128 228 128 228 146 Z" class="f-verde" />
+              </svg></div>
+    <span class="tag">Solo planes con acompañamiento</span>
+    <h1>Arranca tu acompañamiento.</h1>
+    <p class="line">Escribes al equipo por WhatsApp de lunes a sábado.</p><p class="line">Y hay dos clases en vivo por semana, si quieres entrar.</p>
+    
+  </div>
+  <p class="brand">AJL Nutrición</p>
+</body></html>

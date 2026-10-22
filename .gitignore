@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.astro/
+.netlify/
+.env
+.env.*
+*.log
+.DS_Store
+.dev.vars
+.wrangler/
+.superpowers/

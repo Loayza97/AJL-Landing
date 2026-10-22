@@ -1,0 +1,210 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<title>AJL · El ciclo de tu plan (v3)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--verde:#2F6E52;--verde-osc:#173C2C;--verde-claro:#E9F1EB;
+--terra:#D68A5C;--terra-osc:#BE6E42;--terra-claro:#F6E5D9;
+--crema:#FBF7F1;--ink:#20302A;--gris:#5E6B63;
+--font:'Inter',system-ui,sans-serif;--head:'Fraunces',Georgia,serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);color:var(--ink);-webkit-font-smoothing:antialiased;
+background:#e8e4dc;display:flex;justify-content:center}
+.hoja{width:1660px;height:1800px;background:var(--crema);display:flex;flex-direction:column;
+padding:34px 40px 18px}
+
+.head{text-align:center;margin-bottom:6px}
+.head .kick{font-size:15px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--terra-osc)}
+.head h1{font-family:var(--head);font-weight:600;font-size:46px;color:var(--verde-osc);line-height:1.05;margin-top:7px}
+.head .sub{font-size:18px;color:var(--gris);line-height:1.5;margin:10px auto 0;max-width:78ch}
+.head .sub b{color:var(--verde-osc)}
+
+.lienzo{flex:1;position:relative;display:flex;justify-content:center;align-items:center;padding-bottom:74px}
+.rueda{position:relative;width:1400px;height:1400px}
+.rueda svg{position:absolute;inset:0;width:1400px;height:1400px}
+
+.blk{position:absolute;width:346px;transform:translate(-50%,-50%);color:#fff}
+.p1 h3,.p1 .dur{margin-left:18px}
+.blk h3{font-family:var(--head);font-size:32px;font-weight:600;line-height:1.08}
+.p1 .dur{color:#BE6E42}.p2 .dur{color:#2F6E52}.p3 .dur{color:#173C2C}
+.blk .dur{display:inline-block;margin:6px 0 12px;background:#fff;padding:5px 15px;border-radius:99px;font-size:14.5px;font-weight:800;letter-spacing:.02em}
+
+/* ---------- objeto: tarjeta blanca dentro del sector ---------- */
+.obj{background:#fff;color:var(--ink);border-radius:16px;box-shadow:0 14px 34px rgba(0,0,0,.28);overflow:hidden}
+.tag{display:inline-block;background:var(--terra-osc);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.06em;
+text-transform:uppercase;padding:3px 8px;border-radius:99px;white-space:nowrap;vertical-align:middle;line-height:1.2}
+.p2 .tag{background:var(--terra-osc)}
+.p3 .tag{background:var(--terra-osc)}
+
+/* ---------- 01 sesión: la hora en 4 momentos ---------- */
+.ses{padding:14px 16px 12px}
+.ses .barra{display:flex;height:22px;border-radius:8px;overflow:hidden;gap:3px;margin-bottom:6px}
+.ses .barra i{display:block;background:var(--terra);opacity:.55}
+.ses .barra i:nth-child(2){opacity:.7}.ses .barra i:nth-child(3){opacity:.85}
+.ses .barra i:last-child{background:var(--terra-osc);opacity:1}
+.ses .ejes{display:flex;justify-content:space-between;font-size:10.5px;color:var(--gris);font-weight:600;margin-bottom:12px}
+.ses ol{list-style:none;display:flex;flex-direction:column;gap:9px}
+.ses li{display:grid;grid-template-columns:26px 1fr;gap:9px;align-items:start}
+.ses li em{font-style:normal;width:26px;height:26px;border-radius:50%;background:var(--terra-claro);color:var(--terra-osc);
+font-family:var(--head);font-weight:700;font-size:14px;display:grid;place-items:center}
+.ses li:last-child em{background:var(--terra-osc);color:#fff}
+.ses li b{display:block;font-size:14.5px;font-weight:700;line-height:1.25}
+.ses li span{display:block;font-size:12.5px;color:var(--gris);line-height:1.3;margin-top:1px}
+.ses li span.tag{display:inline-block;width:auto;margin-top:5px;color:#fff}
+
+/* ---------- 02 plan: el celular ---------- */
+.p2{width:330px}
+.cel{padding:12px 13px 12px;font-size:12.5px}
+.tabs{display:flex;gap:5px;margin-bottom:9px;align-items:center}
+.tabs span{padding:5px 9px;border-radius:99px;font-size:11.5px;font-weight:700;background:var(--verde-claro);color:var(--verde)}
+.tabs span.on{background:var(--verde-osc);color:#fff}
+.tabs .tag{margin-left:auto}
+.dia{margin-bottom:10px}
+.dia .lbl{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--gris);font-weight:600;margin-bottom:4px}
+.dia .rep{display:flex;height:16px;border-radius:6px;overflow:hidden;gap:2px}
+.dia .rep i{display:block;background:var(--verde);opacity:.45}
+.dia .rep i.max{opacity:1}
+.dia .nom{display:flex;font-size:10px;color:var(--gris);margin-top:3px}
+.dia .nom span{text-align:center}
+.tarj{border:1.5px solid rgba(23,60,44,.14);border-radius:12px;padding:9px 10px}
+.tarj .cab{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.tarj .cab b{font-family:var(--head);font-size:16px;font-weight:600;color:var(--verde-osc)}
+.sw{display:flex;border:1.5px solid var(--verde);border-radius:99px;overflow:hidden;font-size:10.5px;font-weight:700;margin-bottom:8px}
+.sw span{flex:1;text-align:center;padding:4px 0;color:var(--verde)}
+.sw span.on{background:var(--verde);color:#fff}
+.slot{margin-bottom:7px}
+.slot .t{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;color:var(--verde-osc);margin-bottom:3px}
+.slot .t small{font-weight:600;color:var(--gris);font-size:10.5px}
+.slot ul{list-style:none;display:flex;flex-direction:column;gap:2px}
+.slot li{display:flex;justify-content:space-between;font-size:12px;padding:3px 7px;border-radius:6px}
+.slot li.on{background:var(--verde-claro);font-weight:700}
+.slot li::before{content:'○';margin-right:6px;color:var(--verde)}
+.slot li.on::before{content:'●'}
+.slot li span{flex:1}
+.slot li b{font-weight:700;color:var(--verde-osc)}
+.fila{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;padding:6px 8px;border-radius:8px;background:var(--crema);margin-top:5px;font-weight:600}
+.fila b{color:var(--verde-osc)}
+
+/* ---------- 03 seguimiento: el chat ---------- */
+.p3{width:340px}
+.chat{background:#EFE9DF}
+.chat .top{background:var(--verde-osc);color:#fff;padding:8px 12px;display:flex;align-items:center;gap:9px;font-size:12px}
+.chat .top i{width:26px;height:26px;border-radius:50%;background:var(--terra);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:11px}
+.chat .top b{display:block;font-size:12.5px}
+.chat .top span{opacity:.8;font-size:10.5px}
+.msgs{padding:10px 10px 8px;display:flex;flex-direction:column;gap:6px}
+.m{max-width:84%;padding:6px 9px;border-radius:10px;font-size:12px;line-height:1.32;color:var(--ink);position:relative}
+.m.tu{align-self:flex-end;background:#DCF3D6;border-bottom-right-radius:2px}
+.m.aj{align-self:flex-start;background:#fff;border-bottom-left-radius:2px}
+.m .foto{display:block;height:54px;border-radius:6px;background:linear-gradient(135deg,#D9C6A5,#B9955F);margin-bottom:4px;
+display:grid;place-items:center;font-size:11px;color:#fff;font-weight:700}
+.m .tag{position:absolute;right:-8px;top:-11px}
+.m.aj{margin-top:9px}
+.m.aj .tag{left:auto;right:-8px}
+.chat .pie3{padding:7px 12px 9px;font-size:11px;color:var(--gris);font-weight:600;text-align:center;border-top:1px solid rgba(0,0,0,.06)}
+
+.bdg{position:absolute;width:108px;height:108px;border-radius:50%;background:var(--crema);border:8px solid;transform:translate(-50%,-50%);
+display:grid;place-items:center;font-family:var(--head);font-size:38px;font-weight:700;box-shadow:0 6px 18px rgba(23,60,44,.18)}
+.arranca{position:absolute;transform:translate(-50%,-50%);background:#BE6E42;color:#fff;font-size:16px;font-weight:800;letter-spacing:.08em;
+text-transform:uppercase;padding:9px 18px;border-radius:99px;white-space:nowrap;box-shadow:0 6px 16px rgba(23,60,44,.18)}
+.arranca::after{content:'';position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:13px solid #BE6E42}
+.nucleo{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:182px;text-align:center}
+.nucleo b{display:block;font-family:var(--head);font-size:23px;font-weight:600;color:var(--verde-osc);line-height:1.1}
+.nucleo span{display:block;font-size:13px;color:var(--gris);line-height:1.35;margin-top:8px}
+
+.pie-strip{background:var(--verde-osc);border-radius:13px;padding:12px 24px;color:#fff;display:flex;align-items:center;gap:24px;flex-wrap:wrap;font-size:16px;justify-content:center}
+.pie-strip b{font-family:var(--head);font-size:19px;font-weight:600;flex:none}
+.pie-strip span{color:rgba(255,255,255,.88)}
+.pie-strip .sep{color:var(--terra);font-weight:700}
+.pie{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:10px;border-top:1px solid rgba(23,60,44,.12);font-size:15px;color:var(--gris)}
+.pie b{color:var(--terra-osc)}
+.marca{font-family:var(--head);font-weight:700;font-size:22px;color:var(--verde-osc)}
+</style></head><body><div class="hoja">
+
+<div class="head">
+  <p class="kick">Cómo trabajamos</p>
+  <h1>No tienes que cambiar tu vida para ver cambios en tu cuerpo.</h1>
+  <p class="sub">Tu plan mantiene tus horarios y tus comidas de siempre, y te enseña a elegir en la calle.
+  <b>El plan se adapta a tu vida. No al revés.</b></p>
+</div>
+
+<div class="lienzo">
+  <div class="rueda">
+    <svg viewBox="0 0 1400 1400" xmlns="http://www.w3.org/2000/svg"><path d="M 723.7 20.4 A 680.0 680.0 0 0 1 1300.4 1019.2 L 1018.7 940.1 L 804.2 755.4 A 118.0 118.0 0 0 0 704.1 582.1 L 776.1 308.3 Z" fill="#2F6E52"/>
+<path d="M 1276.7 1060.3 A 680.0 680.0 0 0 1 123.3 1060.3 L 332.7 855.9 L 599.9 762.5 A 118.0 118.0 0 0 0 800.1 762.5 L 1001.1 961.8 Z" fill="#173C2C"/>
+<path d="M 99.6 1019.2 A 680.0 680.0 0 0 1 676.3 20.4 L 748.6 304.0 L 695.9 582.1 A 118.0 118.0 0 0 0 595.8 755.4 L 322.7 829.9 Z" fill="#BE6E42"/>
+<circle cx="700.0" cy="700.0" r="142" fill="#FBF7F1"/>
+<circle cx="700.0" cy="700.0" r="132" fill="#FBF7F1" stroke="rgba(23,60,44,.16)" stroke-width="3"/></svg>
+
+    <!-- 01 · TU SESIÓN -->
+    <div class="blk p1" style="left:25.4%;top:37.5%">
+      <h3>Tu sesión</h3><span class="dur">60 min · presencial o virtual</span>
+      <div class="obj ses">
+        <div class="barra"><i style="flex:18"></i><i style="flex:14"></i><i style="flex:14"></i><i style="flex:54"></i></div>
+        <div class="ejes"><span>min 0</span><span>min 60</span></div>
+        <ol>
+          <li><em>1</em><div><b>De dónde partes y a dónde vas</b><span>Tu salud, lo que tomas, lo que te cae mal, tu objetivo.</span></div></li>
+          <li><em>2</em><div><b>Cuánto quema tu cuerpo</b><span>Te pesamos, te tallamos y medimos tu grasa y tu músculo.</span></div></li>
+          <li><em>3</em><div><b>Cuánto gastas entrenando</b><span>Qué deporte, cuántos días y cuánto rato de verdad.</span></div></li>
+          <li><em>4</em><div><b>Cómo es tu vida de verdad</b><span>¿Táper o menú? ¿Cena o lonche? ¿Oficina o casa? ¿Y el finde?</span>
+            <span class="tag">La parte más larga</span></div></li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- 02 · TU PLAN -->
+    <div class="blk p2" style="left:74.8%;top:37.5%">
+      <h3>Tu plan</h3><span class="dur">en 2 o 3 días · en tu celular</span>
+      <div class="obj cel">
+        <div class="tabs"><span class="on">Oficina</span><span>Home office</span><span>Sábado</span><span class="tag">Tus días</span></div>
+        <div class="dia">
+          <div class="lbl"><span>Cómo se reparte tu día</span><span class="tag">Dónde va más comida</span></div>
+          <div class="rep"><i style="flex:22"></i><i style="flex:40" class="max"></i><i style="flex:13"></i><i style="flex:25"></i></div>
+          <div class="nom"><span style="flex:22">Desayuno</span><span style="flex:40">Almuerzo</span><span style="flex:13">Snack</span><span style="flex:25">Lonche</span></div>
+        </div>
+        <div class="tarj">
+          <div class="cab"><b>Almuerzo · 1:30 pm</b><span class="tag">Tu hora</span></div>
+          <div class="sw"><span class="on">🏠 En casa</span><span>🛵 En la calle</span></div>
+          <div class="slot"><div class="t"><span>Tu proteína <small>· elige 1</small></span><span class="tag">Tú eliges</span></div>
+            <ul><li class="on"><span>Pollo a la plancha</span><b>120 g</b></li><li><span>Atún</span><b>1 lata</b></li><li><span>Huevos</span><b>2 und</b></li></ul></div>
+          <div class="slot"><div class="t"><span>Tu arroz o papa <small>· elige 1</small></span></div>
+            <ul><li class="on"><span>Arroz</span><b>1 taza (150 g)</b></li><li><span>Papa sancochada</span><b>1 mediana</b></li></ul></div>
+          <div class="slot"><div class="t"><span>Verduras</span><small>a tu gusto</small></div></div>
+          <div class="fila"><span>Otras formas de resolver esta comida ›</span><span class="tag">Si falta algo</span></div>
+          <div class="fila"><span><b>Si entrenas hoy,</b> añade 1 plátano</span><span class="tag">Día de entreno</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 · TU SEGUIMIENTO -->
+    <div class="blk p3" style="left:50.0%;top:79.5%">
+      <h3>Tu seguimiento</h3><span class="dur">todo el mes · por WhatsApp</span>
+      <div class="obj chat">
+        <div class="top"><i>AJL</i><div><b>Equipo de nutricionistas</b><span>lunes a sábado</span></div></div>
+        <div class="msgs">
+          <div class="m tu"><span class="foto">📷 mi almuerzo de hoy</span>¿Va bien así?</div>
+          <div class="m aj"><span class="tag">Fotos de tus comidas</span>Va bien. El arroz está en su porción. Súmale más ensalada y listo.</div>
+          <div class="m tu">Estoy en la pollería con mis amigos, ¿qué pido?</div>
+          <div class="m aj"><span class="tag">Tus dudas del día</span>¼ de pollo, ensalada grande y media porción de papas. Disfruta.</div>
+        </div>
+        <div class="pie3">Todo esto se revisa en tu siguiente sesión, y decide qué cambia del plan.</div>
+      </div>
+    </div>
+
+    <div class="bdg" style="left:92.1%;top:25.7%;border-color:#2F6E52;color:#2F6E52">02</div>
+    <div class="arranca" style="left:7.9%;top:17.2%">Empieza aquí</div>
+    <div class="bdg" style="left:50.0%;top:102.0%;border-color:#173C2C;color:#173C2C">03</div>
+    <div class="bdg" style="left:7.9%;top:25.7%;border-color:#BE6E42;color:#BE6E42">01</div>
+
+    <div class="nucleo"><b>Y vuelve<br>a empezar</b><span>Cada mes tu plan sabe un poco más de ti</span></div>
+  </div>
+</div>
+
+<div class="pie-strip"><b>Y además, todo el mes</b>
+  <span>2 clases en vivo por semana, grabadas si no puedes entrar</span><span class="sep">·</span>
+  <span>Grupo privado con otros pacientes</span><span class="sep">·</span>
+  <span>Nunca estás solo con el plan</span></div>
+
+<div class="pie"><span class="marca">AJL Nutrición</span>
+<span>El plan Básico es una sola sesión con su plan: el seguimiento empieza desde Acompañamiento.</span>
+<span>Escríbenos y te contamos <b>ajlnutricion.com</b></span></div>
+</div></body></html>

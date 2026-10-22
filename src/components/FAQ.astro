@@ -1,0 +1,121 @@
+---
+const faqs = [
+  {
+    q: '¿La consulta es presencial o virtual?',
+    a: 'Ofrecemos ambas modalidades. La evaluación inicial puede hacerse de forma virtual por videollamada o presencial en Lima. Los paquetes incluyen sesiones según la modalidad que prefieras.',
+  },
+  {
+    q: '¿Qué pasa exactamente después de la Evaluación de S/80?',
+    a: 'Recibes un diagnóstico completo de tu situación actual y una dirección clara de acción. Desde ahí, decides junto con Alejandro si contratas algún paquete y cuál se ajusta mejor a tu caso.',
+  },
+  {
+    q: '¿Hay permanencia o puedo cancelar cuando quiera?',
+    a: 'No hay contratos de permanencia: los planes son mensuales y puedes parar cuando quieras. La sesión única es una compra única. El paquete de 3 meses es opcional, solo si quieres comprometerte a cambio de un mejor precio por mes.',
+  },
+  {
+    q: '¿En qué se diferencia cada plan?',
+    a: 'En cada cuánto nos vemos: 1, 2 o 4 sesiones al mes. En los de 2 y 4, la mitad son controles virtuales de 30 minutos para revisar tu avance, y el primer mes suman una evaluación sin costo adicional. Siempre con el equipo respondiéndote por WhatsApp y las clases en vivo. Si prefieres una sola sesión sin acompañamiento continuo, también existe esa opción.',
+  },
+  {
+    q: '¿Cuánto tiempo lleva ver resultados reales?',
+    a: 'Depende de cada persona, su punto de partida y constancia. La mayoría nota cambios concretos en el primer mes. Los cambios sostenibles, los que no rebotan, generalmente se consolidan entre los 3 y 6 meses.',
+  },
+  {
+    q: '¿Puedo seguir comiendo en restaurantes y pidiendo delivery?',
+    a: 'Sí, ese es exactamente el punto del método. El plan se construye para tu vida real, incluyendo restaurantes, delivery, cenas sociales y viajes. Si no funciona en tu contexto, no funciona.',
+  },
+];
+
+// Schema FAQPage (rich results) — generado desde el mismo array
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(f => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+<section id="section-faq" class="section bg-gray">
+  <div class="container">
+    <p class="label">Preguntas frecuentes</p>
+    <h2 class="title" style="margin-bottom: 3rem;">
+      Resuelve tus dudas antes<br />de escribir a Alejandro.
+    </h2>
+
+    <div class="faq-list" role="list">
+      {faqs.map((faq, i) => (
+        <details class="faq-item" role="listitem">
+          <summary class="faq-question">
+            <span>{faq.q}</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </summary>
+          <div class="faq-answer">
+            <p>{faq.a}</p>
+          </div>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-gray { background: var(--white); }
+
+.faq-list {
+  max-width: 800px;
+  margin-inline: auto;
+  border-top: 1px solid #e0e0e0;
+}
+
+.faq-item {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.4rem 0;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: var(--black);
+  list-style: none;
+  user-select: none;
+  transition: color var(--transition);
+}
+
+.faq-question::-webkit-details-marker { display: none; }
+.faq-question::marker              { display: none; }
+
+.faq-item[open] .faq-question { color: var(--gold); }
+
+.faq-icon {
+  font-size: 1.5rem;
+  font-weight: 300;
+  color: var(--gold);
+  flex-shrink: 0;
+  transition: transform 220ms ease;
+  line-height: 1;
+}
+
+.faq-item[open] .faq-icon { transform: rotate(45deg); }
+
+.faq-answer {
+  padding-bottom: 1.4rem;
+  padding-right: 2.5rem;
+}
+
+.faq-answer p {
+  font-size: 0.92rem;
+  color: var(--gray-dark);
+  line-height: 1.75;
+}
+</style>

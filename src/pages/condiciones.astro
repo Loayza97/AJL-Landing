@@ -1,0 +1,53 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { contacto } from '../data/contacto.js';
+import { CONDICIONES_VERSION } from '../data/condiciones.js';
+---
+<Layout title="Condiciones del servicio · AJL Nutrición" description="Condiciones para contratar y reservar sesiones de AJL Nutrición en la web.">
+  <main class="cond">
+    <div class="container">
+      <h1>Condiciones del servicio</h1>
+      <p class="cond-meta">Versión {CONDICIONES_VERSION}. Aplican a las compras y reservas hechas en ajlnutricion.com.</p>
+
+      <h2>1. Quién te atiende</h2>
+      <p>AJL Nutrición es una marca de FJ INVESTMENTS S.A.C., RUC 20609894963, con consultorio en {contacto.direccion}. Puedes escribirnos por WhatsApp al +51 919 151 237.</p>
+
+      <h2>2. Qué contratas</h2>
+      <p>Cada acompañamiento incluye las sesiones al mes que elegiste con una nutricionista del equipo, tu plan en la app, el equipo respondiéndote por WhatsApp y 2 clases grupales en vivo por semana. La sesión única es una sola sesión, sin acompañamiento continuo. La evaluación es una consulta de 30 minutos; si contratas un plan el mismo día, sus S/80 se descuentan del plan.</p>
+
+      <h2>3. Precio y pago</h2>
+      <p>Los precios están en soles e incluyen todo: no cobramos recargo por pagar con tarjeta. El pago se hace en Mercado Pago, con tarjeta, Yape o dinero en tu cuenta. Con tarjeta de crédito puedes pagar en cuotas; si hay intereses, los cobra tu banco, no AJL. Te enviamos tu comprobante al correo que nos diste.</p>
+
+      <h2>4. Tu primera sesión y las siguientes</h2>
+      <p>Al comprar eliges tu primera sesión. Las siguientes las coordinas con tu nutricionista cuando quieras, dentro del plazo de tu plan. Buscamos que la misma nutricionista te acompañe todo el plan; si prefieres cambiar, nos lo pides.</p>
+
+      <h2>5. Plazo de tu plan</h2>
+      <p>En los paquetes de 3 y 6 meses, el plazo empieza cuando recibes tu plan: el de 3 meses lo usas en 3 meses y puedes congelarlo 1 semana; el de 6 meses lo usas en 6 meses y puedes congelarlo 2 semanas, por ejemplo si viajas. Las sesiones que no agendes dentro del plazo no se acumulan.</p>
+
+      <h2>6. Mover o cancelar una cita</h2>
+      <p>Mover una cita es gratis si nos avisas hasta 48 horas antes, según la disponibilidad del equipo. Moverla con menos de 48 horas cuesta S/80. Si no vienes a tu cita, esa sesión se pierde, salvo que el equipo decida exonerarte; si hubo una razón de fuerza mayor, cuéntanos.</p>
+
+      <h2>7. Si no podemos atenderte</h2>
+      <p>Si AJL no puede prestarte el servicio, te devolvemos lo que no usaste. Si pagaste y la hora que elegiste se ocupó mientras pagabas, eliges otra hora sin volver a pagar; si ninguna te acomoda, te devolvemos el pago completo.</p>
+
+      <h2>8. Lo que sí prometemos</h2>
+      <p>Un plan hecho para tu vida real y un equipo que te acompaña. No prometemos una cantidad de kilos: los resultados dependen de cada persona.</p>
+
+      <h2>9. Tus datos</h2>
+      <p>Usamos tus datos solo para atenderte, según nuestra <a href="/privacidad/">política de privacidad</a>.</p>
+
+      <h2>10. Reclamos</h2>
+      <p>Si algo no salió bien, escríbenos por WhatsApp. También puedes usar nuestro <a href="/reclamaciones/">Libro de Reclamaciones</a>. Estas condiciones no limitan los derechos que te reconoce el Código de Protección y Defensa del Consumidor.</p>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .cond { padding-block: clamp(2rem, 6vw, 4rem); }
+  .cond .container { max-width: 720px; }
+  .cond h1 { font-family: var(--font-head); color: var(--verde-osc); margin-bottom: .5rem; }
+  .cond h2 { font-size: 1.1rem; color: var(--verde-osc); margin: 1.6rem 0 .4rem; }
+  .cond p { line-height: 1.65; color: var(--ink); }
+  .cond-meta { color: var(--gris); font-size: .9rem; }
+  .cond a { color: var(--dorado-osc); text-decoration: underline; }
+</style>

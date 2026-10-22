@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJL Nutrición — Mockup v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & Tokens ─────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:   #000000;
+    --white:   #FFFFFF;
+    --gray:    #F5F5F5;
+    --gold:    #D4A843;
+    --gold-glow: rgba(212,168,67,.18);
+    --muted:   #6B6B6B;
+    --border:  #E5E5E5;
+    --dark-border: rgba(255,255,255,.12);
+
+    --f: 'Montserrat', sans-serif;
+    --giant: clamp(2.8rem, 9vw, 7.5rem);
+    --h2:    clamp(1.8rem, 4vw, 3.2rem);
+    --h3:    clamp(1.2rem, 2.5vw, 1.75rem);
+    --body:  1rem;
+    --small: .875rem;
+
+    --r: 0px;          /* border-radius cero — estética premium */
+    --gap: clamp(4rem, 8vw, 7rem);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--f);
+    background: var(--white);
+    color: var(--black);
+    font-size: var(--body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Utilidades ─────────────────────────────── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+  .section    { padding: var(--gap) 0; }
+  .section--dark  { background: var(--black); color: var(--white); }
+  .section--gray  { background: var(--gray); }
+
+  .label {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--gold);
+    color: var(--black);
+    font-family: var(--f);
+    font-weight: 800;
+    font-size: var(--small);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .9rem 2rem;
+    border: none;
+    border-radius: var(--r);
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .2s;
+    white-space: nowrap;
+  }
+  .btn:hover { opacity: .88; }
+
+  .btn--outline {
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+  }
+  .btn--outline:hover { background: var(--gold); color: var(--black); }
+
+  .divider {
+    width: 3rem;
+    height: 2px;
+    background: var(--gold);
+    margin: 1.5rem 0;
+  }
+
+  /* ── Nav ────────────────────────────────────── */
+  .nav {
+    position: fixed;
+    top: 1.25rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 3rem);
+    max-width: 1100px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .9rem 1.75rem;
+    background: rgba(0,0,0,.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--dark-border);
+  }
+
+  .nav__logo {
+    font-weight: 900;
+    font-size: 1.05rem;
+    letter-spacing: -.01em;
+    color: var(--white);
+    text-decoration: none;
+  }
+  .nav__logo span { color: var(--gold); }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav__links a {
+    font-size: var(--small);
+    font-weight: 600;
+    color: rgba(255,255,255,.7);
+    text-decoration: none;
+    letter-spacing: .03em;
+    transition: color .2s;
+  }
+  .nav__links a:hover { color: var(--white); }
+
+  /* ── Hero ───────────────────────────────────── */
+  .hero {
+    background: var(--black);
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2rem 0 var(--gap);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero__bg-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: clamp(8rem, 25vw, 22rem);
+    font-weight: 900;
+    letter-spacing: -.06em;
+    color: rgba(255,255,255,.03);
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    line-height: 1;
+  }
+
+  .hero__content { position: relative; z-index: 1; }
+
+  .hero__eyebrow {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 1.5rem;
+  }
+
+  .hero__title {
+    font-size: var(--giant);
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: .95;
+    color: var(--white);
+    margin-bottom: 2rem;
+    max-width: 14ch;
+  }
+
+  .hero__title em {
+    font-style: normal;
+    color: var(--gold);
+  }
+
+  .hero__sub {
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: rgba(255,255,255,.6);
+    max-width: 44ch;
+    line-height: 1.65;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero__actions { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+
+  .hero__scroll {
+    font-size: var(--small);
+    font-weight: 600;
+    color: rgba(255,255,255,.4);
+    letter-spacing: .05em;
+  }
+
+  .hero__stats {
+    display: flex;
+    gap: 3rem;
+    margin-top: 4rem;
+    padding-top: 2.5rem;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+
+  .hero__stat-num {
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    color: var(--white);
+    display: block;
+    line-height: 1;
+  }
+  .hero__stat-num span { color: var(--gold); }
+  .hero__stat-label {
+    font-size: .75rem;
+    color: rgba(255,255,255,.45);
+    font-weight: 500;
+    letter-spacing: .03em;
+    margin-top: .35rem;
+  }
+
+  /* ── Por qué fallaste ───────────────────────── */
+  .frustration__header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: end;
+    margin-bottom: 4rem;
+  }
+
+  .frustration__title {
+    font-size: var(--h2);
+    font-weight: 900;
+    letter-spacing: -.03em;
+    line-height: 1.05;
+  }
+
+  .frustration__intro {
+    color: var(--muted);
+    line-height: 1.7;
+    font-size: .95rem;
+  }
+
+  .table-compare {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .table-compare thead tr th {
+    text-align: left;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-compare tbody tr {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-compare tbody td {
+    padding: 1.25rem 0;
+    font-size: .95rem;
+    vertical-align: top;
+  }
+
+  .table-compare tbody td:first-child {
+    color: var(--muted);
+    padding-right: 2rem;
+  }
+
+  .table-compare tbody td:last-child {
+    font-weight: 600;
+    color: var(--black);
+  }
+
+  .table-compare tbody td:last-child::before {
+    content: '';
+    display: inline-block;
+    width: .5rem;
+    height: .5rem;
+    background: var(--gold);
+    border-radius: 50%;
+    margin-right: .6rem;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+
+  /* ── Método ─────────────────────────────────── */
+  .method__header {
+    max-width: 36ch;
+    margin-bottom: 4rem;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .step {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: background .25s;
+  }
+  .step:hover { background: var(--gray); }
+  .step:nth-child(3n) { border-right: none; }
+  .step:nth-child(4), .step:nth-child(5), .step:nth-child(6) { border-bottom: none; }
+
+  .step__num {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    color: var(--gold);
+    margin-bottom: 1rem;
+  }
+
+  .step__title {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    margin-bottom: .75rem;
+    line-height: 1.2;
+  }
+
+  .step__diff {
+    font-size: .8rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .method__commitment {
+    margin-top: 3rem;
+    padding: 2.5rem;
+    background: var(--black);
+    color: var(--white);
+  }
+
+  .method__commitment-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    margin-bottom: 1.25rem;
+    color: var(--gold);
+  }
+
+  .commitment-list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem 3rem;
+  }
+
+  .commitment-list li {
+    font-size: .9rem;
+    color: rgba(255,255,255,.75);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+  .commitment-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* ── Planes ─────────────────────────────────── */
+  .plans__header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 3rem;
+    gap: 2rem;
+  }
+
+  .plans__grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .plan-card {
+    padding: 2rem 1.75rem;
+    border-right: 1px solid var(--border);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .plan-card:last-child { border-right: none; }
+
+  .plan-card--featured {
+    border: 1.5px solid var(--gold);
+    box-shadow: 0 0 32px var(--gold-glow);
+    margin: -1px;
+    z-index: 1;
+  }
+
+  .plan-card--featured::before {
+    content: 'MÁS POPULAR';
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: var(--black);
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    padding: .35rem .85rem;
+  }
+
+  .plan__name {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: .5rem;
+  }
+
+  .plan__tagline {
+    font-size: .9rem;
+    font-weight: 600;
+    line-height: 1.3;
+    margin-bottom: 1.5rem;
+    color: var(--black);
+  }
+
+  .plan__price {
+    margin-bottom: 1.5rem;
+  }
+
+  .plan__price-amount {
+    font-size: 2.25rem;
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: 1;
+    color: var(--black);
+  }
+
+  .plan__price-period {
+    font-size: .8rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: .25rem;
+  }
+
+  .plan__features {
+    list-style: none;
+    margin-bottom: 2rem;
+    flex: 1;
+  }
+
+  .plan__features li {
+    font-size: .825rem;
+    padding: .5rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--black);
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    line-height: 1.4;
+  }
+
+  .plan__features li::before {
+    content: '✓';
+    color: var(--gold);
+    font-weight: 800;
+    font-size: .75rem;
+    margin-top: .05rem;
+    flex-shrink: 0;
+  }
+
+  .plan__features li.no::before {
+    content: '×';
+    color: var(--border);
+  }
+  .plan__features li.no { color: var(--muted); }
+
+  .plan__cta { margin-top: auto; }
+
+  .plan-card--featured .plan__price-amount { color: var(--gold); }
+
+  .plan__3months {
+    font-size: .75rem;
+    color: var(--muted);
+    margin-top: .5rem;
+  }
+
+  .plans__note {
+    margin-top: 2rem;
+    padding: 1.5rem 2rem;
+    background: var(--gray);
+    border-left: 3px solid var(--gold);
+    font-size: .9rem;
+    color: var(--muted);
+  }
+
+  .plans__note strong { color: var(--black); }
+
+  /* ── Qué incluye ────────────────────────────── */
+  .includes__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+    margin-bottom: 3rem;
+  }
+
+  .include-card {
+    padding: 2rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .include-card:nth-child(3n) { border-right: none; }
+
+  .include-card__icon {
+    width: 2rem;
+    height: 2rem;
+    border: 1.5px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .include-card__icon svg {
+    width: 1rem;
+    height: 1rem;
+    stroke: var(--gold);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .include-card__title {
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    margin-bottom: .5rem;
+  }
+
+  .include-card__desc {
+    font-size: .825rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .include-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+  }
+
+  .tag {
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    padding: .25rem .6rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .tag--gold {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* ── Testimonios ────────────────────────────── */
+  .testimonials__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--border);
+  }
+
+  .testimonial {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .testimonial:last-child { border-right: none; }
+
+  .testimonial__quote {
+    font-size: .95rem;
+    line-height: 1.7;
+    color: var(--black);
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .testimonial__quote::before {
+    content: '"';
+    font-size: 3rem;
+    line-height: .5;
+    color: var(--gold);
+    font-weight: 900;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .testimonial__author {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .testimonial__avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: var(--gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: .8rem;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .testimonial__name {
+    font-size: .85rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+  }
+
+  .testimonial__context {
+    font-size: .75rem;
+    color: var(--muted);
+  }
+
+  /* ── Para quién ─────────────────────────────── */
+  .forwhom {
+    background: var(--black);
+    color: var(--white);
+  }
+
+  .forwhom__header { margin-bottom: 3.5rem; }
+
+  .forwhom__title {
+    font-size: var(--h2);
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: 1;
+    color: var(--white);
+  }
+
+  .forwhom__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .forwhom__col {
+    padding: 3rem;
+  }
+
+  .forwhom__col--yes {
+    border: 1px solid rgba(255,255,255,.08);
+    border-right: none;
+  }
+
+  .forwhom__col--no {
+    border: 1px solid rgba(255,255,255,.08);
+  }
+
+  .forwhom__col-title {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+
+  .forwhom__col-title span {
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 900;
+  }
+
+  .forwhom__col--yes .forwhom__col-title span {
+    background: var(--gold);
+    color: var(--black);
+  }
+
+  .forwhom__col--no .forwhom__col-title span {
+    background: rgba(255,255,255,.1);
+    color: rgba(255,255,255,.5);
+  }
+
+  .forwhom__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .forwhom__list li {
+    font-size: .9rem;
+    color: rgba(255,255,255,.75);
+    padding-left: 1.25rem;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .forwhom__col--yes .forwhom__list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .forwhom__col--no .forwhom__list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: rgba(255,255,255,.2);
+  }
+
+  .forwhom__col--no .forwhom__list li { color: rgba(255,255,255,.35); }
+
+  .forwhom__note {
+    margin-top: 3rem;
+    padding: 2rem 3rem;
+    border: 1px solid rgba(255,255,255,.08);
+    border-top: none;
+  }
+
+  .forwhom__note p {
+    font-size: .9rem;
+    color: rgba(255,255,255,.5);
+    max-width: 60ch;
+  }
+
+  .forwhom__note strong { color: rgba(255,255,255,.75); }
+
+  /* ── Evaluación S/80 ────────────────────────── */
+  .eval {
+    background: var(--gray);
+  }
+
+  .eval__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    align-items: center;
+  }
+
+  .eval__tag {
+    display: inline-block;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    padding: .35rem .85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .eval__title {
+    font-size: var(--h2);
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: 1.05;
+    margin-bottom: 1.25rem;
+  }
+
+  .eval__desc {
+    font-size: .95rem;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+  }
+
+  .eval__details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .eval__detail {
+    padding: 1.25rem;
+    background: var(--white);
+    border: 1px solid var(--border);
+  }
+
+  .eval__detail-val {
+    font-size: 1.4rem;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    color: var(--black);
+    display: block;
+  }
+
+  .eval__detail-label {
+    font-size: .75rem;
+    color: var(--muted);
+    font-weight: 500;
+    margin-top: .25rem;
+  }
+
+  .eval__visual {
+    background: var(--black);
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .eval__visual::before {
+    content: 'S/80';
+    position: absolute;
+    bottom: -1rem;
+    right: -1rem;
+    font-size: 10rem;
+    font-weight: 900;
+    letter-spacing: -.05em;
+    color: rgba(212,168,67,.07);
+    line-height: 1;
+  }
+
+  .eval__visual-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -.03em;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  .eval__includes {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  .eval__includes li {
+    font-size: .875rem;
+    color: rgba(255,255,255,.7);
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .eval__includes li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--gold);
+    font-weight: 800;
+  }
+
+  .eval__discount {
+    font-size: .8rem;
+    color: var(--gold);
+    font-weight: 600;
+    padding: .75rem 1rem;
+    border: 1px solid rgba(212,168,67,.3);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── FAQ ────────────────────────────────────── */
+  .faq__list {
+    border: 1px solid var(--border);
+  }
+
+  .faq__item {
+    border-bottom: 1px solid var(--border);
+  }
+  .faq__item:last-child { border-bottom: none; }
+
+  .faq__question {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 2rem;
+    background: none;
+    border: none;
+    font-family: var(--f);
+    font-size: .95rem;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    text-align: left;
+    cursor: pointer;
+    color: var(--black);
+    gap: 2rem;
+  }
+
+  .faq__question:hover { background: var(--gray); }
+
+  .faq__icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 1.5px solid var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--gold);
+    font-weight: 900;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .faq__answer {
+    padding: 0 2rem 1.5rem;
+    font-size: .9rem;
+    color: var(--muted);
+    line-height: 1.7;
+    display: none;
+    max-width: 70ch;
+  }
+
+  .faq__item.open .faq__answer { display: block; }
+  .faq__item.open .faq__icon::after { content: '−'; }
+  .faq__item:not(.open) .faq__icon::after { content: '+'; }
+
+  /* ── Footer ─────────────────────────────────── */
+  .footer {
+    background: var(--black);
+    color: var(--white);
+    padding: 4rem 0 2rem;
+  }
+
+  .footer__top {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 4rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    margin-bottom: 2rem;
+  }
+
+  .footer__brand {
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: -.02em;
+    margin-bottom: .75rem;
+    color: var(--white);
+  }
+
+  .footer__brand span { color: var(--gold); }
+
+  .footer__desc {
+    font-size: .85rem;
+    color: rgba(255,255,255,.4);
+    line-height: 1.7;
+    max-width: 28ch;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer__col-title {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.35);
+    margin-bottom: 1.25rem;
+  }
+
+  .footer__links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+  }
+
+  .footer__links a {
+    font-size: .875rem;
+    color: rgba(255,255,255,.6);
+    text-decoration: none;
+    transition: color .2s;
+  }
+
+  .footer__links a:hover { color: var(--white); }
+
+  .footer__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .75rem;
+    color: rgba(255,255,255,.25);
+  }
+
+  /* ── WhatsApp flotante ──────────────────────── */
+  .fab {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 200;
+    background: #25D366;
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .85rem 1.25rem;
+    font-family: var(--f);
+    font-size: .8rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 8px 24px rgba(37,211,102,.35);
+    transition: transform .2s, box-shadow .2s;
+  }
+
+  .fab:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,211,102,.45); }
+
+  .fab svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: var(--white);
+  }
+
+  /* ── Responsive ─────────────────────────────── */
+  @media (max-width: 900px) {
+    .plans__grid { grid-template-columns: 1fr 1fr; }
+    .plan-card { border-bottom: 1px solid var(--border); }
+    .plan-card:nth-child(odd) { border-right: 1px solid var(--border); }
+    .plan-card:nth-child(even) { border-right: none; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .includes__grid { grid-template-columns: 1fr 1fr; }
+    .testimonials__grid { grid-template-columns: 1fr; }
+    .testimonial { border-right: none; border-bottom: 1px solid var(--border); }
+    .forwhom__grid { grid-template-columns: 1fr; }
+    .forwhom__col--yes { border-right: 1px solid rgba(255,255,255,.08); border-bottom: none; }
+    .eval__inner { grid-template-columns: 1fr; }
+    .footer__top { grid-template-columns: 1fr; gap: 2.5rem; }
+    .frustration__header { grid-template-columns: 1fr; gap: 1.5rem; }
+    .commitment-list { grid-template-columns: 1fr; }
+    .nav__links { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .plans__grid { grid-template-columns: 1fr; }
+    .plan-card { border-right: none; }
+    .steps { grid-template-columns: 1fr; }
+    .includes__grid { grid-template-columns: 1fr; }
+    .hero__stats { flex-wrap: wrap; gap: 1.5rem; }
+  }
+
+  /* ── Section headers reutilizables ─────────── */
+  .section-header { margin-bottom: 3.5rem; }
+  .section-header__title {
+    font-size: var(--h2);
+    font-weight: 900;
+    letter-spacing: -.04em;
+    line-height: 1.05;
+  }
+  .section-header__sub {
+    color: var(--muted);
+    font-size: .95rem;
+    line-height: 1.7;
+    max-width: 50ch;
+    margin-top: 1rem;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ── NAV ────────────────────────────────────── -->
+<nav class="nav">
+  <a href="#" class="nav__logo">AJL <span>Nutrición</span></a>
+  <ul class="nav__links">
+    <li><a href="#metodo">El método</a></li>
+    <li><a href="#planes">Planes</a></li>
+    <li><a href="#para-quien">¿Para quién?</a></li>
+    <li><a href="#evaluacion" class="btn" style="padding:.6rem 1.25rem;font-size:.7rem;">Evaluación S/80</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ───────────────────────────────────── -->
+<section class="hero">
+  <div class="hero__bg-text">AJL</div>
+  <div class="container">
+    <div class="hero__content">
+      <p class="hero__eyebrow">Lima, Perú — Nutrición clínica premium</p>
+      <h1 class="hero__title">
+        Ya intentaste<br>todo. Ahora<br>intenta <em>estructura.</em>
+      </h1>
+      <p class="hero__sub">
+        No te fallaron la voluntad ni la disciplina. Te fallaron los planes que ignoraban tu vida real.
+        Aquí construimos un sistema que funciona con tu rutina, no contra ella.
+      </p>
+      <div class="hero__actions">
+        <a href="#planes" class="btn">Ver planes →</a>
+        <span class="hero__scroll">Sin formularios · Todo por WhatsApp</span>
+      </div>
+      <div class="hero__stats">
+        <div>
+          <span class="hero__stat-num">+<span>200</span></span>
+          <p class="hero__stat-label">Pacientes activos</p>
+        </div>
+        <div>
+          <span class="hero__stat-num"><span>6</span></span>
+          <p class="hero__stat-label">Nutricionistas</p>
+        </div>
+        <div>
+          <span class="hero__stat-num"><span>0</span></span>
+          <p class="hero__stat-label">Alimentos prohibidos</p>
+        </div>
+        <div>
+          <span class="hero__stat-num"><span>100</span><span>%</span></span>
+          <p class="hero__stat-label">Vida real, sin dietas ideales</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── POR QUÉ FALLASTE ───────────────────────── -->
+<section class="section" id="frustracion">
+  <div class="container">
+    <div class="frustration__header">
+      <div>
+        <span class="label">El diagnóstico real</span>
+        <h2 class="frustration__title">
+          ¿Por qué tú sí,<br>si ya muchos<br>fallaron conmigo?
+        </h2>
+      </div>
+      <div>
+        <div class="divider"></div>
+        <p class="frustration__intro">
+          No fallaste por falta de disciplina. Fallaste porque cada plan que probaste ignoraba tu vida.
+          Esto no es un discurso motivacional — es un diagnóstico.
+        </p>
+      </div>
+    </div>
+
+    <table class="table-compare">
+      <thead>
+        <tr>
+          <th style="width:50%">Lo que te dices a ti mismo</th>
+          <th>El problema real</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>"No tengo disciplina"</td>
+          <td>Te dieron un plan ideal que no calza con tu rutina</td>
+        </tr>
+        <tr>
+          <td>"No puedo seguir dietas"</td>
+          <td>Internalizaste un modelo restrictivo: nutrición = sufrimiento</td>
+        </tr>
+        <tr>
+          <td>"Siempre abandono"</td>
+          <td>Nunca tuviste estructura aplicable, solo reglas perfectas</td>
+        </tr>
+        <tr>
+          <td>"No tengo fuerza de voluntad"</td>
+          <td>Nadie te enseñó a estructurar tu alimentación en la vida real</td>
+        </tr>
+        <tr>
+          <td>"Esta vez va a ser diferente"</td>
+          <td>Los ciclos de culpa → abandono → recaída son predecibles si no cambia el sistema</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── MÉTODO ─────────────────────────────────── -->
+<section class="section section--gray" id="metodo">
+  <div class="container">
+    <div class="method__header">
+      <span class="label">El mecanismo</span>
+      <h2 class="section-header__title">Cómo funciona<br>el método</h2>
+      <div class="divider"></div>
+      <p class="frustration__intro">
+        Seis pasos que estructuran tu alimentación real — no una versión ideal de ella.
+      </p>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <p class="step__num">01</p>
+        <h3 class="step__title">Estructura en tu vida real</h3>
+        <p class="step__diff">Tu rutina permite 3 comidas + 1 snack. Estructuramos eso — no te pedimos que comas 5 veces.</p>
+      </div>
+      <div class="step">
+        <p class="step__num">02</p>
+        <h3 class="step__title">Planificación semanal</h3>
+        <p class="step__diff">Anticipamos las comidas cada semana. No improvisas — tampoco memorizas un plan mensual.</p>
+      </div>
+      <div class="step">
+        <p class="step__num">03</p>
+        <h3 class="step__title">Gestión de porciones visible</h3>
+        <p class="step__diff">Mides con las manos y los platos. Sin pesar gramos, sin apps de conteo calórico.</p>
+      </div>
+      <div class="step">
+        <p class="step__num">04</p>
+        <h3 class="step__title">Backend calórico oculto</h3>
+        <p class="step__diff">Nosotros calculamos calorías y macros. Tú comes las porciones indicadas y ya.</p>
+      </div>
+      <div class="step">
+        <p class="step__num">05</p>
+        <h3 class="step__title">Acompañamiento cercano</h3>
+        <p class="step__diff">Seguimiento frecuente — no "nos vemos en un mes, suerte". Estamos disponibles esta semana.</p>
+      </div>
+      <div class="step">
+        <p class="step__num">06</p>
+        <h3 class="step__title">Ajuste según adherencia real</h3>
+        <p class="step__diff">Si el plan no funcionó 100%, ajustamos. No te exigimos perfección desde el primer día.</p>
+      </div>
+    </div>
+
+    <div class="method__commitment">
+      <p class="method__commitment-title">Tu parte en el proceso</p>
+      <ul class="commitment-list">
+        <li>Interactuar con el nutricionista mínimo 2 veces por semana</li>
+        <li>Registrar comidas las primeras semanas (sin pesar, con fotos)</li>
+        <li>Asistir a las revisiones en la frecuencia de tu plan</li>
+        <li>Cuestionar creencias previas sobre alimentos "prohibidos"</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ── PLANES ─────────────────────────────────── -->
+<section class="section" id="planes">
+  <div class="container">
+    <div class="plans__header">
+      <div>
+        <span class="label">Planes mensuales</span>
+        <h2 class="section-header__title">Elige tu nivel<br>de acompañamiento</h2>
+      </div>
+      <p style="max-width:28ch;font-size:.9rem;color:var(--muted);text-align:right;">
+        Todos incluyen plan personalizado y seguimiento WhatsApp. La diferencia es la intensidad.
+      </p>
+    </div>
+
+    <div class="plans__grid">
+
+      <!-- Básico -->
+      <div class="plan-card">
+        <p class="plan__name">Básico</p>
+        <p class="plan__tagline">Estructura inicial con acceso grupal</p>
+        <div class="plan__price">
+          <span class="plan__price-amount">S/250</span>
+          <p class="plan__price-period">al mes</p>
+          <p class="plan__3months">3 meses: S/690 · 6 meses: S/1,350</p>
+        </div>
+        <ul class="plan__features">
+          <li>1 sesión individual / mes</li>
+          <li>Plan alimenticio personalizado</li>
+          <li>Clases grupales de nutrición</li>
+          <li class="no">Seguimiento WhatsApp (<24h)</li>
+          <li class="no">Revisiones quincenales</li>
+        </ul>
+        <div class="plan__cta">
+          <a href="#" class="btn btn--outline" style="width:100%;justify-content:center;">Quiero este plan →</a>
+        </div>
+      </div>
+
+      <!-- Acompañamiento -->
+      <div class="plan-card">
+        <p class="plan__name">Acompañamiento</p>
+        <p class="plan__tagline">Para quienes necesitan seguimiento activo</p>
+        <div class="plan__price">
+          <span class="plan__price-amount">S/320</span>
+          <p class="plan__price-period">al mes</p>
+          <p class="plan__3months">3 meses: S/890 · 6 meses: S/1,740</p>
+        </div>
+        <ul class="plan__features">
+          <li>1 sesión individual / mes</li>
+          <li>Plan alimenticio personalizado</li>
+          <li>Seguimiento WhatsApp (<24h)</li>
+          <li class="no">Revisiones quincenales</li>
+          <li class="no">Sesiones adicionales</li>
+        </ul>
+        <div class="plan__cta">
+          <a href="#" class="btn btn--outline" style="width:100%;justify-content:center;">Quiero este plan →</a>
+        </div>
+      </div>
+
+      <!-- Constancia — DESTACADO -->
+      <div class="plan-card plan-card--featured">
+        <p class="plan__name">Constancia</p>
+        <p class="plan__tagline">El más elegido: revisiones quincenales sin compromiso semanal</p>
+        <div class="plan__price">
+          <span class="plan__price-amount">S/440</span>
+          <p class="plan__price-period">al mes</p>
+          <p class="plan__3months">3 meses: S/1,230 · 6 meses: S/2,400</p>
+        </div>
+        <ul class="plan__features">
+          <li>2 sesiones individuales / mes</li>
+          <li>Plan alimenticio personalizado</li>
+          <li>Seguimiento WhatsApp (<24h)</li>
+          <li>Revisión quincenal de adherencia</li>
+          <li class="no">Sesiones adicionales ilimitadas</li>
+        </ul>
+        <div class="plan__cta">
+          <a href="#" class="btn" style="width:100%;justify-content:center;">Quiero este plan →</a>
+        </div>
+      </div>
+
+      <!-- Transformación -->
+      <div class="plan-card">
+        <p class="plan__name">Transformación</p>
+        <p class="plan__tagline">Máxima intensidad y seguimiento prioritario</p>
+        <div class="plan__price">
+          <span class="plan__price-amount">S/600</span>
+          <p class="plan__price-period">al mes</p>
+          <p class="plan__3months">3 meses: S/1,650 · 6 meses: S/3,240</p>
+        </div>
+        <ul class="plan__features">
+          <li>4 sesiones individuales / mes</li>
+          <li>Plan alimenticio personalizado</li>
+          <li>Seguimiento WhatsApp prioritario (<6h)</li>
+          <li>Revisión semanal de adherencia</li>
+          <li>Ajustes de plan ilimitados</li>
+        </ul>
+        <div class="plan__cta">
+          <a href="#" class="btn btn--outline" style="width:100%;justify-content:center;">Quiero este plan →</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="plans__note">
+      <strong>¿No sabes cuál elegir?</strong> La Evaluación Nutricional Personal (S/80) te da un diagnóstico claro y te orientamos hacia el plan correcto.
+      <a href="#evaluacion" style="color:var(--gold);font-weight:700;">Ver la evaluación →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── QUÉ INCLUYE ─────────────────────────────── -->
+<section class="section section--gray" id="incluye">
+  <div class="container">
+    <div class="section-header">
+      <span class="label">Detalle del servicio</span>
+      <h2 class="section-header__title">¿Qué incluye<br>cada plan?</h2>
+      <p class="section-header__sub">Dos grupos de componentes que se combinan con diferente intensidad según el plan.</p>
+    </div>
+
+    <p style="font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem;">Sesiones individuales</p>
+    <div class="includes__grid" style="margin-bottom:2.5rem;">
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        </div>
+        <h4 class="include-card__title">Sesión nutricional (60 min)</h4>
+        <p class="include-card__desc">Diagnóstico completo, definición del plan y educación en porciones. Presencial o virtual.</p>
+        <div class="include-card__tags">
+          <span class="tag">Básico</span>
+          <span class="tag">Acomp.</span>
+          <span class="tag tag--gold">Constancia</span>
+          <span class="tag tag--gold">Transform.</span>
+        </div>
+      </div>
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+        </div>
+        <h4 class="include-card__title">Plan alimenticio personalizado</h4>
+        <p class="include-card__desc">Estructura semanal con porciones adaptadas a tu rutina, preferencias y objetivo.</p>
+        <div class="include-card__tags">
+          <span class="tag">Básico</span>
+          <span class="tag">Acomp.</span>
+          <span class="tag tag--gold">Constancia</span>
+          <span class="tag tag--gold">Transform.</span>
+        </div>
+      </div>
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+        </div>
+        <h4 class="include-card__title">Clases grupales de nutrición</h4>
+        <p class="include-card__desc">Sesiones grupales sobre educación alimentaria: mitos, porciones, supermercado.</p>
+        <div class="include-card__tags">
+          <span class="tag">Básico</span>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:1.5rem;">Acompañamiento continuo</p>
+    <div class="includes__grid">
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        </div>
+        <h4 class="include-card__title">Seguimiento WhatsApp</h4>
+        <p class="include-card__desc">Respuesta en &lt;24h para dudas, ajustes y reporte de comidas. &lt;6h en plan Transformación.</p>
+        <div class="include-card__tags">
+          <span class="tag">Acomp.</span>
+          <span class="tag tag--gold">Constancia</span>
+          <span class="tag tag--gold">Transform.</span>
+        </div>
+      </div>
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        </div>
+        <h4 class="include-card__title">Revisión de adherencia</h4>
+        <p class="include-card__desc">Quincenal en Constancia, semanal en Transformación. Ajustes según tu realidad, no tu perfección.</p>
+        <div class="include-card__tags">
+          <span class="tag tag--gold">Constancia</span>
+          <span class="tag tag--gold">Transform.</span>
+        </div>
+      </div>
+      <div class="include-card">
+        <div class="include-card__icon">
+          <svg viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </div>
+        <h4 class="include-card__title">Ajustes de plan ilimitados</h4>
+        <p class="include-card__desc">Si algo no funciona, ajustamos sin esperar la próxima sesión programada.</p>
+        <div class="include-card__tags">
+          <span class="tag tag--gold">Transform.</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:2.5rem;text-align:center;">
+      <a href="#" class="btn btn--outline">¿Tienes dudas sobre qué plan elegir? Escríbenos →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ── TESTIMONIOS ─────────────────────────────── -->
+<section class="section" id="testimonios">
+  <div class="container">
+    <div class="section-header">
+      <span class="label">Pacientes reales</span>
+      <h2 class="section-header__title">No prometemos<br>magia. Esto sí.</h2>
+    </div>
+
+    <div class="testimonials__grid">
+      <div class="testimonial">
+        <p class="testimonial__quote">Había ido a dos nutricionistas antes. Siempre me daban una dieta que duraba tres semanas. Acá fue distinto — el plan calzaba con que almuerzo afuera cuatro veces por semana.</p>
+        <div class="testimonial__author">
+          <div class="testimonial__avatar">CG</div>
+          <div>
+            <p class="testimonial__name">Carla G.</p>
+            <p class="testimonial__context">Gerente de marketing · 34 años · Plan Constancia</p>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial__quote">Lo que más me cambió fue entender que no tenía que comer "limpio" para bajar grasa. Pido por Rappi, salgo a comer los fines de semana, y el plan funciona igual.</p>
+        <div class="testimonial__author">
+          <div class="testimonial__avatar">DM</div>
+          <div>
+            <p class="testimonial__name">Diego M.</p>
+            <p class="testimonial__context">Ingeniero · 38 años · Plan Acompañamiento</p>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial__quote">Había desarrollado una relación horrible con la comida. Culpa constante. Acá aprendí que el problema no eran los alimentos sino que nadie me había enseñado estructura real.</p>
+        <div class="testimonial__author">
+          <div class="testimonial__avatar">VS</div>
+          <div>
+            <p class="testimonial__name">Valeria S.</p>
+            <p class="testimonial__context">Abogada · 41 años · Plan Transformación</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PARA QUIÉN ──────────────────────────────── -->
+<section class="section forwhom" id="para-quien">
+  <div class="container">
+    <div class="forwhom__header">
+      <span class="label">El filtro más honesto</span>
+      <h2 class="forwhom__title">¿Este método<br>es para ti?</h2>
+    </div>
+
+    <div class="forwhom__grid">
+      <div class="forwhom__col forwhom__col--yes">
+        <p class="forwhom__col-title">
+          <span>✓</span>
+          Para ti si...
+        </p>
+        <ul class="forwhom__list">
+          <li>Estás dispuesto a estructurar tu rutina, aunque sea cambiante</li>
+          <li>Ves el acompañamiento como fortaleza, no como intrusión</li>
+          <li>Quieres entender el proceso, no solo recibir una dieta</li>
+          <li>Aceptas que los resultados son progresivos, no mágicos</li>
+          <li>Comes afuera, usas delivery y no piensas renunciar a eso</li>
+          <li>Has intentado antes y reconoces que faltaba estructura</li>
+        </ul>
+      </div>
+      <div class="forwhom__col forwhom__col--no">
+        <p class="forwhom__col-title">
+          <span>×</span>
+          No es para ti si...
+        </p>
+        <ul class="forwhom__list">
+          <li>Rechazas cualquier forma de estructura u organización</li>
+          <li>Buscas prohibiciones rígidas: "dime qué NO puedo comer"</li>
+          <li>Solo preguntas "¿en cuánto tiempo bajo X kilos?"</li>
+          <li>Crees que el azúcar es veneno o tienes dogmas alimentarios</li>
+          <li>Esperas resultados sin involucrarte en el proceso</li>
+          <li>Rechazas cualquier forma de seguimiento o reporte</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="forwhom__note">
+      <p>
+        <strong>Si no encajas en el perfil, te lo decimos antes de que inviertas.</strong> No buscamos convencer a quien no va a encontrar valor real en el método. Si tienes dudas, la Evaluación de S/80 es el lugar para resolverlas.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ── EVALUACIÓN S/80 ─────────────────────────── -->
+<section class="section eval" id="evaluacion">
+  <div class="container">
+    <div class="eval__inner">
+      <div>
+        <span class="eval__tag">¿Todavía no te decides?</span>
+        <h2 class="eval__title">Evaluación<br>Nutricional<br>Personal</h2>
+        <p class="eval__desc">
+          Una sesión de 20–30 minutos donde te hacemos el diagnóstico completo y te damos una dirección clara:
+          qué plan encaja con tu caso y por qué. Sin compromiso, sin venta a presión.
+        </p>
+        <div class="eval__details">
+          <div class="eval__detail">
+            <span class="eval__detail-val">S/80</span>
+            <p class="eval__detail-label">Precio único</p>
+          </div>
+          <div class="eval__detail">
+            <span class="eval__detail-val">20–30 min</span>
+            <p class="eval__detail-label">Duración</p>
+          </div>
+          <div class="eval__detail" style="grid-column:span 2;">
+            <span class="eval__detail-val" style="font-size:1rem;">Se descuenta del primer mes</span>
+            <p class="eval__detail-label">Si contratas un plan después de la evaluación</p>
+          </div>
+        </div>
+        <a href="https://wa.me/51919151237?text=Hola%2C+quiero+la+Evaluación+Nutricional+de+S%2F80" class="btn" target="_blank">
+          Primero quiero la Evaluación →
+        </a>
+      </div>
+      <div class="eval__visual">
+        <p class="eval__visual-title">Lo que incluye<br>la evaluación</p>
+        <ul class="eval__includes">
+          <li>Diagnóstico de composición corporal</li>
+          <li>Análisis de tu historial alimentario</li>
+          <li>Identificación de tus puntos de quiebre</li>
+          <li>Recomendación de plan según tu caso</li>
+          <li>Dirección clara: qué hacer y por qué</li>
+        </ul>
+        <p class="eval__discount">
+          Los S/80 se descuentan del primer mes si contratas un plan.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ ────────────────────────────────────── -->
+<section class="section" id="faq">
+  <div class="container">
+    <div class="section-header">
+      <span class="label">Preguntas frecuentes</span>
+      <h2 class="section-header__title">Todo lo que<br>querías saber</h2>
+    </div>
+
+    <div class="faq__list">
+      <div class="faq__item open">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿Las sesiones son presenciales o virtuales?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          Ambas modalidades están disponibles. Las sesiones presenciales son en nuestro consultorio en Lima. Las virtuales son por videollamada. El seguimiento por WhatsApp funciona igual en ambas modalidades.
+        </p>
+      </div>
+      <div class="faq__item">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿Qué pasa después de la Evaluación de S/80?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          Recibes un diagnóstico claro y una recomendación de plan. Si decides contratar un plan después, los S/80 se descuentan del primer mes. Si decides que no es el momento, no hay presión — te vas con información útil igual.
+        </p>
+      </div>
+      <div class="faq__item">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿Por qué la Evaluación no es gratis?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          Porque es una sesión clínica real de 20–30 minutos con un nutricionista certificado, no una llamada de ventas. Recibes un diagnóstico con valor propio, independientemente de si contratas o no.
+        </p>
+      </div>
+      <div class="faq__item">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿En cuánto tiempo veo resultados?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          Depende del objetivo y del nivel de adherencia. La mayoría de pacientes nota cambios en composición corporal a partir de las 4–6 semanas. No prometemos kilos específicos en tiempos específicos porque eso no es honesto.
+        </p>
+      </div>
+      <div class="faq__item">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿Puedo seguir comiendo en restaurantes y usando delivery?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          Sí, y eso es parte del método. Estructuramos tu alimentación con tu vida real: Rappi, restaurantes de San Isidro, cenas con amigos, viajes. Si no puedes comer "perfecto", aprendes a comer bien dentro de lo posible.
+        </p>
+      </div>
+      <div class="faq__item">
+        <button class="faq__question" onclick="toggleFaq(this)">
+          ¿Cuál es la diferencia entre los planes?
+          <span class="faq__icon"></span>
+        </button>
+        <p class="faq__answer">
+          La intensidad del acompañamiento. Todos incluyen plan personalizado. La diferencia está en la frecuencia de sesiones individuales y la velocidad de respuesta en WhatsApp. El plan Constancia es el más elegido porque balancea frecuencia y costo.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ──────────────────────────────────── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer__top">
+      <div>
+        <p class="footer__brand">AJL <span>Nutrición</span></p>
+        <p class="footer__desc">Estructura aplicada a la vida real. Sin dietas ideales, sin alimentos prohibidos, sin promesas mágicas.</p>
+        <a href="https://wa.me/51919151237" class="btn" target="_blank">Escribir al WhatsApp →</a>
+      </div>
+      <div>
+        <p class="footer__col-title">Navegación</p>
+        <ul class="footer__links">
+          <li><a href="#metodo">El método</a></li>
+          <li><a href="#planes">Planes</a></li>
+          <li><a href="#para-quien">¿Para quién?</a></li>
+          <li><a href="#evaluacion">Evaluación S/80</a></li>
+          <li><a href="#faq">Preguntas frecuentes</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="footer__col-title">Contacto</p>
+        <ul class="footer__links">
+          <li><a href="https://wa.me/51919151237">WhatsApp: +51 919 151 237</a></li>
+          <li><a href="#">Instagram: @alejandrojloayza</a></li>
+          <li><a href="#">TikTok: @alejandrojloayza</a></li>
+          <li><a href="#" style="margin-top:.5rem;display:block;">Política de privacidad</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 AJL Nutrición. Lima, Perú.</span>
+      <span>Todos los derechos reservados.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ── FAB WhatsApp ───────────────────────────── -->
+<a href="https://wa.me/51919151237?text=Hola%2C+vi+la+landing+de+AJL+Nutrición" class="fab" target="_blank">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+  WhatsApp
+</a>
+
+<script>
+  function toggleFaq(btn) {
+    const item = btn.parentElement;
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq__item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  }
+</script>
+
+</body>
+</html>

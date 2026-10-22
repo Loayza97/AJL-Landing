@@ -1,0 +1,234 @@
+---
+// ─── Sección 3: Filtro pasivo (¿es para ti?) ────────────────────────────────
+// Reubicada ANTES de los precios: califica al lead antes de pedir la decisión.
+// Integra "Tu parte en el proceso" (antes en Method) para consolidar el
+// mensaje de compromiso en un solo lugar.
+
+const forYes = [
+  'Estás dispuesto a estructurar tu rutina, aunque hoy sea caótica',
+  'Ves el acompañamiento como ayuda, no como intrusión',
+  'Quieres entender el proceso, no solo recibir una dieta y seguirla a ciegas',
+  'Aceptas progreso progresivo, no buscas magia en dos semanas',
+  'Tu vida incluye salidas, viajes y cenas, y no quieres renunciar a eso',
+  'Ya intentaste antes sin éxito y buscas algo estructuralmente distinto',
+];
+
+const forNo = [
+  'Rechazas cualquier forma de estructura en tu alimentación',
+  'Solo quieres que te digan qué no puedes comer',
+  'Esperas resultados sin involucrarte en el proceso',
+  'Crees que ciertos alimentos son veneno y no estás dispuesto a cuestionarlo',
+  'Buscas bajar X kilos en Y semanas, rápido y sin esfuerzo',
+  'No tienes disponibilidad para revisiones periódicas',
+];
+
+// Antes vivía en Method ("Tu parte en el proceso"): lo que el método te pide.
+const commitment = [
+  'Registrar tus comidas las primeras semanas, no para siempre, sino para aprender a verte',
+  'Asistir a las revisiones periódicas según el paquete que elijas',
+  'Estar dispuesto a cuestionar algunas creencias previas sobre alimentación',
+];
+---
+
+<section id="section-for-who" class="section bg-black">
+  <div class="container">
+    <p class="label">Antes de elegir un plan</p>
+    <h2 class="title white" style="margin-bottom: 0.75rem;">
+      ¿Este método es para ti?
+    </h2>
+    <p class="subtitle light" style="margin-bottom: 3rem;">
+      Sé honesto contigo mismo. Un buen encaje desde el inicio es la diferencia
+      entre un proceso que funciona y uno que no.
+    </p>
+
+    <div class="columns">
+      <div class="col col--yes">
+        <div class="col__header">
+          <span class="col__icon" aria-hidden="true">✓</span>
+          <h3 class="col__title">Para ti si…</h3>
+        </div>
+        <ul class="col__list">
+          {forYes.map(item => (
+            <li class="col__item col__item--yes">{item}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="col col--no">
+        <div class="col__header">
+          <span class="col__icon col__icon--no" aria-hidden="true">✕</span>
+          <h3 class="col__title">No es para ti si…</h3>
+        </div>
+        <ul class="col__list">
+          {forNo.map(item => (
+            <li class="col__item col__item--no">{item}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Tu parte en el proceso (integrado desde Method) -->
+    <div class="commitment">
+      <p class="commitment__label">Y esto es lo que el método te pide</p>
+      <ul class="commitment__list">
+        {commitment.map(item => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <!-- Cierre empático único (fusiona not-fit-msg + nota de compromiso) -->
+    <div class="not-fit-msg">
+      <p>
+        Si te describes más en la columna derecha, o esto no es algo que puedas
+        comprometerte a hacer ahora, probablemente no sea el momento,
+        y <strong>está bien</strong>. No todos los métodos son para todos.
+        Si tu situación cambia, el link va a seguir aquí.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin-top: 2.5rem;">
+      <a
+        href="#section-packages"
+        class="btn-primary"
+        data-cta="forwho_primary"
+        aria-label="Ver los paquetes disponibles"
+      >
+        Soy el perfil correcto, ver los planes →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+.bg-black { background: var(--black); }
+.white    { color: var(--white); }
+.light    { color: #aaaaaa; }
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.col {
+  border-radius: 10px;
+  padding: 1.75rem;
+}
+
+.col--yes { background: #0a1a0a; border: 1px solid #1d3b1d; }
+.col--no  { background: #1a0a0a; border: 1px solid #3b1d1d; }
+
+.col__header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.col__icon {
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: #4caf50;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(76,175,80,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.col__icon--no {
+  color: #ef5350;
+  background: rgba(239,83,80,0.12);
+}
+
+.col__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.2px;
+}
+
+.col__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.col__item {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.col__item--yes { color: #cccccc; }
+.col__item--yes::before { content: '→'; position: absolute; left: 0; color: #4caf50; font-size: 0.8rem; }
+
+.col__item--no { color: #999999; }
+.col__item--no::before { content: '→'; position: absolute; left: 0; color: #ef5350; font-size: 0.8rem; }
+
+/* Tu parte en el proceso */
+.commitment {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(214, 138, 92, 0.5);
+  border-left: 4px solid var(--gold);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+}
+
+.commitment__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+}
+
+.commitment__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.commitment__list li {
+  color: #cccccc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.commitment__list li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+
+/* Cierre empático */
+.not-fit-msg {
+  margin-top: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+}
+
+.not-fit-msg p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.7;
+}
+
+.not-fit-msg strong { color: #ffffff; }
+
+@media (max-width: 640px) {
+  .columns { grid-template-columns: 1fr; }
+}
+</style>

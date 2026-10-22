@@ -1,0 +1,531 @@
+---
+import '../styles/global.css';
+import {
+  WA_NUMBER,
+  SITE_TITLE,
+  SITE_DESCRIPTION,
+  OG_IMAGE,
+  META_PIXEL_ID,
+  GA4_ID,
+  CLARITY_ID,
+  WA_DEFAULT_MESSAGE,
+  EVALUACION_NAME,
+} from '../config.js';
+import CookieBanner from '../components/CookieBanner.astro';
+import { contacto } from '../data/contacto.js';
+
+// Origen canónico del sitio. Se define UNA vez en astro.config.mjs (`site`) y
+// todo lo absoluto —canonical, OG, schema— se deriva de ahí, para que el día
+// que cambie el dominio no queden URLs sueltas apuntando al anterior.
+// Debe coincidir con el dominio primario del sitio en Cloudflare Pages: hoy es el www.
+const SITE_ORIGIN = (Astro.site ?? new URL('https://www.ajlnutricion.com')).origin;
+
+// Canonical por página (evita que checkout canonicalice al home)
+const canonicalURL = new URL(Astro.url.pathname, SITE_ORIGIN);
+
+// OG requiere URLs absolutas: una ruta relativa hace que varias plataformas no
+// resuelvan la imagen al compartir el enlace.
+const ogImageURL = new URL(OG_IMAGE, SITE_ORIGIN);
+
+// Páginas de servicio (gracias, baja) no deben entrar al índice: son contenido
+// fino y duplicado que le baja la calidad media al dominio.
+const {
+  noindex = false,
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+} = Astro.props;
+
+// Schema LocalBusiness (site-wide) — negocio, dirección, geo, horarios, catálogo.
+// Todo el NAP (dirección, teléfono, geo, horarios) sale de data/contacto.js para
+// que el texto visible y el schema no puedan divergir. Ver nota allí.
+const { direccionPartes, geo } = contacto;
+
+const businessSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'MedicalBusiness',
+  '@id': `${SITE_ORIGIN}/#business`,
+  name: 'AJL Nutrición',
+  alternateName: 'AJL Nutrición — Alejandro Loayza',
+  legalName: 'FJ INVESTMENTS S.A.C.',
+  description:
+    'Nutricionista en Lince, Lima. Planes de nutrición personalizados adaptados a tu vida real: restaurantes, delivery, cenas de trabajo. Sin restricciones absurdas, sin culpa.',
+  url: `${SITE_ORIGIN}/`,
+  image: ogImageURL.href,
+  logo: `${SITE_ORIGIN}/favicon.svg`,
+  telephone: contacto.telefono,
+  hasMap: contacto.maps.ficha,
+  priceRange: 'S/80–S/600',
+  medicalSpecialty: 'Dietetics',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: direccionPartes.calle,
+    addressLocality: direccionPartes.distrito,
+    addressRegion: direccionPartes.region,
+    postalCode: direccionPartes.codigoPostal,
+    addressCountry: direccionPartes.pais,
+  },
+  geo: { '@type': 'GeoCoordinates', latitude: geo.lat, longitude: geo.lng },
+  openingHoursSpecification: contacto.horarioSpec.map(({ dias, abre, cierra }) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: dias.length === 1 ? dias[0] : dias,
+    opens: abre,
+    closes: cierra,
+  })),
+  areaServed: [
+    { '@type': 'City', name: 'Lima' },
+    { '@type': 'AdministrativeArea', name: 'Lince' },
+    { '@type': 'AdministrativeArea', name: 'Miraflores' },
+    { '@type': 'AdministrativeArea', name: 'San Isidro' },
+  ],
+  sameAs: [
+    'https://www.instagram.com/alejandrojloayza_nutricion',
+    'https://www.tiktok.com/@alejandrojloayza_nutri',
+  ],
+};
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- El token de reserva y el payment_id de Mercado Pago llegan por la URL de
+       retorno; sacarlos de ahí antes que nada evita que queden en el historial
+       o se los lleve cualquier script de analítica que lea location.href. -->
+  <script is:inline>
+    if (location.pathname.startsWith('/reservar/')) {
+      try {
+        const q = new URLSearchParams(location.search);
+        const r = q.get('r');
+        const paymentId = q.get('payment_id');
+        if (r) sessionStorage.setItem('ajl_reserva_r', r);
+        if (paymentId) sessionStorage.setItem('ajl_reserva_payment_id', paymentId);
+        if (r || paymentId) history.replaceState(null, '', location.pathname);
+      } catch {}
+    }
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <meta
+    name="robots"
+    content={noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}
+  />
+  <link rel="canonical" href={canonicalURL.href} />
+
+  <!-- Verificación de propiedad del dominio ante Meta (Business Settings →
+       Dominios). Debe estar en el <head> renderizado en el servidor: Meta no
+       la acepta si la inyecta JavaScript. No es un secreto —se sirve en el HTML
+       de todas las páginas— pero no la borres: si desaparece, la verificación
+       puede caerse y con ella la configuración de eventos de las campañas. -->
+  <meta name="facebook-domain-verification" content="2jrffv96lk21vxz1xjfn53dgb1qm4q" />
+
+  <!-- Geo / local SEO -->
+  <meta name="geo.region" content="PE-LIM" />
+  <meta name="geo.placename" content="Lince, Lima, Perú" />
+  <meta name="geo.position" content={`${geo.lat};${geo.lng}`} />
+  <meta name="ICBM" content={`${geo.lat}, ${geo.lng}`} />
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website" />
+  <meta property="og:site_name"   content="AJL Nutrición" />
+  <meta property="og:title"       content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image"       content={ogImageURL.href} />
+  <meta property="og:url"         content={canonicalURL.href} />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image"       content={ogImageURL.href} />
+
+  <!-- Fonts: Fraunces (titulares) + Inter (cuerpo) — identidad de marca AJL -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>{title}</title>
+
+  <!-- Schema: LocalBusiness (nutricionista en Lince, Lima) -->
+  <script type="application/ld+json" set:html={JSON.stringify(businessSchema)} />
+
+  <!-- Analítica (GA4) y publicidad (Meta Pixel) NO se cargan aquí a propósito.
+       La política de privacidad declara el consentimiento como base legal para
+       ellas (secciones 9.2 y 4), así que se inyectan al final del <body> solo
+       si el visitante acepta. Tampoco hay <noscript> del pixel: ese <img>
+       dispara la baliza sin JavaScript y se saltaría el gate entero. -->
+</head>
+<body>
+  <slot />
+
+  <!-- El banner vive en el Layout, no en cada página: el tracking se carga en
+       todas, así que la elección tiene que estar disponible en todas. -->
+  <CookieBanner />
+
+  <!-- ─── Client-side: UTM capture, WhatsApp links, scroll tracking, cookies ── -->
+  <script define:vars={{ WA_NUMBER, META_PIXEL_ID, GA4_ID, CLARITY_ID, WA_DEFAULT_MESSAGE, EVALUACION_NAME }}>
+    // ── Configuración ──────────────────────────────────────────────────────────
+    const waNumber = WA_NUMBER;
+    const params   = new URLSearchParams(window.location.search);
+
+    // ── Atribución que sobrevive la navegación interna ────────────────────────
+    // Los UTM llegan solo en la URL de aterrizaje. Quien entra por
+    // /?utm_source=ig, compara planes y convierte en /checkout/basico/ llegaba
+    // ahí con la URL limpia, y la conversión se registraba sin origen — justo el
+    // recorrido que más interesa medir. Se guardan en sessionStorage para que la
+    // atribución acompañe al visitante por todo el sitio.
+    //
+    // sessionStorage y no localStorage a propósito: dura lo que la pestaña, no
+    // sigue a nadie entre visitas, y lo que guarda es información de campaña,
+    // no de la persona. El registro de conversión sigue siendo anónimo.
+    //
+    // Si llega una URL con utm_source nuevo, sobrescribe (último toque dentro de
+    // la sesión): si alguien vuelve por otra campaña, gana la más reciente.
+    const UTM_KEY = 'ajl_utm';
+
+    function capturarUTM() {
+      const deLaUrl = {
+        utm_source:   params.get('utm_source'),
+        utm_medium:   params.get('utm_medium'),
+        utm_campaign: params.get('utm_campaign'),
+        utm_content:  params.get('utm_content'),
+      };
+
+      if (deLaUrl.utm_source) {
+        try { sessionStorage.setItem(UTM_KEY, JSON.stringify(deLaUrl)); } catch {}
+        return deLaUrl;
+      }
+
+      try {
+        const guardado = sessionStorage.getItem(UTM_KEY);
+        if (guardado) return JSON.parse(guardado);
+      } catch {}
+
+      return deLaUrl; // todos null
+    }
+
+    const utm = capturarUTM();
+    const utmSource   = utm.utm_source;
+    const utmMedium   = utm.utm_medium;
+    const utmCampaign = utm.utm_campaign;
+    const utmContent  = utm.utm_content;
+
+    // ── Mensaje pre-llenado ───────────────────────────────────────────────────
+    // Sin etiqueta de origen. Antes se le pegaba "[origen: gbp / ficha /
+    // evergreen]" al final: eso lo manda EL CLIENTE, que no sabe qué es y lo lee
+    // como un código de sistema colado en su mensaje. La atribución no se pierde
+    // por quitarlo — utm_source/medium/campaign/content viajan igual a
+    // /api/conversion en cada clic (ver registrarConversion), que es la fuente de
+    // verdad del negocio. Lo único que cambia es que el asesor ya no ve el origen
+    // dentro del chat; lo ve en el panel de conversiones.
+    function buildMessage() {
+      return encodeURIComponent(WA_DEFAULT_MESSAGE);
+    }
+
+    // ── Wrapper seguro para gtag ───────────────────────────────────────────────
+    function trackEvent(name, extra = {}) {
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', name, extra);
+      }
+    }
+
+    // ── Wrapper seguro para el Meta Pixel ─────────────────────────────────────
+    // No-op si el visitante no consintió: fbq ni siquiera existe.
+    function trackMeta(evento, extra = {}) {
+      if (typeof window.fbq === 'function') {
+        window.fbq('track', evento, extra);
+      }
+    }
+
+    // ── Conversión propia (primera parte) ─────────────────────────────────────
+    // El clic a WhatsApp es LA conversión del negocio. Registrarla en nuestro
+    // propio backend nos da una fuente de verdad que no depende de que el
+    // visitante acepte cookies, ni de bloqueadores, ni de que Meta o Google
+    // sigan reportando lo mismo dentro de un año.
+    //
+    // A propósito NO se envía nada que identifique a nadie: ni IP, ni
+    // user-agent, ni identificador de sesión. Solo el evento y su origen de
+    // campaña. Por eso es tratamiento anónimo y no necesita consentimiento ni
+    // aparecer en la política como dato personal.
+    //
+    // sendBeacon porque el clic navega fuera del sitio: un fetch normal se
+    // cancelaría a medio vuelo.
+    function registrarConversion(datos) {
+      try {
+        const cuerpo = JSON.stringify(datos);
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/conversion', new Blob([cuerpo], { type: 'application/json' }));
+        } else {
+          fetch('/api/conversion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: cuerpo,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      } catch {}
+    }
+
+    // ── Inyecta URLs de WhatsApp en todos los CTAs ────────────────────────────
+    function initWALinks() {
+      const defaultMessage = buildMessage();
+
+      document.querySelectorAll('[data-wa-section]').forEach(el => {
+        const section = el.dataset.waSection;
+        const pkgName = el.dataset.waPkg; // presente solo en CTAs de paquete
+
+        // data-wa-msg permite que un CTA traiga su propio texto (los de checkout
+        // dicen "te envío el comprobante", que no se puede perder). Sin él se usa
+        // el del paquete, y si tampoco hay, el genérico.
+        const customMsg = el.dataset.waMsg;
+
+        let message = defaultMessage;
+        if (customMsg) {
+          message = encodeURIComponent(customMsg);
+        } else if (pkgName) {
+          const pkgText = `Hola, me interesa el paquete ${pkgName} de AJL Nutrición.`;
+          message = encodeURIComponent(pkgText);
+        }
+
+        el.setAttribute('href', `https://wa.me/${waNumber}?text=${message}`);
+        el.addEventListener('click', () => {
+          const isFloating = section === 'floating';
+
+          // GA4: evento propio, el que ya existía.
+          trackEvent(isFloating ? 'whatsapp_click_floating' : 'whatsapp_click', {
+            section_id: section,
+            ...(pkgName && { package_name: pkgName }),
+          });
+
+          // Meta: evento ESTÁNDAR 'Lead'. Tiene que ser el nombre estándar, no
+          // uno propio: es el que Meta sabe usar para optimizar campañas y
+          // construir públicos similares. Sin esto, una campaña solo puede
+          // optimizar hacia PageView, o sea hacia gente que carga la página en
+          // vez de gente que escribe.
+          trackMeta('Lead', {
+            content_name: pkgName || EVALUACION_NAME,
+            content_category: section,
+          });
+
+          // Nuestra propia fuente de verdad, independiente del consentimiento.
+          registrarConversion({
+            evento: 'whatsapp_click',
+            seccion: section,
+            paquete: pkgName || null,
+            utm_source: utmSource || null,
+            utm_medium: utmMedium || null,
+            utm_campaign: utmCampaign || null,
+            utm_content: utmContent || null,
+            path: window.location.pathname,
+          });
+        });
+      });
+    }
+
+    // ── Scroll tracking por sección ────────────────────────────────────────────
+    function initScrollTracking() {
+      if (!('IntersectionObserver' in window)) return;
+
+      const sectionEvents = {
+        'section-why-failed':   'scroll_frustracion',
+        'section-method':       'scroll_metodo',
+        'section-testimonials': 'scroll_testimonios',
+        'section-for-who':      'scroll_para_quien',
+      };
+
+      const observer = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const event = sectionEvents[entry.target.id];
+            if (event) trackEvent(event);
+            observer.unobserve(entry.target);
+          });
+        },
+        { threshold: 0.25 }
+      );
+
+      Object.keys(sectionEvents).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) observer.observe(el);
+      });
+    }
+
+    // ── Consentimiento de cookies (Ley 29733) ─────────────────────────────────
+    // GA4 y el Meta Pixel se cargan SOLO si el visitante acepta. La clave es
+    // nueva a propósito: la anterior ('ajl_cookie_ok') se recogió con el
+    // tracking ya disparado y sin opción de rechazar, así que no era una
+    // elección libre y no se hereda. Queda huérfana en el navegador; es inerte.
+    const CONSENT_KEY = 'ajl_consent'; // 'granted' | 'denied' | ausente
+
+    // localStorage lanza en modo privado de algunos navegadores y con las
+    // cookies de terceros bloqueadas. Ante la duda, tratamos como "sin decisión".
+    function leerConsentimiento() {
+      try { return localStorage.getItem(CONSENT_KEY); } catch { return null; }
+    }
+    function guardarConsentimiento(valor) {
+      try { localStorage.setItem(CONSENT_KEY, valor); } catch {}
+    }
+    function olvidarConsentimiento() {
+      try { localStorage.removeItem(CONSENT_KEY); } catch {}
+    }
+
+    // ── GA4 con Consent Mode v2 ───────────────────────────────────────────────
+    // gtag.js se carga SIEMPRE, pero arranca con todos los permisos en 'denied'.
+    // En ese estado no escribe cookies ni identificadores: manda pings sin
+    // cookies con los que Google modela tráfico agregado. Al aceptar se envía un
+    // 'consent update' y pasa a medición completa, sin recargar la página.
+    //
+    // El compromiso, dicho claro: los pings sin cookies siguen transmitiendo la
+    // IP del visitante, así que esto NO es "cero datos". Es medición agregada
+    // sin identificadores persistentes, y la política lo describe en esos
+    // términos (sección 9.2). El Meta Pixel no entra aquí: publicidad sin
+    // consentimiento no tiene defensa razonable, y sigue bloqueado del todo.
+    let ga4Iniciado = false;
+    function iniciarGA4() {
+      if (ga4Iniciado) return;
+      ga4Iniciado = true;
+
+      // gtag va en window porque trackEvent() comprueba window.gtag
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () { window.dataLayer.push(arguments); };
+
+      // El 'default' DEBE ir antes de cargar gtag.js y antes del config.
+      window.gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        functionality_storage: 'granted',
+        security_storage: 'granted',
+        wait_for_update: 500,
+      });
+      window.gtag('set', 'ads_data_redaction', true);
+      window.gtag('set', 'url_passthrough', true);
+
+      const ga = document.createElement('script');
+      ga.async = true;
+      ga.src = `https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`;
+      document.head.appendChild(ga);
+
+      window.gtag('js', new Date());
+      window.gtag('config', GA4_ID);
+    }
+
+    // ── Meta Pixel ────────────────────────────────────────────────────────────
+    // Base legal: consentimiento. Se carga SOLO si el visitante acepta.
+    //
+    // Se evaluó dejarlo en interés legítimo con derecho de oposición para no
+    // perder señal publicitaria, pero hoy NO hay campañas activas: no hay nada
+    // que optimizar, así que gatearlo no cuesta nada, mientras que el interés
+    // legítimo estaría justificándose por una inversión que aún no existe —su
+    // versión más débil. Cuando haya campañas, ese argumento se vuelve sólido y
+    // el cambio es una línea. Ver docs/legal/decision-consentimiento-cookies.md.
+    //
+    // Idempotente: aceptar dos veces, o aceptar tras revocar sin recargar, no
+    // debe inyectarlo por duplicado.
+    let pixelCargado = false;
+    function cargarMetaPixel() {
+      if (pixelCargado) return;
+      pixelCargado = true;
+
+      !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+      n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+      document,'script','https://connect.facebook.net/en_US/fbevents.js');
+      window.fbq('init', META_PIXEL_ID);
+      window.fbq('track', 'PageView');
+    }
+
+    // ── Microsoft Clarity ─────────────────────────────────────────────────────
+    // Mapas de calor y grabación de sesiones. Base legal: consentimiento, igual
+    // que el píxel: grabar lo que hace alguien en pantalla no cabe en "medición
+    // agregada", así que sin aceptar no se carga. Los campos de formulario van
+    // enmascarados por defecto en Clarity; no los desenmascares en el panel.
+    let clarityCargado = false;
+    function cargarClarity() {
+      if (clarityCargado || !CLARITY_ID) return;
+      // Fuera del checkout: ahí hay datos de pago y los términos de Clarity
+      // prohíben enviarle información financiera.
+      if (location.pathname.startsWith('/checkout')) return;
+      clarityCargado = true;
+
+      (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", CLARITY_ID);
+      window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+    }
+
+    // Sube GA4 a medición completa y enciende la publicidad.
+    function aplicarConsentimiento() {
+      if (typeof window.gtag === 'function') {
+        window.gtag('consent', 'update', {
+          ad_storage: 'granted',
+          ad_user_data: 'granted',
+          ad_personalization: 'granted',
+          analytics_storage: 'granted',
+        });
+        window.gtag('set', 'ads_data_redaction', false);
+      }
+      cargarMetaPixel();
+      cargarClarity();
+    }
+
+    // ── Banner de consentimiento ───────────────────────────────────────────────
+    function initCookieBanner() {
+      const banner = document.getElementById('cookie-banner');
+      if (!banner) return;
+
+      // No se usa remove(): el enlace del footer necesita poder reabrirlo.
+      const decidir = (valor) => {
+        guardarConsentimiento(valor);
+        banner.style.display = 'none';
+        if (valor === 'granted') aplicarConsentimiento();
+      };
+
+      document.getElementById('cookie-accept')?.addEventListener('click', () => decidir('granted'));
+      document.getElementById('cookie-reject')?.addEventListener('click', () => decidir('denied'));
+
+      if (!leerConsentimiento()) banner.style.display = 'flex';
+    }
+
+    // ── Revocación desde el footer ─────────────────────────────────────────────
+    // Borra la decisión y reabre el banner. Lo ya cargado sigue en memoria hasta
+    // el próximo reload; el texto del banner lo dice en lugar de aparentar que
+    // se apaga en caliente.
+    function initPreferenciasCookies() {
+      const enlace = document.getElementById('cookie-preferences');
+      const banner = document.getElementById('cookie-banner');
+      if (!enlace || !banner) return;
+
+      enlace.addEventListener('click', (e) => {
+        e.preventDefault();
+        olvidarConsentimiento();
+        banner.style.display = 'flex';
+        banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
+
+    // Arranque. GA4 siempre, en estado denegado (medición agregada sin cookies);
+    // el píxel y Clarity solo con consentimiento explícito. No esperamos a
+    // DOMContentLoaded: cuanto antes se dispare el PageView, menos visitas se
+    // pierden por rebote temprano.
+    iniciarGA4();
+    if (leerConsentimiento() === 'granted') aplicarConsentimiento();
+
+    // ── Init ───────────────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', () => {
+      initWALinks();
+      initScrollTracking();
+      initCookieBanner();
+      initPreferenciasCookies();
+    });
+  </script>
+</body>
+</html>

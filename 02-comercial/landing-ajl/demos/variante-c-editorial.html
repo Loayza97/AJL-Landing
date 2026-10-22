@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJL Nutrición — Editorial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,400;1,9..144,700&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E4;
+    --cream2: #EDE8D9;
+    --ink: #0D0C0A;
+    --ink2: #1A1916;
+    --gold: #C8973A;
+    --gold2: #E8B558;
+    --red: #D63B2F;
+    --sage: #6B8F71;
+    --muted: rgba(13,12,10,0.45);
+    --border: rgba(13,12,10,0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--cream); color: var(--ink); font-family: 'Instrument Sans', sans-serif; overflow-x: hidden; }
+  h1, h2, h3 { font-family: 'Fraunces', serif; }
+
+  /* ── Editorial grid lines ── */
+  body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: linear-gradient(var(--border) 1px, transparent 1px);
+    background-size: 100% 80px;
+    pointer-events: none; z-index: 0;
+    opacity: 0.3;
+  }
+
+  /* ── Utility ── */
+  .relative { position: relative; z-index: 1; }
+
+  /* ── Buttons ── */
+  .btn-ink {
+    background: var(--ink);
+    color: var(--cream);
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    padding: 14px 32px;
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    border-radius: 2px;
+  }
+  .btn-ink:hover { background: var(--ink2); }
+
+  .btn-outline-ink {
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    padding: 13px 32px;
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    border-radius: 2px;
+  }
+  .btn-outline-ink:hover { background: rgba(13,12,10,0.06); }
+
+  .btn-gold {
+    background: var(--gold);
+    color: #fff;
+    font-family: 'Instrument Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.03em;
+    padding: 14px 32px;
+    display: inline-block;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.15s;
+    border-radius: 2px;
+  }
+  .btn-gold:hover { background: #b8872a; }
+
+  /* ── Cards ── */
+  .card-cream {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    border-radius: 3px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card-cream:hover { border-color: rgba(13,12,10,0.25); box-shadow: 4px 4px 0 rgba(13,12,10,0.06); }
+
+  .card-ink {
+    background: var(--ink);
+    color: var(--cream);
+    border-radius: 3px;
+  }
+
+  .card-gold {
+    background: var(--gold);
+    color: #fff;
+    border-radius: 3px;
+  }
+
+  /* ── Labels ── */
+  .label {
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .label-gold {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  /* ── Divider ── */
+  .hr-ink { height: 1.5px; background: var(--border); border: none; }
+  .hr-ink-solid { height: 1.5px; background: var(--ink); border: none; }
+
+  /* ── Check mark ── */
+  .ico-yes { color: var(--sage); }
+  .ico-no { color: rgba(13,12,10,0.2); }
+
+  /* ── Price ── */
+  .price {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 2.8rem;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--gold);
+  }
+
+  /* ── Pull quote ── */
+  .pull-quote {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  /* ── Tag ── */
+  .tag-ink {
+    background: var(--ink);
+    color: var(--cream);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .tag-gold {
+    background: var(--gold);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .tag-sage {
+    background: rgba(107,143,113,0.12);
+    color: var(--sage);
+    border: 1px solid rgba(107,143,113,0.25);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ── WhatsApp float ── */
+  .wsp-float {
+    position: fixed; bottom: 24px; right: 24px; z-index: 100;
+    background: #25D366;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 3px 3px 0 rgba(13,12,10,0.15), 0 6px 24px rgba(37,211,102,0.3);
+    cursor: pointer;
+    transition: transform 0.2s;
+    text-decoration: none;
+  }
+  .wsp-float:hover { transform: translateY(-3px); }
+
+  /* ── Featured plan ── */
+  .plan-star {
+    background: var(--ink2);
+    color: var(--cream);
+    border-radius: 3px;
+    box-shadow: 6px 6px 0 rgba(200,151,58,0.3);
+  }
+
+  /* ── Marquee ── */
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .marquee-inner { display: flex; animation: marquee 28s linear infinite; white-space: nowrap; }
+
+  /* ── Step circle ── */
+  .step-circle {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--cream2);
+    border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── NAVBAR ─── -->
+<nav style="position:fixed;top:0;left:0;right:0;z-index:50;background:var(--cream);border-bottom:1.5px solid var(--border);" class="relative">
+  <div style="max-width:1100px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <span style="font-family:'Fraunces',serif;font-weight:700;font-size:1.15rem;letter-spacing:-0.02em;">AJL</span>
+      <span style="font-family:'Instrument Sans',sans-serif;font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-left:6px;">Nutrición</span>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <a href="#metodo" class="btn-outline-ink" style="padding:8px 20px;font-size:0.75rem;">Método</a>
+      <a href="#planes" class="btn-ink" style="padding:8px 20px;font-size:0.75rem;">Ver planes</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO — editorial asymmetric ─── -->
+<section class="relative" style="min-height:100vh;padding-top:56px;display:flex;flex-direction:column;">
+  <!-- Top stripe -->
+  <div style="background:var(--ink);padding:10px 24px;display:flex;align-items:center;justify-content:space-between;overflow:hidden;">
+    <div class="marquee-inner" style="flex:1;">
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Nutrición para vida real</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Lima, Perú 2026</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Sin restricciones absurdas</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Nutrición para vida real</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Lima, Perú 2026</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+      <span style="color:rgba(245,240,228,0.4);font-size:0.7rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;margin-right:48px;">Sin restricciones absurdas</span>
+      <span style="color:var(--gold);margin-right:48px;">✦</span>
+    </div>
+  </div>
+
+  <!-- Main hero content -->
+  <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;max-width:1100px;margin:0 auto;width:100%;padding:0 24px;">
+    <!-- Left col -->
+    <div style="padding:80px 48px 80px 0;border-right:1.5px solid var(--border);display:flex;flex-direction:column;justify-content:center;">
+      <span class="label" style="margin-bottom:20px;">Clínica de nutrición de precisión</span>
+      <h1 style="font-size:clamp(3.5rem,6vw,5.5rem);font-weight:900;line-height:0.92;letter-spacing:-0.04em;margin-bottom:32px;">
+        Probaste<br>
+        todo.<br>
+        <span style="color:var(--gold);font-style:italic;">Esta vez<br>es diferente.</span>
+      </h1>
+      <p style="font-size:0.95rem;line-height:1.75;color:var(--muted);max-width:380px;margin-bottom:40px;">
+        Método diseñado para tu vida real: restaurantes, delivery, eventos. Sin eliminar grupos de alimentos. Sin culpa.
+      </p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a href="#planes" class="btn-gold">Ver planes y precios</a>
+        <a href="#metodo" class="btn-outline-ink">Cómo funciona</a>
+      </div>
+    </div>
+
+    <!-- Right col — stats vertical -->
+    <div style="padding:80px 0 80px 48px;display:flex;flex-direction:column;justify-content:space-between;">
+      <div style="border-bottom:1.5px solid var(--border);padding-bottom:32px;margin-bottom:32px;">
+        <p class="label" style="margin-bottom:10px;">Tasa de adherencia real</p>
+        <p style="font-family:'Fraunces',serif;font-size:5rem;font-weight:900;letter-spacing:-0.05em;line-height:1;color:var(--ink);">93<span style="font-size:2.5rem;color:var(--gold);">%</span></p>
+        <p style="font-size:0.82rem;color:var(--muted);margin-top:8px;">de pacientes no rebotan. Medido a 6 meses.</p>
+      </div>
+      <div style="border-bottom:1.5px solid var(--border);padding-bottom:32px;margin-bottom:32px;">
+        <p class="label" style="margin-bottom:10px;">Desde</p>
+        <p style="font-family:'Fraunces',serif;font-size:4rem;font-weight:900;letter-spacing:-0.04em;line-height:1;color:var(--ink);">S/<span style="color:var(--gold);">250</span></p>
+        <p style="font-size:0.82rem;color:var(--muted);margin-top:8px;">plan mensual · 4 opciones disponibles</p>
+      </div>
+      <div>
+        <p class="pull-quote" style="color:var(--muted);">"Estructura<br>para la vida real,<br>no para el ideal."</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PROBLEMA ─── -->
+<section class="relative" style="background:var(--ink);color:var(--cream);padding:100px 24px;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <!-- Section header -->
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:64px;">
+      <p style="font-family:'Instrument Sans',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(245,240,228,0.4);">La verdad que nadie te dijo</p>
+      <hr style="flex:1;height:1px;background:rgba(245,240,228,0.1);border:none;">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:start;">
+      <div>
+        <h2 style="font-size:clamp(2.5rem,5vw,4rem);font-weight:900;line-height:0.95;letter-spacing:-0.03em;margin-bottom:24px;">
+          ¿Por qué tú sí,<br>si ya muchos<br><em style="color:var(--gold);">fallaron<br>conmigo?</em>
+        </h2>
+        <p style="font-size:0.9rem;color:rgba(245,240,228,0.55);line-height:1.75;max-width:360px;">
+          No fallaste porque te faltó fuerza de voluntad. Fallaste porque los planes que seguiste nunca fueron diseñados para tu vida real.
+        </p>
+      </div>
+      <div>
+        <!-- Table editorial style -->
+        <div style="border-top:1px solid rgba(245,240,228,0.12);">
+          <div style="display:grid;grid-template-columns:1fr 1fr;padding:4px 0 20px;margin-top:20px;border-bottom:1px solid rgba(245,240,228,0.08);">
+            <p style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,240,228,0.3);">Lo que crees</p>
+            <p style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);opacity:0.7;">El problema real</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;padding:22px 0;border-bottom:1px solid rgba(245,240,228,0.08);">
+            <p style="font-size:0.9rem;color:rgba(245,240,228,0.6);padding-right:20px;">"Me faltó disciplina"</p>
+            <p style="font-size:0.9rem;color:var(--cream);">El plan ignoró tu contexto social</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;padding:22px 0;border-bottom:1px solid rgba(245,240,228,0.08);">
+            <p style="font-size:0.9rem;color:rgba(245,240,228,0.6);padding-right:20px;">"Comí algo que no debía"</p>
+            <p style="font-size:0.9rem;color:var(--cream);">No había estructura para situaciones reales</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;padding:22px 0;border-bottom:1px solid rgba(245,240,228,0.08);">
+            <p style="font-size:0.9rem;color:rgba(245,240,228,0.6);padding-right:20px;">"Los fines de semana lo arruiné"</p>
+            <p style="font-size:0.9rem;color:var(--cream);">No tenías herramientas para días flexibles</p>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;padding:22px 0;">
+            <p style="font-size:0.9rem;color:rgba(245,240,228,0.6);padding-right:20px;">"Recuperé todo lo que bajé"</p>
+            <p style="font-size:0.9rem;color:var(--cream);">El plan nunca fue sostenible por diseño</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── MÉTODO ─── -->
+<section id="metodo" class="relative" style="padding:100px 24px;background:var(--cream2);">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:64px;">
+      <p class="label">El sistema de 6 pilares</p>
+      <hr style="flex:1;height:1px;background:var(--border);border:none;">
+      <span class="tag-sage">Método AJL</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <!-- Each step as editorial row -->
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;border-bottom:1.5px solid var(--border);align-items:start;">
+        <div class="step-circle">01</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Estructura en tu vida real</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">Construimos el plan sobre tu rutina real: restaurantes, delivery, viajes. No sobre una versión idealizada de ti.</p>
+        </div>
+        <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:3px;padding:16px;">
+          <p style="font-size:0.78rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Por ejemplo</p>
+          <p style="font-size:0.85rem;line-height:1.6;">"Uso Rappi 4 veces por semana" → el plan lo contempla desde el día 1.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;border-bottom:1.5px solid var(--border);align-items:start;">
+        <div class="step-circle">02</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Planificación semanal</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">Cada semana se ajusta según lo que viviste, no según lo que "debería" haber pasado.</p>
+        </div>
+        <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:3px;padding:16px;">
+          <p style="font-size:0.85rem;line-height:1.6;color:var(--muted);">Adaptación continua, no un plan de 30 días que se vuelve obsoleto en semana dos.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;border-bottom:1.5px solid var(--border);align-items:start;">
+        <div class="step-circle">03</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Porciones visibles</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">Sin báscula. Una palma, una taza, un puño. Funciona en cualquier restaurante o evento.</p>
+        </div>
+        <div style="background:var(--gold);border-radius:3px;padding:16px;">
+          <p style="font-size:0.85rem;line-height:1.6;color:#fff;font-weight:500;">Aprende a medir con tu cuerpo. Funciona en Osaka, en casa de tu suegra, en el cevichero del barrio.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;border-bottom:1.5px solid var(--border);align-items:start;">
+        <div class="step-circle">04</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Backend calórico oculto</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">Tú ves decisiones simples. Nosotros hacemos los cálculos precisos en segundo plano para garantizar el déficit.</p>
+        </div>
+        <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:3px;padding:16px;">
+          <p style="font-size:0.85rem;line-height:1.6;color:var(--muted);">No contarás calorías manualmente. Nunca. El sistema lo hace por ti.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;border-bottom:1.5px solid var(--border);align-items:start;">
+        <div class="step-circle">05</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Acompañamiento cercano</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">Canal directo entre consultas para dudas del día a día. "Estoy en un matrimonio, ¿qué pido?" es una pregunta válida.</p>
+        </div>
+        <div style="background:var(--cream);border:1.5px solid var(--border);border-radius:3px;padding:16px;">
+          <p style="font-size:0.85rem;line-height:1.6;color:var(--muted);">Respuesta real, no un sermón. No desaparecemos entre consultas.</p>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:60px 1fr 1fr;gap:24px;padding:32px 0;align-items:start;">
+        <div class="step-circle">06</div>
+        <div>
+          <h3 style="font-size:1.15rem;font-weight:700;margin-bottom:8px;">Ajuste por adherencia real</h3>
+          <p style="font-size:0.85rem;color:var(--muted);line-height:1.65;">El plan evoluciona con tus datos reales, no con expectativas teóricas. Si algo no funciona, lo cambiamos.</p>
+        </div>
+        <div style="background:var(--ink);border-radius:3px;padding:16px;">
+          <p style="font-size:0.85rem;line-height:1.6;color:rgba(245,240,228,0.75);">No te culpamos por no seguir el plan al pie de la letra. Ajustamos el plan para que encaje en tu realidad.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:48px;text-align:center;">
+      <a href="#planes" class="btn-ink">Ver planes y precios</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PLANES ─── -->
+<section id="planes" class="relative" style="padding:100px 24px;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:64px;">
+      <p class="label">Planes mensuales</p>
+      <hr style="flex:1;height:1px;background:var(--border);border:none;">
+    </div>
+    <h2 style="font-size:clamp(2.5rem,5vw,4rem);font-weight:900;letter-spacing:-0.04em;margin-bottom:64px;line-height:1;">Elige tu nivel<br>de acompañamiento</h2>
+
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;align-items:start;">
+
+      <!-- Básico -->
+      <div class="card-cream" style="padding:28px;">
+        <span class="tag-sage" style="margin-bottom:20px;display:inline-block;">Básico</span>
+        <div class="price" style="margin-bottom:4px;">S/250</div>
+        <p style="font-size:0.73rem;color:var(--muted);margin-bottom:20px;letter-spacing:0.04em;">/mes</p>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.65;margin-bottom:20px;min-height:56px;">Estructura sólida y autonomía progresiva para empezar.</p>
+        <hr class="hr-ink" style="margin-bottom:20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">1 sesión/mes</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Plan personalizado</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Soporte WhatsApp</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-no" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span style="font-size:0.8rem;color:var(--muted);">Revisiones quincenales</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-no" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span style="font-size:0.8rem;color:var(--muted);">Comunidad privada</span></div>
+        </div>
+        <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20B%C3%A1sico." class="btn-outline-ink" style="width:100%;text-align:center;display:block;">Quiero este plan</a>
+      </div>
+
+      <!-- Acompañamiento -->
+      <div class="card-cream" style="padding:28px;">
+        <span class="tag-sage" style="margin-bottom:20px;display:inline-block;">Acompañamiento</span>
+        <div class="price" style="margin-bottom:4px;">S/320</div>
+        <p style="font-size:0.73rem;color:var(--muted);margin-bottom:20px;">/mes</p>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.65;margin-bottom:20px;min-height:56px;">Más guía y revisión. Para quienes quieren feedback frecuente.</p>
+        <hr class="hr-ink" style="margin-bottom:20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">2 sesiones/mes</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Plan personalizado</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Soporte prioritario</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Revisión quincenal</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-no" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg><span style="font-size:0.8rem;color:var(--muted);">Comunidad privada</span></div>
+        </div>
+        <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Acompa%C3%B1amiento." class="btn-outline-ink" style="width:100%;text-align:center;display:block;">Quiero este plan</a>
+      </div>
+
+      <!-- Constancia FEATURED -->
+      <div class="plan-star" style="padding:28px;position:relative;">
+        <div style="position:absolute;top:0;right:0;">
+          <span class="tag-gold" style="border-radius:0 3px 0 3px;">Más elegido</span>
+        </div>
+        <span style="background:rgba(245,197,24,0.15);color:var(--gold2);font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:2px;display:inline-block;margin-bottom:20px;margin-top:24px;">Constancia</span>
+        <div style="font-family:'Fraunces',serif;font-weight:700;font-size:2.8rem;letter-spacing:-0.03em;line-height:1;color:var(--gold2);margin-bottom:4px;">S/440</div>
+        <p style="font-size:0.73rem;color:rgba(245,240,228,0.4);margin-bottom:20px;">/mes · Desde S/1,100/trim.</p>
+        <p style="font-size:0.82rem;color:rgba(245,240,228,0.6);line-height:1.65;margin-bottom:20px;min-height:56px;">Revisiones quincenales sin compromiso semanal intenso. El balance perfecto.</p>
+        <hr style="height:1px;background:rgba(245,240,228,0.12);border:none;margin-bottom:20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+          <div style="display:flex;gap:10px;align-items:center;"><svg style="color:var(--gold2);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Revisiones quincenales</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg style="color:var(--gold2);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Plan adaptativo</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg style="color:var(--gold2);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Soporte 24/7</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg style="color:var(--gold2);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Comunidad privada</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg style="color:var(--gold2);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Ajuste por adherencia</span></div>
+        </div>
+        <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Constancia." class="btn-gold" style="width:100%;text-align:center;display:block;">Quiero este plan</a>
+      </div>
+
+      <!-- Transformación -->
+      <div class="card-cream" style="padding:28px;">
+        <span class="tag-ink" style="margin-bottom:20px;display:inline-block;">Transformación</span>
+        <div class="price" style="color:var(--ink);margin-bottom:4px;">S/600</div>
+        <p style="font-size:0.73rem;color:var(--muted);margin-bottom:20px;">/mes · Desde S/1,500/trim.</p>
+        <p style="font-size:0.82rem;color:var(--muted);line-height:1.65;margin-bottom:20px;min-height:56px;">Máximo nivel de seguimiento para transformación profunda y acelerada.</p>
+        <hr class="hr-ink" style="margin-bottom:20px;">
+        <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:24px;">
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Revisiones semanales</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Plan ultra-personalizado</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Composición corporal</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Acceso prioritario total</span></div>
+          <div style="display:flex;gap:10px;align-items:center;"><svg class="ico-yes" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size:0.8rem;">Estrategia a 6 meses</span></div>
+        </div>
+        <a href="https://wa.me/51919151237?text=Hola,%20me%20interesa%20el%20plan%20Transformaci%C3%B3n." class="btn-ink" style="width:100%;text-align:center;display:block;">Quiero este plan</a>
+      </div>
+
+    </div>
+
+    <!-- Evaluación -->
+    <div style="margin-top:20px;padding:28px 32px;background:var(--cream2);border:1.5px solid var(--border);border-radius:3px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+      <div>
+        <p class="label" style="margin-bottom:8px;">¿Todavía no te decides?</p>
+        <p style="font-size:1.05rem;font-family:'Fraunces',serif;font-weight:700;margin-bottom:4px;">Evaluación Nutricional Personal — <span style="color:var(--gold);">S/80</span></p>
+        <p style="font-size:0.82rem;color:var(--muted);">20–30 min · Diagnóstico + dirección clara · Los S/80 se descuentan si luego contratas un plan</p>
+      </div>
+      <a href="https://wa.me/51919151237?text=Hola,%20quiero%20la%20Evaluaci%C3%B3n%20de%20S/80." class="btn-outline-ink" style="flex-shrink:0;">Primero quiero la Evaluación</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PARA QUIÉN ─── -->
+<section class="relative" style="background:var(--ink);color:var(--cream);padding:100px 24px;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div style="display:flex;align-items:baseline;gap:24px;margin-bottom:64px;">
+      <p style="font-family:'Instrument Sans',sans-serif;font-size:0.68rem;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:rgba(245,240,228,0.4);">Filtro honesto</p>
+      <hr style="flex:1;height:1px;background:rgba(245,240,228,0.1);border:none;">
+    </div>
+    <h2 style="font-size:clamp(2.5rem,5vw,4rem);font-weight:900;letter-spacing:-0.04em;margin-bottom:64px;line-height:1;">¿Este método<br>es para ti?</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;"> <!-- 2px gap = visible border trick -->
+
+      <!-- Sí -->
+      <div style="background:rgba(107,143,113,0.08);border:1px solid rgba(107,143,113,0.2);border-radius:3px 0 0 3px;padding:48px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--sage);"></div>
+          <h3 style="font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--sage);">Para ti si…</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(107,143,113,0.15);padding-bottom:20px;">
+            <svg style="color:var(--sage);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;line-height:1.65;">Comes fuera de casa frecuentemente y quieres aprender a navegar eso sin arruinar tu progreso</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(107,143,113,0.15);padding-bottom:20px;">
+            <svg style="color:var(--sage);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;line-height:1.65;">Ya probaste planes rígidos y no te funcionaron a largo plazo</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(107,143,113,0.15);padding-bottom:20px;">
+            <svg style="color:var(--sage);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;line-height:1.65;">Estás dispuesto a registrar tu alimentación las primeras semanas</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;">
+            <svg style="color:var(--sage);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            <p style="font-size:0.88rem;line-height:1.65;">Buscas resultados sostenibles, no una solución de 30 días</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- No -->
+      <div style="background:rgba(13,12,10,0.5);border:1px solid rgba(245,240,228,0.06);border-radius:0 3px 3px 0;padding:48px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:rgba(245,240,228,0.25);"></div>
+          <h3 style="font-family:'Instrument Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(245,240,228,0.35);">No es para ti si…</h3>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(245,240,228,0.06);padding-bottom:20px;">
+            <svg style="color:rgba(245,240,228,0.2);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,228,0.4);line-height:1.65;">Buscas una dieta estricta que te diga qué comer sin involucrarte en el proceso</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(245,240,228,0.06);padding-bottom:20px;">
+            <svg style="color:rgba(245,240,228,0.2);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,228,0.4);line-height:1.65;">Esperas bajar X kilos en 30 días sin cambios de hábito reales</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;border-bottom:1px solid rgba(245,240,228,0.06);padding-bottom:20px;">
+            <svg style="color:rgba(245,240,228,0.2);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,228,0.4);line-height:1.65;">Crees que los carbohidratos son veneno y no estás dispuesto a cuestionarlo</p>
+          </div>
+          <div style="display:flex;gap:16px;align-items:flex-start;">
+            <svg style="color:rgba(245,240,228,0.2);flex-shrink:0;margin-top:2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <p style="font-size:0.88rem;color:rgba(245,240,228,0.4);line-height:1.65;">No puedes comprometerte a asistir a revisiones regulares</p>
+          </div>
+        </div>
+        <p style="margin-top:24px;font-size:0.78rem;color:rgba(245,240,228,0.2);line-height:1.65;font-style:italic;">Si no encajas ahora, no hay problema. Este espacio estará aquí cuando estés listo.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer class="relative" style="padding:60px 24px;border-top:1.5px solid var(--border);background:var(--cream);">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+    <div>
+      <p style="font-family:'Fraunces',serif;font-weight:700;font-size:1.3rem;letter-spacing:-0.02em;margin-bottom:4px;">AJL Nutrición</p>
+      <p style="font-size:0.75rem;color:var(--muted);">Lima, Perú · +51 919 151 237 · © 2026</p>
+    </div>
+    <a href="https://wa.me/51919151237?text=Hola,%20quiero%20saber%20m%C3%A1s%20sobre%20AJL%20Nutrici%C3%B3n." class="btn-ink">Escribir al WhatsApp</a>
+  </div>
+</footer>
+
+<!-- WhatsApp float -->
+<a href="https://wa.me/51919151237?text=Hola,%20quiero%20saber%20m%C3%A1s%20sobre%20AJL%20Nutrici%C3%B3n." class="wsp-float" title="WhatsApp">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.555 4.122 1.526 5.855L.057 23.82a.75.75 0 0 0 .92.92l5.964-1.469A11.95 11.95 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.948 9.948 0 0 1-5.13-1.42l-.36-.22-3.74.92.94-3.63-.23-.38A9.935 9.935 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+</a>
+
+</body>
+</html>

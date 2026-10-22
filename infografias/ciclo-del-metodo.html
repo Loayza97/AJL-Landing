@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AJL · El ciclo del método</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde:#2F6E52; --verde-osc:#173C2C; --verde-claro:#E9F1EB;
+    --terra:#D68A5C; --terra-osc:#BE6E42; --terra-claro:#F6E5D9;
+    --crema:#FBF7F1; --ink:#20302A; --gris:#5E6B63;
+    --font:'Inter',system-ui,sans-serif; --font-head:'Fraunces',Georgia,serif;
+    --radius-lg:18px; --shadow:0 10px 30px rgba(23,60,44,.10);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--font);color:var(--ink);background:var(--crema);
+       -webkit-font-smoothing:antialiased}
+  .section{padding:clamp(4rem,8vw,7rem) clamp(1.25rem,5vw,3rem)}
+  .container{max-width:1120px;margin:0 auto}
+  .label{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;
+         color:var(--terra);font-weight:600;margin:0 0 .75rem}
+  .title{font-family:var(--font-head);font-weight:600;color:var(--verde-osc);
+         font-size:clamp(2rem,4.2vw,3rem);line-height:1.12;margin:0 0 1rem}
+  .intro{font-size:1.1rem;color:var(--gris);max-width:52ch;margin:0 0 1rem;line-height:1.6}
+  .contra{font-size:1.02rem;color:var(--verde-osc);max-width:52ch;margin:0 0 3.5rem;
+          line-height:1.6;border-left:3px solid var(--terra);padding-left:1rem}
+  .contra b{color:var(--terra-osc)}
+
+  /* ── escalera de vueltas ── */
+  .vuelta{position:relative;margin-bottom:1.1rem}
+  .vuelta-cab{display:flex;align-items:center;gap:.7rem;margin-bottom:.85rem}
+  .vuelta-n{background:var(--verde-osc);color:#fff;font-size:.72rem;font-weight:700;
+            letter-spacing:.1em;text-transform:uppercase;padding:.4rem .85rem;border-radius:99px}
+  .vuelta-t{font-size:.9rem;color:var(--gris);font-weight:500}
+
+  .tramo{display:grid;grid-template-columns:1fr 34px 1fr 34px 1fr;align-items:stretch;gap:.5rem}
+  .beat{border-radius:var(--radius-lg);padding:1.25rem 1.25rem;box-shadow:var(--shadow);
+        display:flex;flex-direction:column;gap:.4rem}
+  .beat .rol{font-size:.7rem;letter-spacing:.11em;text-transform:uppercase;font-weight:700;opacity:.75}
+  .beat h3{font-family:var(--font-head);font-weight:600;font-size:1.18rem;margin:0;line-height:1.25}
+  .beat p{margin:0;font-size:.98rem;line-height:1.5}
+
+  .b-vida{background:#fff;border:1px solid rgba(23,60,44,.10);color:var(--ink)}
+  .b-vida .rol{color:var(--gris)}
+  .b-vida h3{color:var(--verde-osc)}
+
+  .b-plan{background:var(--terra-claro);border:1px solid rgba(190,110,66,.28);color:var(--ink)}
+  .b-plan .rol{color:var(--terra-osc)}
+  .b-plan h3{color:var(--terra-osc)}
+
+  .b-sint{background:var(--verde-osc);color:#fff;border:1px solid var(--verde-osc)}
+  .b-sint .rol{color:var(--terra-claro)}
+  .b-sint h3{color:#fff}
+  .b-sint p{color:rgba(255,255,255,.9)}
+
+  .paso-fl{display:grid;place-items:center;color:var(--terra);font-size:1.35rem;font-weight:700}
+
+  /* el retorno que sube */
+  .sube{display:flex;align-items:center;gap:.75rem;margin:.5rem 0 1.4rem;
+        color:var(--terra-osc);font-weight:600;font-size:.95rem;padding-left:.25rem}
+  .sube .barra{flex:1;height:2px;max-width:340px;border-radius:2px;
+               background:repeating-linear-gradient(90deg,var(--terra) 0 9px,transparent 9px 17px)}
+
+  /* la graduacion: destino, en el color de acento */
+  .b-grad{background:var(--terra-osc);color:#fff;border:1px solid var(--terra-osc);
+          box-shadow:0 14px 34px rgba(190,110,66,.28)}
+  .b-grad .rol{color:var(--terra-claro)}
+  .b-grad h3{color:#fff}
+  .b-grad p{color:rgba(255,255,255,.92)}
+  .vuelta-n--fin{background:var(--terra-osc)}
+
+  /* escalones: cada vuelta arranca mas adentro */
+  .v2{padding-left:2.5rem}
+  .v3{padding-left:5rem}
+
+  .sigue{font-size:1rem;color:var(--verde-osc);font-weight:600;
+         padding-left:5rem;margin-top:1rem}
+
+  .cierre{margin-top:3rem;background:#fff;border:1px solid rgba(23,60,44,.10);
+          border-radius:var(--radius-lg);padding:1.8rem 2rem;box-shadow:var(--shadow);
+          display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap}
+  .cierre p{margin:0;font-size:1.12rem;line-height:1.5;flex:1;min-width:280px;color:var(--verde-osc)}
+  .cierre b{color:var(--terra-osc)}
+  .frecuencias{display:flex;gap:.5rem;flex-wrap:wrap}
+  .frecuencias span{background:var(--verde-claro);border:1px solid rgba(47,110,82,.22);
+                    color:var(--verde-osc);padding:.45rem .9rem;border-radius:99px;
+                    font-size:.9rem;font-weight:600}
+
+  @media (max-width:820px){
+    .tramo{grid-template-columns:1fr;gap:.4rem}
+    .paso-fl{transform:rotate(90deg);font-size:1.1rem;padding:.15rem 0}
+    .v2{padding-left:1rem} .v3{padding-left:2rem} .sigue{padding-left:2rem}
+  }
+</style>
+</head>
+<body>
+<section class="section">
+  <div class="container">
+    <p class="label">Cómo funciona</p>
+    <h2 class="title">No empezamos de cero<br>cada mes.</h2>
+    <p class="intro">Partimos de tu vida como es hoy. Le damos una forma. Después miramos qué sí funcionó y desde ahí seguimos.</p>
+    <p class="contra">Otros te dan un plan y, si no lo cumples, <b>la culpa es tuya</b>. Acá lo que no funcionó es información: cambia el plan, no tú.</p>
+
+    <!-- Vuelta 1 -->
+    <div class="vuelta">
+      <div class="vuelta-cab">
+        <span class="vuelta-n">Primer mes</span>
+        <span class="vuelta-t">Tu punto de partida</span>
+      </div>
+      <div class="tramo">
+        <article class="beat b-vida">
+          <span class="rol">Tú traes</span>
+          <h3>Tu vida de hoy</h3>
+          <p>Tus horarios. Dónde comes. Tus salidas. Lo que ya intentaste.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-plan">
+          <span class="rol">Nosotros ponemos</span>
+          <h3>Tu plan</h3>
+          <p>Le damos forma a lo que ya haces. No te mandamos otra vida.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-sint">
+          <span class="rol">Sale de los dos</span>
+          <h3>Lo que sí funcionó</h3>
+          <p>Miramos qué hiciste de verdad, no lo que era ideal. Guardamos lo que sirvió.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="sube">
+      <span class="barra"></span>
+      <span>↑ y eso se vuelve tu nuevo punto de partida</span>
+    </div>
+
+    <!-- Vuelta 2 -->
+    <div class="vuelta v2">
+      <div class="vuelta-cab">
+        <span class="vuelta-n">Mes siguiente</span>
+        <span class="vuelta-t">Empiezas más arriba que el mes pasado</span>
+      </div>
+      <div class="tramo">
+        <article class="beat b-vida">
+          <span class="rol">Tú traes</span>
+          <h3>Tu vida, ya ordenada</h3>
+          <p>Lo que sirvió el mes pasado ya es tu costumbre.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-plan">
+          <span class="rol">Nosotros ponemos</span>
+          <h3>Tu plan, ajustado</h3>
+          <p>Subimos la exigencia solo donde ya estás listo.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-sint">
+          <span class="rol">Sale de los dos</span>
+          <h3>Lo que sí funcionó</h3>
+          <p>Otra vez miramos tu día a día. Otra vez guardamos lo bueno.</p>
+        </article>
+      </div>
+    </div>
+
+    <div class="sube" style="padding-left:2.5rem">
+      <span class="barra"></span>
+      <span>↑ y otra vez, cada vuelta con menos ayuda nuestra</span>
+    </div>
+
+    <!-- Vuelta final: la graduación -->
+    <div class="vuelta v3">
+      <div class="vuelta-cab">
+        <span class="vuelta-n vuelta-n--fin">Al final</span>
+        <span class="vuelta-t">Vuelta tras vuelta, hasta acá</span>
+      </div>
+      <div class="tramo">
+        <article class="beat b-vida">
+          <span class="rol">Tú traes</span>
+          <h3>Tu vida, tuya</h3>
+          <p>Ya sabes qué comer sin preguntar.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-plan">
+          <span class="rol">Nosotros ponemos</span>
+          <h3>Cada vez menos</h3>
+          <p>Casi no hay que ajustar nada.</p>
+        </article>
+        <div class="paso-fl">→</div>
+        <article class="beat b-grad">
+          <span class="rol">El final del camino</span>
+          <h3>Te gradúas</h3>
+          <p>Sigues solo, sin nosotros. A eso venimos.</p>
+        </article>
+      </div>
+    </div>
+    <p class="sigue">Nuestro trabajo termina bien el día que ya no nos necesitas.</p>
+
+    <div class="cierre">
+      <p>Cada cuánto damos una vuelta <b>depende del plan que elijas</b>.</p>
+      <div class="frecuencias">
+        <span>Cada mes</span>
+        <span>Cada 15 días</span>
+        <span>Cada semana</span>
+      </div>
+    </div>
+  </div>
+</section>
+</body>
+</html>
