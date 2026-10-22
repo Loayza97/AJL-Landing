@@ -162,6 +162,8 @@ const vistaAgendado = (r, deps, ahoraIso) => {
     soles: link ? null : r.monto_centimos / 100,
     // Neto de Mercado Pago (pagos web desde 2026-10-21). Los links pagan por fuera, sin descuento.
     neto: link || r.neto_centimos == null ? null : solesExactos(r.neto_centimos),
+    // El mismo neto como número, para la columna P de la base maestra (Romi, 2026-10-22).
+    neto_soles: link || r.neto_centimos == null ? null : r.neto_centimos / 100,
     cancelada: r.cancelada_en_panel != null,
     nutricionista_id: r.nutricionista_id, duracion_min: r.duracion_min ?? 60,
     editable: r.estado === 'confirmada' && r.cancelada_en_panel == null && r.inicio_utc > ahoraIso,

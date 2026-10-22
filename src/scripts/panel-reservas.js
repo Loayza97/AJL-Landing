@@ -185,6 +185,7 @@ function pintar() {
 // que el panel no sabe va vacío para que cada dato caiga en su columna. Después
 // de PRODUCTO (M) la base tiene una columna de sesiones (N, «1/1»), así que SOLES
 // es la O, RECURRENCIA la R, MODALIDAD la S y NUTRICIONISTA la W (Romi, 2026-10-16).
+// El neto de Mercado Pago va en la P, junto al bruto (Romi, 2026-10-22).
 // Solo se copian las elegidas que están en esta página de la tabla.
 const COLUMNAS_MAESTRA = 25; // A a Y
 // En la base Paola y Jussara van como Pao y Yuyu (Romi, 2026-10-16); solo al copiar, nunca para pacientes.
@@ -200,7 +201,8 @@ function filaMaestra(f) {
   c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
   c[12] = f.producto ?? ''; // M PRODUCTO
-  c[14] = f.soles == null ? '' : String(f.soles); // O SOLES
+  c[14] = f.soles == null ? '' : String(f.soles); // O SOLES (bruto)
+  c[15] = f.neto_soles == null ? '' : String(f.neto_soles); // P NETO de Mercado Pago; Q queda vacía (Romi, 2026-10-22)
   c[17] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // R RECURRENCIA
   c[18] = MOD[f.modalidad] ?? ''; // S MODALIDAD
   c[22] = NOMBRE_EN_BASE[f.nutricionista] ?? f.nutricionista ?? ''; // W NUTRICIONISTA

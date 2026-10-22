@@ -236,6 +236,7 @@ test('reservas: una sola lista con los links y la web, la última agendada prime
   assert.deepEqual([web.plan, web.cita, web.tipo, web.nutricionista, web.paciente_nuevo, web.pago, web.pago_detalle, web.agendado_en],
     ['Constancia, 3 meses', null, 'Sesión de 1 hora', 'Paola', null, 'S/1.080', 'Mercado Pago, VISA', '2026-10-11T22:00:00Z']);
   assert.deepEqual([web.neto, sh.neto], ['S/1045,12', null], 'neto de Mercado Pago; sin dato, vacío');
+  assert.deepEqual([web.neto_soles, sh.neto_soles, lu.neto_soles], [1045.12, null, null], 'neto como número para la base maestra');
   assert.deepEqual([lu.pago, lu.pago_detalle, lu.agendado_en, lu.neto], ['Pagó por fuera', 'Link de Romi', '2026-10-10T15:00:00.000Z', null]);
   assert.deepEqual([sh.plan, sh.sin_hora, sh.pago, sh.pago_detalle], ['Evaluación', true, 'S/90', 'Pagó pero perdió la hora: elegir otra']);
   const pas = await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json();
