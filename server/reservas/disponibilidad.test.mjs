@@ -231,3 +231,10 @@ test('no bloquean: eventos marcados como libres en Google ni los que creó el si
   assert.deepEqual(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'presencial' }),
     horasLibres({ ...base, fecha: '2026-10-06', modalidad: 'presencial' }));
 });
+
+test('sinTope (editar desde el panel): un día lleno sigue ofreciendo horas libres', () => {
+  const llenas = delMartes([10, 11, 12, 14, 15]);
+  assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video' }), []);
+  const r = horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video', sinTope: true });
+  assert.ok(horas(r).includes('16:00'));
+});

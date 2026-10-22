@@ -89,7 +89,7 @@ function ventanaCubre(nutricionista, fecha, modalidad, m, dur) {
 export function horasLibres({
   fecha, modalidad, nutricionistas, eventos, reservas, ahora,
   filtroNutricionista = null, desdeDias = 1, hastaDias = 21,
-  duracionMin = 60, pasoMin = 60,
+  duracionMin = 60, pasoMin = 60, sinTope = false,
 }) {
   const distancia = diasEntre(fechaLima(ahora), fecha);
   if (distancia < desdeDias || distancia > hastaDias) return [];
@@ -99,7 +99,7 @@ export function horasLibres({
 
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
   const usados = delDia.reduce((s, r) => s + minutosDe(r), 0);
-  if (usados + duracionMin > topeMinutosDia(fecha)) return [];
+  if (!sinTope && usados + duracionMin > topeMinutosDia(fecha)) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;
   const cruza = (r, ini, fin) => Date.parse(r.inicio_utc) < fin && Date.parse(finDeReserva(r)) > ini;
