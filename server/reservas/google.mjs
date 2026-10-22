@@ -151,6 +151,9 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     }
     const d = await r.json();
     eventosCacheados.clear();
+    // Un evento borrado a mano sigue existiendo en Google con status 'cancelled':
+    // el PATCH responde 200 pero no se ve. Se trata como inexistente y se crea otro.
+    if (d.status === 'cancelled') throw Object.assign(new Error(`Google: evento ${eventId} borrado`), { noExiste: true });
     return { id: d.id, meet: e.modalidad === 'presencial' ? null : d.hangoutLink || null };
   }
 

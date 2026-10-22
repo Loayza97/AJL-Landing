@@ -171,3 +171,11 @@ test('actualizarEvento: 404 o 410 avisan que el evento no existe; 500 es otro er
     assert.equal(e.noExiste, noExiste, String(status));
   }
 });
+
+test('actualizarEvento: un evento borrado a mano (status cancelled) se avisa como inexistente', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev4?', { id: 'ev4', status: 'cancelled' }]]);
+  const g = crearGoogle(env, f);
+  const e = await g.actualizarEvento('ev4', { titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'presencial', direccion: 'Jr. X' }).catch((x) => x);
+  assert.ok(e instanceof Error);
+  assert.equal(e.noExiste, true);
+});
