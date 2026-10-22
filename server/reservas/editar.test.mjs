@@ -99,3 +99,16 @@ test('sincronizar: otro error de Google marca pendiente y avisa al equipo', asyn
   assert.equal(correos.length, 1);
   assert.equal(correos[0].to, 'equipo@x.pe');
 });
+
+test('sincronizar: si Google falla y marcar pendiente también falla, igual devuelve pendiente', async () => {
+  const d = deps({ actualizarEvento: async () => { throw new Error('500'); } });
+  await sembrar(d.db);
+  const real = d.db;
+  d.db = new Proxy(real, { get: (o, k) => k === 'prepare'
+    ? (sql) => { if (/calendario_pendiente = 1/.test(sql)) throw new Error('db caída'); return o.prepare(sql); }
+    : o[k] });
+  const mudo = console.error; console.error = () => {};
+  try {
+    assert.equal(await sincronizarEventoEditado(d, env, await repo.reservaPorId(real, 'e'), { modalidadAnterior: 'video' }), 'pendiente');
+  } finally { console.error = mudo; }
+});

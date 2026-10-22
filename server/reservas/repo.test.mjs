@@ -377,3 +377,13 @@ test('editarReserva: cita pasada, cancelada o pagada sin hora da estado', async 
   await db.prepare("UPDATE reservas SET estado = 'cancelada' WHERE id = 'e'").run();
   assert.deepEqual(await editar(db), { ok: false, motivo: 'estado' });
 });
+
+test('editarReserva: un cupo vencido sin marcar en la hora de destino no la bloquea', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e', nutricionista_id: 'nico', modalidad: 'presencial' });
+  const viejo = await ret(db, { id: 'viejo', nutricionista_id: 'nico', inicio_utc: '2026-10-07T16:00:00Z', fecha_lima: '2026-10-07', ahora: new Date('2026-09-01T00:00:00Z') });
+  assert.equal(viejo.ok, true);
+  assert.deepEqual(await editar(db, {}), { ok: true });
+  assert.equal((await repo.reservaPorId(db, 'viejo')).estado, 'expirada');
+  assert.equal((await repo.reservaPorId(db, 'e')).inicio_utc, '2026-10-07T16:00:00Z');
+});

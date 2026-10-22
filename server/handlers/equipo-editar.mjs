@@ -55,13 +55,15 @@ export async function handleEditar(request, env, deps) {
     || !deps.nutricionistas.some((n) => n.id === d.nutricionista)) return bad(400, 'Datos inválidos');
   const antes = await repo.reservaPorId(deps.db, d.id);
   if (!editable(antes, deps.ahora())) return bad(409, MSJ_ESTADO);
+  const despues = { inicio_utc: d.inicio, modalidad: d.modalidad, nutricionista_id: d.nutricionista };
+  const cambios = textoCambios(antes, despues, deps.nutricionistas);
+  if (cambios === 'sin cambios') return bad(400, 'No cambiaste nada de la cita.');
   const fecha = fechaLima(new Date(d.inicio));
   try {
     const libres = await horasPara(deps, antes, { fecha, modalidad: d.modalidad, nutricionista: d.nutricionista });
     if (!libres.some((h) => h.inicio === d.inicio)) return bad(409, MSJ_OCUPADA);
-    const despues = { inicio_utc: d.inicio, modalidad: d.modalidad, nutricionista_id: d.nutricionista };
     const res = await repo.editarReserva(deps.db, { id: d.id, ...despues, fecha_lima: fecha, editadaPor: acceso.email,
-      cambios: textoCambios(antes, despues, deps.nutricionistas), ahora: deps.ahora() });
+      cambios, ahora: deps.ahora() });
     if (!res.ok) return bad(409, res.motivo === 'estado' ? MSJ_ESTADO : MSJ_OCUPADA);
   } catch (e) {
     console.error('editar', e);

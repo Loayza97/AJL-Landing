@@ -115,3 +115,13 @@ test('editar: si Google falla, la cita queda editada y la respuesta dice pendien
   } finally { console.error = mudo; }
   assert.equal((await repo.reservaPorId(d.db, id)).inicio_utc, '2026-10-06T16:00:00Z');
 });
+
+test('editar: sin cambios 400 y no toca Google ni marca editada', async () => {
+  const d = deps();
+  const id = await cita(d.db);
+  const r = await handleEditar(post({ id, inicio: '2026-10-06T15:00:00Z', modalidad: 'presencial', nutricionista: 'jussara' }), env, d);
+  assert.equal(r.status, 400);
+  assert.deepEqual(await r.json(), { ok: false, error: 'No cambiaste nada de la cita.' });
+  assert.equal(d.llamadas.length, 0);
+  assert.equal((await repo.reservaPorId(d.db, id)).editada_en, null);
+});

@@ -54,7 +54,7 @@ export async function sincronizarEventoEditado(deps, env, r, { modalidadAnterior
     return 'ok';
   } catch (e) {
     console.error('editar/google', e);
-    await repo.marcarCalendarioPendiente(deps.db, r.id, deps.ahora());
+    try { await repo.marcarCalendarioPendiente(deps.db, r.id, deps.ahora()); } catch (x) { console.error('editar/pendiente', x); }
     await deps.sendEmail({ from: remitente(env), to: env.NOTIFICATION_EMAIL, ...correoEquipoAlerta({
       asunto: 'Cita editada sin calendario',
       detalle: `${r.nombre}: la cita se cambió en el panel (${r.edicion_cambios}) pero Google Calendar no se pudo actualizar. Revisar el evento a mano. Reserva ${r.id}.`,
