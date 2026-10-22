@@ -387,3 +387,21 @@ test('editarReserva: un cupo vencido sin marcar en la hora de destino no la bloq
   assert.equal((await repo.reservaPorId(db, 'viejo')).estado, 'expirada');
   assert.equal((await repo.reservaPorId(db, 'e')).inicio_utc, '2026-10-07T16:00:00Z');
 });
+
+test('cancelarCita: cancela una confirmada futura, guarda quién y libera la hora', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'k' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada', retencion_hasta = NULL WHERE id = 'k'").run();
+  assert.equal(await repo.cancelarCita(db, { id: 'k', por: 'romi@x.pe', ahora: mas(5) }), true);
+  const r = await repo.reservaPorId(db, 'k');
+  assert.deepEqual([r.estado, r.cancelada_en_panel, r.editada_por, r.edicion_cambios], ['cancelada', mas(5).toISOString(), 'romi@x.pe', 'Cancelada']);
+  assert.equal((await ret(db, { id: 'otra', nutricionista_id: 'jussara' })).ok, true);
+  assert.equal(await repo.cancelarCita(db, { id: 'k', por: 'romi@x.pe', ahora: mas(6) }), false);
+});
+
+test('cancelarCita: una cita pasada no se cancela', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'p' });
+  await db.prepare("UPDATE reservas SET estado = 'confirmada', retencion_hasta = NULL WHERE id = 'p'").run();
+  assert.equal(await repo.cancelarCita(db, { id: 'p', por: 'romi@x.pe', ahora: new Date('2026-10-06T17:00:00Z') }), false);
+});

@@ -348,3 +348,15 @@ export async function editarReserva(db, r) {
   if (!actual || actual.estado !== 'confirmada' || new Date(actual.inicio_utc) <= r.ahora) return { ok: false, motivo: 'estado' };
   return { ok: false, motivo: 'ocupada' };
 }
+
+// Cancelar desde el panel (2026-10-22): solo citas confirmadas que no pasaron.
+// La fila sigue en el panel (cancelada_en_panel) y la hora queda libre.
+export async function cancelarCita(db, { id, por, ahora }) {
+  const ahoraIso = ahora.toISOString();
+  const r = await db.prepare(
+    `UPDATE reservas SET estado = 'cancelada', cancelada_en_panel = ?2, editada_en = ?2, editada_por = ?3,
+       edicion_cambios = 'Cancelada', calendario_revisar = NULL, actualizado_en = ?2
+     WHERE id = ?1 AND estado = 'confirmada' AND inicio_utc > strftime('%Y-%m-%dT%H:%M:%SZ', ?2)`,
+  ).bind(id, ahoraIso, por).run();
+  return r.meta.changes === 1;
+}

@@ -179,3 +179,17 @@ test('actualizarEvento: un evento borrado a mano (status cancelled) se avisa com
   assert.ok(e instanceof Error);
   assert.equal(e.noExiste, true);
 });
+
+test('eliminarEvento: DELETE con aviso al paciente; 404 o 410 cuentan como ya borrado; 500 falla', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev5?', {}, 200]]);
+  const g = crearGoogle(env, f);
+  await g.eliminarEvento('ev5');
+  assert.equal(f.llamadas[1].init.method, 'DELETE');
+  assert.match(f.llamadas[1].url, /events\/ev5\?sendUpdates=all/);
+  for (const [status, falla] of [[404, false], [410, false], [500, true]]) {
+    _limpiarCachesGoogle();
+    const h = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events/ev6?', { error: 'x' }, status]]);
+    const e = await crearGoogle(env, h).eliminarEvento('ev6').then(() => null, (x) => x);
+    assert.equal(e instanceof Error, falla, String(status));
+  }
+});

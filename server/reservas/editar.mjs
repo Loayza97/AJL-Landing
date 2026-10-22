@@ -62,3 +62,20 @@ export async function sincronizarEventoEditado(deps, env, r, { modalidadAnterior
     return 'pendiente';
   }
 }
+
+// Borra el evento de una cita cancelada en el panel. Devuelve 'ok' o 'pendiente'.
+export async function borrarEventoCancelado(deps, env, r) {
+  if (!r.google_event_id) return 'ok';
+  try {
+    await deps.google.eliminarEvento(r.google_event_id);
+    return 'ok';
+  } catch (e) {
+    console.error('cancelar/google', e);
+    try { await repo.marcarCalendarioPendiente(deps.db, r.id, deps.ahora()); } catch (x) { console.error('cancelar/pendiente', x); }
+    await deps.sendEmail({ from: remitente(env), to: env.NOTIFICATION_EMAIL, ...correoEquipoAlerta({
+      asunto: 'Cita cancelada sin calendario',
+      detalle: `${r.nombre}: la cita se canceló en el panel pero el evento de Google Calendar no se pudo borrar. Borrarlo a mano. Reserva ${r.id}.`,
+    }) }).catch((x) => console.error('cancelar/alerta', x));
+    return 'pendiente';
+  }
+}
