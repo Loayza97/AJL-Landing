@@ -8,7 +8,12 @@ import { correoEquipoAlerta } from './correos.mjs';
 import { contacto } from '../../src/data/contacto.js';
 
 const MOD = { presencial: 'presencial', video: 'virtual' };
-const hora = (iso) => new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: 'numeric', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso));
+// H:mm, sin cero a la izquierda en la hora («9:00», «15:30»).
+const hora = (iso) => {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+  return `${Number(p.hour)}:${p.minute}`;
+};
 const dia = (iso) => new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', weekday: 'short', day: 'numeric', month: 'short' })
   .format(new Date(iso)).replace(/\./g, '').replace(',', '');
 
