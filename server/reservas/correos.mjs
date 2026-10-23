@@ -1,5 +1,6 @@
 // Plantillas de correo de reservas. Todo lo que escribió el paciente pasa por
 // esc(): un nombre con HTML no puede inyectar nada en el correo del equipo.
+import { requisitosDe } from '../../src/data/requisitos.js';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const marco = (cuerpo) => `
@@ -14,6 +15,15 @@ const boton = (href, texto) => `<p style="margin:24px 0"><a href="${esc(href)}" 
 const ETIQUETA_DOCUMENTO = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const etiquetaDocumento = (tipo) => ETIQUETA_DOCUMENTO[tipo] || 'DNI';
 
+// Requisitos según la modalidad (src/data/requisitos.js), como bloque del correo.
+const bloqueRequisitos = (modalidad) => {
+  const r = requisitosDe(modalidad);
+  return `<div style="background:#F7F3EA;border-radius:12px;padding:14px 18px;margin:18px 0">
+      <p style="margin:0 0 8px"><strong>${esc(r.titulo)}</strong></p>
+      <ul style="margin:0;padding-left:18px">${r.items.map((i) => `<li style="margin-bottom:6px">${esc(i)}</li>`).join('')}</ul>
+    </div>`;
+};
+
 const dondeCita = (modalidad, direccion, meet) => (modalidad === 'video'
   ? (meet ? `Por videollamada: <a href="${esc(meet)}">${esc(meet)}</a>` : 'Por videollamada: el enlace llega en la invitación de Google Calendar.')
   : `En nuestro consultorio: ${esc(direccion)}`);
@@ -27,6 +37,7 @@ export function correoConfirmacion({ nombre, titulo, etiqueta, modalidad, direcc
       <p><strong>${esc(etiqueta)}</strong> · 60 min · con ${esc(nutricionista)}</p>
       <p>${donde}</p>
       <p>Plan: ${esc(titulo)}</p>
+      ${bloqueRequisitos(modalidad)}
       ${boton(urlIcs, 'Agregar a mi calendario')}
       <p>Si necesitas mover tu cita, escríbenos por WhatsApp. Es gratis hasta 48 horas antes.</p>`),
   };
@@ -85,6 +96,7 @@ export function correoCitaAgenda({ nombre, titulo, etiqueta, duracion, modalidad
       <p><strong>${esc(etiqueta)}</strong> · ${Number(duracion)} min · con ${esc(nutricionista)}</p>
       <p>${dondeCita(modalidad, direccion, meet)}</p>
       <p>${esc(titulo)}</p>
+      ${bloqueRequisitos(modalidad)}
       ${boton(urlIcs, 'Agregar a mi calendario')}
       <p>Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`),
   };

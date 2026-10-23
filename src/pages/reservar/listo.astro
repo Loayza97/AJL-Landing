@@ -14,7 +14,7 @@ import '../../styles/reservar.css';
 <script>
   import { formatoSoles } from '../../data/duraciones.js';
   import { contacto } from '../../data/contacto.js';
-  import { NOMBRE_MODALIDAD, nodoDonde } from '../../scripts/donde.js';
+  import { NOMBRE_MODALIDAD, nodoDonde, nodoRequisitos } from '../../scripts/donde.js';
   const raiz = document.getElementById('listo');
   const q = new URLSearchParams(location.search);
   const leerGuardado = (clave) => { try { return sessionStorage.getItem(clave); } catch { return null; } };
@@ -46,6 +46,7 @@ import '../../styles/reservar.css';
         <a class="rs-btn rs-btn--ghost" href="/api/reservas/ics?r=${encodeURIComponent(token)}" style="text-align:center;text-decoration:none">Otro calendario (Apple, Outlook)</a>
         <p class="rs-nota">Te enviamos la invitación y la confirmación a tu correo. Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`;
       raiz.querySelector('.rs-resumen').append(nodoDonde(d.modalidad, d.meet));
+      raiz.querySelector('.rs-resumen').after(nodoRequisitos(d.modalidad));
       (async () => {
         try {
           const clave = `ajl_compra_${token}`;

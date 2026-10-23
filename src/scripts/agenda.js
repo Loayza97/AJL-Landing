@@ -1,7 +1,7 @@
 // Controlador de /agenda/?l=TOKEN: horario → DNI → (ya paciente: confirmar |
 // nuevo: datos) → listo. Las horas, el DNI y la cita los decide el servidor.
 import { montarSelector } from './selector-horas.js';
-import { NOMBRE_MODALIDAD as MOD, nodoDonde } from './donde.js';
+import { NOMBRE_MODALIDAD as MOD, nodoDonde, nodoRequisitos } from './donde.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
 import { contacto } from '../data/contacto.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
@@ -74,6 +74,7 @@ async function confirmar(datos, errorSel) {
   } else if (status === 200) {
     $('#a-listo').textContent = `${d.etiqueta} · ${d.titulo} · ${MOD[d.modalidad]} · con ${d.nutricionista}`;
     $('#a-listo').append(nodoDonde(d.modalidad, d.meet));
+    $('#a-listo').after(nodoRequisitos(d.modalidad));
     const donde = d.modalidad === 'video' ? 'por videollamada' : 'en el consultorio de Lince';
     // «viernes, 16 de octubre, 5:00 p. m.» → «el viernes 16 de octubre a las 5:00 p. m.»
     const f = d.etiqueta.match(/^(\S+), (.+), (\d.+)$/);
