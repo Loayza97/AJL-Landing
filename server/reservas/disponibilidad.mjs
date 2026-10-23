@@ -2,7 +2,7 @@
 // eventos del calendario ya normalizados y las reservas activas, y devuelve qué
 // horas se pueden vender y a quién se le asignan. Toda regla del spec vive aquí.
 import { inicioUtcMin, fechaLima, diaSemana, diasEntre, finDeReserva } from './tiempo.mjs';
-import { TOPE_MINUTOS } from './constantes.mjs';
+import { TOPE_MINUTOS, TOPE_NUTRI_MINUTOS } from './constantes.mjs';
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
@@ -43,6 +43,12 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
 // dos. Los eventos puestos a mano en Google no suman.
 export function topeMinutosDia(fecha) {
   return diaSemana(fecha) === 6 ? TOPE_MINUTOS.sabado : TOPE_MINUTOS.semana;
+}
+
+// Tope por nutricionista (Joaquín y Alejandro, 2026-10-23): suman sus citas de
+// la web y de los links. Llena, ese día ya no se le ofrece; las demás siguen.
+export function topeNutriDia(fecha) {
+  return diaSemana(fecha) === 6 ? TOPE_NUTRI_MINUTOS.sabado : TOPE_NUTRI_MINUTOS.semana;
 }
 
 const minutosDe = (r) => r.duracion_min ?? 60;
@@ -102,6 +108,8 @@ export function horasLibres({
   if (!sinTope && usados + duracionMin > topeMinutosDia(fecha)) return [];
 
   const carga = (id) => delDia.filter((r) => r.nutricionista_id === id).length;
+  const minutosNutri = (id) => delDia.filter((r) => r.nutricionista_id === id).reduce((s, r) => s + minutosDe(r), 0);
+  const topeNutri = topeNutriDia(fecha);
   const cruza = (r, ini, fin) => Date.parse(r.inicio_utc) < fin && Date.parse(finDeReserva(r)) > ini;
   const libres = [];
   for (let m = 0; m + duracionMin <= 24 * 60; m += pasoMin) {
@@ -114,6 +122,7 @@ export function horasLibres({
 
     const bloqueadas = bloqueadasPorEventos(eventos, nutricionistas, ini, fin);
     const candidatas = nutricionistas.filter((n) => !ausentes.has(n.id) && !bloqueadas.has(n.id)
+      && (sinTope || minutosNutri(n.id) + duracionMin <= topeNutri)
       && (!filtroNutricionista || n.id === filtroNutricionista)
       && ventanaCubre(n, fecha, modalidad, m, duracionMin)
       && !delDia.some((r) => r.nutricionista_id === n.id && cruza(r, ini, fin)));

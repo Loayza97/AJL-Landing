@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { horasLibres, ausenciasDelDia, topeMinutosDia } from './disponibilidad.mjs';
+import { horasLibres, ausenciasDelDia, topeMinutosDia, topeNutriDia } from './disponibilidad.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 
 // Lunes 5-oct-2026, 10:00 en Lima.
@@ -238,4 +238,29 @@ test('sinTope (editar desde el panel): un día lleno sigue ofreciendo horas libr
   assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video' }), []);
   const r = horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video', sinTope: true });
   assert.ok(horas(r).includes('16:00'));
+});
+
+test('tope por nutricionista (2026-10-23): 180 minutos de lunes a viernes, 300 el sábado', () => {
+  assert.equal(topeNutriDia('2026-10-06'), 180);
+  assert.equal(topeNutriDia('2026-10-10'), 300);
+});
+
+test('tope por nutri: con 3 horas ese día, a Jussara no se le ofrece nada más; las otras siguen', () => {
+  const tres = [10, 11, 12].map((h) => reserva({ inicio_utc: `2026-10-06T${h + 5}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' }));
+  assert.deepEqual(horasLibres({ ...base, reservas: tres, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }), []);
+  const r = horasLibres({ ...base, reservas: tres, fecha: '2026-10-06', modalidad: 'video' });
+  assert.ok(r.length > 0);
+  assert.ok(r.every((h) => h.nutricionista_id !== 'jussara'));
+  // Con 2 horas y media le entra una de 30 pero no una de 60.
+  const dosYMedia = [...tres.slice(0, 2), reserva({ inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video', duracion_min: 30 })];
+  assert.deepEqual(horasLibres({ ...base, reservas: dosYMedia, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }), []);
+  assert.ok(horasLibres({ ...base, reservas: dosYMedia, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara', duracionMin: 30, pasoMin: 30 }).length > 0);
+  // Editar desde el panel (sinTope) lo puede pasar.
+  assert.ok(horasLibres({ ...base, reservas: tres, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara', sinTope: true }).length > 0);
+});
+
+test('tope por nutri: el sábado caben 5 horas por nutricionista', () => {
+  const sab = (horasLima) => horasLima.map((h) => reserva({ inicio_utc: `2026-10-10T${h + 5}:00:00Z`, fecha_lima: '2026-10-10', nutricionista_id: 'nico', modalidad: 'video' }));
+  assert.ok(horasLibres({ ...base, reservas: sab([9, 10, 11, 12]), fecha: '2026-10-10', modalidad: 'video', filtroNutricionista: 'nico' }).length > 0);
+  assert.deepEqual(horasLibres({ ...base, reservas: sab([9, 10, 11, 12, 14]), fecha: '2026-10-10', modalidad: 'video', filtroNutricionista: 'nico' }), []);
 });

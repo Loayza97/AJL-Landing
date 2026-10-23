@@ -2,7 +2,7 @@
 // (si es nuevo), reserva y link usado, cada sentencia con las mismas condiciones
 // (link vigente, sin cruce y con cupo en el tope del día), así nunca queda una
 // mitad guardada.
-import { CRUCE, MINUTOS_DIA, hayCruce, expirar } from '../reservas/repo.mjs';
+import { CRUCE, MINUTOS_DIA, NUTRI_CON_CUPO, hayCruce, expirar } from '../reservas/repo.mjs';
 import { topeMinutosDia } from '../reservas/disponibilidad.mjs';
 import { VENCE_DIAS, REACTIVAR_DIAS } from './tipos.mjs';
 
@@ -81,7 +81,8 @@ export async function agendarConLink(db, a) {
        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'dni', ?10
        WHERE ${VIGENTE('?11', '?10')}
          AND NOT ${CRUCE({ ini: '?12', fin: '?13', nutri: '?14', modalidad: '?15', excluir: "''" })}
-         AND ${MINUTOS_DIA('?16')} + ?17 <= ?18`,
+         AND ${MINUTOS_DIA('?16')} + ?17 <= ?18
+         AND ${NUTRI_CON_CUPO({ fecha: '?16', nutri: '?14', dur: '?17' })}`,
     ).bind(a.clienteId, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno ?? null, c.fecha_nacimiento,
       ahoraIso, a.link, h.inicio, h.fin, h.nutricionista_id, h.modalidad, h.fecha_lima, h.duracion_min, tope));
   }
@@ -92,7 +93,8 @@ export async function agendarConLink(db, a) {
      WHERE EXISTS (SELECT 1 FROM clientes WHERE id = ?3)
        AND ${VIGENTE('?12', '?13')}
        AND NOT ${CRUCE({ ini: '?6', fin: '?7', nutri: '?5', modalidad: '?10', excluir: '?1' })}
-       AND ${MINUTOS_DIA('?9')} + ?8 <= ?14`,
+       AND ${MINUTOS_DIA('?9')} + ?8 <= ?14
+       AND ${NUTRI_CON_CUPO({ fecha: '?9', nutri: '?5', dur: '?8' })}`,
   ).bind(a.reservaId, a.token, a.clienteId, `link_${a.tipoId}`, h.nutricionista_id, h.inicio, h.fin, h.duracion_min, h.fecha_lima, h.modalidad,
     a.condicionesVersion ?? null, a.link, ahoraIso, tope));
   sentencias.push(db.prepare(

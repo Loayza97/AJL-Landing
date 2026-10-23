@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- /reservar/ y /agenda/: tope por nutricionista. Cada una atiende como máximo 3 horas por día de lunes a viernes y 5 el sábado, sumando citas de la web y de los links. Llena, ese día ya no se le ofrece y la hora pasa a otra nutricionista libre. «Editar cita» desde el panel puede pasarlo.
 - Requisitos para la consulta: el correo de confirmación al paciente (web y link) y la pantalla de cita confirmada muestran los requisitos según la modalidad. Presencial: venir aseado(a) y la ropa para las mediciones. Virtual: pesarse y tallarse antes, de preferencia en ayunas. Texto en `src/data/requisitos.js`. Si el equipo cambia la modalidad desde el panel, el paciente recibe «Tu cita ahora es virtual/presencial» con el Meet o la dirección y los requisitos nuevos. Los requisitos también van al final de la descripción del evento de Google Calendar, así salen en la invitación y en el aviso de Google cuando cambia la modalidad.
 - Horario de Paolo: los jueves atiende de 2 a 8 p. m. (antes de 10 a 5). Sigue igual: lunes y viernes de 2 a 8, y alterna martes de 2 a 8 con sábado de 10 a 5.
 - /reservar/ y /agenda/: se puede agendar hasta seis semanas adelante (antes tres). El calendario recorre los meses que toque esa ventana.

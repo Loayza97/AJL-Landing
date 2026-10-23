@@ -1,6 +1,8 @@
 // Reglas del negocio que el spec fija (Alejandro, 30-sep y 1-oct-2026).
 // Minutos de citas (web y links) por día; ver topeMinutosDia (Alejandro, 2026-10-22).
 export const TOPE_MINUTOS = { semana: 300, sabado: 480 };
+// Minutos de citas por nutricionista y día (2026-10-23): 3 horas L-V, 5 el sábado.
+export const TOPE_NUTRI_MINUTOS = { semana: 180, sabado: 300 };
 export const DESDE_DIAS = 1;    // no se reserva para el mismo día
 // Días que se pueden pedir de una vez a /horas: la ventana completa y un margen.
 export const MAX_DIAS_CONSULTA = 45;
