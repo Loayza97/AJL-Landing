@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Horario de Paolo: los jueves atiende de 2 a 8 p. m. (antes de 10 a 5). Sigue igual: lunes y viernes de 2 a 8, y alterna martes de 2 a 8 con sábado de 10 a 5.
 - /reservar/ y /agenda/: se puede agendar hasta seis semanas adelante (antes tres). El calendario recorre los meses que toque esa ventana.
 - Correos al equipo: cada cita agendada (web o link), cambiada o cancelada desde el panel avisa a Romina, Irene, Alejandro y la nutricionista de la cita, con paciente, fecha, modalidad, plan, cita y WhatsApp. Si se cambia de nutricionista, la anterior recibe «Ya no atiendes a …». Los correos están en el secreto `CORREOS_EQUIPO` de Cloudflare (no en el código). Si un correo falla, la cita sigue igual.
 - Panel, Reservas: botón «Cancelar cita» junto a «Editar» en cada cita confirmada que no pasó. Pide confirmar, libera la hora (web, links y tope), borra el evento de Google Calendar (Google avisa al paciente) y la fila se queda en rojo con «Cancelada por …». Si Google falla, la cita igual queda cancelada y el equipo recibe una alerta para borrar el evento a mano.
