@@ -63,3 +63,11 @@ test('link de Renovación Constancia: sin sesiones al mes, 2 de 2', () => {
   assert.equal(e.titulo, 'Cecilia Chau Pérez · 2 de 2');
   assert.match(e.descripcion, /^Producto: Renovación Constancia$/m);
 });
+
+test('la descripción del evento termina con los requisitos de la modalidad (2026-10-23)', () => {
+  const v = eventoEquipo({ ...base, producto: 'evaluacion', duracion_meses: 1, modalidad: 'video' }, nutri).descripcion;
+  assert.match(v, /^Reserva: R1\n\n📌 Requisitos para tu consulta virtual\n• Tienes que pesarte y tallarte/m);
+  const p = eventoEquipo({ ...base, producto: 'evaluacion', duracion_meses: 1, modalidad: 'presencial' }, nutri).descripcion;
+  assert.match(p, /Requisitos para tu consulta presencial/);
+  assert.doesNotMatch(p, /pesarte/);
+});
