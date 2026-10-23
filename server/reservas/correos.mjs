@@ -101,3 +101,18 @@ export function correoCitaAgenda({ nombre, titulo, etiqueta, duracion, modalidad
       <p>Si necesitas mover tu cita, escríbenos por WhatsApp.</p>`),
   };
 }
+
+// Cuando el equipo cambia la modalidad desde el panel (2026-10-23): dónde es
+// ahora la cita y los requisitos nuevos. El resto de cambios los avisa Google.
+export function correoCambioModalidad({ nombre, etiqueta, modalidad, direccion, meet, nutricionista }) {
+  const ahora = modalidad === 'video' ? 'virtual' : 'presencial';
+  return {
+    subject: `Tu cita ahora es ${ahora}: ${etiqueta} · AJL Nutrición`,
+    html: marco(`
+      <h2 style="font-family:Georgia,serif;color:#173C2C">${esc(nombre)}, tu cita ahora es ${ahora}.</h2>
+      <p><strong>${esc(etiqueta)}</strong> · con ${esc(nutricionista)}</p>
+      <p>${dondeCita(modalidad, direccion, meet)}</p>
+      ${bloqueRequisitos(modalidad)}
+      <p>Si tienes dudas, escríbenos por WhatsApp.</p>`),
+  };
+}

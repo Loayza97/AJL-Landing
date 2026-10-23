@@ -5,7 +5,9 @@
 import { json, readJson } from '../http.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { horasLibres } from '../reservas/disponibilidad.mjs';
-import { fechaLima } from '../reservas/tiempo.mjs';
+import { fechaLima, etiquetaLima } from '../reservas/tiempo.mjs';
+import { correoCambioModalidad } from '../reservas/correos.mjs';
+import { contacto } from '../../src/data/contacto.js';
 import { contexto } from './reservas.mjs';
 import { textoCambios, sincronizarEventoEditado, borrarEventoCancelado } from '../reservas/editar.mjs';
 import { avisarEquipo } from '../reservas/aviso-equipo.mjs';
@@ -74,7 +76,22 @@ export async function handleEditar(request, env, deps) {
   const editada = await repo.reservaPorId(deps.db, d.id);
   const calendario = await sincronizarEventoEditado(deps, env, editada, { modalidadAnterior: antes.modalidad });
   await avisarEquipo(deps, env, { tipo: 'cambiada', r: editada, antes });
+  if (antes.modalidad !== editada.modalidad) await avisarCambioModalidad(deps, env, d.id);
   return json(200, { ok: true, calendario });
+}
+
+// El paciente recibe dónde es ahora la cita y los requisitos de la modalidad nueva
+// (con el Meet ya guardado si pasó a virtual). Si el correo falla, la edición sigue.
+async function avisarCambioModalidad(deps, env, id) {
+  try {
+    const r = await repo.reservaPorId(deps.db, id);
+    const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
+    await deps.sendEmail({ from: env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>', to: r.email,
+      ...correoCambioModalidad({ nombre: r.nombres || r.nombre, etiqueta: etiquetaLima(r.inicio_utc), modalidad: r.modalidad,
+        direccion: contacto.direccion, meet: r.meet_url, nutricionista: n?.nombre ?? r.nutricionista_id }) });
+  } catch (e) {
+    console.error('editar/correo-paciente', e);
+  }
 }
 
 export async function handleCancelar(request, env, deps) {
