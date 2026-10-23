@@ -57,7 +57,7 @@ test('editar-horas: con el día lleno por otras 5 citas sigue habiendo horas (si
   const d = deps();
   const id = await cita(d.db);
   for (const h of ['14', '16', '17', '19', '20']) {
-    await cita(d.db, { nutricionista_id: 'nico', inicio_utc: `2026-10-06T${h}:00:00Z`, modalidad: 'video', tope: 9999 });
+    await cita(d.db, { nutricionista_id: `n${h}`, inicio_utc: `2026-10-06T${h}:00:00Z`, modalidad: 'video', tope: 9999 });
   }
   const r = await (await handleEditarHoras(get(q(id)), env, d)).json();
   assert.ok(r.horas.length > 0);

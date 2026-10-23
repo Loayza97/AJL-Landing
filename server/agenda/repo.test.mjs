@@ -134,3 +134,14 @@ test('borrar: solo un link sin usar (vigente o vencido), en una sola sentencia; 
   const { results } = await db.prepare('SELECT id FROM links_agenda').all();
   assert.deepEqual(results.map((l) => l.id), [usado]);
 });
+
+test('agendar con link cuando la nutri ya tiene 3 horas ese día: motivo tope y el link sigue sin usar', async () => {
+  const db = d1DePrueba();
+  for (const h of ['16', '17', '19']) {
+    await repo.crearRetencion(db, { id: `w${h}`, token: `tw${h}`, producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
+      nutricionista_id: 'nico', inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
+  }
+  const id = await link(db);
+  assert.deepEqual(await agendar(db, id, { hora: hora({ inicio: '2026-10-06T22:00:00Z', fin: '2026-10-06T22:30:00Z' }) }), { ok: false, motivo: 'tope' });
+  assert.equal((await db.prepare('SELECT usado_en FROM links_agenda WHERE id = ?1').bind(id).first()).usado_en, null);
+});

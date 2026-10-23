@@ -2,6 +2,8 @@
 // propia base: índices únicos parciales (hora del consultorio y de cada
 // nutricionista), el cruce de horarios (CRUCE) y el tope dentro de la misma
 // sentencia que inserta.
+import { TOPE_NUTRI_MINUTOS } from './constantes.mjs';
+
 const ACTIVOS = "('apartada', 'pagando', 'confirmada')";
 const UNIQUE = /UNIQUE constraint failed/i;
 const MIN = 60000;
@@ -10,6 +12,14 @@ const MIN = 60000;
 // compara con esto dentro de la misma sentencia que escribe.
 export const MINUTOS_DIA = (fecha, excluir = null) => `(SELECT COALESCE(SUM(COALESCE(duracion_min, 60)), 0) FROM reservas
   WHERE fecha_lima = ${fecha} AND estado IN ${ACTIVOS}${excluir ? ` AND id <> ${excluir}` : ''})`;
+
+// Tope por nutricionista (2026-10-23): sus minutos activos de ese día más la cita
+// nueva no pasan de 180 L-V ni de 300 el sábado. El alias m deja referirse a la
+// fila de afuera (reservas.*) en los UPDATE.
+const TOPE_NUTRI_SQL = (fecha) => `(CASE strftime('%w', ${fecha}) WHEN '6' THEN ${TOPE_NUTRI_MINUTOS.sabado} ELSE ${TOPE_NUTRI_MINUTOS.semana} END)`;
+export const NUTRI_CON_CUPO = ({ fecha, nutri, dur, excluir = null }) => `(SELECT COALESCE(SUM(COALESCE(m.duracion_min, 60)), 0) FROM reservas m
+  WHERE m.fecha_lima = ${fecha} AND m.nutricionista_id = ${nutri} AND m.estado IN ${ACTIVOS}${excluir ? ` AND m.id <> ${excluir}` : ''})
+  + ${dur} <= ${TOPE_NUTRI_SQL(fecha)}`;
 
 const FIN = (col) => `COALESCE(${col}.fin_utc, strftime('%Y-%m-%dT%H:%M:%SZ', ${col}.inicio_utc, '+60 minutes'))`;
 
@@ -64,6 +74,7 @@ export async function crearRetencion(db, r) {
        inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante, fin_utc, duracion_min)
      SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?14, ?12, ?12, ?15, ?16, ?17
      WHERE ${MINUTOS_DIA('?9')} + ?17 <= ?13
+       AND ${NUTRI_CON_CUPO({ fecha: '?9', nutri: '?7', dur: '?17' })}
        AND NOT ${CRUCE({ ini: '?8', fin: '?16', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
     r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.tope, huella, r.variante ?? null, fin, duracion);
@@ -150,7 +161,8 @@ export async function confirmarReserva(db, { id, fecha_lima, tope, ahora }) {
        WHERE id = ?1 AND NOT ${CRUCE({ ini: 'reservas.inicio_utc', fin: FIN('reservas'), nutri: 'reservas.nutricionista_id', modalidad: 'reservas.modalidad', excluir: 'reservas.id' })}
          AND (
          estado IN ('apartada', 'pagando')
-         OR (estado = 'expirada' AND ${MINUTOS_DIA('?3', '?1')} + COALESCE(duracion_min, 60) <= ?4))`,
+         OR (estado = 'expirada' AND ${MINUTOS_DIA('?3', '?1')} + COALESCE(duracion_min, 60) <= ?4
+           AND ${NUTRI_CON_CUPO({ fecha: '?3', nutri: 'reservas.nutricionista_id', dur: 'COALESCE(reservas.duracion_min, 60)', excluir: '?1' })}))`,
     ).bind(id, ahoraIso, fecha_lima, tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, id);
@@ -189,7 +201,8 @@ export async function reubicar(db, r) {
          estado = 'confirmada', google_event_id = NULL, meet_url = NULL, actualizado_en = ?6
        WHERE id = ?1 AND estado = 'pagada_sin_hora'
          AND NOT ${CRUCE({ ini: '?3', fin, nutri: '?2', modalidad: '?5', excluir: '?1' })}
-         AND ${MINUTOS_DIA('?4', '?1')} + COALESCE(duracion_min, 60) <= ?7`,
+         AND ${MINUTOS_DIA('?4', '?1')} + COALESCE(duracion_min, 60) <= ?7
+         AND ${NUTRI_CON_CUPO({ fecha: '?4', nutri: '?2', dur: 'COALESCE(reservas.duracion_min, 60)', excluir: '?1' })}`,
     ).bind(r.id, r.nutricionista_id, r.inicio_utc, r.fecha_lima, r.modalidad, ahoraIso, r.tope)]);
     if (res.meta.changes === 1) return { ok: true };
     const actual = await reservaPorId(db, r.id);
