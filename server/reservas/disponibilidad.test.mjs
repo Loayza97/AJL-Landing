@@ -26,7 +26,7 @@ test('Nico alterna (Romi, 2026-10-15): miércoles 14 sí, 21 no; sábado 10 sí 
   assert.deepEqual(horas(nico('2026-10-10')), ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']);
 });
 
-test('Paolo (Romi, 2026-10-15): viernes fijo de 14 a 20; alterna martes 20 y sábado 17 de 10 a 17', () => {
+test('Paolo (Romi, 2026-10-15; jueves 2026-10-23): lunes, jueves y viernes fijos de 14 a 20; alterna martes 20 y sábado 17 de 10 a 17', () => {
   const paolo = (fecha, modalidad = 'presencial') => horas(horasLibres({ ...base, fecha, modalidad, filtroNutricionista: 'paolo' }));
   assert.deepEqual(paolo('2026-10-09'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(paolo('2026-10-17'), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00']);
@@ -35,6 +35,7 @@ test('Paolo (Romi, 2026-10-15): viernes fijo de 14 a 20; alterna martes 20 y sá
   assert.deepEqual(paolo('2026-10-20'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(paolo('2026-10-13'), []);
   assert.deepEqual(paolo('2026-10-12'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']); // lunes fijo
+  assert.deepEqual(paolo('2026-10-08'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']); // jueves fijo de 2 a 8 (2026-10-23)
   // Viernes y sábado son presenciales y, como toda ventana presencial, también por video.
   assert.deepEqual(paolo('2026-10-09', 'video'), ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00']);
   assert.deepEqual(paolo('2026-10-17', 'video'), ['10:00', '11:00', '12:00', '14:00', '15:00', '16:00']);

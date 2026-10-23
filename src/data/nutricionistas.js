@@ -67,7 +67,7 @@ export const nutricionistas = [
     ventanas: [
       { dia: 'lunes', modalidad: null, desde: 14, hasta: 20 },
       { dia: 'martes', modalidad: null, desde: 14, hasta: 20, cadaDosSemanas: '2026-10-20' },
-      { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
+      { dia: 'jueves', modalidad: null, desde: 14, hasta: 20 }, // de 2 a 8 (Joaquín, 2026-10-23; antes 10 a 17)
       { dia: 'viernes', modalidad: null, desde: 14, hasta: 20 },
       { dia: 'sabado', modalidad: null, desde: 10, hasta: 17, cadaDosSemanas: '2026-10-17' },
     ],
