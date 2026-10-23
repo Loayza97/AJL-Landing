@@ -5,6 +5,7 @@
 // Título: «Nombre · 2 sesiones al mes · 2 de 7»; pago único: «Nombre · 1 de 1».
 import { plans } from '../../src/data/plans.js';
 import { etiquetaPlan, etiquetaCita, PAGO_UNICO, clavePlan } from '../agenda/opciones.mjs';
+import { requisitosDe } from '../../src/data/requisitos.js';
 
 const UNICO = new Set(['evaluacion', 'basico']);
 
@@ -22,12 +23,12 @@ function sesionesAlMes(plan) {
   return n === 1 ? '1 sesión al mes' : `${n} sesiones al mes`;
 }
 
-export function eventoEquipo(r, nutricionista) {
+// Datos de la cita, una línea cada uno: van al evento y al aviso al equipo.
+export function lineasCita(r, nutricionista) {
   const { plan, cita } = planYCita(r);
   const producto = etiquetaPlan(plan)?.replace(', ', ' · ') ?? null;
   const citaTexto = etiquetaCita(plan, cita ?? '1') ?? '1ra sesión';
-  const titulo = [r.nombre, sesionesAlMes(plan), citaTexto].filter(Boolean).join(' · ');
-  const descripcion = [
+  return [
     producto && `Producto: ${producto}`,
     `Cita: ${citaTexto}`,
     `Nutricionista: ${nutricionista.nombre}`,
@@ -35,6 +36,17 @@ export function eventoEquipo(r, nutricionista) {
     `Correo: ${r.email}`,
     `Procedencia: ${r.link_id ? 'Link de un solo uso' : 'Web (pagado)'}`,
     `Reserva: ${r.id}`,
-  ].filter(Boolean).join('\n');
+  ].filter(Boolean);
+}
+
+// Al evento se le suman los requisitos de la modalidad (2026-10-23): el paciente
+// los ve en la invitación y, si cambia la modalidad, en el aviso de Google.
+export function eventoEquipo(r, nutricionista) {
+  const { plan, cita } = planYCita(r);
+  const citaTexto = etiquetaCita(plan, cita ?? '1') ?? '1ra sesión';
+  const titulo = [r.nombre, sesionesAlMes(plan), citaTexto].filter(Boolean).join(' · ');
+  const req = r.modalidad ? requisitosDe(r.modalidad) : null;
+  const lineas = lineasCita(r, nutricionista);
+  const descripcion = (req ? [...lineas, '', req.titulo, ...req.items.map((i) => `• ${i}`)] : lineas).join('\n');
   return { titulo, descripcion };
 }

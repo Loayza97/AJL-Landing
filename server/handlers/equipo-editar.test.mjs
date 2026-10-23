@@ -201,3 +201,21 @@ test('cancelar: «Cita cancelada» a Romina, Irene y la nutri', async () => {
   assert.match(correos[0].subject, /^Cita cancelada: /);
   assert.deepEqual(correos[0].to, ['romi@x.pe', 'irene@x.pe', 'yuyu@x.pe']);
 });
+
+test('editar la modalidad: el paciente recibe «Tu cita ahora es virtual» con los requisitos; sin cambio de modalidad, no', async () => {
+  const correos = [];
+  const d = deps({ sendEmail: async (c) => { correos.push(c); } });
+  d.google.actualizarEvento = async (id) => ({ id, meet: 'https://meet.google.com/nuevo' });
+  const id = await cita(d.db);
+  const libres = await (await handleEditarHoras(get(`/api/equipo/editar-horas?id=${id}&nutricionista=jussara&fecha=2026-10-06&modalidad=video`), env, d)).json();
+  await handleEditar(post({ id, inicio: libres.horas.at(-1).inicio, modalidad: 'video', nutricionista: 'jussara' }), env, d);
+  const alPaciente = correos.filter((c) => c.to === 'a@x.pe');
+  assert.equal(alPaciente.length, 1);
+  assert.match(alPaciente[0].subject, /^Tu cita ahora es virtual: /);
+  assert.match(alPaciente[0].html, /pesarte y tallarte/);
+  assert.match(alPaciente[0].html, /meet\.google\.com\/nuevo/);
+  correos.length = 0;
+  const otra = (await (await handleEditarHoras(get(`/api/equipo/editar-horas?id=${id}&nutricionista=jussara&fecha=2026-10-06&modalidad=video`), env, d)).json()).horas[0].inicio;
+  await handleEditar(post({ id, inicio: otra, modalidad: 'video', nutricionista: 'jussara' }), env, d);
+  assert.equal(correos.filter((c) => c.to === 'a@x.pe').length, 0);
+});

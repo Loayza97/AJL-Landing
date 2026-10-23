@@ -5,7 +5,7 @@
 // {"romina":"…","irene":"…","alejandro":"…","nico":"…","paola":"…","jussara":"…","paolo":"…"}.
 // Nunca lanza: un correo que falla no debe tumbar la cita.
 import { etiquetaLima } from './tiempo.mjs';
-import { eventoEquipo } from './evento-equipo.mjs';
+import { lineasCita } from './evento-equipo.mjs';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const CORREO = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
@@ -34,7 +34,7 @@ const TITULOS = { nueva: 'Nueva cita', cambiada: 'Cita cambiada', cancelada: 'Ci
 
 function correo(tipo, r, n, extra = '') {
   const etiqueta = etiquetaLima(r.inicio_utc);
-  const lineas = eventoEquipo(r, n).descripcion.split('\n').map((l) => `<li>${esc(l)}</li>`).join('');
+  const lineas = lineasCita(r, n).map((l) => `<li>${esc(l)}</li>`).join('');
   const titulo = tipo === 'reasignada' ? `Ya no atiendes a ${r.nombre}` : `${TITULOS[tipo]}: ${r.nombre}`;
   return {
     subject: `${titulo} · ${etiqueta}`,

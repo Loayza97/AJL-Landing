@@ -64,3 +64,16 @@ test('correo de cita de link: duración real y sin hablar de plan ni de pago', (
   assert.match(c.html, /&lt;b&gt;Lu/);
   assert.doesNotMatch(c.html, /Plan:|pago/i);
 });
+
+test('requisitos según modalidad en los correos al paciente (2026-10-23)', async () => {
+  const { correoConfirmacion, correoCitaAgenda } = await import('./correos.mjs');
+  const base = { nombre: 'Ana', titulo: 'Plan', etiqueta: 'jueves', direccion: 'Lince', meet: null, nutricionista: 'Nico', urlIcs: 'https://x' };
+  const pres = correoConfirmacion({ ...base, modalidad: 'presencial' }).html;
+  assert.match(pres, /Requisitos para tu consulta presencial/);
+  assert.match(pres, /bra deportivo/);
+  assert.doesNotMatch(pres, /pesarte y tallarte/);
+  const virt = correoCitaAgenda({ ...base, duracion: 30, modalidad: 'video' }).html;
+  assert.match(virt, /Requisitos para tu consulta virtual/);
+  assert.match(virt, /pesarte y tallarte/);
+  assert.doesNotMatch(virt, /bra deportivo/);
+});
