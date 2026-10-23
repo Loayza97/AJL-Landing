@@ -15,7 +15,7 @@ import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
-import { DESDE_DIAS, HASTA_DIAS, MAX_RETENCIONES } from '../reservas/constantes.mjs';
+import { DESDE_DIAS, HASTA_DIAS, MAX_RETENCIONES, MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
 import { firmaValida } from '../reservas/mercadopago.mjs';
@@ -96,10 +96,10 @@ export async function handleHoras(request, env, deps) {
   const modalidad = q.get('modalidad');
   const precio = cotizar(q.get('producto'), Number(q.get('duracion')));
   const filtro = q.get('nutricionista') || '';
-  // Cuántos días mirar: 7 por defecto; el calendario del mes pide 21 de una vez.
+  // Cuántos días mirar: 7 por defecto; el calendario pide las seis semanas (42 días) de una vez.
   const n = q.has('dias') ? Number(q.get('dias')) : 7;
   if (!FECHA.test(desde) || !MODALIDADES.has(modalidad) || !precio || !nutriValida(deps, filtro)
-    || !Number.isInteger(n) || n < 1 || n > 28) return bad(400, 'Parámetros inválidos');
+    || !Number.isInteger(n) || n < 1 || n > MAX_DIAS_CONSULTA) return bad(400, 'Parámetros inválidos');
   try {
     const ctx = await contexto(deps, desde, n);
     const dias = [];

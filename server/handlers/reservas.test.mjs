@@ -205,11 +205,11 @@ test('resumen diario: si un día no se envió, el siguiente incluye lo acumulado
   assert.equal(enviados.length, 1);
 });
 
-test('horas: dias=21 devuelve las tres semanas de una vez; más de 28 o no numérico da 400', async () => {
+test('horas: dias=21 devuelve tres semanas de una vez; más de 45 o no numérico da 400', async () => {
   const d = await (await handleHoras(get('/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3&dias=21'), env, deps())).json();
   assert.equal(d.dias.length, 21);
   assert.equal(d.dias[20].fecha, '2026-10-26');
-  for (const dias of ['29', 'x', '0']) {
+  for (const dias of ['46', 'x', '0']) {
     assert.equal((await handleHoras(get(`/api/reservas/horas?desde=2026-10-06&modalidad=presencial&producto=constancia&duracion=3&dias=${dias}`), env, deps())).status, 400, dias);
   }
 });
@@ -293,4 +293,12 @@ test('sincronizar-calendario: si el correo de alerta falla, la sincronización s
     { RESUMEN_TOKEN: 'tok', NOTIFICATION_EMAIL: 'equipo@x.pe' }, d);
   assert.equal(r.status, 200);
   assert.deepEqual((await r.json()).fallidos, ['ev1']);
+});
+
+test('horas: la ventana es de seis semanas (Romi, 2026-10-23): a 5 semanas hay horas; pasado el día 42, no', async () => {
+  const d = await (await handleHoras(get('/api/reservas/horas?desde=2026-11-09&modalidad=video&producto=constancia&duracion=3&dias=45'), env, deps())).json();
+  assert.equal(d.dias.length, 45);
+  const conHoras = d.dias.filter((x) => x.horas.length).map((x) => x.fecha);
+  assert.ok(conHoras.includes('2026-11-10'), 'a cinco semanas se ofrece');
+  assert.ok(conHoras.every((f) => f <= '2026-11-16'), 'nada después de 42 días');
 });
