@@ -245,3 +245,14 @@ test('link: trae la nutricionista sugerida mientras está sin usar; sin ella no 
   const l2 = await conLink(d, 'c30v');
   assert.equal('nutricionista_sugerida' in (await (await handleAgendaLink(get(`/api/agenda/link?l=${l2}`), env, d)).json()), false);
 });
+
+test('confirmar con link: aviso «Nueva cita» a Romina, Irene y la nutri de la cita', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  const conEquipo = { ...env, CORREOS_EQUIPO: JSON.stringify({ romina: 'romi@x.pe', irene: 'irene@x.pe', nico: 'nico@x.pe', paola: 'paola@x.pe', jussara: 'yuyu@x.pe', paolo: 'paolo@x.pe' }) };
+  const res = await handleAgendaConfirmar(post('/api/agenda/confirmar', { l, inicio: '2026-10-06T15:30:00Z', modalidad: 'video', dni: '70123456', datos }), conEquipo, d);
+  assert.equal(res.status, 200);
+  const r = await d.db.prepare('SELECT nutricionista_id FROM reservas WHERE link_id IS NOT NULL').first();
+  const aviso = d.correos.find((c) => /^Nueva cita: /.test(c.subject));
+  assert.deepEqual(aviso.to, ['romi@x.pe', 'irene@x.pe', JSON.parse(conEquipo.CORREOS_EQUIPO)[r.nutricionista_id]]);
+});

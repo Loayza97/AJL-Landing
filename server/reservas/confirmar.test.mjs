@@ -167,3 +167,11 @@ test('aprobado tarde: una cita de 30 min se valida como de 30, no de 60', async 
   assert.deepEqual(await procesarPago(deps, env, '555'), { estado: 'confirmada' });
   assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
 });
+
+test('pago web confirmado: aviso «Nueva cita» a Romina, Irene y la nutri asignada', async () => {
+  const { deps, correos } = await preparar({ pagos: { 555: aprobado() } });
+  const conEquipo = { ...env, CORREOS_EQUIPO: JSON.stringify({ romina: 'romi@x.pe', irene: 'irene@x.pe', nico: 'nico@x.pe' }) };
+  await procesarPago(deps, conEquipo, '555');
+  const aviso = correos.find((c) => /^Nueva cita: /.test(c.subject));
+  assert.deepEqual(aviso.to, ['romi@x.pe', 'irene@x.pe', 'nico@x.pe']);
+});

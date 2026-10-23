@@ -8,6 +8,7 @@ import { tipoDeReserva } from './tipos.mjs';
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
 import { eventoEquipo } from '../reservas/evento-equipo.mjs';
+import { avisarEquipo } from '../reservas/aviso-equipo.mjs';
 
 // Otra copia del remitente (confirmar.mjs y acceso.mjs tienen la misma);
 // unificarlas queda fuera de esta entrega. Se exporta para la alerta de agenda.mjs.
@@ -41,5 +42,6 @@ export async function finalizarAgenda(deps, env, r) {
       modalidad: r.modalidad, direccion: contacto.direccion, meet, nutricionista: n.nombre,
       urlIcs: `${siteUrl(env)}/api/reservas/ics?r=${r.token}` }),
   });
+  await avisarEquipo(deps, env, { tipo: 'nueva', r });
   return { meet };
 }

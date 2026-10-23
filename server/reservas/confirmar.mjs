@@ -10,6 +10,7 @@ import { correoConfirmacion, correoEquipoConfirmada, correoSinHora, correoEquipo
 import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
 import { eventoEquipo } from './evento-equipo.mjs';
+import { avisarEquipo } from './aviso-equipo.mjs';
 
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
@@ -65,6 +66,7 @@ export async function finalizarConfirmacion(deps, env, r) {
         modalidad: r.modalidad, nutricionista: nutricionista.nombre, monto: r.monto_centimos / 100,
         calendarioPendiente: pendiente, novedades: Boolean(r.novedades_optin) }),
     }),
+    avisarEquipo(deps, env, { tipo: 'nueva', r }),
   ]);
 }
 
