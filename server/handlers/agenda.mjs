@@ -14,6 +14,7 @@ import * as repo from '../reservas/repo.mjs';
 import { sumarDias, fechaLima, etiquetaLima, sumarMinutos } from '../reservas/tiempo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { contexto, libresDelDia, eventoDe } from './reservas.mjs';
+import { MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import { enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
@@ -67,7 +68,7 @@ export async function handleAgendaHoras(request, env, deps) {
   const filtro = q.get('nutricionista') || '';
   const n = q.has('dias') ? Number(q.get('dias')) : 7;
   if (!FECHA.test(desde) || !tipo.modalidades.includes(modalidad) || !nutriValida(deps, filtro)
-    || !Number.isInteger(n) || n < 1 || n > 28) return bad(400, 'Parámetros inválidos');
+    || !Number.isInteger(n) || n < 1 || n > MAX_DIAS_CONSULTA) return bad(400, 'Parámetros inválidos');
   try {
     const ctx = await contexto(deps, desde, n);
     const dias = [];

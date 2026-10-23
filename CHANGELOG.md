@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- /reservar/ y /agenda/: se puede agendar hasta seis semanas adelante (antes tres). El calendario recorre los meses que toque esa ventana.
 - Correos al equipo: cada cita agendada (web o link), cambiada o cancelada desde el panel avisa a Romina, Irene, Alejandro y la nutricionista de la cita, con paciente, fecha, modalidad, plan, cita y WhatsApp. Si se cambia de nutricionista, la anterior recibe «Ya no atiendes a …». Los correos están en el secreto `CORREOS_EQUIPO` de Cloudflare (no en el código). Si un correo falla, la cita sigue igual.
 - Panel, Reservas: botón «Cancelar cita» junto a «Editar» en cada cita confirmada que no pasó. Pide confirmar, libera la hora (web, links y tope), borra el evento de Google Calendar (Google avisa al paciente) y la fila se queda en rojo con «Cancelada por …». Si Google falla, la cita igual queda cancelada y el equipo recibe una alerta para borrar el evento a mano.
 - Panel, Reservas: botón «Editar» en cada cita confirmada que no pasó. Cambia fecha, hora, nutricionista y modalidad (presencial o virtual) entre las horas libres de esa nutricionista, aunque el día esté lleno, nunca encima de otra cita. Actualiza el mismo evento de Google Calendar (Google avisa al paciente) y la fila muestra quién la editó y qué cambió. Requiere la migración 0015.

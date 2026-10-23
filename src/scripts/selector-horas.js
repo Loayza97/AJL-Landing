@@ -11,7 +11,7 @@ const fmtMes = new Intl.DateTimeFormat('es-PE', { month: 'long', year: 'numeric'
 const conMayuscula = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const nombreDia = (f) => conMayuscula(fmtDia.format(new Date(`${f}T12:00:00Z`)).replace(',', ''));
 const nombreMes = (mes) => conMayuscula(fmtMes.format(new Date(`${mes}-15T12:00:00Z`)).replace(' de ', ' '));
-const DIAS_VENTANA = 21;
+const DIAS_VENTANA = 42; // seis semanas, igual que HASTA_DIAS del servidor
 
 // Celdas de un mes (AAAA-MM) con la semana empezando en lunes; null = hueco.
 function celdasDelMes(mes) {
@@ -25,7 +25,9 @@ function celdasDelMes(mes) {
 export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError, nutricionista = '' }) {
   const manana = sumarDias(hoyLima(), 1);
   const limite = sumarDias(manana, DIAS_VENTANA - 1);
-  const meses = [...new Set([manana.slice(0, 7), limite.slice(0, 7)])];
+  // Todos los meses entre mañana y el límite (seis semanas pueden tocar tres meses).
+  const meses = [];
+  for (let f = manana; f <= limite; f = sumarDias(f, 1)) if (!meses.includes(f.slice(0, 7))) meses.push(f.slice(0, 7));
   const estado = { modalidad: modalidades[0], nutricionista, mes: meses[0], fecha: null, datos: null };
   raiz.innerHTML = `
     <div class="sel-filtros">
@@ -109,7 +111,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
     // Horas del día elegido, en mañana y tarde.
     const delDia = horas.get(estado.fecha) ?? [];
     if (!delDia.length) {
-      $('.sel-dia').innerHTML = `<p class="sel-msg">${primerDia ? 'Elige un día marcado en el calendario.' : 'No hay horas libres en las próximas tres semanas con estos filtros. Prueba otra modalidad o quita el filtro de nutricionista.'}</p>`;
+      $('.sel-dia').innerHTML = `<p class="sel-msg">${primerDia ? 'Elige un día marcado en el calendario.' : 'No hay horas libres en las próximas seis semanas con estos filtros. Prueba otra modalidad o quita el filtro de nutricionista.'}</p>`;
       return;
     }
     const grupo = (titulo, lista) => (lista.length ? `<p class="sel-etq">${titulo}</p><div class="sel-horas">${lista.map((h) => botonHora(h, equipo)).join('')}</div>` : '');
@@ -130,9 +132,9 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
     } else if (b.dataset.fecha) {
       estado.fecha = b.dataset.fecha; pintar();
     } else if (b.classList.contains('sel-prev')) {
-      estado.mes = meses[0]; pintar();
+      estado.mes = meses[Math.max(0, meses.indexOf(estado.mes) - 1)]; pintar();
     } else if (b.classList.contains('sel-next')) {
-      estado.mes = meses[meses.length - 1]; pintar();
+      estado.mes = meses[Math.min(meses.length - 1, meses.indexOf(estado.mes) + 1)]; pintar();
     }
   });
 
