@@ -166,7 +166,9 @@ const vistaAgendado = (r, deps, ahoraIso) => {
     neto_soles: link || r.neto_centimos == null ? null : r.neto_centimos / 100,
     cancelada: r.cancelada_en_panel != null,
     nutricionista_id: r.nutricionista_id, duracion_min: r.duracion_min ?? 60,
-    editable: r.estado === 'confirmada' && r.cancelada_en_panel == null && r.inicio_utc > ahoraIso,
+    // Las pasadas se editan para reagendar al que no vino (2026-10-26); cancelar, solo las futuras.
+    editable: r.estado === 'confirmada' && r.cancelada_en_panel == null,
+    cancelable: r.estado === 'confirmada' && r.cancelada_en_panel == null && r.inicio_utc > ahoraIso,
     edicion: r.editada_en ? { en: r.editada_en, por: r.editada_por, cambios: r.edicion_cambios } : null,
     revisar: r.calendario_revisar ?? null,
     calendario: r.calendario_editado_en ? { editado_en: r.calendario_editado_en, cambios: r.calendario_cambios } : null,
