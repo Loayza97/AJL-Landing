@@ -73,9 +73,21 @@ test('editar: sin acceso 401; datos inválidos 400', async () => {
   }
 });
 
-test('editar: cita pasada 409 «ya no se puede editar»', async () => {
+test('editar: una cita pasada (no vino) se reagenda a otro día y se mueve el mismo evento', async () => {
   const d = deps({ ahora: () => new Date('2026-10-06T16:00:00Z') });
   const id = await cita(d.db);
+  const horas = await (await handleEditarHoras(get(q(id).replace('2026-10-06', '2026-10-08')), env, d)).json();
+  assert.ok(horas.horas.some((h) => h.inicio === '2026-10-08T15:00:00Z'), JSON.stringify(horas));
+  const r = await handleEditar(post({ id, inicio: '2026-10-08T15:00:00Z', modalidad: 'presencial', nutricionista: 'jussara' }), env, d);
+  assert.equal(r.status, 200);
+  assert.equal((await repo.reservaPorId(d.db, id)).inicio_utc, '2026-10-08T15:00:00Z');
+  assert.equal(d.llamadas[0][0], 'ev1');
+});
+
+test('editar: cita cancelada 409 «ya no se puede editar»', async () => {
+  const d = deps();
+  const id = await cita(d.db);
+  await d.db.prepare("UPDATE reservas SET estado = 'cancelada' WHERE id = ?1").bind(id).run();
   const r = await handleEditar(post({ id, inicio: '2026-10-07T15:00:00Z', modalidad: 'video', nutricionista: 'jussara' }), env, d);
   assert.equal(r.status, 409);
   assert.equal((await r.json()).error, 'Esta cita ya no se puede editar.');

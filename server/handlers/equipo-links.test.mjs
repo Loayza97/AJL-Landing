@@ -375,14 +375,14 @@ test('agendados: editable, nutricionista_id, duracion_min y marca de edición de
   const d = deps();
   await sembrar(d);
   let f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
-  assert.deepEqual([f.editable, f.nutricionista_id, f.duracion_min, f.edicion], [true, 'nico', 30, null]);
+  assert.deepEqual([f.editable, f.cancelable, f.nutricionista_id, f.duracion_min, f.edicion], [true, true, 'nico', 30, null]);
   await d.db.prepare(`UPDATE reservas SET editada_en = '2026-10-12T19:00:00Z', editada_por = 'romi@x.pe', edicion_cambios = '10:00 → 9:00' WHERE id = 'r-lucia'`).run();
   f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];
   assert.deepEqual(f.edicion, { en: '2026-10-12T19:00:00Z', por: 'romi@x.pe', cambios: '10:00 → 9:00' });
-  // Ya pasó: no se edita.
+  // Ya pasó: se puede reagendar (no vino), pero no cancelar.
   const tarde = deps({ db: d.db, ahora: () => new Date('2026-10-20T00:00:00Z') });
   f = (await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas&periodo=todo'), env, tarde)).json()).filas[0];
-  assert.equal(f.editable, false);
+  assert.deepEqual([f.editable, f.cancelable], [true, false]);
   // Pagada sin hora: no se edita.
   await d.db.prepare(`UPDATE reservas SET estado = 'pagada_sin_hora', link_id = NULL WHERE id = 'r-lucia'`).run();
   f = (await (await handleAgendados(get('/api/equipo/agendados'), env, d)).json()).filas[0];

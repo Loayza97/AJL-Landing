@@ -368,10 +368,18 @@ test('editarReserva: no mira el tope del día', async () => {
   assert.deepEqual(await editar(db, { inicio_utc: '2026-10-07T21:00:00Z' }), { ok: true });
 });
 
-test('editarReserva: cita pasada, cancelada o pagada sin hora da estado', async () => {
+test('editarReserva: una cita pasada se reagenda a una hora futura, nunca a una pasada (2026-10-26)', async () => {
   const db = d1DePrueba();
   await confirmada(db, { id: 'e' });
-  assert.deepEqual(await editar(db, { ahora: new Date('2026-10-06T17:00:00Z') }), { ok: false, motivo: 'estado' });
+  const despues = new Date('2026-10-06T17:00:00Z');
+  assert.deepEqual(await editar(db, { ahora: despues, inicio_utc: '2026-10-06T16:30:00Z', fecha_lima: '2026-10-06' }), { ok: false, motivo: 'ocupada' });
+  assert.deepEqual(await editar(db, { ahora: despues }), { ok: true });
+  assert.equal((await repo.reservaPorId(db, 'e')).inicio_utc, '2026-10-07T16:00:00Z');
+});
+
+test('editarReserva: cancelada o pagada sin hora da estado', async () => {
+  const db = d1DePrueba();
+  await confirmada(db, { id: 'e' });
   await db.prepare("UPDATE reservas SET estado = 'pagada_sin_hora' WHERE id = 'e'").run();
   assert.deepEqual(await editar(db), { ok: false, motivo: 'estado' });
   await db.prepare("UPDATE reservas SET estado = 'cancelada' WHERE id = 'e'").run();

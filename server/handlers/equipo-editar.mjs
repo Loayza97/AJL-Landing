@@ -20,7 +20,9 @@ const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
 const MSJ_ESTADO = 'Esta cita ya no se puede editar.';
 const bad = (status, error) => json(status, { ok: false, error });
 const sinAcceso = () => json(401, { ok: false, error: 'Necesitas entrar con un correo autorizado del equipo.' });
-const editable = (r, ahora) => r && r.estado === 'confirmada' && Date.parse(r.inicio_utc) > ahora.getTime();
+// Una cita pasada también se edita (reagendar al que no vino, 2026-10-26): la hora
+// nueva sale de horasLibres, que nunca ofrece horas pasadas.
+const editable = (r) => r && r.estado === 'confirmada';
 
 async function horasPara(deps, r, { fecha, modalidad, nutricionista }) {
   const ctx = await contexto(deps, fecha, 1);
@@ -40,7 +42,7 @@ export async function handleEditarHoras(request, env, deps) {
   const nutricionista = q.get('nutricionista');
   if (!FECHA.test(fecha) || !MODALIDADES.has(modalidad) || !deps.nutricionistas.some((n) => n.id === nutricionista)) return bad(400, 'Datos inválidos');
   const r = await repo.reservaPorId(deps.db, String(q.get('id') || ''));
-  if (!editable(r, deps.ahora())) return bad(409, MSJ_ESTADO);
+  if (!editable(r)) return bad(409, MSJ_ESTADO);
   try {
     const horas = await horasPara(deps, r, { fecha, modalidad, nutricionista });
     return json(200, { ok: true, horas: horas.map(({ inicio, hora }) => ({ inicio, hora })) });
@@ -58,7 +60,7 @@ export async function handleEditar(request, env, deps) {
   if (typeof d.id !== 'string' || !INICIO.test(d.inicio || '') || !MODALIDADES.has(d.modalidad)
     || !deps.nutricionistas.some((n) => n.id === d.nutricionista)) return bad(400, 'Datos inválidos');
   const antes = await repo.reservaPorId(deps.db, d.id);
-  if (!editable(antes, deps.ahora())) return bad(409, MSJ_ESTADO);
+  if (!editable(antes)) return bad(409, MSJ_ESTADO);
   const despues = { inicio_utc: d.inicio, modalidad: d.modalidad, nutricionista_id: d.nutricionista };
   const cambios = textoCambios(antes, despues, deps.nutricionistas);
   if (cambios === 'sin cambios') return bad(400, 'No cambiaste nada de la cita.');

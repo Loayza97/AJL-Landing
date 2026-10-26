@@ -149,7 +149,8 @@ function pintar() {
       bc.dataset.cancelar = f.id;
       const acciones = document.createElement('div');
       acciones.className = 'lk-acciones-cita';
-      acciones.append(be, bc);
+      acciones.append(be);
+      if (f.cancelable) acciones.append(bc);
       cita.append(acciones);
     }
     if (f.revisar && !f.cancelada) {
@@ -347,7 +348,8 @@ function abrirEditar(f) {
   const hoy = new Date();
   $('#e-fecha').min = fechaIsoLima(hoy);
   $('#e-fecha').max = fechaIsoLima(new Date(hoy.getTime() + DIAS_MAX_EDITAR * 86400000));
-  $('#e-fecha').value = fechaIsoLima(new Date(f.inicio_utc));
+  // Una cita pasada (no vino) abre en hoy: no se puede reagendar hacia atrás.
+  $('#e-fecha').value = new Date(f.inicio_utc) > hoy ? fechaIsoLima(new Date(f.inicio_utc)) : $('#e-fecha').min;
   mensajeEditar();
   $('#e-dialogo').showModal();
   cargarHoras();
