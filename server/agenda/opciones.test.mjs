@@ -19,7 +19,7 @@ test('productos: los 5 del catálogo con el nombre interno del equipo, más Reno
 test('productos por tarjeta (Joaquín, 2026-10-26): los controles de 30 min no ofrecen evaluación, básico ni acompañamiento', () => {
   const ids = (tipo) => productosDeTipo(tipo).map((p) => p.id);
   assert.deepEqual(ids('c30v'), ['constancia', 'renovacion_constancia', 'transformacion']);
-  assert.deepEqual(ids('c30p'), ['constancia', 'transformacion']);
+  assert.deepEqual(ids('c30p'), ['constancia', 'renovacion_constancia', 'transformacion']);
   assert.deepEqual(ids('s60'), ['evaluacion', 'basico', 'acompanamiento', 'control_acompanamiento', 'constancia', 'renovacion_constancia', 'transformacion']);
   assert.deepEqual(productosDeTipo('zzz'), []);
   assert.deepEqual(productosDeTipo('__proto__'), []);

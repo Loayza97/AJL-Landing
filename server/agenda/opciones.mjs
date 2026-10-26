@@ -24,10 +24,10 @@ const COMO = { control_acompanamiento: 'acompanamiento' };
 const base = (producto) => COMO[producto] ?? producto;
 
 // Productos que ofrece cada tarjeta de link (Joaquín, 2026-10-26): los controles de
-// 30 min no son evaluación, básico ni acompañamiento; el presencial tampoco renovación.
+// 30 min no son evaluación, básico ni acompañamiento.
 const POR_TIPO = {
   c30v: ['constancia', 'renovacion_constancia', 'transformacion'],
-  c30p: ['constancia', 'transformacion'],
+  c30p: ['constancia', 'renovacion_constancia', 'transformacion'],
   s60: PRODUCTOS.map((p) => p.id),
 };
 export const productosDeTipo = (tipo) => (Object.hasOwn(POR_TIPO, tipo) ? PRODUCTOS.filter((p) => POR_TIPO[tipo].includes(p.id)) : []);
