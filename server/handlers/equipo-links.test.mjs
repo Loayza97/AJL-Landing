@@ -305,7 +305,7 @@ test('crear: cada tarjeta solo acepta sus productos (Joaquín, 2026-10-26)', asy
     assert.equal(await estado('c30p', plan), 400, `c30p ${plan}`);
   }
   assert.equal(await estado('c30v', 'renovacion_constancia'), 200);
-  assert.equal(await estado('c30p', 'renovacion_constancia'), 400);
+  assert.equal(await estado('c30p', 'renovacion_constancia'), 200);
   assert.equal(await estado('s60', 'control_acompanamiento:3'), 200);
   assert.equal(await estado('s60', 'evaluacion'), 200);
 });
