@@ -293,8 +293,21 @@ test('links viejos sin plan ni cita: agendados y CSV muestran «—», la lista 
 test('crear: cualquier tipo admite la 1ra cita (venta por WhatsApp)', async () => {
   const d = deps();
   for (const tipo of ['c30v', 'c30p', 's60']) {
-    assert.equal((await handleLinks(post('/api/equipo/links', { tipo, plan: 'evaluacion', cita: '1' }), env, d)).status, 200, tipo);
+    assert.equal((await handleLinks(post('/api/equipo/links', { tipo, plan: 'constancia:1', cita: '1' }), env, d)).status, 200, tipo);
   }
+});
+
+test('crear: cada tarjeta solo acepta sus productos (Joaquín, 2026-10-26)', async () => {
+  const d = deps();
+  const estado = async (tipo, plan) => (await handleLinks(post('/api/equipo/links', { tipo, plan, cita: '1' }), env, d)).status;
+  for (const plan of ['evaluacion', 'basico', 'acompanamiento:3', 'control_acompanamiento:3']) {
+    assert.equal(await estado('c30v', plan), 400, `c30v ${plan}`);
+    assert.equal(await estado('c30p', plan), 400, `c30p ${plan}`);
+  }
+  assert.equal(await estado('c30v', 'renovacion_constancia'), 200);
+  assert.equal(await estado('c30p', 'renovacion_constancia'), 400);
+  assert.equal(await estado('s60', 'control_acompanamiento:3'), 200);
+  assert.equal(await estado('s60', 'evaluacion'), 200);
 });
 
 test('crear: la nutricionista sugerida va por turnos y vuelve a empezar', async () => {
