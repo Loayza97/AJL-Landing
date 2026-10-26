@@ -3,7 +3,7 @@
 // maestra y CSV de las elegidas; y la pestaña de quién dejó datos sin pagar, con
 // «Marcar contactado». Todo el texto de la base se pinta con textContent.
 import { limitarFilas } from './panel-filas.js';
-import { numeroParaPegar } from '../data/telefono.js';
+import { filaMaestra } from './fila-maestra.js';
 import { mostrarLogin } from './panel-links.js';
 import { nutricionistas } from '../data/nutricionistas.js';
 
@@ -18,7 +18,6 @@ const citaCorta = (iso) => {
   const sinPunto = (t) => t.replace(/\.$/, '');
   return `${sinPunto(p.weekday)} ${p.day} ${sinPunto(p.month)}, ${p.hour}:${p.minute} ${p.dayPeriod}`;
 };
-const fechaLima = (iso) => new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso));
 const dmy = (f) => (f ? f.split('-').reverse().join('/') : '');
 const PROC = { web: 'Página web', link: 'Link enviado' };
 const REVISAR = { borrado: 'Evento borrado en el calendario, revisar', cruce: 'Movida en el calendario a una hora ocupada, revisar' };
@@ -182,34 +181,7 @@ function pintar() {
   $('#a-copiar').textContent = n ? `Copiar ${n} para la base maestra` : 'Copiar para la base maestra';
 }
 
-// Filas para pegar en la base maestra (Excel), desde la columna A (APELLIDOS): lo
-// que el panel no sabe va vacío para que cada dato caiga en su columna. Después
-// de PRODUCTO (M) la base tiene una columna de sesiones (N, «1/1»), así que SOLES
-// es la O, RECURRENCIA la R, MODALIDAD la S y NUTRICIONISTA la W (Romi, 2026-10-16).
-// El neto de Mercado Pago va en la P, junto al bruto (Romi, 2026-10-22).
 // Solo se copian las elegidas que están en esta página de la tabla.
-const COLUMNAS_MAESTRA = 25; // A a Y
-// En la base Paola y Jussara van como Pao y Yuyu (Romi, 2026-10-16); solo al copiar, nunca para pacientes.
-const NOMBRE_EN_BASE = { Paola: 'Pao', Jussara: 'Yuyu' };
-function filaMaestra(f) {
-  const c = Array(COLUMNAS_MAESTRA).fill('');
-  c[0] = [f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '); // A APELLIDOS
-  c[1] = f.nombres ?? ''; // B NOMBRES
-  c[2] = f.dni ?? ''; // C DNI
-  c[3] = f.email ?? ''; // D CORREO
-  c[4] = numeroParaPegar(f.whatsapp); // E NÚMERO, los de Perú sin +51
-  c[5] = dmy(f.fecha_nacimiento); // F NACIMIENTO
-  c[6] = f.pais ?? ''; // G PAÍS, sacado del código del número
-  c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
-  c[12] = f.producto ?? ''; // M PRODUCTO
-  c[14] = f.soles == null ? '' : String(f.soles); // O SOLES (bruto)
-  c[15] = f.neto_soles == null ? '' : String(f.neto_soles); // P NETO de Mercado Pago; Q queda vacía (Romi, 2026-10-22)
-  c[17] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // R RECURRENCIA
-  c[18] = MOD[f.modalidad] ?? ''; // S MODALIDAD
-  c[22] = NOMBRE_EN_BASE[f.nutricionista] ?? f.nutricionista ?? ''; // W NUTRICIONISTA
-  return c.map((v) => String(v).replace(/[\t\r\n]+/g, ' ')).join('\t');
-}
-
 async function copiar() {
   const elegidas = est.filas.filter((f) => est.sel.has(f.id) && !f.cancelada);
   if (!elegidas.length) { aviso('No hay citas para copiar: las canceladas no se copian, y las elegidas pueden estar en otra página de la tabla.'); return; }

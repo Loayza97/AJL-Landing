@@ -127,6 +127,8 @@ test('agendados: próximas con datos completos; pasadas vacío; paginación de 2
   assert.deepEqual([f.apellido_paterno, f.nombres, f.dni, f.email, f.whatsapp, f.fecha_nacimiento, f.paciente_nuevo, f.tipo, f.nutricionista, f.modalidad],
     ['Ramos', 'Lucía', '70123456', 'lucia@x.pe', '+51987654321', '1992-03-08', 1, 'Control de 30 min', 'Nico', 'video']);
   assert.deepEqual([f.plan, f.cita], ['Constancia, 3 meses', '2 de 7']);
+  // Para la base maestra: el producto por su id y las sesiones como «2/7» (columna N).
+  assert.deepEqual([f.producto_id, f.sesiones], ['constancia', '2/7']);
   assert.equal((await (await handleAgendados(get('/api/equipo/agendados?tramo=pasadas'), env, d)).json()).total, 0);
   assert.equal(r.por_pagina, 20);
 });
