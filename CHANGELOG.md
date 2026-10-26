@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Panel, «Copiar para la base maestra»: N pega «2/7» sin fórmula. Romina dejó la columna N en Texto sin formato; antes estaba en fecha y la sesión no se veía.
 - /reservar/, paso 1: cada plan muestra «desde S/… al mes», el mensual del paquete más largo (S/250, S/325 y S/468), y el botón dice «Elegir». Las opciones sin seguimiento muestran su precio y textos parejos: «Una sola sesión · Tu plan, sin seguimiento · S/250» y «Una evaluación · Se resta del plan ese día · S/80». Los precios salen de `plans.js`.
 - Panel, «Copiar para la base maestra»: la fila llega hasta la AB y ya no borra las fórmulas. J (última consulta), K (tiempo transcurrido), L (condición) y U (días de monitoreo) van con su fórmula, apuntando a la fila donde se pega. M lleva el nombre de la lista de la base (CONSTANCIA, ACOMPANAMIENTO, C.ACOMPANAMIENTO, BÁS - S/S…). N lleva la sesión sobre el total («2/7»; en la web siempre la 1ra). I, Q, T, V, X, Y, NOTA, SALUDOS y CICLO van en blanco.
 - Panel, tarjetas de links: cada tarjeta ofrece solo sus productos. Control de 30 min virtual: Constancia, Renovación Constancia y Transformación. Control de 30 min presencial o virtual: Constancia, Renovación Constancia y Transformación. Sesión de 1 hora: todos, más el nuevo «Control Acompañamiento», que funciona igual que Acompañamiento (1, 3 o 6 meses, una cita al mes). El servidor rechaza un producto que no va con la tarjeta.

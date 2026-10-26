@@ -41,7 +41,7 @@ export function filaMaestra(f) {
   c[10] = TIEMPO; // K TIEMPO TRANSCURRIDO
   c[11] = CONDICION; // L CONDICIÓN
   c[12] = PRODUCTO_EN_BASE[f.producto_id] ?? ''; // M PRODUCTO
-  c[13] = f.sesiones ? `="${f.sesiones}"` : ''; // N #SESIONES, como texto: «2/7» suelto Sheets lo vuelve fecha
+  c[13] = f.sesiones ?? ''; // N #SESIONES, «2/7»: la columna está en Texto sin formato (Romi, 2026-10-26)
   c[14] = f.soles == null ? '' : String(f.soles); // O SOLES (bruto)
   c[15] = f.neto_soles == null ? '' : String(f.neto_soles); // P NETO de Mercado Pago
   c[17] = f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Control'; // R RECURRENCIA
