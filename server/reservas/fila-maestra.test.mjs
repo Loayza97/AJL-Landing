@@ -23,8 +23,8 @@ test('base maestra: datos en su columna y el producto con el nombre de la lista 
     ['ACOMPANAMIENTO', 'C.ACOMPANAMIENTO', 'BÁS - S/S', 'Transformación', 'Evaluación', 'Renovación Constancia', '']);
 });
 
-test('base maestra: sesiones en N como texto para que Sheets no lo vuelva fecha', () => {
-  assert.equal(filaMaestra(fila).split('\t')[col('N')], '="2/7"');
+test('base maestra: sesiones en N tal cual, la columna está en Texto sin formato', () => {
+  assert.equal(filaMaestra(fila).split('\t')[col('N')], '2/7');
   assert.equal(filaMaestra({ ...fila, sesiones: null }).split('\t')[col('N')], '');
 });
 
