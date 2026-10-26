@@ -10,12 +10,28 @@ const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
 
 // Producto con el nombre interno del equipo. Evaluación, Básico y Renovación
 // Constancia son de pago único; la renovación trae 2 sesiones (Joaquín, 2026-10-21).
+// Control Acompañamiento funciona igual que Acompañamiento (Joaquín, 2026-10-26).
 export const PRODUCTOS = [
   { id: 'evaluacion', etiqueta: 'Evaluación' },
-  ...['basico', 'acompanamiento', 'constancia'].map((id) => ({ id, etiqueta: plans[id].internalName })),
+  ...['basico', 'acompanamiento'].map((id) => ({ id, etiqueta: plans[id].internalName })),
+  { id: 'control_acompanamiento', etiqueta: 'Control Acompañamiento' },
+  { id: 'constancia', etiqueta: plans.constancia.internalName },
   { id: 'renovacion_constancia', etiqueta: 'Renovación Constancia' },
   { id: 'transformacion', etiqueta: plans.transformacion.internalName },
 ];
+// Producto que copia las duraciones y citas de un plan del catálogo.
+const COMO = { control_acompanamiento: 'acompanamiento' };
+const base = (producto) => COMO[producto] ?? producto;
+
+// Productos que ofrece cada tarjeta de link (Joaquín, 2026-10-26): los controles de
+// 30 min no son evaluación, básico ni acompañamiento; el presencial tampoco renovación.
+const POR_TIPO = {
+  c30v: ['constancia', 'renovacion_constancia', 'transformacion'],
+  c30p: ['constancia', 'transformacion'],
+  s60: PRODUCTOS.map((p) => p.id),
+};
+export const productosDeTipo = (tipo) => (Object.hasOwn(POR_TIPO, tipo) ? PRODUCTOS.filter((p) => POR_TIPO[tipo].includes(p.id)) : []);
+export const productoDeTipo = (tipo, plan) => productosDeTipo(tipo).some((p) => p.id === String(plan).split(':')[0]);
 // Citas de cada producto de pago único.
 const CITAS_UNICO = { evaluacion: 1, basico: 1, renovacion_constancia: 2 };
 const UNICO = new Set(Object.keys(CITAS_UNICO));
@@ -25,7 +41,7 @@ export const PAGO_UNICO = 'unico';
 export function duracionesDeProducto(producto) {
   if (UNICO.has(producto)) return [{ id: PAGO_UNICO, etiqueta: 'Pago único' }];
   if (!PRODUCTOS.some((p) => p.id === producto)) return [];
-  return duracionesDe(producto).map((d) => ({ id: String(d.meses), etiqueta: meses(d.meses) }));
+  return duracionesDe(base(producto)).map((d) => ({ id: String(d.meses), etiqueta: meses(d.meses) }));
 }
 
 // Clave que va a la base: el producto solo si es de pago único, si no `producto:meses`.
@@ -35,7 +51,7 @@ export const clavePlan = (producto, duracion) => (duracion === PAGO_UNICO ? prod
 // sus sesiones al mes × meses, y Constancia y Transformación una más el primer
 // mes (la evaluación sin costo de plans.js, `firstMonthEval`).
 const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? CITAS_UNICO[producto]
-  : plans[producto].sessionsPerMonth * Number(duracion) + (plans[producto].firstMonthEval ? 1 : 0));
+  : plans[base(producto)].sessionsPerMonth * Number(duracion) + (plans[base(producto)].firstMonthEval ? 1 : 0));
 const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
   { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(p.id, d.id) }])));
 

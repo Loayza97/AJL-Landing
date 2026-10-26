@@ -11,7 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida, PRODUCTOS } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida, productoDeTipo, PRODUCTOS } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
@@ -76,6 +76,7 @@ async function crearLink(request, env, deps, email) {
   const d = await readJson(request);
   if (!Object.hasOwn(TIPOS_LINK, d.tipo)) return bad(400, 'Tipo de evento inválido');
   if (!planValido(d.plan)) return bad(400, 'Elige el producto y la duración.');
+  if (!productoDeTipo(d.tipo, d.plan)) return bad(400, 'Ese producto no va con este tipo de cita.');
   if (!citaValida(d.plan, d.cita)) return bad(400, 'Elige qué cita es.');
   const token = randomToken();
   const id = crypto.randomUUID();

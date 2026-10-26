@@ -5,7 +5,7 @@
 // carga analítica ni Clarity (que grabaría la pantalla con datos de pacientes).
 // Los datos los da /api/equipo/*, que exige acceso. /panel/links/ redirige aquí.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
-import { PRODUCTOS } from '../../../server/agenda/opciones.mjs';
+import { productosDeTipo } from '../../../server/agenda/opciones.mjs';
 const tipos = Object.entries(TIPOS_LINK);
 import '../../styles/panel.css';
 ---
@@ -41,7 +41,7 @@ import '../../styles/panel.css';
                 <label class="lk-campo">Producto
                   <select data-producto required>
                     <option value="">Elige el producto</option>
-                    {PRODUCTOS.map((p) => <option value={p.id}>{p.etiqueta}</option>)}
+                    {productosDeTipo(id).map((p) => <option value={p.id}>{p.etiqueta}</option>)}
                   </select>
                 </label>
                 <label class="lk-campo">Duración
