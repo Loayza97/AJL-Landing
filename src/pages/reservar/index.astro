@@ -1,7 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { plans, monthlyPlans } from '../../data/plans.js';
-import { duracionesDe } from '../../data/duraciones.js';
+import { duracionesDe, formatoSoles } from '../../data/duraciones.js';
 import { PAISES } from '../../data/telefono.js';
 import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
@@ -16,6 +16,9 @@ const incluyeDe = (p) => [
   '2 clases en vivo por semana (miércoles con el equipo, domingos con Alejandro) y comunidad',
   ...(p.checkoutSummary.includes('Atención prioritaria') ? ['Atención prioritaria'] : []),
 ];
+
+// Precio «desde» de cada plan (Joaquín, 2026-10-26): el mensual más bajo, el del paquete más largo.
+const desdeMes = (id) => formatoSoles(Math.min(...duracionesDe(id).map((d) => d.porMes)));
 
 const catalogo = {};
 for (const p of monthlyPlans) {
@@ -58,21 +61,22 @@ const VENTANAS = [
           {monthlyPlans.map((p) => (
             <article class:list={['rs-plan', { 'rs-plan--star': p.highlight }]}>
               <header><b>{p.name}</b>{p.highlight && <span class="rs-badge">Recomendado</span>}</header>
+              <p class="rs-desde"><small>desde</small><b>{desdeMes(p.id)}</b> <span>al mes</span></p>
               <ul class="rs-lista">
                 <li>{p.sessionsPerMonth === 1 ? '1 sesión' : `${p.sessionsPerMonth} sesiones`} al mes con tu nutricionista</li>
                 <li>Tu plan ajustado a tu día a día</li>
                 <li>Tu seguimiento entre sesiones</li>
               </ul>
               {p.firstMonthEval && <p class="rs-regalo">{ORDINAL[p.sessionsPerMonth + 1]} sesión de evaluación al final de tu primer mes</p>}
-              <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir y ver precios</button>
+              <button type="button" class:list={['rs-btn', { 'rs-btn--ghost': !p.highlight }]} data-producto={p.id}>Elegir</button>
             </article>
           ))}
         </div>
       </div>
       <p class="rs-k">Sin seguimiento continuo</p>
       <div class="rs-sueltas">
-        <button type="button" class="rs-suelta" data-producto="basico"><span><b>Una sola sesión</b><small>Tu sesión y tu plan, sin seguimiento</small></span><span class="rs-ir">Elegir ›</span></button>
-        <button type="button" class="rs-suelta" data-producto="evaluacion"><span><b>¿Prefieres que te evaluemos antes?</b><small>Se descuenta si eliges un plan ese día</small></span><span class="rs-ir">Elegir ›</span></button>
+        <button type="button" class="rs-suelta" data-producto="basico"><span><b>Una sola sesión</b><small>Tu plan, sin seguimiento</small></span><span class="rs-ir"><b>{formatoSoles(plans.basico.price)}</b>Elegir ›</span></button>
+        <button type="button" class="rs-suelta" data-producto="evaluacion"><span><b>Una evaluación</b><small>Se resta del plan ese día</small></span><span class="rs-ir"><b>{formatoSoles(plans.evaluacion.price)}</b>Elegir ›</span></button>
       </div>
     </section>
 
