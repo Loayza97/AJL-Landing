@@ -6,6 +6,7 @@ import { montarSelector } from './selector-horas.js';
 import { formatoSoles } from '../data/duraciones.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
+import { destinoLink } from '../data/links-reserva.js';
 
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
@@ -47,6 +48,17 @@ function irA(paso) {
   window.scrollTo(0, 0);
 }
 
+// La barra de direcciones lleva el producto y la duración elegidos, así el link se
+// puede copiar y abre en el mismo paso (Joaquín, 2026-10-26). Los demás parámetros (utm…) quedan.
+function marcarUrl(plan, meses) {
+  try {
+    const u = new URL(location.href);
+    if (plan) u.searchParams.set('plan', plan); else u.searchParams.delete('plan');
+    if (meses) u.searchParams.set('meses', String(meses)); else u.searchParams.delete('meses');
+    history.replaceState(history.state, '', u);
+  } catch {}
+}
+
 function medir(evento, extra = {}) {
   try {
     if (typeof window.gtag === 'function') window.gtag('event', evento.ga, extra.ga || {});
@@ -56,6 +68,7 @@ function medir(evento, extra = {}) {
 
 function elegirProducto(id) {
   estado.producto = id;
+  marcarUrl(id);
   const plan = catalogo[id];
   if (plan.mensual) {
     $('#p2-plan').textContent = `${plan.nombre}, con tu plan y tu seguimiento entre sesiones.`;
@@ -196,8 +209,11 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-producto],[data-duracion],[data-volver]');
   if (!b) return;
   if (b.dataset.producto) elegirProducto(b.dataset.producto);
-  else if (b.dataset.duracion) { estado.duracion = Number(b.dataset.duracion); abrirP3(); }
-  else if (b.dataset.volver) irA(b.dataset.volver);
+  else if (b.dataset.duracion) { estado.duracion = Number(b.dataset.duracion); marcarUrl(estado.producto, estado.duracion); abrirP3(); }
+  else if (b.dataset.volver) {
+    if (b.dataset.volver === 'p1') marcarUrl(null);
+    irA(b.dataset.volver);
+  }
 });
 $('#p4-form').addEventListener('submit', pagar);
 
@@ -223,7 +239,9 @@ function leerGuardado(clave) {
 (async () => {
   const token = params.get('r') || leerGuardado('ajl_reserva_r');
   if (token && await retomar(token)) return;
-  const plan = params.get('plan');
-  if (plan && catalogo[plan]) elegirProducto(plan);
-  else irA('p1');
+  // ?plan=constancia abre las duraciones; con &meses=3, directo al calendario.
+  const d = destinoLink(params.get('plan'), params.get('meses'));
+  if (!d.plan || !catalogo[d.plan]) { irA('p1'); return; }
+  elegirProducto(d.plan);
+  if (d.meses) { estado.duracion = d.meses; marcarUrl(d.plan, d.meses); abrirP3(); }
 })();

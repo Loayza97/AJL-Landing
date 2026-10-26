@@ -85,3 +85,6 @@ tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
 .lk-horas button[aria-pressed=true] { background: #141414; color: #fff; border-color: #141414; }
 .lk-acciones { display: flex; gap: 8px; justify-content: flex-end; }
 .lk-dialogo .lk-sub { margin: 0; font-size: .875rem; color: #5C5C5C; }
+
+/* Links de reserva web: la URL entra entera en la fila y se puede seleccionar. */
+.lk-url--fila { min-width: 300px; font-size: .8rem; }

@@ -3,6 +3,7 @@
 import { montarLogin } from './panel-login.js';
 import { cargarLinks } from './panel-links.js';
 import { cargarReservas } from './panel-reservas.js';
+import './panel-links-reserva.js';
 
 const cargarTodo = async () => { if ((await cargarLinks()) !== false) await cargarReservas(); };
 montarLogin({ onEntrar: cargarTodo });
