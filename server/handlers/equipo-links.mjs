@@ -11,7 +11,7 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida, productoDeTipo, PRODUCTOS } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida, productoDeTipo, citasDePlan, PRODUCTOS } from '../agenda/opciones.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
@@ -135,6 +135,10 @@ const ORDEN_AGENDADO = 'ORDER BY agendado_en DESC, r.id DESC';
 
 // Clave del plan como la guardan los links, para que la web y los links digan lo mismo.
 const planWeb = (r) => (['evaluacion', 'basico'].includes(r.producto) ? r.producto : `${r.producto}:${r.duracion_meses}`);
+const sesionesBase = (plan, cita) => {
+  const total = citasDePlan(plan).length;
+  return total && /^\d+$/.test(String(cita)) ? `${cita}/${total}` : null;
+};
 const eventoWeb = (min) => (min === 60 ? 'Sesión de 1 hora' : `Sesión de ${min} min`);
 const soles = (c) => `S/${String(Math.round(c / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
 // El neto lleva céntimos (la comisión no es redonda): «S/305,12».
@@ -160,6 +164,9 @@ const vistaAgendado = (r, deps, ahoraIso) => {
     sin_hora: r.estado === 'pagada_sin_hora',
     // Para pegar en la base maestra: el producto sin la duración y los soles como número.
     producto: PRODUCTOS.find((x) => x.id === String(link ? r.plan : r.producto).split(':')[0])?.etiqueta ?? null,
+    producto_id: String(link ? r.plan ?? '' : r.producto).split(':')[0] || null,
+    // Columna N de la base: qué cita es sobre el total («2/7»). La web es siempre la 1ra.
+    sesiones: sesionesBase(link ? r.plan : planWeb(r), link ? r.cita : '1'),
     soles: link ? null : r.monto_centimos / 100,
     // Neto de Mercado Pago (pagos web desde 2026-10-21). Los links pagan por fuera, sin descuento.
     neto: link || r.neto_centimos == null ? null : solesExactos(r.neto_centimos),
