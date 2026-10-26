@@ -6,6 +6,7 @@
 // Los datos los da /api/equipo/*, que exige acceso. /panel/links/ redirige aquí.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
 import { productosDeTipo } from '../../../server/agenda/opciones.mjs';
+import { LINKS_RESERVA } from '../../data/links-reserva.js';
 const tipos = Object.entries(TIPOS_LINK);
 import '../../styles/panel.css';
 ---
@@ -61,6 +62,17 @@ import '../../styles/panel.css';
             </article>
           ))}
         </div>
+      </section>
+
+      <section>
+        <h2>Links de reserva web</h2>
+        <p class="lk-nota">Llevan directo al calendario del producto. El paciente elige su hora y paga en la web. Sirven siempre, para cualquier paciente.</p>
+        <div class="lk-scroll"><table><thead><tr><th>Producto</th><th>Link</th><th></th></tr></thead><tbody id="r-links">
+          {LINKS_RESERVA.map((l) => (
+            <tr><td><b>{l.producto}</b><br>{l.detalle}</td><td><input class="lk-url lk-url--fila" readonly data-ruta={l.ruta} value={`https://www.ajlnutricion.com${l.ruta}`} aria-label={`Link de ${l.detalle}`}></td>
+              <td><button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta>Copiar</button></td></tr>
+          ))}
+        </tbody></table></div>
       </section>
 
       <section>
