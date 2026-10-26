@@ -2,9 +2,9 @@
 // Después de PRODUCTO (M) la base tiene una columna de sesiones (N, «1/1»), así que
 // SOLES es la O, RECURRENCIA la R, MODALIDAD la S y NUTRICIONISTA la W (Romi, 2026-10-16).
 // El neto de Mercado Pago va en la P, junto al bruto (Romi, 2026-10-22).
-// Desde 2026-10-26 (Joaquín) J, K y U llevan su fórmula, así pegar no las borra. Usan
+// Desde 2026-10-26 (Joaquín) J, K, L y U llevan su fórmula, así pegar no las borra. Usan
 // INDIRECTO("H"&FILA()) para apuntar a la fila donde caen, sea cual sea. Lo que se llena
-// a mano (I, L por ahora, Q, T, V, X, Y y NOTA, SALUDOS, CICLO) va en blanco.
+// a mano (I, Q, T, V, X, Y y NOTA, SALUDOS, CICLO) va en blanco.
 import { numeroParaPegar } from '../data/telefono.js';
 
 export const COLUMNAS_MAESTRA = 28; // A a AB
@@ -19,6 +19,8 @@ const PRODUCTO_EN_BASE = {
 const en = (col) => `INDIRECTO("${col}"&FILA())`;
 const ULTIMA_CONSULTA = `=SI(${en('H')}=MAXIFS(H:H, C:C, ${en('C')}), "✅", "❌")`; // J
 const TIEMPO = `=($A$1-${en('H')})`; // K
+const CONDICION = `=LET(j, ${en('J')}, k, ${en('K')}, SI(j="✅", SI(k<=19, "Paciente activo", SI(k<=30, "Recordatorio de cita", `
+  + 'SI(k<=60, "Cita atrasada", "Paciente perdido"))), "-"))'; // L
 const MONITOREO = `=LET(t, ${en('T')}, v, ${en('V')}, h, ${en('H')}, ancla, SI(t<>"", t, SI(v="No requiere", h, "")), `
   + 'SI(ancla="", "Falta", SI(HOY()-ancla>28, (HOY()-ancla) & " T", SI(HOY()-ancla>=0, (HOY()-ancla) & " V", ""))))'; // U
 
@@ -37,6 +39,7 @@ export function filaMaestra(f) {
   c[7] = f.sin_hora ? '' : fechaLima(f.inicio_utc); // H FECHA
   c[9] = ULTIMA_CONSULTA; // J ÚLTIMA CONSULTA
   c[10] = TIEMPO; // K TIEMPO TRANSCURRIDO
+  c[11] = CONDICION; // L CONDICIÓN
   c[12] = PRODUCTO_EN_BASE[f.producto_id] ?? ''; // M PRODUCTO
   c[13] = f.sesiones ? `="${f.sesiones}"` : ''; // N #SESIONES, como texto: «2/7» suelto Sheets lo vuelve fecha
   c[14] = f.soles == null ? '' : String(f.soles); // O SOLES (bruto)

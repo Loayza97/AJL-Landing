@@ -28,6 +28,11 @@ test('base maestra: sesiones en N como texto para que Sheets no lo vuelva fecha'
   assert.equal(filaMaestra({ ...fila, sesiones: null }).split('\t')[col('N')], '');
 });
 
+test('base maestra: L (condición) con su fórmula, a partir de J y K de la misma fila', () => {
+  assert.equal(filaMaestra(fila).split('\t')[col('L')], '=LET(j, INDIRECTO("J"&FILA()), k, INDIRECTO("K"&FILA()), '
+    + 'SI(j="✅", SI(k<=19, "Paciente activo", SI(k<=30, "Recordatorio de cita", SI(k<=60, "Cita atrasada", "Paciente perdido"))), "-"))');
+});
+
 test('base maestra: J, K y U llevan su fórmula apuntando a la fila donde se pega', () => {
   const c = filaMaestra(fila).split('\t');
   assert.equal(c[col('J')], '=SI(INDIRECTO("H"&FILA())=MAXIFS(H:H, C:C, INDIRECTO("C"&FILA())), "✅", "❌")');
