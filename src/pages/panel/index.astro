@@ -65,7 +65,8 @@ import '../../styles/panel.css';
       </section>
 
       <section>
-        <h2>Links de reserva web</h2>
+        <details class="lk-plegable">
+        <summary><h2>Links de reserva web</h2><span class="lk-nota">11 links · toca para ver</span></summary>
         <p class="lk-nota">Llevan directo al calendario del producto. El paciente elige su hora y paga en la web. Sirven siempre, para cualquier paciente.</p>
         <div class="lk-scroll"><table><thead><tr><th>Producto</th><th>Link</th><th></th></tr></thead><tbody id="r-links">
           {LINKS_RESERVA.map((l) => (
@@ -73,6 +74,7 @@ import '../../styles/panel.css';
               <td><button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta>Copiar</button></td></tr>
           ))}
         </tbody></table></div>
+        </details>
       </section>
 
       <section>
