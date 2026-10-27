@@ -88,3 +88,11 @@ tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
 
 /* Links de reserva web: la URL entra entera en la fila y se puede seleccionar. */
 .lk-url--fila { min-width: 300px; font-size: .8rem; }
+
+/* Secciones plegables (Romi, 2026-10-27): cerradas por defecto para que no ocupen la pantalla. */
+.lk-plegable > summary { display: flex; align-items: baseline; gap: 12px; cursor: pointer; list-style: none; min-height: 44px; }
+.lk-plegable > summary::-webkit-details-marker { display: none; }
+.lk-plegable > summary h2 { margin: 0; }
+.lk-plegable > summary h2::before { content: '▸'; display: inline-block; width: 1em; transition: transform .15s; }
+.lk-plegable[open] > summary h2::before { transform: rotate(90deg); }
+.lk-plegable[open] > summary .lk-nota { display: none; }
