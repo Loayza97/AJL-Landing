@@ -42,6 +42,7 @@ Ver el diseño visual (7 pantallas). Resumen:
 - **Paso 2:** al elegir duración aparece «¿Cómo quieres pagar?»: «Pago mensual automático» (cuota al mes, se renueva cada N meses, aviso 7 días antes, no renovar no cuesta nada, penalidad si cancela a mitad) y «Pago completo» (como hoy). En Mes a mes: «Pago mensual automático» sin penalidad, o pagar el mes una vez como hoy.
 - **Paso 3:** sin cambios (elige hora; la retención de la hora funciona igual).
 - **Paso 4:** el resumen muestra cuota, «hoy pagas», próximos cobros y fecha de renovación. Casilla obligatoria aparte: «Acepto el cobro mensual automático, la renovación cada N meses y la penalidad de S/X si cancelo a mitad del paquete.» Botón «Suscribirme con Mercado Pago».
+- **Página de Mercado Pago:** el `reason` de la suscripción dice «AJL Nutrición · Constancia, 3 meses» y el cobro en el estado de cuenta sale como `AJLNUTRICION`, para que el paciente lo reconozca. El nombre y el logo del vendedor salen de la cuenta de Mercado Pago de AJL (revisar que estén puestos).
 - **Vuelta de Mercado Pago:** igual que hoy (`/reservar/listo/`), con el texto de suscripción. Si el primer cobro llegó tarde y la hora se liberó, queda `pagada_sin_hora` como hoy.
 
 ### Link de suscripción (`/suscribirse/?s=<token>`)
