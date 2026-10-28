@@ -360,7 +360,22 @@ test('webhook de suscripción: verifica firma y despacha por tipo', async () => 
     const r = await handleWebhookMp(post(`/api/reservas/webhook-mp?type=${type}&data.id=${id}`, { type, data: { id } }, firmar(id)), env, d);
     assert.equal(r.status, 200);
   }
-  assert.deepEqual(llamados, [['pre', 'pre9'], ['ap', '77']]);
+  assert.deepEqual(llamados, [['pre', 'pre9'], ['ap', '77'], ['pre', 'nada']]);
   const mal = await handleWebhookMp(post('/api/reservas/webhook-mp?type=subscription_preapproval&data.id=x', {}, { 'x-signature': 'ts=1,v1=00' }), env, d);
   assert.equal(mal.status, 401);
+});
+
+test('pagar dos veces la misma reserva mensual: anula la suscripción anterior y la fila queda con la nueva', async () => {
+  let n = 0;
+  const canceladas = [];
+  const d = deps({ mp: { crearSuscripcion: async () => ({ id: `pre${++n}`, init_point: `https://mp/sus${n}` }),
+    cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  await handlePagar(post('/api/reservas/pagar', body), env, d);
+  await handlePagar(post('/api/reservas/pagar', { ...body, email: 'otra@x.pe' }), env, d);
+  assert.deepEqual(canceladas, ['pre1']);
+  const s = await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id);
+  assert.equal(s.mp_preapproval_id, 'pre2');
+  assert.equal(s.email, 'otra@x.pe');
 });

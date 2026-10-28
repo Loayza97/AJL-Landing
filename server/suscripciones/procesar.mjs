@@ -44,23 +44,33 @@ async function cancelarEnMp(deps, s) {
 
 export async function procesarCobro(deps, env, authorizedId) {
   const ap = await deps.mp.obtenerCobroSuscripcion(authorizedId);
-  const s = ap?.preapproval_id ? await sus.porPreapproval(deps.db, String(ap.preapproval_id)) : null;
+  if (!ap?.preapproval_id) return { estado: 'desconocido' };
+  let s = await sus.porPreapproval(deps.db, String(ap.preapproval_id));
+  if (!s) {
+    // Un reintento de pago pudo reemplazar el preapproval guardado: se busca por la referencia que le pusimos.
+    const p = await deps.mp.obtenerSuscripcion(String(ap.preapproval_id));
+    s = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
+  }
   if (!s) return { estado: 'desconocido' };
   const pagoId = ap.payment?.id ? String(ap.payment.id) : null;
   const pago = pagoId ? await deps.mp.obtenerPago(pagoId) : null;
-  const estado = pago?.status ?? ap.payment?.status ?? 'pending';
+  // Solo cuenta lo que la API de pagos confirma; el estado que trae el cobro no se toma como cierto.
+  const estado = pago?.status ?? 'pending';
   const neto = Number(pago?.transaction_details?.net_received_amount);
   const { nuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
     suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, estado, montoCentimos: Math.round(Number(ap.transaction_amount) * 100),
     netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(),
   });
 
+  // Fuera del filtro de nuevoAprobado: si la confirmación falló, el reintento de Mercado Pago la repite
+  // (confirmarConPago es idempotente y solo quien confirma manda los correos).
+  if (estado === 'approved' && numero === 1 && s.reserva_id) {
+    const r = await repo.reservaPorId(deps.db, s.reserva_id);
+    if (r) await confirmarConPago(deps, env, r, pago);
+  }
+
   if (nuevoAprobado) {
     const actual = await sus.porId(deps.db, s.id);
-    if (numero === 1 && s.reserva_id) {
-      const r = await repo.reservaPorId(deps.db, s.reserva_id);
-      if (r) await confirmarConPago(deps, env, r, pago);
-    }
     await alPaciente(deps, env, actual, correoRecibo({ nombre: actual.nombre?.split(' ')[0] ?? '', titulo: titulo(actual), numero,
       cobros: actual.duracion_meses > 1 ? actual.duracion_meses : null, cuota: actual.cuota_centimos, urlCancelar: urlCancelar(env, actual),
       penalidadHoy: penalidadAlCancelar(actual) }));
@@ -87,6 +97,8 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
   const s = (await sus.porPreapproval(deps.db, String(p?.id ?? ''))) ?? (p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null);
   if (!s) return { estado: 'desconocido' };
+  // Aviso de un preapproval que un reintento de pago reemplazó: no es una baja del paciente.
+  if (s.mp_preapproval_id && p.id && String(p.id) !== s.mp_preapproval_id) return { estado: 'reemplazada' };
   if (!s.mp_preapproval_id && p.id) await sus.guardarPreapproval(deps.db, s.id, String(p.id), deps.ahora());
   if (p.status === 'cancelled') {
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_mp', ahora: deps.ahora() });

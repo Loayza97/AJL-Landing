@@ -21,6 +21,11 @@ export const porLinkHash = una('link_token_hash');
 export const porPreapproval = una('mp_preapproval_id');
 export const porReserva = una('reserva_id');
 
+// Los datos de contacto de un reintento de pago: la fila debe coincidir con lo enviado a Mercado Pago.
+export const actualizarContacto = (db, id, { nombre, email, dni, whatsapp, ahora }) => db.prepare(
+  "UPDATE suscripciones SET nombre = ?2, email = ?3, dni = ?4, whatsapp = ?5, actualizado_en = ?6 WHERE id = ?1 AND estado = 'pendiente'",
+).bind(id, nombre, email, dni ? normalDni(dni) : null, whatsapp, ahora.toISOString()).run();
+
 export const guardarPreapproval = (db, id, mpId, ahora) => db.prepare(
   'UPDATE suscripciones SET mp_preapproval_id = ?2, actualizado_en = ?3 WHERE id = ?1',
 ).bind(id, mpId, ahora.toISOString()).run();

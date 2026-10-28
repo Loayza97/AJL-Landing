@@ -93,3 +93,42 @@ test('un cobro de una suscripción que no es nuestra se ignora', async () => {
   const d = armar({ cobros: { z: { ...cobro('z', 'pz'), preapproval_id: 'otra' } } });
   assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
 });
+
+test('si la confirmación del primer cobro falla, el reintento del aviso la completa', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') } });
+  await reservaMensual(d);
+  const prepare = d.db.prepare.bind(d.db);
+  let fallar = true;
+  d.db.prepare = (sql) => {
+    if (fallar && sql.includes("estado = 'confirmada'")) { fallar = false; throw new Error('D1 caída'); }
+    return prepare(sql);
+  };
+  await assert.rejects(procesarCobro(d, env, 'a1'), /D1 caída/);
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  await procesarCobro(d, env, 'a1');
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 1);
+});
+
+test('un cobro solo cuenta si la API de pagos lo confirma aprobado', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: {} });
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+});
+
+test('cobro cuyo preapproval no está guardado: se encuentra por la referencia externa', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre-viejo' } }, pagos: { p1: pago('p1') },
+    pre: { 'pre-viejo': { id: 'pre-viejo', external_reference: 's1', status: 'pending' } } });
+  await reservaMensual(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+});
+
+test('aviso de baja de un preapproval reemplazado por un reintento no cancela la suscripción', async () => {
+  const d = armar({ pre: { 'pre-viejo': { id: 'pre-viejo', status: 'cancelled', external_reference: 's1' } } });
+  await reservaMensual(d);
+  await procesarPreapproval(d, env, 'pre-viejo');
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
+});

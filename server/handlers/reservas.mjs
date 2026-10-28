@@ -187,7 +187,17 @@ export async function handlePagar(request, env, deps) {
     if (r.forma_pago === 'mensual') {
       const existente = await sus.porReserva(deps.db, r.id);
       const id = existente?.id ?? crypto.randomUUID();
-      if (!existente) {
+      if (existente) {
+        // Reintento: se anula el intento anterior en Mercado Pago y la fila toma los datos nuevos.
+        if (existente.mp_preapproval_id && existente.estado === 'pendiente') {
+          try {
+            await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
+          } catch (e) {
+            console.error('cancelar suscripción anterior', e);
+          }
+        }
+        await sus.actualizarContacto(deps.db, id, { nombre: cliente.nombre, email: cliente.email, dni: cliente.dni, whatsapp: cliente.whatsapp, ahora });
+      } else {
         await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: cliente.nombre, email: cliente.email, dni: cliente.dni,
           whatsapp: cliente.whatsapp, producto: r.producto, duracion_meses: r.duracion_meses, cuota_centimos: r.monto_centimos,
           precio_mes_centimos: precio.precio_mes_centimos, precio_3m_centimos: precio.precio_3m_centimos, estado: 'pendiente',
