@@ -24,10 +24,9 @@ import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import * as sus from '../suscripciones/repo.mjs';
-import { procesarCobro, procesarPreapproval, sincronizarDeReserva, avisarPenalidadPendiente } from '../suscripciones/procesar.mjs';
+import { procesarCobro, procesarPreapproval, sincronizarDeReserva, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { finDeCobros } from '../suscripciones/calculo.mjs';
-import { formatoSoles } from '../../src/data/duraciones.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
@@ -175,7 +174,7 @@ export async function handlePagar(request, env, deps) {
   const deuda = await sus.deudaPorDni(deps.db, cliente.dni);
   if (deuda) {
     await avisarPenalidadPendiente(deps, env, deuda);
-    return bad(409, `Tienes una penalidad pendiente de ${formatoSoles(deuda.penalidad_centimos / 100)} de tu plan anterior. Te enviamos a tu correo el link para pagarla.`, { motivo: 'penalidad' });
+    return bad(409, MSJ_DEUDA, { motivo: 'penalidad' });
   }
 
   const ahora = deps.ahora();

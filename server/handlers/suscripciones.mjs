@@ -6,11 +6,10 @@
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion, finDeCobros } from '../suscripciones/calculo.mjs';
-import { avisarBaja, avisarPenalidadPendiente } from '../suscripciones/procesar.mjs';
+import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
-import { formatoSoles } from '../../src/data/duraciones.js';
 
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
 const titulo = (s) => condicionesSuscripcion(s.producto, s.duracion_meses)?.titulo ?? s.producto;
@@ -129,7 +128,7 @@ export async function handleSuscripcionLink(request, env, deps) {
   const deuda = await sus.deudaPorDni(deps.db, documento);
   if (deuda) {
     await avisarPenalidadPendiente(deps, env, deuda);
-    return bad(409, `Tienes una penalidad pendiente de ${formatoSoles(deuda.penalidad_centimos / 100)} de tu plan anterior. Te enviamos a tu correo el link para pagarla.`, { motivo: 'penalidad' });
+    return bad(409, MSJ_DEUDA, { motivo: 'penalidad' });
   }
   const ahora = deps.ahora();
   if (!(await sus.usarLink(deps.db, { hash: await sha256Hex(d.l), nombre: s.nombre, email, dni: documento, whatsapp, condicionesVersion: CONDICIONES_VERSION, ahora }))) {

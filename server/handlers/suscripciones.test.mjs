@@ -163,6 +163,9 @@ test('link con penalidad pendiente en ese documento: 409 y el link sigue sin usa
   assert.equal(enviados[0].to, 'deudor@x.pe');
   assert.match(enviados[0].html, /suscripcion\/cancelar\/\?s=told/);
   assert.equal((await sus.porId(d.db, 'sl')).link_usado_en, null);
+  assert.equal(j.error, 'Hay un pago pendiente de un plan anterior con este documento. Te enviamos a tu correo cómo resolverlo.');
+  assert.equal((await handleSuscripcionLink(postLink(formLink), env, d)).status, 409);
+  assert.equal(enviados.length, 1);
 });
 
 test('estado: devuelve el estado por token', async () => {

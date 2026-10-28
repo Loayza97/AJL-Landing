@@ -18,10 +18,19 @@ const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutri
 const titulo = (s) => condicionesSuscripcion(s.producto, s.duracion_meses)?.titulo ?? s.producto;
 export const urlCancelar = (env, s) => `${siteUrl(env)}/suscripcion/cancelar/?s=${s.token}`;
 
-// El 409 de «penalidad pendiente» no revela el token (cualquiera puede teclear un DNI ajeno):
-// el link de pago va solo al correo del deudor. Nunca rompe la respuesta.
-export const avisarPenalidadPendiente = (deps, env, deuda) => alPaciente(deps, env, deuda,
-  correoPenalidadPendiente({ nombre: deuda.nombre?.split(' ')[0], monto: deuda.penalidad_centimos, url: urlCancelar(env, deuda) }));
+// El 409 de «penalidad pendiente» no revela el token ni el monto (cualquiera puede teclear un DNI ajeno):
+// el link de pago va solo al correo del deudor, como máximo una vez cada 24 h. Nunca rompe la respuesta.
+export const MSJ_DEUDA = 'Hay un pago pendiente de un plan anterior con este documento. Te enviamos a tu correo cómo resolverlo.';
+export async function avisarPenalidadPendiente(deps, env, deuda) {
+  try {
+    if (!(await sus.tomarAvisoDeuda(deps.db, deuda.id, deps.ahora()))) return;
+  } catch (e) {
+    console.error('aviso de deuda', deuda.id, e);
+    return;
+  }
+  await alPaciente(deps, env, deuda,
+    correoPenalidadPendiente({ nombre: deuda.nombre?.split(' ')[0], monto: deuda.penalidad_centimos, url: urlCancelar(env, deuda) }));
+}
 
 async function alPaciente(deps, env, s, correo) {
   if (!s.email) return;

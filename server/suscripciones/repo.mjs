@@ -104,6 +104,14 @@ export async function marcarPenalidadPagada(db, { id, mpPaymentId = null, por = 
   return r.meta.changes === 1;
 }
 
+// Toma el turno del aviso de deuda: solo pasa si no se avisó en las últimas 24 h.
+export async function tomarAvisoDeuda(db, id, ahora) {
+  const r = await db.prepare(
+    'UPDATE suscripciones SET aviso_deuda_en = ?2 WHERE id = ?1 AND (aviso_deuda_en IS NULL OR aviso_deuda_en <= ?3)',
+  ).bind(id, ahora.toISOString(), new Date(ahora.getTime() - 24 * 3600000).toISOString()).run();
+  return r.meta.changes === 1;
+}
+
 export const deudaPorDni = (db, dni) => db.prepare(
   "SELECT * FROM suscripciones WHERE dni = ?1 AND penalidad_estado = 'pendiente' ORDER BY cancelada_en DESC LIMIT 1",
 ).bind(normalDni(dni)).first();

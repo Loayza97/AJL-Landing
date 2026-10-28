@@ -6,6 +6,7 @@ import { nutricionistas } from '../../src/data/nutricionistas.js';
 import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar, handleSincronizarCalendario } from './reservas.mjs';
 import * as repo from '../reservas/repo.mjs';
 import * as sus from '../suscripciones/repo.mjs';
+import { avisarPenalidadPendiente } from '../suscripciones/procesar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok' };
@@ -356,7 +357,29 @@ test('pagar con una penalidad pendiente en ese documento: 409 sin link; el link 
   assert.equal(enviados.length, 1);
   assert.equal(enviados[0].to, 'deudor@x.pe');
   assert.match(enviados[0].html, /suscripcion\/cancelar\/\?s=told/);
-  assert.match(j.error, /S\/80/);
+  assert.equal(j.error, 'Hay un pago pendiente de un plan anterior con este documento. Te enviamos a tu correo cómo resolverlo.');
+  assert.doesNotMatch(j.error, /S\//);
+  // Un segundo intento dentro de las 24 h responde igual pero no vuelve a mandar el correo.
+  const r2 = await handlePagar(post('/api/reservas/pagar', { token, ...datos }), env, d);
+  assert.equal(r2.status, 409);
+  assert.equal(enviados.length, 1);
+});
+
+test('aviso de deuda: como máximo uno cada 24 h por suscripción', async () => {
+  const enviados = [];
+  let ahora = t0;
+  const d = deps({ sendEmail: async (m) => { enviados.push(m); return true; } });
+  d.ahora = () => ahora;
+  await sus.crear(d.db, { id: 'old', token: 'told', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, penalidad_centimos: 8000,
+    estado: 'cancelada', penalidad_estado: 'pendiente', dni: '12345678', email: 'deudor@x.pe', creado_en: t0.toISOString() });
+  const deuda = await sus.porId(d.db, 'old');
+  await avisarPenalidadPendiente(d, env, deuda);
+  ahora = new Date(t0.getTime() + 23 * 3600000);
+  await avisarPenalidadPendiente(d, env, deuda);
+  assert.equal(enviados.length, 1);
+  ahora = new Date(t0.getTime() + 24 * 3600000);
+  await avisarPenalidadPendiente(d, env, deuda);
+  assert.equal(enviados.length, 2);
 });
 
 test('webhook de suscripción: verifica firma y despacha por tipo', async () => {
