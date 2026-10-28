@@ -15,7 +15,7 @@
 - Todo se trabaja en la rama `reservas-pago` (worktree `~/ajl/ajl-landing-cloudflare`). Nada va a `main` ni a la base de producción sin autorización de Joaquín.
 - El repo es público: ningún secreto en el código ni en `wrangler.toml`. Los secretos se cargan con `npx wrangler pages secret put`.
 - Montos siempre en céntimos en la base y calculados en el servidor desde `src/data/plans.js` / `src/data/duraciones.js`. El navegador nunca manda un monto.
-- Cuota = `porMes` de la duración. Penalidad = `porMes` de mes a mes − `porMes` del paquete; 0 en mes a mes.
+- Cuota = `porMes` de la duración. Penalidad al cancelar con N cobros pagados (1 ≤ N < duración): `(bloque × porMes del paquete de 3) + ((N − bloque) × porMes de mes a mes) − N × cuota`, con `bloque = 3` si el paquete es de 6 meses y N ≥ 3, si no `0`. Mes a mes: 0. Los precios de referencia se congelan al suscribirse (`precio_mes_centimos`, `precio_3m_centimos`).
 - Sin renovación: el paquete termina con su cobro número `duracion_meses`. Mes a mes no termina solo.
 - Darse de baja nunca depende de pagar: siempre existe «Cancelar sin pagar ahora».
 - Freno: un DNI con `penalidad_estado = 'pendiente'` no puede pagar en `/reservar/` ni activar un link de suscripción hasta pagarla. Los links de agenda del equipo no se frenan.
@@ -118,8 +118,9 @@ git commit -m "Suscripciones: prueba en el modo de prueba de Mercado Pago"
 
 **Interfaces:**
 - Produces:
-  - `condicionesSuscripcion(producto: string, meses: number) → { producto, duracion_meses, cuota_centimos, penalidad_centimos, cobros: number|null, titulo } | null`
-  - `penalidadAlCancelar({ duracion_meses, cobros_aprobados, penalidad_centimos }) → number` (céntimos)
+  - `condicionesSuscripcion(producto: string, meses: number) → { producto, duracion_meses, cuota_centimos, precio_mes_centimos, precio_3m_centimos: number|null, ahorro_mes_centimos, cobros: number|null, titulo } | null`
+  - `penalidadAlCancelar({ duracion_meses, cobros_aprobados, cuota_centimos, precio_mes_centimos, precio_3m_centimos }) → number` (céntimos)
+  - `detallePenalidad(mismo objeto) → string` (por ejemplo «3 meses a S/270 + 1 mes a S/320, menos los S/1.000 que pagaste»; vacío si no hay penalidad)
   - `finDeCobros(desde: Date, cobros: number|null) → string|null` (ISO)
   - `esUltimoCobro({ duracion_meses }, numero: number) → boolean`
   - Tablas `suscripciones`, `suscripcion_cobros` y columna `reservas.forma_pago`.
@@ -147,7 +148,9 @@ CREATE TABLE suscripciones (
   producto                   TEXT NOT NULL,
   duracion_meses             INTEGER NOT NULL CHECK (duracion_meses IN (1, 3, 6)),
   cuota_centimos             INTEGER NOT NULL,
-  penalidad_centimos         INTEGER NOT NULL,
+  precio_mes_centimos        INTEGER NOT NULL,       -- precio mes a mes al suscribirse (referencia de la penalidad)
+  precio_3m_centimos         INTEGER,                -- porMes del paquete de 3 al suscribirse; solo en paquetes de 6
+  penalidad_centimos         INTEGER NOT NULL DEFAULT 0, -- monto calculado al cancelar o al cotizar su pago
   mp_preapproval_id          TEXT UNIQUE,
   estado                     TEXT NOT NULL CHECK (estado IN ('pendiente', 'activa', 'terminada', 'cobro_fallido', 'cancelada')),
   cobros_aprobados           INTEGER NOT NULL DEFAULT 0,
@@ -184,18 +187,21 @@ CREATE INDEX suscripcion_cobros_suscripcion ON suscripcion_cobros (suscripcion_i
 ```js
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { condicionesSuscripcion, penalidadAlCancelar, finDeCobros, esUltimoCobro } from './calculo.mjs';
+import { condicionesSuscripcion, penalidadAlCancelar, detallePenalidad, finDeCobros, esUltimoCobro } from './calculo.mjs';
 
-test('cuotas y penalidades de los 9 casos (precios del 27-oct)', () => {
+test('cuotas y precios de referencia de los 9 casos (precios del 28-oct)', () => {
   const casos = [
-    ['acompanamiento', 1, 32000, 0, null], ['acompanamiento', 3, 27000, 5000, 3], ['acompanamiento', 6, 25000, 7000, 6],
-    ['constancia', 1, 44000, 0, null], ['constancia', 3, 36000, 8000, 3], ['constancia', 6, 32500, 11500, 6],
-    ['transformacion', 1, 60000, 0, null], ['transformacion', 3, 51000, 9000, 3], ['transformacion', 6, 46800, 13200, 6],
+    ['acompanamiento', 1, 32000, null, null], ['acompanamiento', 3, 27000, null, 3], ['acompanamiento', 6, 25000, 27000, 6],
+    ['constancia', 1, 44000, null, null], ['constancia', 3, 36000, null, 3], ['constancia', 6, 32500, 36000, 6],
+    ['transformacion', 1, 60000, null, null], ['transformacion', 3, 51000, null, 3], ['transformacion', 6, 46800, 51000, 6],
   ];
-  for (const [p, m, cuota, pen, cobros] of casos) {
+  const mes = { acompanamiento: 32000, constancia: 44000, transformacion: 60000 };
+  for (const [p, m, cuota, tres, cobros] of casos) {
     const c = condicionesSuscripcion(p, m);
     assert.equal(c.cuota_centimos, cuota, `${p} ${m}`);
-    assert.equal(c.penalidad_centimos, pen, `${p} ${m}`);
+    assert.equal(c.precio_mes_centimos, mes[p], `${p} ${m}`);
+    assert.equal(c.precio_3m_centimos, tres, `${p} ${m}`);
+    assert.equal(c.ahorro_mes_centimos, mes[p] - cuota, `${p} ${m}`);
     assert.equal(c.cobros, cobros, `${p} ${m}`);
   }
 });
@@ -209,13 +215,34 @@ test('título dice pago mensual; planes de pago único o duraciones raras no apl
   assert.equal(condicionesSuscripcion('toString', 1), null);
 });
 
-test('penalidad: solo con al menos un cobro y antes del último; nunca en mes a mes', () => {
-  const s = { duracion_meses: 3, penalidad_centimos: 8000 };
-  assert.equal(penalidadAlCancelar({ ...s, cobros_aprobados: 0 }), 0);
-  assert.equal(penalidadAlCancelar({ ...s, cobros_aprobados: 1 }), 8000);
-  assert.equal(penalidadAlCancelar({ ...s, cobros_aprobados: 2 }), 8000);
-  assert.equal(penalidadAlCancelar({ ...s, cobros_aprobados: 3 }), 0);
-  assert.equal(penalidadAlCancelar({ duracion_meses: 1, penalidad_centimos: 0, cobros_aprobados: 5 }), 0);
+test('penalidades de la tabla de la spec (Joaquín, 28-oct)', () => {
+  const tabla = {
+    acompanamiento: { 3: [50, 100], 6: [70, 140, 60, 130, 200] },
+    constancia: { 3: [80, 160], 6: [115, 230, 105, 220, 335] },
+    transformacion: { 3: [90, 180], 6: [132, 264, 126, 258, 390] },
+  };
+  for (const [p, porDur] of Object.entries(tabla)) {
+    for (const [m, esperadas] of Object.entries(porDur)) {
+      const c = condicionesSuscripcion(p, Number(m));
+      esperadas.forEach((soles, i) => {
+        assert.equal(penalidadAlCancelar({ ...c, cobros_aprobados: i + 1 }), soles * 100, `${p} ${m} tras ${i + 1}`);
+      });
+    }
+  }
+});
+
+test('penalidad 0: sin cobros, con todos los cobros, o en mes a mes', () => {
+  const c = condicionesSuscripcion('constancia', 3);
+  assert.equal(penalidadAlCancelar({ ...c, cobros_aprobados: 0 }), 0);
+  assert.equal(penalidadAlCancelar({ ...c, cobros_aprobados: 3 }), 0);
+  assert.equal(penalidadAlCancelar({ ...condicionesSuscripcion('constancia', 1), cobros_aprobados: 5 }), 0);
+});
+
+test('detalle de la penalidad para la página de cancelar', () => {
+  const seis = condicionesSuscripcion('acompanamiento', 6);
+  assert.equal(detallePenalidad({ ...seis, cobros_aprobados: 4 }), '3 meses a S/270 + 1 mes a S/320, menos los S/1.000 que pagaste');
+  assert.equal(detallePenalidad({ ...condicionesSuscripcion('constancia', 3), cobros_aprobados: 2 }), '2 meses a S/440, menos los S/720 que pagaste');
+  assert.equal(detallePenalidad({ ...seis, cobros_aprobados: 6 }), '');
 });
 
 test('fin de cobros: 15 días después del último cobro esperado; mes a mes sin fin', () => {
@@ -249,10 +276,12 @@ Expected: FAIL con `Cannot find module './calculo.mjs'`.
 ```js
 // Cuota, penalidad y número de cobros de una suscripción (spec 2026-10-27). Todo sale
 // de plans.js / duraciones.js: ningún monto escrito a mano.
-// Cuota = porMes de la duración. Penalidad = un mes de ahorro (porMes de mes a mes −
-// porMes del paquete), 0 en mes a mes. Sin renovación: el paquete son duracion_meses cobros.
+// Cuota = porMes de la duración. Sin renovación: el paquete son duracion_meses cobros.
+// Penalidad (Joaquín, 28-oct): los meses pagados se recalculan al precio que les habría
+// tocado (en el paquete de 6, si ya pasaron 3 meses, esos 3 al precio del paquete de 3;
+// los demás a mes a mes) y se paga la diferencia con lo pagado. Mes a mes: 0.
 import { plans } from '../../src/data/plans.js';
-import { duracionesDe } from '../../src/data/duraciones.js';
+import { duracionesDe, formatoSoles } from '../../src/data/duraciones.js';
 
 const DIA = 86400000;
 
@@ -266,16 +295,34 @@ export function condicionesSuscripcion(producto, meses) {
   return {
     producto, duracion_meses: d.meses,
     cuota_centimos: d.porMes * 100,
-    penalidad_centimos: unMes ? 0 : (durs[0].porMes - d.porMes) * 100,
+    precio_mes_centimos: durs[0].porMes * 100,
+    precio_3m_centimos: d.meses === 6 ? durs.find((x) => x.meses === 3).porMes * 100 : null,
+    ahorro_mes_centimos: (durs[0].porMes - d.porMes) * 100,
     cobros: unMes ? null : d.meses,
     titulo: `${plans[producto].name} · ${unMes ? 'mes a mes' : `${d.meses} meses`} · pago mensual`,
   };
 }
 
+// Cuántos de los meses pagados van al precio del paquete de 3 (solo en el de 6, desde el mes 3).
+const bloqueDe = (s) => (s.duracion_meses === 6 && s.cobros_aprobados >= 3 && s.precio_3m_centimos ? 3 : 0);
+const aplica = (s) => s.duracion_meses > 1 && s.cobros_aprobados >= 1 && s.cobros_aprobados < s.duracion_meses;
+
 // Se paga si ya hubo al menos un cobro y todavía falta alguno del paquete.
-export function penalidadAlCancelar({ duracion_meses, cobros_aprobados, penalidad_centimos }) {
-  if (duracion_meses === 1) return 0;
-  return cobros_aprobados >= 1 && cobros_aprobados < duracion_meses ? penalidad_centimos : 0;
+export function penalidadAlCancelar(s) {
+  if (!aplica(s)) return 0;
+  const n = s.cobros_aprobados;
+  const b = bloqueDe(s);
+  return Math.max(0, b * (s.precio_3m_centimos ?? 0) + (n - b) * s.precio_mes_centimos - n * s.cuota_centimos);
+}
+
+const soles = (c) => formatoSoles(Math.round(c / 100));
+const meses = (n) => (n === 1 ? '1 mes' : `${n} meses`);
+export function detallePenalidad(s) {
+  if (!penalidadAlCancelar(s)) return '';
+  const n = s.cobros_aprobados;
+  const b = bloqueDe(s);
+  const partes = [b ? `${meses(b)} a ${soles(s.precio_3m_centimos)}` : null, n - b ? `${meses(n - b)} a ${soles(s.precio_mes_centimos)}` : null].filter(Boolean);
+  return `${partes.join(' + ')}, menos los ${soles(n * s.cuota_centimos)} que pagaste`;
 }
 
 // end_date para Mercado Pago, de respaldo: el sistema cancela tras el último cobro,
@@ -440,7 +487,8 @@ git commit -m "Mercado Pago: crear, consultar y cancelar suscripciones"
   - `usarLink(db, { hash, nombre, email, dni, whatsapp, condicionesVersion, ahora }) → boolean` (true si lo tomó).
   - `registrarCobro(db, { suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos, metodo, ahora }) → { nuevoAprobado: boolean, numero: number }`.
   - `marcarTerminada(db, id, ahora) → boolean`.
-  - `cancelar(db, { id, motivo, ahora }) → { cambio: boolean, penalidad_centimos: number }` — calcula la penalidad con los cobros de ese momento; `motivo = 'cobro_fallido'` deja `estado = 'cobro_fallido'`, los demás `cancelada`. No toca una penalidad ya `pagada`.
+  - `cotizarPenalidad(db, id, montoCentimos, ahora)` — guarda el monto que se va a cobrar (antes de crear la preferencia); no toca una penalidad pagada.
+  - `cancelar(db, { id, motivo, ahora }) → { cambio: boolean, penalidad_centimos: number }` — calcula la penalidad con los cobros de ese momento y la guarda en `penalidad_centimos`; `motivo = 'cobro_fallido'` deja `estado = 'cobro_fallido'`, los demás `cancelada`. No toca una penalidad ya `pagada`.
   - `marcarPenalidadPagada(db, { id, mpPaymentId, por, ahora }) → boolean`.
   - `deudaPorDni(db, dni) → fila|null`.
   - `listar(db, { filtro }) → Array<fila>` con `filtro` ∈ `todas | activas | terminan | fallido | penalidad | canceladas`.
@@ -454,7 +502,7 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import * as sus from './repo.mjs';
 
 const t0 = new Date('2026-11-03T15:00:00Z');
-const base = (o = {}) => ({ id: 's1', token: 'tok1', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, penalidad_centimos: 8000,
+const base = (o = {}) => ({ id: 's1', token: 'tok1', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000,
   estado: 'pendiente', nombre: 'Lucía Ramos', email: 'lucia@x.pe', dni: '70123456', whatsapp: '+51987654321', creado_en: t0.toISOString(), ...o });
 
 test('registrarCobro: el mismo pago dos veces cuenta una sola vez y activa la suscripción', async () => {
@@ -486,6 +534,7 @@ test('cancelar a mitad deja la penalidad pendiente; al final no; la segunda vez 
   await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
   assert.deepEqual(await sus.cancelar(db, { id: 's1', motivo: 'paciente_boton', ahora: t0 }), { cambio: true, penalidad_centimos: 8000 });
   assert.equal((await sus.porId(db, 's1')).penalidad_estado, 'pendiente');
+  assert.equal((await sus.porId(db, 's1')).penalidad_centimos, 8000);
   assert.equal((await sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 })).cambio, false);
   await sus.crear(db, base({ id: 's2', token: 'tok2', estado: 'activa', cobros_aprobados: 3 }));
   assert.deepEqual(await sus.cancelar(db, { id: 's2', motivo: 'paciente_mp', ahora: t0 }), { cambio: true, penalidad_centimos: 0 });
@@ -549,7 +598,7 @@ Expected: FAIL con `Cannot find module './repo.mjs'`.
 import { penalidadAlCancelar } from './calculo.mjs';
 
 const COLUMNAS = ['id', 'token', 'link_token_hash', 'link_usado_en', 'vence_en', 'reserva_id', 'nombre', 'email', 'dni', 'whatsapp',
-  'producto', 'duracion_meses', 'cuota_centimos', 'penalidad_centimos', 'mp_preapproval_id', 'estado', 'cobros_aprobados',
+  'producto', 'duracion_meses', 'cuota_centimos', 'precio_mes_centimos', 'precio_3m_centimos', 'penalidad_centimos', 'mp_preapproval_id', 'estado', 'cobros_aprobados',
   'penalidad_estado', 'creado_por', 'acepto_condiciones_version', 'creado_en'];
 const normalDni = (d) => String(d ?? '').replace(/[\s.-]+/g, '').toUpperCase();
 
@@ -616,11 +665,16 @@ export async function cancelar(db, { id, motivo, ahora }) {
   const pen = penalidadAlCancelar(s);
   const r = await db.prepare(
     `UPDATE suscripciones SET estado = ?2, motivo_cancelacion = ?3, cancelada_en = ?4, actualizado_en = ?4,
+       penalidad_centimos = CASE WHEN penalidad_estado = 'pagada' THEN penalidad_centimos ELSE ?5 END,
        penalidad_estado = CASE WHEN penalidad_estado = 'pagada' THEN 'pagada' WHEN ?5 > 0 THEN 'pendiente' ELSE 'no_aplica' END
      WHERE id = ?1 AND estado IN ('pendiente', 'activa') AND cobros_aprobados = ?6`,
   ).bind(id, motivo === 'cobro_fallido' ? 'cobro_fallido' : 'cancelada', motivo, ahora.toISOString(), pen, s.cobros_aprobados).run();
   return { cambio: r.meta.changes === 1, penalidad_centimos: pen };
 }
+
+export const cotizarPenalidad = (db, id, monto, ahora) => db.prepare(
+  "UPDATE suscripciones SET penalidad_centimos = ?2, actualizado_en = ?3 WHERE id = ?1 AND penalidad_estado <> 'pagada'",
+).bind(id, monto, ahora.toISOString()).run();
 
 export async function marcarPenalidadPagada(db, { id, mpPaymentId = null, por = null, ahora }) {
   const r = await db.prepare(
@@ -679,7 +733,7 @@ git commit -m "Suscripciones: repositorio con cobros idempotentes y penalidad"
 
 **Interfaces:**
 - Produces:
-  - `correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancelar, penalidad }) → { subject, html }` (montos en céntimos; `cobros` null en mes a mes).
+  - `correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancelar, penalidadHoy }) → { subject, html }` (montos en céntimos; `cobros` null en mes a mes).
   - `correoBaja({ nombre, titulo, penalidad, penalidadPagada }) → { subject, html }`.
   - `correoEquipoSuscripcion(tipo, s, { numero, penalidad } = {}) → { subject, html }` con `tipo` ∈ `nueva | ultimo | cancelada_pagada | cancelada_pendiente | fallido | penalidad_pagada`.
   - `avisarFijas(deps, env, correo)` en `aviso-equipo.mjs`: manda a Romina, Irene y Alejandro; nunca lanza.
@@ -712,21 +766,21 @@ import { correoRecibo, correoBaja, correoEquipoSuscripcion } from './correos.mjs
 
 test('recibo: cobro N de M, último cobro y enlace para cancelar con la penalidad', () => {
   const c = correoRecibo({ nombre: 'Lucía', titulo: '2 sesiones al mes · 3 meses · pago mensual', numero: 2, cobros: 3, cuota: 36000,
-    urlCancelar: 'https://w/suscripcion/cancelar/?s=t', penalidad: 8000 });
+    urlCancelar: 'https://w/suscripcion/cancelar/?s=t', penalidadHoy: 16000 });
   assert.equal(c.subject, 'Recibimos tu pago · cobro 2 de 3 · AJL Nutrición');
   assert.match(c.html, /S\/360/);
   assert.match(c.html, /href="https:\/\/w\/suscripcion\/cancelar\/\?s=t"/);
-  assert.match(c.html, /penalidad de S\/80/);
+  assert.match(c.html, /hoy serían S\/160/);
 });
 
 test('recibo del último cobro: dice que termina y no ofrece penalidad', () => {
-  const c = correoRecibo({ nombre: 'Lucía', titulo: 't', numero: 3, cobros: 3, cuota: 36000, urlCancelar: 'u', penalidad: 8000 });
+  const c = correoRecibo({ nombre: 'Lucía', titulo: 't', numero: 3, cobros: 3, cuota: 36000, urlCancelar: 'u', penalidadHoy: 0 });
   assert.match(c.html, /último cobro/);
   assert.doesNotMatch(c.html, /penalidad/);
 });
 
 test('recibo de mes a mes: sin total de cobros ni penalidad', () => {
-  const c = correoRecibo({ nombre: 'Ana', titulo: 't', numero: 4, cobros: null, cuota: 44000, urlCancelar: 'u', penalidad: 0 });
+  const c = correoRecibo({ nombre: 'Ana', titulo: 't', numero: 4, cobros: null, cuota: 44000, urlCancelar: 'u', penalidadHoy: 0 });
   assert.equal(c.subject, 'Recibimos tu pago · AJL Nutrición');
   assert.doesNotMatch(c.html, /penalidad/);
 });
@@ -760,7 +814,7 @@ import { condicionesSuscripcion } from './calculo.mjs';
 
 const soles = (c) => formatoSoles(Math.round(c / 100));
 
-export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancelar, penalidad }) {
+export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancelar, penalidadHoy }) {
   const ultimo = cobros && numero >= cobros;
   const quedan = cobros && !ultimo;
   return {
@@ -771,7 +825,7 @@ export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancela
       <p><strong>${soles(cuota)}</strong>${cobros ? ` · cobro ${numero} de ${cobros}` : ''}</p>
       ${ultimo ? '<p>Este fue tu último cobro: tu plan termina sin renovación y no se te cobra nada más.</p>' : ''}
       <p>Escríbenos por WhatsApp para agendar tus sesiones.</p>
-      ${ultimo ? '' : `<p style="font-size:13px;color:#5E6B63">¿Quieres dejar tu plan? <a href="${esc(urlCancelar)}">Cancelar mi plan</a>.${quedan && penalidad > 0 ? ` Antes del último cobro tiene una penalidad de ${soles(penalidad)}, el ahorro de un mes.` : ''}</p>`}`),
+      ${ultimo ? '' : `<p style="font-size:13px;color:#5E6B63">¿Quieres dejar tu plan? <a href="${esc(urlCancelar)}">Cancelar mi plan</a>.${quedan && penalidadHoy > 0 ? ` Si cancelas antes del último cobro, pagas la diferencia de los meses usados con el precio mes a mes: hoy serían ${soles(penalidadHoy)}.` : ''}</p>`}`),
   };
 }
 
@@ -841,7 +895,7 @@ git commit -m "Suscripciones: recibo, baja y avisos al equipo"
 **Interfaces:**
 - Consumes: Tasks 2 a 5.
 - Produces:
-  - `cotizar(producto, duracion, forma = 'completo')`: con `'mensual'` devuelve `{ titulo, monto_centimos (cuota), duracion_meses, peso: 1, requiereDni: true, forma: 'mensual', penalidad_centimos, cobros }`; `null` si el plan no es mensual.
+  - `cotizar(producto, duracion, forma = 'completo')`: con `'mensual'` devuelve `{ titulo, monto_centimos (cuota), duracion_meses, peso: 1, requiereDni: true, forma: 'mensual', precio_mes_centimos, precio_3m_centimos, cobros }`; `null` si el plan no es mensual.
   - `confirmarConPago(deps, env, r, pago) → { estado }` en `confirmar.mjs` (lo que hoy hace `procesarPago` después de leer el pago).
   - `procesarPreapproval(deps, env, preapprovalId)`, `procesarCobro(deps, env, authorizedPaymentId)`, `sincronizarDeReserva(deps, env, reservaId)` en `server/suscripciones/procesar.mjs`.
   - `vista(r)` suma `forma_pago`.
@@ -855,7 +909,7 @@ test('pago mensual: cuota del paquete, penalidad y cobros; no aplica a pago úni
   assert.equal(c.monto_centimos, 36000);
   assert.equal(c.titulo, '2 sesiones al mes · 3 meses · pago mensual');
   assert.equal(c.forma, 'mensual');
-  assert.equal(c.penalidad_centimos, 8000);
+  assert.equal(c.precio_mes_centimos, 44000);
   assert.equal(c.cobros, 3);
   assert.equal(cotizar('basico', 1, 'mensual'), null);
   assert.equal(cotizar('constancia', 3, 'cuotas'), null);
@@ -881,7 +935,8 @@ export function cotizar(producto, duracion, forma = 'completo') {
   if (forma === 'mensual') {
     const c = condicionesSuscripcion(producto, duracion);
     if (!c) return null;
-    return { ...armar(c.titulo, c.cuota_centimos / 100, c.duracion_meses, 1), forma: 'mensual', penalidad_centimos: c.penalidad_centimos, cobros: c.cobros };
+    return { ...armar(c.titulo, c.cuota_centimos / 100, c.duracion_meses, 1), forma: 'mensual',
+      precio_mes_centimos: c.precio_mes_centimos, precio_3m_centimos: c.precio_3m_centimos, cobros: c.cobros };
   }
   if (forma !== 'completo') return null;
 ```
@@ -964,7 +1019,7 @@ async function reservaMensual(d) {
     nutricionista_id: 'nico', inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', modalidad: 'presencial', tope: 600, ahora: t0, forma_pago: 'mensual' });
   await repo.guardarDatosYPagar(d.db, { reserva: await repo.reservaPorId(d.db, 'r1'), condicionesVersion: 'v', novedades: false, ahora: t0,
     cliente: { nombre: 'Ana Pérez', nombres: 'Ana', apellido_paterno: 'Pérez', whatsapp: '+51987654321', email: 'ana@x.pe', dni: '12345678', tipo_documento: 'dni', fecha_nacimiento: '1990-05-04' } });
-  await sus.crear(d.db, { id: 's1', token: 'ts', reserva_id: 'r1', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, penalidad_centimos: 8000,
+  await sus.crear(d.db, { id: 's1', token: 'ts', reserva_id: 'r1', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000,
     estado: 'pendiente', nombre: 'Ana Pérez', email: 'ana@x.pe', dni: '12345678', whatsapp: '+51987654321', mp_preapproval_id: 'pre1', creado_en: t0.toISOString() });
 }
 const cobro = (id, pagoId, status = 'processed') => ({ id, preapproval_id: 'pre1', status, transaction_amount: 360, currency_id: 'PEN', payment: { id: pagoId, status: 'approved' } });
@@ -1038,7 +1093,7 @@ Run: `node --test server/suscripciones/procesar.test.mjs` → FAIL (no existe el
 import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { confirmarConPago } from '../reservas/confirmar.mjs';
-import { condicionesSuscripcion, esUltimoCobro } from './calculo.mjs';
+import { condicionesSuscripcion, esUltimoCobro, penalidadAlCancelar } from './calculo.mjs';
 import { correoRecibo, correoBaja, correoEquipoSuscripcion } from './correos.mjs';
 import { avisarFijas } from '../reservas/aviso-equipo.mjs';
 import { siteUrl } from '../http.mjs';
@@ -1096,7 +1151,7 @@ export async function procesarCobro(deps, env, authorizedId) {
     }
     await alPaciente(deps, env, actual, correoRecibo({ nombre: actual.nombre?.split(' ')[0] ?? '', titulo: titulo(actual), numero,
       cobros: actual.duracion_meses > 1 ? actual.duracion_meses : null, cuota: actual.cuota_centimos, urlCancelar: urlCancelar(env, actual),
-      penalidad: actual.penalidad_centimos }));
+      penalidadHoy: penalidadAlCancelar(actual) }));
     if (numero === 1) await avisarFijas(deps, env, correoEquipoSuscripcion('nueva', actual));
     if (esUltimoCobro(actual, numero) && await sus.marcarTerminada(deps.db, s.id, deps.ahora())) {
       await cancelarEnMp(deps, actual);
@@ -1160,7 +1215,7 @@ test('apartar con pago mensual: cotiza la cuota y guarda la forma', async () => 
   const j = await r.json();
   assert.equal(j.monto_centimos, 36000);
   assert.equal(j.forma, 'mensual');
-  assert.equal(j.penalidad_centimos, 8000);
+  assert.equal(j.precio_mes_centimos, 44000);
   assert.equal((await repo.reservaPorToken(d.db, j.token)).forma_pago, 'mensual');
   assert.equal((await apartar(deps(), { producto: 'basico', duracion: 1, forma: 'mensual' })).status, 400);
 });
@@ -1184,7 +1239,7 @@ test('pagar con pago mensual: pide aceptar la suscripción, crea la suscripción
 
 test('pagar con una penalidad pendiente en ese documento: 409 con el link para pagarla', async () => {
   const d = deps();
-  await sus.crear(d.db, { id: 'old', token: 'told', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, penalidad_centimos: 8000,
+  await sus.crear(d.db, { id: 'old', token: 'told', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, penalidad_centimos: 8000,
     estado: 'cancelada', penalidad_estado: 'pendiente', dni: '12345678', creado_en: t0.toISOString() });
   const { token } = await (await apartar(d)).json();
   const r = await handlePagar(post('/api/reservas/pagar', { token, ...datos }), env, d);
@@ -1237,7 +1292,7 @@ En `handleApartar`:
   const precio = cotizar(d.producto, Number(d.duracion), forma);
 ```
 
-pasar `forma_pago: forma` a `repo.crearRetencion`, y sumar a la respuesta `forma, penalidad_centimos: precio.penalidad_centimos ?? 0, cobros: precio.cobros ?? null`.
+pasar `forma_pago: forma` a `repo.crearRetencion`, y sumar a la respuesta `forma, precio_mes_centimos: precio.precio_mes_centimos ?? null, precio_3m_centimos: precio.precio_3m_centimos ?? null, cobros: precio.cobros ?? null`.
 
 En `handlePagar`, después de `const { cliente } = v;`:
 
@@ -1261,7 +1316,7 @@ y reemplazar el bloque `try { const pref = … }` por:
       if (!existente) {
         await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: cliente.nombre, email: cliente.email, dni: cliente.dni,
           whatsapp: cliente.whatsapp, producto: r.producto, duracion_meses: r.duracion_meses, cuota_centimos: r.monto_centimos,
-          penalidad_centimos: precioM.penalidad_centimos, estado: 'pendiente', acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
+          precio_mes_centimos: precioM.precio_mes_centimos, precio_3m_centimos: precioM.precio_3m_centimos, estado: 'pendiente', acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
       }
       const pre = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precioM.titulo, cuotaCentimos: r.monto_centimos, email: cliente.email,
         urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`, finEn: finDeCobros(ahora, precioM.cobros) });
@@ -1354,7 +1409,7 @@ git commit -m "Suscripciones: pago mensual en /reservar/ y avisos de Mercado Pag
 - Consumes: `sus.*` (Task 4), `avisarBaja`, `urlCancelar` (Task 6), `deps.mp.crearPreferencia` (existente), `deps.mp.cancelarSuscripcion` (Task 3).
 - Produces:
   - `procesarPagoPenalidad(deps, env, pago) → { estado }`.
-  - `GET /api/suscripciones/cancelar?s=<token>` → `{ ok, modo: 'activa'|'deuda'|'cerrada', titulo, cobros_aprobados, duracion_meses, cuota_centimos, penalidad_centimos }`.
+  - `GET /api/suscripciones/cancelar?s=<token>` → `{ ok, modo: 'activa'|'deuda'|'cerrada', titulo, cobros_aprobados, duracion_meses, cuota_centimos, penalidad_centimos, detalle }` (la penalidad calculada para hoy y su detalle).
   - `POST /api/suscripciones/cancelar { s, pagar: true }` → `{ ok, url }` (preferencia de la penalidad) o, sin penalidad, cancela y `{ ok, cancelada: true }`.
   - `POST /api/suscripciones/cancelar { s, pagar: false }` → `{ ok, cancelada: true, penalidad_centimos }`.
 
@@ -1377,7 +1432,7 @@ function armar() {
   return { db: d1DePrueba(), ahora: () => t0, correos, canceladas, sendEmail: async (c) => { correos.push(c); return true; },
     mp: { cancelarSuscripcion: async (id) => { canceladas.push(id); }, obtenerSuscripcion: async (id) => ({ id, status: 'cancelled' }) } };
 }
-const activa = (o = {}) => ({ id: 's1', token: 'ts', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, penalidad_centimos: 8000,
+const activa = (o = {}) => ({ id: 's1', token: 'ts', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, penalidad_centimos: 8000,
   estado: 'activa', cobros_aprobados: 1, nombre: 'Ana Pérez', email: 'ana@x.pe', dni: '12345678', mp_preapproval_id: 'pre1', creado_en: t0.toISOString(), ...o });
 const pagoPen = (o = {}) => ({ id: 'pp1', status: 'approved', external_reference: 'pen-s1', transaction_amount: 80, currency_id: 'PEN', ...o });
 
@@ -1432,7 +1487,7 @@ function deps() {
 }
 const get = (q) => new Request(`https://x.test/api/suscripciones/cancelar?${q}`);
 const post = (b) => new Request('https://x.test/api/suscripciones/cancelar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
-const fila = (o = {}) => ({ id: 's1', token: 'ts', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, penalidad_centimos: 8000,
+const fila = (o = {}) => ({ id: 's1', token: 'ts', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000,
   estado: 'activa', cobros_aprobados: 1, nombre: 'Ana', email: 'a@x.pe', dni: '1', mp_preapproval_id: 'pre1', creado_en: t0.toISOString(), ...o });
 
 test('GET: activa a mitad muestra la penalidad; token desconocido 404', async () => {
@@ -1441,6 +1496,7 @@ test('GET: activa a mitad muestra la penalidad; token desconocido 404', async ()
   const j = await (await handleSuscripcionCancelar(get('s=ts'), env, d)).json();
   assert.equal(j.modo, 'activa');
   assert.equal(j.penalidad_centimos, 8000);
+  assert.equal(j.detalle, '1 mes a S/440, menos los S/360 que pagaste');
   assert.equal((await handleSuscripcionCancelar(get('s=zz'), env, d)).status, 404);
 });
 
@@ -1451,6 +1507,7 @@ test('POST pagar: crea la preferencia de la penalidad con referencia pen-<id>', 
   assert.deepEqual(j, { ok: true, url: 'https://mp/pen' });
   assert.equal(d.prefs[0].reservaId, 'pen-s1');
   assert.equal(d.prefs[0].montoCentimos, 8000);
+  assert.equal((await sus.porId(d.db, 's1')).penalidad_centimos, 8000); // queda cotizada para validar el pago
   assert.equal(d.prefs[0].urlRetorno, 'https://www.ajlnutricion.com/suscripcion/cancelar/?s=ts&pago=1');
 });
 
@@ -1527,7 +1584,7 @@ export async function procesarPagoPenalidad(deps, env, pago) {
 // POST /api/suscripciones/cancelar      { s, pagar } paga la penalidad o cancela sin pagar
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { penalidadAlCancelar, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
+import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
 import { avisarBaja } from '../suscripciones/procesar.mjs';
 
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
@@ -1541,8 +1598,11 @@ const penalidadDe = (s) => (modo(s) === 'deuda' ? s.penalidad_centimos : modo(s)
 
 async function cobrarPenalidad(env, deps, s) {
   const ahora = deps.ahora();
+  // En una activa la penalidad se calcula hoy y se guarda: el webhook valida el pago contra ese monto.
+  const monto = modo(s) === 'deuda' ? s.penalidad_centimos : penalidadAlCancelar(s);
+  if (modo(s) === 'activa') await sus.cotizarPenalidad(deps.db, s.id, monto, ahora);
   const pref = await deps.mp.crearPreferencia({
-    reservaId: `pen-${s.id}`, titulo: `Penalidad por cancelar · ${titulo(s)}`, montoCentimos: s.penalidad_centimos, email: s.email, nombre: s.nombre,
+    reservaId: `pen-${s.id}`, titulo: `Penalidad por cancelar · ${titulo(s)}`, montoCentimos: monto, email: s.email, nombre: s.nombre,
     venceEn: new Date(ahora.getTime() + 24 * 3600000), ahora, urlRetorno: `${siteUrl(env)}/suscripcion/cancelar/?s=${s.token}&pago=1`,
     urlNotificacion: `${siteUrl(env)}/api/reservas/webhook-mp`,
   });
@@ -1570,7 +1630,7 @@ export async function handleSuscripcionCancelar(request, env, deps) {
   const penalidad = penalidadDe(s);
   if (request.method === 'GET') {
     return json(200, { ok: true, modo: m, titulo: titulo(s), cobros_aprobados: s.cobros_aprobados, duracion_meses: s.duracion_meses,
-      cuota_centimos: s.cuota_centimos, penalidad_centimos: penalidad });
+      cuota_centimos: s.cuota_centimos, penalidad_centimos: penalidad, detalle: m === 'activa' ? detallePenalidad(s) : '' });
   }
   try {
     if (m === 'cerrada') return bad(409, 'Tu plan ya está cerrado. No tienes nada pendiente.');
@@ -1619,10 +1679,10 @@ git commit -m "Suscripciones: «Cancelar mi plan» con pago de penalidad"
 **Interfaces:**
 - Consumes: `sus.*`, `condicionesSuscripcion`, `finDeCobros`, `deps.mp.crearSuscripcion`, `sha256Hex`, `randomToken`.
 - Produces:
-  - `POST /api/equipo/suscripciones { nombre, producto, meses }` → `{ ok, url, vence_en, titulo, cuota_centimos, penalidad_centimos }`; URL `…/suscribirse/?l=<token>`.
+  - `POST /api/equipo/suscripciones { nombre, producto, meses }` → `{ ok, url, vence_en, titulo, cuota_centimos, precio_mes_centimos }`; URL `…/suscribirse/?l=<token>`.
   - `GET /api/equipo/suscripciones?filtro=` → `{ ok, filas: [{ id, nombre, dni, whatsapp, titulo, producto, duracion_meses, cobros_aprobados, cuota_centimos, proximo_cobro, estado, penalidad_estado, penalidad_centimos }], conteos }`.
   - `POST /api/equipo/suscripciones-penalidad { id }` → `{ ok }` (marca pagada a mano).
-  - `GET /api/suscripciones/link?l=` → `{ ok, nombre, titulo, cuota_centimos, penalidad_centimos, cobros, ahorro_centimos }` o 410.
+  - `GET /api/suscripciones/link?l=` → `{ ok, nombre, titulo, cuota_centimos, precio_mes_centimos, cobros, ahorro_centimos }` o 410.
   - `POST /api/suscripciones/link { l, email, documento, tipo_documento, whatsapp, acepto }` → `{ ok, url }` o 409 penalidad / 410.
   - `GET /api/suscripciones/estado?s=` → `{ ok, estado, titulo, nombre }`.
 
@@ -1646,7 +1706,7 @@ test('crear link: cuota y penalidad del servidor, vence en 7 días, URL de un so
   const d = deps();
   const j = await (await handleEquipoSuscripciones(post('/api/equipo/suscripciones', { nombre: 'Lucía Ramos', producto: 'acompanamiento', meses: 6 }), env, d)).json();
   assert.equal(j.cuota_centimos, 25000);
-  assert.equal(j.penalidad_centimos, 7000);
+  assert.equal(j.precio_mes_centimos, 32000);
   assert.equal(j.vence_en, '2026-11-10T15:00:00.000Z');
   assert.match(j.url, /^https:\/\/www\.ajlnutricion\.com\/suscribirse\/\?l=[\w-]{32,}$/);
   const { n } = await d.db.prepare("SELECT COUNT(*) AS n FROM suscripciones WHERE creado_por = 'romi@x.pe' AND estado = 'pendiente'").first();
@@ -1661,7 +1721,7 @@ test('crear link: sin acceso 401; plan de pago único o sin nombre 400', async (
 
 test('listar y marcar penalidad pagada a mano', async () => {
   const d = deps();
-  await sus.crear(d.db, { id: 'a', token: 'a', producto: 'transformacion', duracion_meses: 3, cuota_centimos: 51000, penalidad_centimos: 9000,
+  await sus.crear(d.db, { id: 'a', token: 'a', producto: 'transformacion', duracion_meses: 3, cuota_centimos: 51000, precio_mes_centimos: 60000, penalidad_centimos: 9000,
     estado: 'cobro_fallido', penalidad_estado: 'pendiente', cobros_aprobados: 1, nombre: 'Ana Torres', creado_en: t0.toISOString(), ultimo_cobro_en: undefined });
   const j = await (await handleEquipoSuscripciones(new Request('https://x.test/api/equipo/suscripciones?filtro=penalidad'), env, d)).json();
   assert.equal(j.filas.length, 1);
@@ -1682,7 +1742,7 @@ import { sha256Hex } from '../tokens.mjs';
 
 async function conLink(d, o = {}) {
   await sus.crear(d.db, { id: 'sl', token: 'tsl', link_token_hash: await sha256Hex('L1'), vence_en: '2026-11-27T00:00:00Z', nombre: 'Lucía Ramos',
-    producto: 'acompanamiento', duracion_meses: 6, cuota_centimos: 25000, penalidad_centimos: 7000, estado: 'pendiente', creado_por: 'romi@x.pe', creado_en: t0.toISOString(), ...o });
+    producto: 'acompanamiento', duracion_meses: 6, cuota_centimos: 25000, precio_mes_centimos: 32000, precio_3m_centimos: 27000, estado: 'pendiente', creado_por: 'romi@x.pe', creado_en: t0.toISOString(), ...o });
 }
 const postLink = (b) => new Request('https://x.test/api/suscripciones/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 const formLink = { l: 'L1', email: 'lucia@x.pe', tipo_documento: 'dni', documento: '70123456', whatsapp: '+51987654321', acepto: true };
@@ -1762,10 +1822,10 @@ async function crearLink(request, env, deps, email) {
   const ahora = deps.ahora();
   const vence = new Date(ahora.getTime() + VENCE_DIAS * 86400000).toISOString();
   await sus.crear(deps.db, { id: crypto.randomUUID(), token: randomToken(), link_token_hash: await sha256Hex(token), vence_en: vence, nombre,
-    producto: d.producto, duracion_meses: c.duracion_meses, cuota_centimos: c.cuota_centimos, penalidad_centimos: c.penalidad_centimos,
-    estado: 'pendiente', creado_por: email, creado_en: ahora.toISOString() });
+    producto: d.producto, duracion_meses: c.duracion_meses, cuota_centimos: c.cuota_centimos, precio_mes_centimos: c.precio_mes_centimos,
+    precio_3m_centimos: c.precio_3m_centimos, estado: 'pendiente', creado_por: email, creado_en: ahora.toISOString() });
   return json(200, { ok: true, url: `${siteUrl(env)}/suscribirse/?l=${token}`, vence_en: vence, titulo: c.titulo,
-    cuota_centimos: c.cuota_centimos, penalidad_centimos: c.penalidad_centimos });
+    cuota_centimos: c.cuota_centimos, precio_mes_centimos: c.precio_mes_centimos });
 }
 
 export async function handleEquipoSuscripciones(request, env, deps) {
@@ -1814,7 +1874,7 @@ export async function handleSuscripcionLink(request, env, deps) {
     if (!s) return bad(410, MSJ_LINK);
     const c = condicionesSuscripcion(s.producto, s.duracion_meses);
     return json(200, { ok: true, nombre: s.nombre.split(' ')[0], titulo: c.titulo, cuota_centimos: s.cuota_centimos,
-      penalidad_centimos: s.penalidad_centimos, cobros: c.cobros, ahorro_centimos: s.penalidad_centimos });
+      precio_mes_centimos: s.precio_mes_centimos, cobros: c.cobros, ahorro_centimos: s.precio_mes_centimos - s.cuota_centimos });
   }
   const d = await readJson(request);
   const s = await linkVigente(deps, d.l);
@@ -1915,7 +1975,7 @@ git commit -m "Suscripciones: link del panel, lista y penalidad marcada a mano"
 - Test: `server/reservas/links-reserva.test.mjs`
 
 **Interfaces:**
-- Consumes: `condicionesSuscripcion` (Task 2), respuesta de `apartar` con `forma`, `penalidad_centimos`, `cobros` (Task 6), `pagar` 409 `motivo: 'penalidad'` (Task 6).
+- Consumes: `condicionesSuscripcion` (Task 2), respuesta de `apartar` con `forma`, `precio_mes_centimos`, `cobros` (Task 6), `pagar` 409 `motivo: 'penalidad'` (Task 6).
 - Produces: `linkReserva(plan, meses, forma)`, `destinoLink(plan, meses, forma) → { paso, plan, meses, forma }`, entradas de `LINKS_RESERVA` con `rutaMensual` en los planes mensuales.
 
 - [ ] **Step 1: Links con forma: test que falla** (agregar a `server/reservas/links-reserva.test.mjs`)
@@ -2000,7 +2060,7 @@ function opcionesForma(d) {
   };
   $('#p2-mensual').replaceChildren(caja('Pago mensual automático', `${soles(s.cuota_centimos)} cada mes`, s.cobros
     ? [`Son ${s.cobros} cobros y termina solo, sin renovación`, 'Se cobra solo con tu tarjeta o Yape', 'Cancelas cuando quieras con un botón en cada recibo',
-      `Cancelar antes del último cobro: ${soles(s.penalidad_centimos)}, el ahorro de un mes`]
+      'Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes']
     : ['Se cobra solo cada mes con tu tarjeta o Yape', 'Cancelas cuando quieras, sin penalidad']));
   $('#p2-completo').replaceChildren(caja(d.meses === 1 ? 'Pagar este mes' : 'Pago completo', soles(d.total * 100),
     d.meses === 1 ? ['Una sola vez, con tarjeta o Yape', 'El próximo mes decides si sigues'] : ['Con tarjeta o Yape', 'Con tarjeta de crédito, hasta 12 cuotas']));
@@ -2042,7 +2102,7 @@ En `abrirP4(reserva)`:
   $('#f-acepto-sus').checked = false;
   if (mensual) {
     $('#t-acepto-sus').textContent = reserva.cobros
-      ? `Acepto ${reserva.cobros} cobros mensuales automáticos de ${soles(reserva.monto_centimos)} y la penalidad de ${soles(reserva.penalidad_centimos)} si cancelo antes del último.`
+      ? `Acepto ${reserva.cobros} cobros mensuales automáticos de ${soles(reserva.monto_centimos)} y que, si cancelo antes del último, pago la diferencia de los meses usados con el precio mes a mes${reserva.cobros === 6 ? ' (o con el paquete de 3 meses si ya usé 3)' : ''}.`
       : `Acepto el cobro mensual automático de ${soles(reserva.monto_centimos)} hasta que cancele.`;
   }
   $('#p4-pagar').textContent = mensual ? 'Suscribirme con Mercado Pago' : `Pagar ${soles(reserva.monto_centimos)}`;
@@ -2171,7 +2231,7 @@ const h = (tag, texto, cls) => { const e = document.createElement(tag); if (cls)
   if (!r?.ok || !d?.ok) { $('#sus').replaceChildren(h('h1', 'Este link ya no sirve'), h('p', d?.error || 'Pídele uno nuevo al equipo por WhatsApp.', 'rs-lead')); return; }
   const puntos = d.cobros
     ? [`Hoy pagas ${soles(d.cuota_centimos)}; luego se cobra solo cada mes.`, `Son ${d.cobros} cobros y termina, sin renovación.`,
-      'Cancelas cuando quieras con el botón de cada recibo.', `Si cancelas antes del último cobro pagas ${soles(d.penalidad_centimos)}, el ahorro de un mes.`]
+      'Cancelas cuando quieras con el botón de cada recibo.', `Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes (${soles(d.precio_mes_centimos)}).`]
     : [`Hoy pagas ${soles(d.cuota_centimos)}; luego se cobra solo cada mes.`, 'Cancelas cuando quieras, sin penalidad.'];
   const caja = h('div', '', 'rs-resumen');
   caja.append(h('b', d.titulo), h('div', `${soles(d.cuota_centimos)} cada mes`));
@@ -2179,7 +2239,7 @@ const h = (tag, texto, cls) => { const e = document.createElement(tag); if (cls)
   ul.append(...puntos.map((p) => h('li', p)));
   $('#sus').replaceChildren(h('h1', `Hola, ${d.nombre}. Este es tu plan`), caja, ul);
   $('#s-acepto-t').textContent = d.cobros
-    ? `Acepto ${d.cobros} cobros mensuales automáticos de ${soles(d.cuota_centimos)}, la penalidad de ${soles(d.penalidad_centimos)} si cancelo antes del último y las condiciones del servicio.`
+    ? `Acepto ${d.cobros} cobros mensuales automáticos de ${soles(d.cuota_centimos)}, que si cancelo antes del último pago la diferencia de los meses usados con el precio mes a mes${d.cobros === 6 ? ' (o con el paquete de 3 meses si ya usé 3)' : ''}, y las condiciones del servicio.`
     : `Acepto el cobro mensual automático de ${soles(d.cuota_centimos)} hasta que cancele y las condiciones del servicio.`;
   $('#sus-form').hidden = false;
 })();
@@ -2295,7 +2355,7 @@ function pintar(d) {
   }
   const hijos = [h('h1', 'Cancelar mi plan'), resumen];
   if (d.penalidad_centimos > 0) {
-    hijos.push(h('p', `Cancelar antes del último cobro tiene una penalidad de ${soles(d.penalidad_centimos)}, el ahorro de un mes que aceptaste al suscribirte. Después ya no se te cobra nada más.`, 'rs-aviso'),
+    hijos.push(h('p', `Cancelar antes del último cobro tiene una penalidad de ${soles(d.penalidad_centimos)}: la diferencia de los meses que usaste con el precio que les correspondía (${d.detalle}). Después ya no se te cobra nada más.`, 'rs-aviso'),
       boton(`Pagar ${soles(d.penalidad_centimos)} y cancelar`, 'rs-btn', (e) => enviar(true, e.currentTarget)),
       h('p', 'Pagas en Mercado Pago con tarjeta o Yape. Al confirmarse, tu plan queda cancelado.', 'rs-nota'),
       boton('Cancelar sin pagar ahora', 'rs-btn rs-btn--ghost', (e) => enviar(false, e.currentTarget)),
@@ -2376,7 +2436,7 @@ const paquetes = monthlyPlans.map((p) => ({ id: p.id, nombre: p.internalName,
         <select id="sus-plan">
           <option value="">Elige el plan y el paquete</option>
           {paquetes.map((p) => <optgroup label={p.nombre}>{p.opciones.map((o) => (
-            <option value={`${p.id}:${o.meses}`}>{o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`} · S/{o.cuota_centimos / 100} al mes · {o.penalidad_centimos ? `penalidad S/${o.penalidad_centimos / 100}` : 'sin penalidad'}</option>
+            <option value={`${p.id}:${o.meses}`}>{o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`} · S/{o.cuota_centimos / 100} al mes · {o.cobros ? 'penalidad: diferencia con mes a mes' : 'sin penalidad'}</option>
           ))}</optgroup>)}
         </select>
       </label>
@@ -2546,10 +2606,10 @@ En `src/pages/condiciones.astro`, después de la sección «3. Precio y pago», 
 ```html
 <h2>3b. Pago mensual automático</h2>
 <p>Los planes de 1, 3 y 6 meses se pueden pagar con un cobro mensual automático en Mercado Pago, con tarjeta o Yape. En el paquete de 3 o 6 meses pagas el precio por mes del paquete y son 3 o 6 cobros: el plan termina con el último y no se renueva. En el plan mes a mes, el cobro se repite cada mes hasta que canceles.</p>
-<p>Puedes cancelar cuando quieras con el botón «Cancelar mi plan» de cada recibo, desde tu cuenta de Mercado Pago o escribiéndonos. Si cancelas un paquete antes de su último cobro, pagas una penalidad igual al ahorro de un mes (la diferencia entre el precio mes a mes y el precio por mes del paquete). Puedes pagarla al cancelar; si no, queda pendiente y te pediremos pagarla antes de volver a reservar. El plan mes a mes no tiene penalidad.</p>
+<p>Puedes cancelar cuando quieras con el botón «Cancelar mi plan» de cada recibo, desde tu cuenta de Mercado Pago o escribiéndonos. Si cancelas un paquete antes de su último cobro, los meses que ya pagaste se recalculan al precio que les correspondía y pagas la diferencia: en el paquete de 3 meses, cada mes se compara con el precio mes a mes; en el de 6 meses, si ya pasaron 3 meses, esos 3 se comparan con el precio por mes del paquete de 3 y los demás con el precio mes a mes. La página «Cancelar mi plan» te muestra el monto y su detalle antes de confirmar. Puedes pagarla al cancelar; si no, queda pendiente y te pediremos pagarla antes de volver a reservar. El plan mes a mes no tiene penalidad.</p>
 ```
 
-En `src/data/condiciones.js`: subir `CONDICIONES_VERSION` a `'2026-10-28'` y agregar a `RESUMEN_CONDICIONES` la línea `'Pago mensual automático: sin renovación; si cancelas un paquete antes del último cobro, pagas el ahorro de un mes.'`.
+En `src/data/condiciones.js`: subir `CONDICIONES_VERSION` a `'2026-10-28'` y agregar a `RESUMEN_CONDICIONES` la línea `'Pago mensual automático: sin renovación; si cancelas un paquete antes del último cobro, pagas la diferencia de los meses usados con el precio que les correspondía.'`.
 
 - [ ] **Step 2: Privacidad**
 
@@ -2560,7 +2620,7 @@ Leer `public/privacidad/index.html`. Si la sección de pagos no cubre «datos de
 Bajo «Pendiente de publicar»:
 
 ```markdown
-- Pagos con suscripción: en /reservar/ los planes se pueden pagar con «Pago mensual automático» (cuota del paquete cada mes, 3 o 6 cobros sin renovación; mes a mes hasta cancelar) o completos como antes. Cada recibo trae «Cancelar mi plan»: pagar la penalidad (el ahorro de un mes) y cancelar, o cancelar sin pagar y queda pendiente para cuando vuelva a reservar. El panel tiene «Cobrar con suscripción» (link de un solo uso, 7 días) y la lista «Suscripciones». Condiciones del servicio actualizadas (versión 2026-10-28).
+- Pagos con suscripción: en /reservar/ los planes se pueden pagar con «Pago mensual automático» (cuota del paquete cada mes, 3 o 6 cobros sin renovación; mes a mes hasta cancelar) o completos como antes. Cada recibo trae «Cancelar mi plan»: pagar la penalidad (la diferencia de los meses usados con el precio mes a mes, o con el paquete de 3 si ya pasaron 3 en el de 6) y cancelar, o cancelar sin pagar y queda pendiente para cuando vuelva a reservar. El panel tiene «Cobrar con suscripción» (link de un solo uso, 7 días) y la lista «Suscripciones». Condiciones del servicio actualizadas (versión 2026-10-28).
 ```
 
 - [ ] **Step 4: Tests y build**

@@ -18,15 +18,20 @@ Más formas de pago y cobros que se mantienen solos: el paciente paga cada mes e
 - **Mes a mes:** pago mensual automático al precio normal, cancelable cuando quiera, sin penalidad.
 - **Paquetes de 3 y 6 meses:** pago mensual automático al precio por mes del paquete (`porMes` de `duraciones.js`). El pago completo de hoy sigue igual como alternativa.
 - **Sin renovación (Joaquín y Alejandro, 27-oct):** el paquete de 3 o 6 meses termina solo con su último cobro. El equipo recibe un aviso cuando un paciente entra a su último mes, para ofrecerle seguir. El mes a mes sigue cobrándose hasta que el paciente cancele.
-- **Penalidad:** si cancela antes del último cobro del paquete, paga una vez el ahorro de un mes: `precio mes a mes − porMes del paquete`. Con los precios del 27-oct:
+- **Penalidad (Joaquín, 28-oct):** si cancela antes del último cobro del paquete, los meses ya pagados se recalculan al precio que le habría tocado por esa cantidad de meses, y paga la diferencia:
+  - Paquete de 3 meses: cada mes pagado se compara con el precio mes a mes.
+  - Paquete de 6 meses: si ya pagó 3 meses o más, los 3 primeros se comparan con el precio por mes del paquete de 3 meses y los demás con el precio mes a mes. Si pagó menos de 3, todos se comparan con el precio mes a mes.
+  - Fórmula: `penalidad = (bloque de 3 × porMes del paquete de 3) + (meses sueltos × precio mes a mes) − (meses pagados × cuota)`.
 
-  | Plan | 3 meses | 6 meses |
+  Con los precios del 28-oct (S/ según los meses pagados al cancelar):
+
+  | Plan | 3 meses: tras 1 · 2 | 6 meses: tras 1 · 2 · 3 · 4 · 5 |
   |---|---|---|
-  | Acompañamiento (S/320) | S/270 · penalidad S/50 | S/250 · penalidad S/70 |
-  | Constancia (S/440) | S/360 · penalidad S/80 | S/325 · penalidad S/115 |
-  | Transformación (S/600) | S/510 · penalidad S/90 | S/468 · penalidad S/132 |
+  | Acompañamiento (S/320 · S/270 · S/250) | 50 · 100 | 70 · 140 · 60 · 130 · 200 |
+  | Constancia (S/440 · S/360 · S/325) | 80 · 160 | 115 · 230 · 105 · 220 · 335 |
+  | Transformación (S/600 · S/510 · S/468) | 90 · 180 | 132 · 264 · 126 · 258 · 390 |
 
-  Se calcula desde `plans.js`/`duraciones.js`, nunca escrita a mano.
+  Se calcula desde `plans.js`/`duraciones.js`, nunca escrita a mano. Cancelar tras 3 meses sale más barato que tras 2 en el paquete de 6, porque ya califica para el precio del paquete de 3: es lo esperado.
 - **Cuota pareja:** todos los cobros del paquete son iguales, desde el primero (se descartó cobrar la penalidad por adelantado como garantía porque sube el primer pago).
 - **Cancelar mi plan (para que no convenga irse sin pagar, sin hacer difícil la baja):**
   - Cada recibo mensual trae «Cancelar mi plan», que abre una página nuestra con lo pagado, lo que falta y la penalidad.
@@ -34,7 +39,7 @@ Más formas de pago y cobros que se mantienen solos: el paciente paga cada mes e
   - «Cancelar sin pagar ahora»: la suscripción se cancela igual y la penalidad queda pendiente. Darse de baja nunca depende de pagar (Indecopi: la baja debe ser tan fácil como el alta; confirmar con un abogado antes de publicar).
   - Si cancela desde su cuenta de Mercado Pago, o el cobro falla y Mercado Pago agota sus reintentos, la penalidad también queda pendiente y se avisa al equipo.
   - **Freno al volver:** quien tiene una penalidad pendiente (se busca por DNI) debe pagarla antes de reservar en /reservar/ o de activar un link de suscripción. Los links de agenda del equipo no se frenan: ahí decide el equipo.
-- **Precio congelado:** cuota y penalidad se guardan al suscribirse. Si cambian los precios, los suscritos siguen con los suyos.
+- **Precio congelado:** la cuota y los precios de referencia de la penalidad (mes a mes y paquete de 3) se guardan al suscribirse. Si cambian los precios, los suscritos siguen con los suyos.
 - **Entradas:** desde /reservar/ (con cita) y desde un link de suscripción que crea el equipo en el panel (sin cita; las citas se agendan con los links de agenda de siempre).
 - **Integración:** suscripción de Mercado Pago sin plan asociado, con pago pendiente (`POST /preapproval`, el paciente autoriza en la página de Mercado Pago vía `init_point`). Una suscripción por paciente y paquete. Nuestra base cuenta los cobros y, al aprobarse el último del paquete, cancela la suscripción en Mercado Pago (además se manda `end_date` como respaldo). El mes a mes no lleva fecha de fin.
 
@@ -44,9 +49,9 @@ Ver el diseño visual (8 pantallas). Resumen:
 
 ### /reservar/
 
-- **Paso 2:** al elegir duración aparece «¿Cómo quieres pagar?»: «Pago mensual automático» (cuota al mes, N cobros y termina sin renovación, se cancela con un botón en cada recibo, penalidad si cancela antes del último cobro) y «Pago completo» (como hoy). En Mes a mes: «Pago mensual automático» sin penalidad, o pagar el mes una vez como hoy.
+- **Paso 2:** al elegir duración aparece «¿Cómo quieres pagar?»: «Pago mensual automático» (cuota al mes, N cobros y termina sin renovación, se cancela con un botón en cada recibo, «si cancelas antes de terminar, pagas la diferencia con el precio mes a mes») y «Pago completo» (como hoy). En Mes a mes: «Pago mensual automático» sin penalidad, o pagar el mes una vez como hoy.
 - **Paso 3:** sin cambios (elige hora; la retención de la hora funciona igual).
-- **Paso 4:** el resumen muestra cuota, «hoy pagas», próximos cobros y la fecha del último. Casilla obligatoria aparte: «Acepto N cobros mensuales automáticos de S/Y y la penalidad de S/X si cancelo antes del último.» Botón «Suscribirme con Mercado Pago».
+- **Paso 4:** el resumen muestra cuota, «hoy pagas», próximos cobros y la fecha del último. Casilla obligatoria aparte: «Acepto N cobros mensuales automáticos de S/Y y que, si cancelo antes del último, pago la diferencia de los meses usados con el precio mes a mes (o con el paquete de 3 meses si ya usé 3).» Botón «Suscribirme con Mercado Pago».
 - **Página de Mercado Pago:** el `reason` de la suscripción dice «AJL Nutrición · Constancia, 3 meses» y el cobro en el estado de cuenta sale como `AJLNUTRICION`, para que el paciente lo reconozca. El nombre y el logo del vendedor salen de la cuenta de Mercado Pago de AJL (revisar que estén puestos).
 - **Vuelta de Mercado Pago:** igual que hoy (`/reservar/listo/`), con el texto de suscripción. Si el primer cobro llegó tarde y la hora se liberó, queda `pagada_sin_hora` como hoy.
 
@@ -60,13 +65,13 @@ Ver el diseño visual (8 pantallas). Resumen:
 ### Cancelar mi plan (`/suscripcion/cancelar/?s=<token>`)
 
 - El token es de la suscripción y va en cada recibo; no pide login.
-- Muestra plan, cobros pagados y pendientes, y la penalidad si quedan cobros. Botones: «Pagar S/X y cancelar», «Cancelar sin pagar ahora» y «Prefiero seguir con mi plan».
+- Muestra plan, cobros pagados y pendientes, y la penalidad calculada para ese momento, con su detalle (por ejemplo «3 meses al precio del paquete de 3 + 1 mes a S/320 − lo que pagaste»). Botones: «Pagar S/X y cancelar», «Cancelar sin pagar ahora» y «Prefiero seguir con mi plan».
 - En el último mes o en mes a mes no hay penalidad: un solo botón «Cancelar».
 - Tras cancelar, correo de confirmación al paciente y aviso al equipo.
 
 ### Panel
 
-- **«Cobrar con suscripción»:** nombre del paciente, plan, paquete (cada opción muestra cuota y penalidad). Crea el link; Copiar y Enviar por WhatsApp.
+- **«Cobrar con suscripción»:** nombre del paciente, plan, paquete (cada opción muestra la cuota y «penalidad: diferencia con mes a mes»). Crea el link; Copiar y Enviar por WhatsApp.
 - **«Suscripciones»:** filtros Todas · Activas · Terminan este mes · Cobro fallido · Penalidad pendiente · Canceladas. Columnas: paciente (nombre, DNI), plan y paquete, mes del paquete («2 de 3»; «—» en mes a mes), cuota, próximo cobro (o fecha del fallo), estado y penalidad, acciones (WhatsApp, «Marcar penalidad pagada»).
 - Cada cobro mensual también aparece en «Reservas» y sale en «Copiar para la base maestra» (producto, N = mes del paquete sobre el total, soles y neto).
 
@@ -77,7 +82,7 @@ Ver el diseño visual (8 pantallas). Resumen:
 
 ## Datos (D1, migración nueva)
 
-- `suscripciones`: `id`, `token` (para el link y la vuelta), `cliente_id`, `reserva_id` (null si vino de link), `producto`, `duracion_meses` (1, 3 o 6), `cuota_centimos`, `penalidad_centimos` (0 en mes a mes), `mp_preapproval_id`, `estado` (`pendiente` · `activa` · `terminada` · `cobro_fallido` · `cancelada` · `vencida` si el link no se usó), `cobros_aprobados`, `proximo_cobro`, `aviso_ultimo_mes_en`, `cancelada_en`, `motivo_cancelacion` (`paciente_boton` · `paciente_mp` · `cobro_fallido` · `equipo`), `penalidad_estado` (`no_aplica` · `pendiente` · `pagada`), `penalidad_mp_payment_id`, `penalidad_marcada_por`, `dni` (para el freno al volver), `creado_por` (correo del equipo si vino de link), `creado_en`, `actualizado_en`, `acepto_condiciones_version`.
+- `suscripciones`: `id`, `token` (para el link y la vuelta), `cliente_id`, `reserva_id` (null si vino de link), `producto`, `duracion_meses` (1, 3 o 6), `cuota_centimos`, `precio_mes_centimos` y `precio_3m_centimos` (referencias congeladas para la penalidad; el segundo solo en paquetes de 6), `penalidad_centimos` (monto calculado al cancelar o al cotizar el pago de la penalidad; 0 hasta entonces), `mp_preapproval_id`, `estado` (`pendiente` · `activa` · `terminada` · `cobro_fallido` · `cancelada` · `vencida` si el link no se usó), `cobros_aprobados`, `proximo_cobro`, `aviso_ultimo_mes_en`, `cancelada_en`, `motivo_cancelacion` (`paciente_boton` · `paciente_mp` · `cobro_fallido` · `equipo`), `penalidad_estado` (`no_aplica` · `pendiente` · `pagada`), `penalidad_mp_payment_id`, `penalidad_marcada_por`, `dni` (para el freno al volver), `creado_por` (correo del equipo si vino de link), `creado_en`, `actualizado_en`, `acepto_condiciones_version`.
 - `suscripcion_cobros`: `id`, `suscripcion_id`, `mp_payment_id` (único), `numero` (1, 2, 3…), `mes_paquete` (1..N), `estado`, `monto_centimos`, `neto_centimos`, `metodo`, `creado_en`.
 - Mes del paquete = `numero` (sin renovación no se repite). Cancelar con `cobros_aprobados < duracion_meses` → penalidad; con todos pagados no hay nada que cancelar. Mes a mes nunca tiene penalidad.
 
@@ -119,6 +124,6 @@ Ver el diseño visual (8 pantallas). Resumen:
 
 ## Pruebas
 
-- Unitarias de `calculo.mjs`: cuotas y penalidades de los 9 casos, penalidad sí/no según los cobros pagados al cancelar, fin del paquete en el último cobro.
+- Unitarias de `calculo.mjs`: cuotas de los 9 casos, penalidades de las tablas (3 meses tras 1 y 2; 6 meses tras 1 a 5), penalidad sí/no según los cobros pagados al cancelar, fin del paquete en el último cobro.
 - Handlers con Mercado Pago simulado: crear desde /reservar/ y desde link, webhooks fuera de orden y repetidos, primer cobro tarde (`pagada_sin_hora`), cancelar pagando y sin pagar, cancelación desde Mercado Pago, cobro fallido, freno por DNI con penalidad pendiente, último cobro que termina la suscripción, link vencido y reusado.
 - Prueba manual en la versión de prueba con el modo de prueba de Mercado Pago antes de publicar.
