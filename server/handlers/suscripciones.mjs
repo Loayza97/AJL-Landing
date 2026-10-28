@@ -1,10 +1,15 @@
 // ─── Suscripciones, lado del paciente ───────────────────────────────────────
 // GET  /api/suscripciones/cancelar?s=   datos de «Cancelar mi plan»
 // POST /api/suscripciones/cancelar      { s, pagar } paga la penalidad o cancela sin pagar
+// GET/POST /api/suscripciones/link      link de un solo uso creado en el panel
+// GET  /api/suscripciones/estado?s=     estado del plan por token
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
+import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion, finDeCobros } from '../suscripciones/calculo.mjs';
 import { avisarBaja } from '../suscripciones/procesar.mjs';
+import { sha256Hex } from '../tokens.mjs';
+import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
+import { formatoSoles } from '../../src/data/duraciones.js';
 
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
 const titulo = (s) => condicionesSuscripcion(s.producto, s.duracion_meses)?.titulo ?? s.producto;
@@ -68,4 +73,62 @@ export async function handleSuscripcionCancelar(request, env, deps) {
     console.error('cancelar plan', e);
     return bad(503, 'No pudimos abrir Mercado Pago. Intenta de nuevo.');
   }
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DOCUMENTO = { dni: /^\d{8}$/, ce: /^[A-Z0-9]{6,12}$/, pasaporte: /^[A-Z0-9]{6,12}$/ };
+const MSJ_LINK = 'Este link ya no sirve. Pídele uno nuevo al equipo por WhatsApp.';
+
+async function linkVigente(deps, l) {
+  const s = typeof l === 'string' && l ? await sus.porLinkHash(deps.db, await sha256Hex(l)) : null;
+  if (!s || s.link_usado_en || s.estado !== 'pendiente' || Date.parse(s.vence_en) <= deps.ahora().getTime()) return null;
+  return s;
+}
+
+export async function handleSuscripcionLink(request, env, deps) {
+  if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
+  if (request.method === 'GET') {
+    const s = await linkVigente(deps, new URL(request.url).searchParams.get('l'));
+    if (!s) return bad(410, MSJ_LINK);
+    const c = condicionesSuscripcion(s.producto, s.duracion_meses);
+    return json(200, { ok: true, nombre: s.nombre.split(' ')[0], titulo: c.titulo, cuota_centimos: s.cuota_centimos,
+      precio_mes_centimos: s.precio_mes_centimos, cobros: c.cobros, ahorro_centimos: s.precio_mes_centimos - s.cuota_centimos });
+  }
+  const d = await readJson(request);
+  const s = await linkVigente(deps, d.l);
+  if (!s) return bad(410, MSJ_LINK);
+  const email = String(d.email ?? '').trim();
+  const tipo = String(d.tipo_documento ?? '');
+  const documento = String(d.documento ?? '').replace(/[\s.-]+/g, '').toUpperCase();
+  const whatsapp = String(d.whatsapp ?? '').replace(/[^\d+]/g, '');
+  if (!EMAIL.test(email)) return bad(400, 'Revisa tu correo.');
+  if (!Object.hasOwn(DOCUMENTO, tipo) || !DOCUMENTO[tipo].test(documento)) return bad(400, 'Revisa tu documento.');
+  if (!/^\+?\d{9,15}$/.test(whatsapp)) return bad(400, 'Revisa tu número de WhatsApp.');
+  if (d.acepto !== true) return bad(400, 'Para continuar, acepta los cobros mensuales y las condiciones.');
+  const deuda = await sus.deudaPorDni(deps.db, documento);
+  if (deuda) {
+    return bad(409, `Tienes una penalidad pendiente de ${formatoSoles(deuda.penalidad_centimos / 100)} de tu plan anterior. Págala para continuar.`,
+      { motivo: 'penalidad', url: `${siteUrl(env)}/suscripcion/cancelar/?s=${deuda.token}` });
+  }
+  const ahora = deps.ahora();
+  if (!(await sus.usarLink(deps.db, { hash: await sha256Hex(d.l), nombre: s.nombre, email, dni: documento, whatsapp, condicionesVersion: CONDICIONES_VERSION, ahora }))) {
+    return bad(410, MSJ_LINK);
+  }
+  try {
+    const c = condicionesSuscripcion(s.producto, s.duracion_meses);
+    const pre = await deps.mp.crearSuscripcion({ suscripcionId: s.id, titulo: c.titulo, cuotaCentimos: s.cuota_centimos, email,
+      urlRetorno: `${siteUrl(env)}/suscribirse/listo/?s=${s.token}`, finEn: finDeCobros(ahora, c.cobros) });
+    await sus.guardarPreapproval(deps.db, s.id, pre.id, ahora);
+    return json(200, { ok: true, url: pre.init_point });
+  } catch (e) {
+    console.error('link de suscripción', e);
+    return bad(503, 'No pudimos abrir Mercado Pago. Pídele al equipo un link nuevo.');
+  }
+}
+
+export async function handleSuscripcionEstado(request, env, deps) {
+  if (request.method !== 'GET') return bad(405, 'Método no permitido');
+  const s = await sus.porToken(deps.db, new URL(request.url).searchParams.get('s') || '');
+  if (!s) return bad(404, 'No encontramos tu plan.');
+  return json(200, { ok: true, estado: s.estado, titulo: titulo(s), nombre: s.nombre?.split(' ')[0] ?? null });
 }
