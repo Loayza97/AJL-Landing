@@ -317,6 +317,14 @@ test('apartar con pago mensual: cotiza la cuota y guarda la forma', async () => 
   assert.equal((await apartar(deps(), { producto: 'basico', duracion: 1, forma: 'mensual' })).status, 400);
 });
 
+test('estado de una reserva mensual: forma_pago y cobros para retomarla', async () => {
+  const d = deps();
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const v = await (await handleEstado(get(`/api/reservas/estado?r=${token}`), env, d)).json();
+  assert.equal(v.forma_pago, 'mensual');
+  assert.equal(v.cobros, 3);
+});
+
 test('pagar con pago mensual: pide aceptar la suscripción, crea la suscripción y abre Mercado Pago', async () => {
   const d = deps();
   const { token } = await (await apartar(d, { forma: 'mensual' })).json();

@@ -13,6 +13,7 @@ if (filas) {
       await navigator.clipboard.writeText(valor);
       b.textContent = 'Copiado';
     } catch {
+      u.value = valor;
       u.select();
     }
   });

@@ -109,7 +109,7 @@ function opcionesForma(d) {
   estado.forma = 'completo';
   $('#p2-seguir').disabled = true;
   $('#p2-forma').hidden = false;
-  $('#p2-forma').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#p2-forma').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 
 function abrirP3(mensaje = '') {
@@ -160,11 +160,13 @@ function abrirP4(reserva) {
   estado.reserva = reserva;
   $('#p4-resumen').innerHTML = '';
   const linea = (t) => { const p = document.createElement('div'); p.textContent = t; $('#p4-resumen').append(p); };
-  const mensual = reserva.forma === 'mensual';
+  const mensual = (reserva.forma ?? reserva.forma_pago) === 'mensual';
+  estado.forma = mensual ? 'mensual' : 'completo';
   linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}${mensual ? ' al mes' : ''}`);
   linea(`${reserva.etiqueta} · ${NOMBRE_MODALIDAD[reserva.modalidad]} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
   $('#p4-resumen').append(nodoDonde(reserva.modalidad));
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
+  $('.rs-cuotas').hidden = mensual;
   $('#l-acepto-sus').hidden = !mensual;
   $('#f-acepto-sus').checked = false;
   if (mensual) {
@@ -222,7 +224,7 @@ async function pagar(e) {
   };
   const previa = validarDatos(datos, hoyEnLima(new Date()));
   if (!previa.ok) { $('#p4-error').textContent = previa.error; boton.disabled = false; return; }
-  if (estado.reserva.forma === 'mensual' && !datos.acepto_suscripcion) {
+  if (estado.forma === 'mensual' && !datos.acepto_suscripcion) {
     $('#p4-error').textContent = 'Para continuar, acepta los cobros mensuales automáticos.';
     boton.disabled = false;
     return;

@@ -92,6 +92,7 @@ export function vista(r, deps, ultimo = null) {
     google_calendar: r.estado === 'confirmada' ? enlaceGoogleCalendar(eventoDe(r)) : null,
     ultimo_pago: ultimo?.estado ?? null,
     forma_pago: r.forma_pago ?? 'completo',
+    cobros: precio?.cobros ?? null,
   };
 }
 

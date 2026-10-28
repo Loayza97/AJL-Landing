@@ -33,6 +33,7 @@ test('links de reserva: forma mensual en el link y en el destino', () => {
   assert.equal(linkReserva('constancia', 3, 'mensual'), '/reservar/?plan=constancia&meses=3&forma=mensual');
   assert.deepEqual(destinoLink('constancia', '3', 'mensual'), { paso: 'p3', plan: 'constancia', meses: 3, forma: 'mensual' });
   assert.deepEqual(destinoLink('constancia', '3', null), { paso: 'p3', plan: 'constancia', meses: 3, forma: 'completo' });
+  assert.equal(destinoLink('constancia', '3', 'xyz').forma, 'completo');
   assert.deepEqual(destinoLink('basico', null, 'mensual'), { paso: 'p3', plan: 'basico', forma: 'completo' });
   const c = LINKS_RESERVA.find((l) => l.ruta === '/reservar/?plan=constancia&meses=3');
   assert.equal(c.rutaMensual, '/reservar/?plan=constancia&meses=3&forma=mensual');
