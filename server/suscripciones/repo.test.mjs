@@ -34,12 +34,12 @@ test('registrarCobro: un rechazo no suma y no pisa un aprobado', async () => {
 test('cancelar a mitad deja la penalidad pendiente; al final no; la segunda vez no cambia nada', async () => {
   const db = d1DePrueba();
   await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
-  assert.deepEqual(await sus.cancelar(db, { id: 's1', motivo: 'paciente_boton', ahora: t0 }), { cambio: true, penalidad_centimos: 8000 });
+  assert.deepEqual(await sus.cancelar(db, { id: 's1', motivo: 'paciente_boton', ahora: t0 }), { cambio: true, penalidad_centimos: 8000, penalidad_estado: 'pendiente' });
   assert.equal((await sus.porId(db, 's1')).penalidad_estado, 'pendiente');
   assert.equal((await sus.porId(db, 's1')).penalidad_centimos, 8000);
   assert.equal((await sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 })).cambio, false);
   await sus.crear(db, base({ id: 's2', token: 'tok2', estado: 'activa', cobros_aprobados: 3 }));
-  assert.deepEqual(await sus.cancelar(db, { id: 's2', motivo: 'paciente_mp', ahora: t0 }), { cambio: true, penalidad_centimos: 0 });
+  assert.deepEqual(await sus.cancelar(db, { id: 's2', motivo: 'paciente_mp', ahora: t0 }), { cambio: true, penalidad_centimos: 0, penalidad_estado: 'no_aplica' });
   assert.equal((await sus.porId(db, 's2')).penalidad_estado, 'no_aplica');
 });
 
@@ -47,7 +47,10 @@ test('cancelar por cobro fallido deja estado cobro_fallido; una penalidad ya pag
   const db = d1DePrueba();
   await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 2 }));
   assert.equal(await sus.marcarPenalidadPagada(db, { id: 's1', mpPaymentId: 'pen1', ahora: t0 }), true);
-  await sus.cancelar(db, { id: 's1', motivo: 'cobro_fallido', ahora: t0 });
+  const r = await sus.cancelar(db, { id: 's1', motivo: 'cobro_fallido', ahora: t0 });
+  assert.equal(r.cambio, true);
+  assert.equal(r.penalidad_estado, 'pagada');
+  assert.equal(r.penalidad_centimos, 0);
   const s = await sus.porId(db, 's1');
   assert.equal(s.estado, 'cobro_fallido');
   assert.equal(s.penalidad_estado, 'pagada');
@@ -84,4 +87,38 @@ test('listar filtra por estado y por último mes', async () => {
   assert.deepEqual(await ids('penalidad'), ['c']);
   assert.deepEqual(await ids('canceladas'), ['c']);
   assert.deepEqual(await ids('todas'), ['a', 'b', 'c']); // las pendientes sin pagar no se listan
+});
+
+test('cancelar usa los cobros actuales (16000 con 2 cobros)', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
+  await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p9', estado: 'approved', montoCentimos: 36000, ahora: t0 });
+  assert.deepEqual(await sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 }), { cambio: true, penalidad_centimos: 16000, penalidad_estado: 'pendiente' });
+});
+
+test('cancelar reintenta si un cobro entra entre la lectura y el UPDATE', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
+  const prepare = db.prepare.bind(db);
+  let bumped = false;
+  db.prepare = (sql) => {
+    const st = prepare(sql);
+    if (bumped || !sql.includes('SET estado = ?2')) return st;
+    return { bind: (...a) => { const b = st.bind(...a); return { run: async () => {
+      bumped = true;
+      await prepare("UPDATE suscripciones SET cobros_aprobados = 2 WHERE id = 's1'").run();
+      return b.run();
+    } }; } };
+  };
+  assert.deepEqual(await sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 }), { cambio: true, penalidad_centimos: 16000, penalidad_estado: 'pendiente' });
+  assert.equal(bumped, true);
+});
+
+test('cancelar lanza si el conflicto persiste, y listar rechaza filtros inválidos', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
+  const prepare = db.prepare.bind(db);
+  db.prepare = (sql) => prepare(sql.includes('SET estado = ?2') ? sql.replace('cobros_aprobados = ?6', '0 = 1') : sql);
+  await assert.rejects(sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 }), /conflicto de concurrencia/);
+  await assert.rejects(sus.listar(db, { filtro: 'x' }), /filtro inválido/);
 });

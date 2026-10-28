@@ -31,7 +31,7 @@ export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condici
   const r = await db.prepare(
     `UPDATE suscripciones SET link_usado_en = ?2, nombre = ?3, email = ?4, dni = ?5, whatsapp = ?6, acepto_condiciones_version = ?7, actualizado_en = ?2
      WHERE link_token_hash = ?1 AND link_usado_en IS NULL AND vence_en > ?2 AND estado = 'pendiente'`,
-  ).bind(hash, a, nombre, email, normalDni(dni), whatsapp, condicionesVersion).run();
+  ).bind(hash, a, nombre, email, dni ? normalDni(dni) : null, whatsapp, condicionesVersion).run();
   return r.meta.changes === 1;
 }
 
@@ -64,17 +64,25 @@ export async function marcarTerminada(db, id, ahora) {
 }
 
 // La penalidad se calcula con los cobros de este momento. Una penalidad ya pagada no se toca.
+// Si un cobro entra entre la lectura y el UPDATE, se relee y se reintenta.
 export async function cancelar(db, { id, motivo, ahora }) {
-  const s = await porId(db, id);
-  if (!s || !['pendiente', 'activa'].includes(s.estado)) return { cambio: false, penalidad_centimos: 0 };
-  const pen = penalidadAlCancelar(s);
-  const r = await db.prepare(
-    `UPDATE suscripciones SET estado = ?2, motivo_cancelacion = ?3, cancelada_en = ?4, actualizado_en = ?4,
-       penalidad_centimos = CASE WHEN penalidad_estado = 'pagada' THEN penalidad_centimos ELSE ?5 END,
-       penalidad_estado = CASE WHEN penalidad_estado = 'pagada' THEN 'pagada' WHEN ?5 > 0 THEN 'pendiente' ELSE 'no_aplica' END
-     WHERE id = ?1 AND estado IN ('pendiente', 'activa') AND cobros_aprobados = ?6`,
-  ).bind(id, motivo === 'cobro_fallido' ? 'cobro_fallido' : 'cancelada', motivo, ahora.toISOString(), pen, s.cobros_aprobados).run();
-  return { cambio: r.meta.changes === 1, penalidad_centimos: pen };
+  for (let intento = 0; intento < 3; intento++) {
+    const s = await porId(db, id);
+    if (!s) return { cambio: false, penalidad_centimos: 0, penalidad_estado: 'no_aplica' };
+    if (!['pendiente', 'activa'].includes(s.estado)) return { cambio: false, penalidad_centimos: s.penalidad_centimos, penalidad_estado: s.penalidad_estado };
+    const pen = penalidadAlCancelar(s);
+    const r = await db.prepare(
+      `UPDATE suscripciones SET estado = ?2, motivo_cancelacion = ?3, cancelada_en = ?4, actualizado_en = ?4,
+         penalidad_centimos = CASE WHEN penalidad_estado = 'pagada' THEN penalidad_centimos ELSE ?5 END,
+         penalidad_estado = CASE WHEN penalidad_estado = 'pagada' THEN 'pagada' WHEN ?5 > 0 THEN 'pendiente' ELSE 'no_aplica' END
+       WHERE id = ?1 AND estado IN ('pendiente', 'activa') AND cobros_aprobados = ?6`,
+    ).bind(id, motivo === 'cobro_fallido' ? 'cobro_fallido' : 'cancelada', motivo, ahora.toISOString(), pen, s.cobros_aprobados).run();
+    if (r.meta.changes === 1) {
+      const f = await porId(db, id);
+      return { cambio: true, penalidad_centimos: f.penalidad_centimos, penalidad_estado: f.penalidad_estado };
+    }
+  }
+  throw new Error('cancelar: conflicto de concurrencia');
 }
 
 export const cotizarPenalidad = (db, id, monto, ahora) => db.prepare(
@@ -104,6 +112,7 @@ const FILTROS = {
 export const FILTROS_SUSCRIPCION = Object.keys(FILTROS);
 
 export async function listar(db, { filtro }) {
+  if (!Object.hasOwn(FILTROS, filtro)) throw new Error('filtro inválido');
   const { results } = await db.prepare(`SELECT * FROM suscripciones WHERE ${FILTROS[filtro]} ORDER BY actualizado_en DESC LIMIT 200`).all();
   return results;
 }
