@@ -7,6 +7,15 @@ const soles = (c) => formatoSoles(Math.round(c / 100));
 const l = new URLSearchParams(location.search).get('l') || '';
 const h = (tag, texto, cls) => { const e = document.createElement(tag); if (cls) e.className = cls; e.textContent = texto; return e; };
 
+// DNI: 8 dígitos numéricos; CE y pasaporte admiten letras (como en /reservar/).
+function ajustarDoc() {
+  const dni = $('#s-tipo-doc').value === 'dni';
+  $('#s-doc').inputMode = dni ? 'numeric' : 'text';
+  $('#s-doc').maxLength = dni ? 8 : 12;
+}
+$('#s-tipo-doc').addEventListener('change', ajustarDoc);
+ajustarDoc();
+
 (async () => {
   let r = null;
   try { r = await fetch(`/api/suscripciones/link?l=${encodeURIComponent(l)}`, { cache: 'no-store' }); } catch {}
@@ -22,7 +31,7 @@ const h = (tag, texto, cls) => { const e = document.createElement(tag); if (cls)
   ul.append(...puntos.map((p) => h('li', p)));
   $('#sus').replaceChildren(h('h1', `Hola, ${d.nombre}. Este es tu plan`), caja, ul);
   $('#s-acepto-t').textContent = d.cobros
-    ? `Acepto ${d.cobros} cobros mensuales automáticos de ${soles(d.cuota_centimos)}, que si cancelo antes del último pago la diferencia de los meses usados con el precio mes a mes${d.cobros === 6 ? ' (o con el paquete de 3 meses si ya usé 3)' : ''}, y las condiciones del servicio.`
+    ? `Acepto ${d.cobros} cobros mensuales automáticos de ${soles(d.cuota_centimos)}, y que si cancelo antes del último pagaré la diferencia entre lo que pagué y el precio que corresponde a los meses usados. Acepto también las condiciones del servicio.`
     : `Acepto el cobro mensual automático de ${soles(d.cuota_centimos)} hasta que cancele y las condiciones del servicio.`;
   $('#sus-form').hidden = false;
 })();
