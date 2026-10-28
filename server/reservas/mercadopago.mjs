@@ -39,7 +39,30 @@ export function crearMp(env, fetchImpl = fetch) {
     return r.json();
   }
 
-  return { crearPreferencia, obtenerPago };
+  // Suscripciones sin plan asociado y con pago pendiente: el paciente autoriza en
+  // init_point. Mercado Pago pide payer_email (Task 1 verifica si debe coincidir).
+  async function pedirSus(ruta, init = {}) {
+    const r = await fetchImpl(`${API}${ruta}`, { ...init, headers: { ...auth, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } });
+    if (!r.ok) throw new Error(`Mercado Pago suscripción ${r.status}: ${await r.text()}`);
+    return r.json();
+  }
+
+  async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, email, urlRetorno, finEn }) {
+    const d = await pedirSus('/preapproval', {
+      method: 'POST', headers: { 'X-Idempotency-Key': `sus-${suscripcionId}` },
+      body: JSON.stringify({
+        reason: `AJL Nutrición · ${titulo}`, external_reference: suscripcionId, payer_email: email, back_url: urlRetorno, status: 'pending',
+        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(finEn ? { end_date: finEn } : {}) },
+      }),
+    });
+    return { id: d.id, init_point: d.init_point };
+  }
+  const obtenerSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`);
+  const cancelarSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
+  const obtenerCobroSuscripcion = (id) => pedirSus(`/authorized_payments/${encodeURIComponent(id)}`);
+  const buscarCobrosSuscripcion = async (id) => (await pedirSus(`/authorized_payments/search?preapproval_id=${encodeURIComponent(id)}`)).results ?? [];
+
+  return { crearPreferencia, obtenerPago, crearSuscripcion, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
 }
 
 function iguales(a, b) {
