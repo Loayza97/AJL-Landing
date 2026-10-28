@@ -40,12 +40,28 @@ test('el aviso de Mercado Pago de la cancelación llega antes que el del pago: u
   assert.ok(d.correos.some((c) => /pagó su penalidad pendiente/.test(c.subject)));
 });
 
-test('monto distinto o pago no aprobado: no marca nada', async () => {
+test('monto distinto o pago no aprobado: no marca nada; el monto distinto alerta para devolver', async () => {
   const d = armar();
   await sus.crear(d.db, activa());
-  await procesarPagoPenalidad(d, env, pagoPen({ transaction_amount: 1 }));
+  assert.deepEqual(await procesarPagoPenalidad(d, env, pagoPen({ transaction_amount: 1 })), { estado: 'monto_invalido' });
   await procesarPagoPenalidad(d, env, pagoPen({ status: 'rejected' }));
   assert.equal((await sus.porId(d.db, 's1')).penalidad_estado, 'no_aplica');
+  const alertas = d.correos.filter((c) => /Devolver pago de penalidad/.test(c.subject));
+  assert.equal(alertas.length, 1);
+  assert.match(alertas[0].html, /Ana Pérez/);
+  assert.match(alertas[0].html, /pp1/);
+});
+
+test('penalidad pagada dos veces con pagos distintos: alerta para devolver el segundo; el reintento del mismo pago no', async () => {
+  const d = armar();
+  await sus.crear(d.db, activa());
+  await procesarPagoPenalidad(d, env, pagoPen());
+  await procesarPagoPenalidad(d, env, pagoPen());
+  assert.equal(d.correos.filter((c) => /Devolver pago de penalidad/.test(c.subject)).length, 0);
+  assert.deepEqual(await procesarPagoPenalidad(d, env, pagoPen({ id: 'pp2' })), { estado: 'ya_pagada' });
+  const alertas = d.correos.filter((c) => /Devolver pago de penalidad/.test(c.subject));
+  assert.equal(alertas.length, 1);
+  assert.match(alertas[0].html, /pp2/);
 });
 
 test('orden inverso: el pago gana la penalidad y la baja de Mercado Pago llega durante la cancelación: nadie dice «quedan pendientes»', async () => {
