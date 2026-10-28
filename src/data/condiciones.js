@@ -4,7 +4,7 @@ export const CONDICIONES_VERSION = '2026-10-28';
 export const NOVEDADES_TEXTO =
   'Quiero recibir novedades y promociones de AJL Nutrición por correo. (v2026-10-01)';
 
-// Resumen en 5 puntos que se abre en una ventana desde el paso 4. Tiene que
+// Resumen en 6 puntos que se abre en una ventana desde el paso 4. Tiene que
 // decir lo mismo que /condiciones/ y /privacidad/.
 export const RESUMEN_CONDICIONES = [
   { t: 'Precio y pago', d: 'Los precios están en soles y no tienen recargo por tarjeta. Pagas en Mercado Pago con tarjeta, Yape o dinero en tu cuenta. Con tarjeta de crédito puedes pagar en cuotas; si hay intereses, los cobra tu banco.' },
