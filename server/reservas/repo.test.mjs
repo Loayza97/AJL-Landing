@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { d1DePrueba } from './d1-prueba.mjs';
 import * as repo from './repo.mjs';
+import * as sus from '../suscripciones/repo.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const mas = (min) => new Date(t0.getTime() + min * 60000);
@@ -161,6 +162,20 @@ test('purgar borra datos de contacto de reservas no pagadas con más de 30 días
   await repo.guardarDatosYPagar(db, { reserva: r, cliente: { ...cliente, nombre: 'Ana' }, condicionesVersion: 'v', novedades: false, ahora: mas(1) });
   await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
   assert.equal((await repo.reservaPorToken(db, 'tnp')).nombre, null);
+});
+
+test('purgar borra los datos de suscripciones que nunca cobraron tras 30 días; no toca las que cobraron o tienen deuda', async () => {
+  const db = d1DePrueba();
+  const base = { producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, nombre: 'Ana Pérez',
+    email: 'ana@x.pe', dni: '12345678', whatsapp: '+51987654321', creado_en: t0.toISOString() };
+  await sus.crear(db, { ...base, id: 'vieja', token: 't1', estado: 'pendiente' });
+  await sus.crear(db, { ...base, id: 'reciente', token: 't2', estado: 'pendiente', link_usado_en: new Date(t0.getTime() + 20 * 86400000).toISOString() });
+  await sus.crear(db, { ...base, id: 'cobro', token: 't3', estado: 'activa', cobros_aprobados: 1 });
+  await sus.crear(db, { ...base, id: 'deuda', token: 't4', estado: 'cancelada', cobros_aprobados: 1, penalidad_estado: 'pendiente', penalidad_centimos: 8000 });
+  await repo.purgarNoPagadas(db, new Date(t0.getTime() + 31 * 86400000));
+  const datos = async (id) => { const f = await sus.porId(db, id); return [f.nombre, f.email, f.dni, f.whatsapp]; };
+  assert.deepEqual(await datos('vieja'), [null, null, null, null]);
+  for (const id of ['reciente', 'cobro', 'deuda']) assert.deepEqual(await datos(id), ['Ana Pérez', 'ana@x.pe', '12345678', '+51987654321']);
 });
 
 test('purgar borra la huella apenas termina la retención', async () => {

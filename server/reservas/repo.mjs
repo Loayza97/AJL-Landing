@@ -230,7 +230,14 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
              OR (estado IN ('apartada', 'pagando') AND retencion_hasta < ?1)))
        AND id NOT IN (SELECT cliente_id FROM reservas
              WHERE cliente_id IS NOT NULL AND (estado IN ('confirmada', 'pagada_sin_hora') OR cancelada_en_panel IS NOT NULL))`,
-  ).bind(limite)]);
+  ).bind(limite),
+  // Los datos copiados en una suscripción que nunca cobró (ni dejó deuda) siguen el mismo plazo.
+  db.prepare(
+    `UPDATE suscripciones SET nombre = NULL, email = NULL, dni = NULL, whatsapp = NULL, actualizado_en = ?2
+     WHERE estado = 'pendiente' AND cobros_aprobados = 0 AND penalidad_estado <> 'pendiente'
+       AND COALESCE(link_usado_en, creado_en) < ?1
+       AND (nombre IS NOT NULL OR email IS NOT NULL OR dni IS NOT NULL OR whatsapp IS NOT NULL)`,
+  ).bind(limite, ahora.toISOString())]);
 };
 
 // Quienes dejaron sus datos y no pagaron: su plazo para pagar venció dentro de
