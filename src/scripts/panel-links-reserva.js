@@ -7,9 +7,10 @@ if (filas) {
     const b = e.target.closest('[data-copiar-ruta]');
     if (!b) return;
     const u = b.closest('tr').querySelector('[data-ruta]');
-    filas.querySelectorAll('[data-copiar-ruta]').forEach((x) => { x.textContent = 'Copiar'; });
+    filas.querySelectorAll('[data-copiar-ruta]').forEach((x) => { x.textContent = x.dataset.mensual ? 'Copiar (mensual)' : 'Copiar'; });
+    const valor = b.dataset.mensual ? location.origin + b.dataset.mensual : u.value;
     try {
-      await navigator.clipboard.writeText(u.value);
+      await navigator.clipboard.writeText(valor);
       b.textContent = 'Copiado';
     } catch {
       u.select();

@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { plans, monthlyPlans } from '../../data/plans.js';
 import { duracionesDe, formatoSoles } from '../../data/duraciones.js';
+import { condicionesSuscripcion } from '../../../server/suscripciones/calculo.mjs';
 import { PAISES } from '../../data/telefono.js';
 import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
@@ -22,7 +23,8 @@ const desdeMes = (id) => formatoSoles(Math.min(...duracionesDe(id).map((d) => d.
 
 const catalogo = {};
 for (const p of monthlyPlans) {
-  catalogo[p.id] = { nombre: p.name, mensual: true, duraciones: duracionesDe(p.id), incluye: incluyeDe(p) };
+  catalogo[p.id] = { nombre: p.name, mensual: true, incluye: incluyeDe(p),
+    duraciones: duracionesDe(p.id).map((d) => ({ ...d, sus: condicionesSuscripcion(p.id, d.meses) })) };
 }
 catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.basico.price };
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
@@ -87,6 +89,14 @@ const VENTANAS = [
       <p class="rs-lead" id="p2-plan"></p>
       <div class="rs-duraciones" id="p2-opciones"></div>
       <div class="rs-consultas" id="p2-consultas"></div>
+      <div class="rs-forma" id="p2-forma" hidden>
+        <h2 id="p2-forma-t">¿Cómo quieres pagar?</h2>
+        <div class="rs-formas" role="radiogroup" aria-labelledby="p2-forma-t">
+          <label class="rs-forma-op"><input type="radio" name="forma" value="mensual"><span id="p2-mensual"></span></label>
+          <label class="rs-forma-op"><input type="radio" name="forma" value="completo"><span id="p2-completo"></span></label>
+        </div>
+        <button type="button" class="rs-btn" id="p2-seguir" disabled>Elegir mi primera sesión ›</button>
+      </div>
       <p class="rs-nota">Tu plazo empieza cuando recibes tu plan, no cuando pagas. No necesitas agendar todo ahora: eliges la primera cita y las demás las coordinas con tu nutricionista. Pagas con tarjeta o con Yape, sin recargo. Con tarjeta de crédito puedes pagar en hasta 12 cuotas; si hay intereses, los cobra tu banco.</p>
     </section>
 
@@ -142,6 +152,7 @@ const VENTANAS = [
           </select>
           <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
         </div>
+        <label class="rs-check" id="l-acepto-sus" hidden><input type="checkbox" id="f-acepto-sus"> <span id="t-acepto-sus"></span></label>
         <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
         <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
         <p class="rs-nota">Mover tu cita es gratis hasta 48 h antes; después cuesta S/80.</p>

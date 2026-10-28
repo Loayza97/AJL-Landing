@@ -71,7 +71,7 @@ import '../../styles/panel.css';
         <div class="lk-scroll"><table><thead><tr><th>Producto</th><th>Link</th><th></th></tr></thead><tbody id="r-links">
           {LINKS_RESERVA.map((l) => (
             <tr><td><b>{l.producto}</b><br>{l.detalle}</td><td><input class="lk-url lk-url--fila" readonly data-ruta={l.ruta} value={`https://www.ajlnutricion.com${l.ruta}`} aria-label={`Link de ${l.detalle}`}></td>
-              <td><button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta>Copiar</button></td></tr>
+              <td><button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta>Copiar</button>{l.rutaMensual && <button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta data-mensual={l.rutaMensual}>Copiar (mensual)</button>}</td></tr>
           ))}
         </tbody></table></div>
         </details>

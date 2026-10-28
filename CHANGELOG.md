@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- /reservar/: después de elegir la duración aparece «¿Cómo quieres pagar?» (pago mensual automático o pago completo). Con pago mensual, el paso 4 pide aceptar los cobros automáticos y el botón dice «Suscribirme con Mercado Pago»; /reservar/listo/ entiende la vuelta de la suscripción. `&forma=mensual` en el link abre el calendario con pago mensual; el panel tiene «Copiar (mensual)» en cada plan mensual de «Links de reserva web».
 - Panel: «Links de reserva web» se pliega y empieza cerrado; se abre tocando el título (pedido de Romina).
 - Links directos a /reservar/: `?plan=constancia&meses=3` abre directo el calendario de ese producto y duración (sin `meses`, las duraciones; plan desconocido, el paso 1). La barra de direcciones se actualiza al elegir producto y duración, así se puede copiar. El panel tiene «Links de reserva web» con los 11 links (3 planes × 3 duraciones, Básico y Evaluación) y un botón «Copiar» en cada uno.
 - Panel, «Copiar para la base maestra»: N pega «2/7» sin fórmula. Romina dejó la columna N en Texto sin formato; antes estaba en fecha y la sesión no se veía.
