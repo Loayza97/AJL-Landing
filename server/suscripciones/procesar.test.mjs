@@ -122,6 +122,7 @@ test('cobro cuyo preapproval no está guardado: se encuentra por la referencia e
   const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre-viejo' } }, pagos: { p1: pago('p1') },
     pre: { 'pre-viejo': { id: 'pre-viejo', external_reference: 's1', status: 'pending' } } });
   await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = NULL WHERE id = 's1'").run();
   assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
   assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
 });
@@ -131,4 +132,70 @@ test('aviso de baja de un preapproval reemplazado por un reintento no cancela la
   await reservaMensual(d);
   await procesarPreapproval(d, env, 'pre-viejo');
   assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
+});
+
+test('cobro cancelado porque el paciente canceló en Mercado Pago: baja del paciente, no cobro fallido', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: { ...cobro('a2', 'p2', 'cancelled'), payment: { id: 'p2', status: 'rejected' } } },
+    pagos: { p1: pago('p1'), p2: pago('p2', 'rejected') }, pre: { pre1: { id: 'pre1', status: 'cancelled', external_reference: 's1' } } });
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  assert.deepEqual(await procesarCobro(d, env, 'a2'), { estado: 'cancelada' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'cancelada');
+  assert.equal(s.motivo_cancelacion, 'paciente_mp');
+  assert.equal(s.penalidad_estado, 'pendiente');
+  assert.deepEqual(d.canceladas, []);
+  assert.ok(d.correos.some((c) => c.subject === 'Ana Pérez canceló su plan · penalidad pendiente S/80'));
+  assert.ok(!d.correos.some((c) => /Cobro fallido/.test(c.subject)));
+  const baja = d.correos.find((c) => /quedó cancelado/.test(c.subject));
+  assert.doesNotMatch(baja.html, /No pudimos cobrar/);
+});
+
+test('cobro fallido con la penalidad ya pagada: la baja no dice «quedan pendientes» y explica el cobro', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: { ...cobro('a2', 'p2', 'cancelled'), payment: { id: 'p2', status: 'rejected' } } },
+    pagos: { p1: pago('p1'), p2: pago('p2', 'rejected') } });
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  await sus.marcarPenalidadPagada(d.db, { id: 's1', mpPaymentId: 'pp1', ahora: t0 });
+  await d.db.prepare("UPDATE suscripciones SET penalidad_centimos = 8000 WHERE id = 's1'").run();
+  await procesarCobro(d, env, 'a2');
+  const baja = d.correos.find((c) => c.to === 'ana@x.pe' && /quedó cancelado/.test(c.subject));
+  assert.doesNotMatch(baja.html, /quedan pendientes/);
+  assert.match(baja.html, /Recibimos el pago de la penalidad/);
+  assert.match(baja.html, /No pudimos cobrar tu cuota mensual y Mercado Pago ya no lo volverá a intentar\./);
+});
+
+test('cobro aprobado tras la baja: se registra sin sumar, sin recibo, alerta una vez y cancela en Mercado Pago', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: cobro('a2', 'p2') }, pagos: { p1: pago('p1'), p2: pago('p2') } });
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  await sus.cancelar(d.db, { id: 's1', motivo: 'paciente_boton', ahora: t0 });
+  d.correos.length = 0;
+  assert.deepEqual(await procesarCobro(d, env, 'a2'), { estado: 'anomalo' });
+  await procesarCobro(d, env, 'a2');
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(s.estado, 'cancelada');
+  const fila = await d.db.prepare("SELECT estado, numero, monto_centimos FROM suscripcion_cobros WHERE mp_payment_id = 'p2'").first();
+  assert.deepEqual(fila, { estado: 'approved', numero: 0, monto_centimos: 36000 });
+  assert.ok(!d.correos.some((c) => /Recibimos tu pago/.test(c.subject)));
+  const alertas = d.correos.filter((c) => /Cobro tras baja o duplicado: devolver y cancelar en Mercado Pago/.test(c.subject));
+  assert.equal(alertas.length, 1);
+  assert.match(alertas[0].html, /Ana Pérez/);
+  assert.match(alertas[0].html, /pre1/);
+  assert.match(alertas[0].html, /S\/360/);
+  assert.deepEqual(d.canceladas, ['pre1']);
+});
+
+test('cobro aprobado de otro preapproval (duplicado de un reintento): no confirma la cita ni manda recibo', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre-viejo' } }, pagos: { p1: pago('p1') },
+    pre: { 'pre-viejo': { id: 'pre-viejo', external_reference: 's1', status: 'authorized' } } });
+  await reservaMensual(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'anomalo' });
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
+  assert.ok(!d.correos.some((c) => /Recibimos tu pago/.test(c.subject)));
+  assert.equal(d.correos.filter((c) => /Cobro tras baja o duplicado/.test(c.subject)).length, 1);
+  assert.deepEqual(d.canceladas, ['pre-viejo']);
 });

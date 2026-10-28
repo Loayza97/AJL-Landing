@@ -42,24 +42,26 @@ export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condici
 
 // Un cobro aprobado suma una sola vez aunque llegue repetido o por dos caminos a la vez:
 // el UPDATE solo pasa si ese pago todavía no figura como aprobado, en el mismo batch.
-export async function registrarCobro(db, { suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos = null, metodo = null, ahora }) {
+// contar = false: un cobro que no corresponde (tras la baja o de otro preapproval) queda registrado,
+// con numero 0, sin sumar a los cobros del plan. pagoNuevoAprobado dice si esta llamada lo dejó aprobado.
+export async function registrarCobro(db, { suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos = null, metodo = null, ahora, contar = true }) {
   const a = ahora.toISOString();
   const aprobado = estado === 'approved';
   const sumar = db.prepare(
     `UPDATE suscripciones SET cobros_aprobados = cobros_aprobados + 1, ultimo_cobro_en = ?3, actualizado_en = ?3,
        estado = CASE WHEN estado = 'pendiente' THEN 'activa' ELSE estado END
      WHERE id = ?1 AND ?4 = 1 AND NOT EXISTS (SELECT 1 FROM suscripcion_cobros WHERE mp_payment_id = ?2 AND estado = 'approved')`,
-  ).bind(suscripcionId, mpPaymentId, a, aprobado ? 1 : 0);
+  ).bind(suscripcionId, mpPaymentId, a, aprobado && contar ? 1 : 0);
   const guardar = db.prepare(
     `INSERT INTO suscripcion_cobros (id, suscripcion_id, mp_payment_id, numero, estado, monto_centimos, neto_centimos, metodo, creado_en)
-     VALUES (?1, ?2, ?3, (SELECT cobros_aprobados + ?9 FROM suscripciones WHERE id = ?2), ?4, ?5, ?6, ?7, ?8)
+     VALUES (?1, ?2, ?3, CASE WHEN ?10 = 1 THEN (SELECT cobros_aprobados + ?9 FROM suscripciones WHERE id = ?2) ELSE 0 END, ?4, ?5, ?6, ?7, ?8)
      ON CONFLICT (mp_payment_id) DO UPDATE SET estado = excluded.estado, numero = excluded.numero,
        neto_centimos = COALESCE(excluded.neto_centimos, suscripcion_cobros.neto_centimos)
      WHERE suscripcion_cobros.estado <> 'approved'`,
-  ).bind(crypto.randomUUID(), suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos, metodo, a, aprobado ? 0 : 1);
-  const [res] = await db.batch([sumar, guardar]);
+  ).bind(crypto.randomUUID(), suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos, metodo, a, aprobado ? 0 : 1, contar ? 1 : 0);
+  const [res, reg] = await db.batch([sumar, guardar]);
   const { numero } = await db.prepare('SELECT numero FROM suscripcion_cobros WHERE mp_payment_id = ?1').bind(mpPaymentId).first();
-  return { nuevoAprobado: res.meta.changes === 1, numero };
+  return { nuevoAprobado: res.meta.changes === 1, pagoNuevoAprobado: aprobado && reg.meta.changes === 1, numero };
 }
 
 export async function marcarTerminada(db, id, ahora) {

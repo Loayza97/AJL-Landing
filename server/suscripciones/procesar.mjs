@@ -10,6 +10,7 @@ import { correoRecibo, correoBaja, correoEquipoSuscripcion, correoPenalidadPendi
 import { avisarFijas } from '../reservas/aviso-equipo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
+import { formatoSoles } from '../../src/data/duraciones.js';
 
 // authorized payment que Mercado Pago ya no reintentará.
 export const ESTADO_COBRO_FALLIDO = 'cancelled';
@@ -32,10 +33,10 @@ async function alPaciente(deps, env, s, correo) {
 }
 
 // Avisos de una baja ya escrita en la base (quien la escribió es quien avisa).
-export async function avisarBaja(deps, env, id, { tipoEquipo, penalidad, penalidadPagada = false }) {
+export async function avisarBaja(deps, env, id, { tipoEquipo, penalidad, penalidadPagada = false, porCobroFallido = false }) {
   const s = await sus.porId(deps.db, id);
   await Promise.all([
-    alPaciente(deps, env, s, correoBaja({ nombre: s.nombre?.split(' ')[0] ?? '', titulo: titulo(s), penalidad, penalidadPagada })),
+    alPaciente(deps, env, s, correoBaja({ nombre: s.nombre?.split(' ')[0] ?? '', titulo: titulo(s), penalidad, penalidadPagada, porCobroFallido })),
     avisarFijas(deps, env, correoEquipoSuscripcion(tipoEquipo, s, { penalidad })),
   ]);
 }
@@ -61,15 +62,30 @@ export async function procesarCobro(deps, env, authorizedId) {
     s = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
   }
   if (!s) return { estado: 'desconocido' };
+  const preapprovalId = String(ap.preapproval_id);
+  // Un cobro de una suscripción ya cerrada, o de otro preapproval que no es el vigente (un reintento
+  // de pago dejó dos), no corresponde: se registra porque es dinero real, pero no cuenta para el plan.
+  const anomalo = !['pendiente', 'activa'].includes(s.estado) || (s.mp_preapproval_id != null && preapprovalId !== s.mp_preapproval_id);
   const pagoId = ap.payment?.id ? String(ap.payment.id) : null;
   const pago = pagoId ? await deps.mp.obtenerPago(pagoId) : null;
   // Solo cuenta lo que la API de pagos confirma; el estado que trae el cobro no se toma como cierto.
   const estado = pago?.status ?? 'pending';
   const neto = Number(pago?.transaction_details?.net_received_amount);
-  const { nuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
-    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, estado, montoCentimos: Math.round(Number(ap.transaction_amount) * 100),
-    netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(),
+  const montoCentimos = Math.round(Number(ap.transaction_amount) * 100);
+  const { nuevoAprobado, pagoNuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
+    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, estado, montoCentimos,
+    netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(), contar: !anomalo,
   });
+
+  if (anomalo) {
+    // Sin recibo ni confirmación. Solo quien dejó el pago aprobado avisa (un aviso repetido no alerta otra vez).
+    if (pagoNuevoAprobado) {
+      await avisarFijas(deps, env, correoEquipoAlerta({ asunto: 'Cobro tras baja o duplicado: devolver y cancelar en Mercado Pago',
+        detalle: `${s.nombre}: Mercado Pago cobró ${formatoSoles(montoCentimos / 100)} en la suscripción ${preapprovalId}, que ya no corresponde (plan ${s.estado}${preapprovalId !== s.mp_preapproval_id ? `, la vigente es ${s.mp_preapproval_id}` : ''}). Devuelve ese pago y revisa que la suscripción quede cancelada en Mercado Pago.` }));
+      await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: preapprovalId });
+    }
+    return { estado: 'anomalo' };
+  }
 
   // Fuera del filtro de nuevoAprobado: si la confirmación falló, el reintento de Mercado Pago la repite
   // (confirmarConPago es idempotente y solo quien confirma manda los correos).
@@ -92,10 +108,27 @@ export async function procesarCobro(deps, env, authorizedId) {
   }
 
   if (estado !== 'approved' && ap.status === ESTADO_COBRO_FALLIDO) {
+    // Si el paciente canceló desde Mercado Pago, el cobro pendiente también queda cancelado:
+    // eso es una baja del paciente, no un cobro fallido.
+    let pre = null;
+    try {
+      pre = s.mp_preapproval_id ? await deps.mp.obtenerSuscripcion(s.mp_preapproval_id) : null;
+    } catch (e) {
+      console.error('consultar suscripción tras cobro cancelado', s.id, e);
+    }
+    if (pre?.status === 'cancelled') {
+      const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_mp', ahora: deps.ahora() });
+      if (res.cambio) {
+        const pagada = res.penalidad_estado === 'pagada';
+        await avisarBaja(deps, env, s.id, { tipoEquipo: pagada ? 'cancelada_pagada' : 'cancelada_pendiente', penalidad: res.penalidad_centimos, penalidadPagada: pagada });
+      }
+      return { estado: 'cancelada' };
+    }
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'cobro_fallido', ahora: deps.ahora() });
     if (res.cambio) {
       await cancelarEnMp(deps, env, s);
-      await avisarBaja(deps, env, s.id, { tipoEquipo: 'fallido', penalidad: res.penalidad_centimos });
+      await avisarBaja(deps, env, s.id, { tipoEquipo: 'fallido', penalidad: res.penalidad_centimos,
+        penalidadPagada: res.penalidad_estado === 'pagada', porCobroFallido: true });
     }
     return { estado: 'cobro_fallido' };
   }

@@ -12,8 +12,8 @@ test('registrarCobro: el mismo pago dos veces cuenta una sola vez y activa la su
   await sus.crear(db, base());
   const a = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p1', estado: 'approved', montoCentimos: 36000, ahora: t0 });
   const b = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p1', estado: 'approved', montoCentimos: 36000, ahora: t0 });
-  assert.deepEqual(a, { nuevoAprobado: true, numero: 1 });
-  assert.deepEqual(b, { nuevoAprobado: false, numero: 1 });
+  assert.deepEqual(a, { nuevoAprobado: true, pagoNuevoAprobado: true, numero: 1 });
+  assert.deepEqual(b, { nuevoAprobado: false, pagoNuevoAprobado: false, numero: 1 });
   const s = await sus.porId(db, 's1');
   assert.equal(s.cobros_aprobados, 1);
   assert.equal(s.estado, 'activa');
@@ -23,11 +23,21 @@ test('registrarCobro: el mismo pago dos veces cuenta una sola vez y activa la su
 test('registrarCobro: un rechazo no suma y no pisa un aprobado', async () => {
   const db = d1DePrueba();
   await sus.crear(db, base({ estado: 'activa' }));
-  assert.deepEqual(await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p1', estado: 'rejected', montoCentimos: 36000, ahora: t0 }), { nuevoAprobado: false, numero: 1 });
+  assert.deepEqual(await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p1', estado: 'rejected', montoCentimos: 36000, ahora: t0 }), { nuevoAprobado: false, pagoNuevoAprobado: false, numero: 1 });
   await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p2', estado: 'approved', montoCentimos: 36000, ahora: t0 });
   await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p2', estado: 'rejected', montoCentimos: 36000, ahora: t0 });
   const { estado } = await db.prepare("SELECT estado FROM suscripcion_cobros WHERE mp_payment_id = 'p2'").first();
   assert.equal(estado, 'approved');
+  assert.equal((await sus.porId(db, 's1')).cobros_aprobados, 1);
+});
+
+test('registrarCobro con contar=false: guarda el pago con numero 0 sin sumar, y avisa solo la primera vez', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ estado: 'cancelada', cobros_aprobados: 1 }));
+  const a = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'px', estado: 'approved', montoCentimos: 36000, ahora: t0, contar: false });
+  const b = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'px', estado: 'approved', montoCentimos: 36000, ahora: t0, contar: false });
+  assert.deepEqual(a, { nuevoAprobado: false, pagoNuevoAprobado: true, numero: 0 });
+  assert.deepEqual(b, { nuevoAprobado: false, pagoNuevoAprobado: false, numero: 0 });
   assert.equal((await sus.porId(db, 's1')).cobros_aprobados, 1);
 });
 

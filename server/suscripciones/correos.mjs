@@ -19,11 +19,12 @@ export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancela
   };
 }
 
-export function correoBaja({ nombre, titulo, penalidad, penalidadPagada }) {
+export function correoBaja({ nombre, titulo, penalidad, penalidadPagada, porCobroFallido = false }) {
   return {
     subject: 'Tu plan quedó cancelado · AJL Nutrición',
     html: marco(`
       <h2 style="font-family:Georgia,serif;color:#173C2C">${esc(nombre)}, tu plan quedó cancelado</h2>
+      ${porCobroFallido ? '<p>No pudimos cobrar tu cuota mensual y Mercado Pago ya no lo volverá a intentar.</p>' : ''}
       <p>${esc(titulo)}. Ya no se te cobra nada más.</p>
       ${penalidad > 0 && !penalidadPagada ? `<p>${soles(penalidad)} quedan pendientes por la penalidad. Si vuelves a reservar con nosotros, te pediremos pagarlos antes.</p>` : ''}
       ${penalidad > 0 && penalidadPagada ? `<p>Recibimos el pago de la penalidad (${soles(penalidad)}).</p>` : ''}
