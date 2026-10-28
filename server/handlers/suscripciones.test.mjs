@@ -62,3 +62,11 @@ test('deuda: modo deuda y solo se puede pagar; en el último mes no hay penalida
   await sus.crear(d.db, fila({ id: 's2', token: 't2', mp_preapproval_id: 'pre2', cobros_aprobados: 3 }));
   assert.equal((await (await handleSuscripcionCancelar(get('s=t2'), env, d)).json()).penalidad_centimos, 0);
 });
+
+test('si la base falla tras cancelar en Mercado Pago: 200 si otro ya cerró el plan, 503 si no', async () => {
+  const d = deps();
+  await sus.crear(d.db, fila());
+  const real = d.db.prepare.bind(d.db);
+  d.db.prepare = (sql) => { if (/UPDATE suscripciones/.test(sql) && /cancelada/.test(sql)) throw new Error('conflicto'); return real(sql); };
+  assert.equal((await handleSuscripcionCancelar(post({ s: 'ts', pagar: false }), env, d)).status, 503);
+});

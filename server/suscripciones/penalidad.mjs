@@ -2,7 +2,7 @@
 // preferencia de pago único cuyo external_reference es «pen-<id de suscripción>».
 // Al aprobarse: penalidad pagada y, si la suscripción seguía activa, se cancela.
 import * as sus from './repo.mjs';
-import { avisarBaja } from './procesar.mjs';
+import { avisarBaja, cancelarEnMp } from './procesar.mjs';
 import { avisarFijas } from '../reservas/aviso-equipo.mjs';
 import { correoEquipoSuscripcion } from './correos.mjs';
 
@@ -15,16 +15,13 @@ export async function procesarPagoPenalidad(deps, env, pago) {
   }
   if (!(await sus.marcarPenalidadPagada(deps.db, { id: s.id, mpPaymentId: String(pago.id), ahora: deps.ahora() }))) return { estado: 'ya_pagada' };
   if (['pendiente', 'activa'].includes(s.estado)) {
-    try {
-      await deps.mp.cancelarSuscripcion(s.mp_preapproval_id);
-    } catch (e) {
-      console.error('cancelar tras penalidad', s.id, e);
-    }
+    await cancelarEnMp(deps, env, s);
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_boton', ahora: deps.ahora() });
     if (res.cambio) {
       await avisarBaja(deps, env, s.id, { tipoEquipo: 'cancelada_pagada', penalidad: s.penalidad_centimos, penalidadPagada: true });
-      return { estado: 'cancelada' };
     }
+    // Si otro camino ganó la baja, ya la avisó como pagada: no se manda nada más.
+    return { estado: res.cambio ? 'cancelada' : 'pagada' };
   }
   await avisarFijas(deps, env, correoEquipoSuscripcion('penalidad_pagada', await sus.porId(deps.db, s.id)));
   return { estado: 'pagada' };

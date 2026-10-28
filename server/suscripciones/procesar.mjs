@@ -8,6 +8,7 @@ import { confirmarConPago } from '../reservas/confirmar.mjs';
 import { condicionesSuscripcion, esUltimoCobro, penalidadAlCancelar } from './calculo.mjs';
 import { correoRecibo, correoBaja, correoEquipoSuscripcion } from './correos.mjs';
 import { avisarFijas } from '../reservas/aviso-equipo.mjs';
+import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
 
 // authorized payment que Mercado Pago ya no reintentará.
@@ -34,11 +35,14 @@ export async function avisarBaja(deps, env, id, { tipoEquipo, penalidad, penalid
   ]);
 }
 
-async function cancelarEnMp(deps, s) {
+// Si Mercado Pago no cancela, el plan sigue cobrando: se avisa al equipo para cancelarlo a mano.
+export async function cancelarEnMp(deps, env, s) {
   try {
     await deps.mp.cancelarSuscripcion(s.mp_preapproval_id);
   } catch (e) {
     console.error('cancelar en Mercado Pago', s.id, e);
+    await avisarFijas(deps, env, correoEquipoAlerta({ asunto: 'Cancelar a mano en Mercado Pago',
+      detalle: `${s.nombre}: no se pudo cancelar su suscripción ${s.mp_preapproval_id} en Mercado Pago. Cancélala a mano para que no se le siga cobrando.` }));
   }
 }
 
@@ -76,7 +80,7 @@ export async function procesarCobro(deps, env, authorizedId) {
       penalidadHoy: penalidadAlCancelar(actual) }));
     if (numero === 1) await avisarFijas(deps, env, correoEquipoSuscripcion('nueva', actual));
     if (esUltimoCobro(actual, numero) && await sus.marcarTerminada(deps.db, s.id, deps.ahora())) {
-      await cancelarEnMp(deps, actual);
+      await cancelarEnMp(deps, env, actual);
       await avisarFijas(deps, env, correoEquipoSuscripcion('ultimo', actual));
     }
     return { estado: 'aprobado', numero };
@@ -85,7 +89,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   if (estado !== 'approved' && ap.status === ESTADO_COBRO_FALLIDO) {
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'cobro_fallido', ahora: deps.ahora() });
     if (res.cambio) {
-      await cancelarEnMp(deps, s);
+      await cancelarEnMp(deps, env, s);
       await avisarBaja(deps, env, s.id, { tipoEquipo: 'fallido', penalidad: res.penalidad_centimos });
     }
     return { estado: 'cobro_fallido' };
@@ -102,7 +106,10 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
   if (!s.mp_preapproval_id && p.id) await sus.guardarPreapproval(deps.db, s.id, String(p.id), deps.ahora());
   if (p.status === 'cancelled') {
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_mp', ahora: deps.ahora() });
-    if (res.cambio) await avisarBaja(deps, env, s.id, { tipoEquipo: 'cancelada_pendiente', penalidad: res.penalidad_centimos });
+    if (res.cambio) {
+      const pagada = res.penalidad_estado === 'pagada';
+      await avisarBaja(deps, env, s.id, { tipoEquipo: pagada ? 'cancelada_pagada' : 'cancelada_pendiente', penalidad: res.penalidad_centimos, penalidadPagada: pagada });
+    }
     return { estado: 'cancelada' };
   }
   return { estado: p.status };

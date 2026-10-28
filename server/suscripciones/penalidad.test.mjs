@@ -6,7 +6,7 @@ import { procesarPagoPenalidad } from './penalidad.mjs';
 import { procesarPreapproval } from './procesar.mjs';
 
 const t0 = new Date('2026-11-20T15:00:00Z');
-const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', CORREOS_EQUIPO: JSON.stringify({ romina: 'r@x.pe' }) };
+const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', CORREOS_EQUIPO: JSON.stringify({ romina: 'r@x.pe', irene: 'i@x.pe', alejandro: 'a@x.pe' }) };
 function armar() {
   const correos = []; const canceladas = [];
   return { db: d1DePrueba(), ahora: () => t0, correos, canceladas, sendEmail: async (c) => { correos.push(c); return true; },
@@ -46,4 +46,24 @@ test('monto distinto o pago no aprobado: no marca nada', async () => {
   await procesarPagoPenalidad(d, env, pagoPen({ transaction_amount: 1 }));
   await procesarPagoPenalidad(d, env, pagoPen({ status: 'rejected' }));
   assert.equal((await sus.porId(d.db, 's1')).penalidad_estado, 'no_aplica');
+});
+
+test('orden inverso: el pago gana la penalidad y la baja de Mercado Pago llega durante la cancelación: nadie dice «quedan pendientes»', async () => {
+  const d = armar();
+  d.mp.cancelarSuscripcion = async () => { await procesarPreapproval(d, env, 'pre1'); };
+  await sus.crear(d.db, activa());
+  await procesarPagoPenalidad(d, env, pagoPen());
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'cancelada');
+  assert.equal(s.penalidad_estado, 'pagada');
+  assert.ok(!d.correos.some((c) => /quedan pendientes/.test(c.html)));
+  assert.equal(d.correos.filter((c) => c.to === 'ana@x.pe').length, 1);
+});
+
+test('si Mercado Pago no cancela, el equipo recibe la alerta para cancelar a mano', async () => {
+  const d = armar();
+  d.mp.cancelarSuscripcion = async () => { throw new Error('caído'); };
+  await sus.crear(d.db, activa());
+  await procesarPagoPenalidad(d, env, pagoPen());
+  assert.ok(d.correos.some((c) => /Cancelar a mano en Mercado Pago/.test(c.subject) && /pre1/.test(c.html)));
 });

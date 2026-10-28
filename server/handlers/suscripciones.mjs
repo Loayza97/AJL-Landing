@@ -35,7 +35,15 @@ async function cancelarYa(env, deps, s) {
     console.error('cancelar en Mercado Pago', s.id, e);
     return bad(503, 'No pudimos cancelar en este momento. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.');
   }
-  const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_boton', ahora: deps.ahora() });
+  let res;
+  try {
+    res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_boton', ahora: deps.ahora() });
+  } catch (e) {
+    console.error('cancelar plan (base)', s.id, e);
+    const actual = await sus.porId(deps.db, s.id);
+    if (actual && !['pendiente', 'activa'].includes(actual.estado)) return json(200, { ok: true, cancelada: true, penalidad_centimos: actual.penalidad_centimos });
+    return bad(503, 'No pudimos cancelar en este momento. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.');
+  }
   if (res.cambio) await avisarBaja(deps, env, s.id, { tipoEquipo: 'cancelada_pendiente', penalidad: res.penalidad_centimos });
   return json(200, { ok: true, cancelada: true, penalidad_centimos: res.penalidad_centimos });
 }
