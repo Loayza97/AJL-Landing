@@ -23,7 +23,7 @@ ajustarDoc();
   if (!r?.ok || !d?.ok) { $('#sus').replaceChildren(h('h1', 'Este link ya no sirve'), h('p', d?.error || 'Pídele uno nuevo al equipo por WhatsApp.', 'rs-lead')); return; }
   const puntos = d.cobros
     ? [`Hoy pagas ${soles(d.cuota_centimos)}; luego se cobra solo cada mes.`, `Son ${d.cobros} cobros y termina, sin renovación.`,
-      'Cancelas cuando quieras con el botón de cada recibo.', `Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes (${soles(d.precio_mes_centimos)}).`]
+      'Cancelas cuando quieras con el botón de cada recibo.', 'Si cancelas antes de terminar, pagas la diferencia entre lo que pagaste y el precio que corresponde a los meses usados.']
     : [`Hoy pagas ${soles(d.cuota_centimos)}; luego se cobra solo cada mes.`, 'Cancelas cuando quieras, sin penalidad.'];
   const caja = h('div', '', 'rs-resumen');
   caja.append(h('b', d.titulo), h('div', `${soles(d.cuota_centimos)} cada mes`));
