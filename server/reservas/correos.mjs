@@ -1,16 +1,16 @@
 // Plantillas de correo de reservas. Todo lo que escribió el paciente pasa por
 // esc(): un nombre con HTML no puede inyectar nada en el correo del equipo.
 import { requisitosDe } from '../../src/data/requisitos.js';
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const marco = (cuerpo) => `
+export const marco = (cuerpo) => `
   <div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;color:#20302A">
     ${cuerpo}
     <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
     <p style="font-size:12px;color:#5E6B63">AJL Nutrición · Jr. Almirante Manuel Villavicencio 1461, Lince, Lima · WhatsApp +51 919 151 237</p>
   </div>`;
 
-const boton = (href, texto) => `<p style="margin:24px 0"><a href="${esc(href)}" style="background:#D68A5C;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:999px;display:inline-block">${esc(texto)}</a></p>`;
+export const boton = (href, texto) => `<p style="margin:24px 0"><a href="${esc(href)}" style="background:#D68A5C;color:#fff;text-decoration:none;font-weight:700;padding:13px 26px;border-radius:999px;display:inline-block">${esc(texto)}</a></p>`;
 
 const ETIQUETA_DOCUMENTO = { dni: 'DNI', ce: 'CE', pasaporte: 'Pasaporte' };
 const etiquetaDocumento = (tipo) => ETIQUETA_DOCUMENTO[tipo] || 'DNI';
