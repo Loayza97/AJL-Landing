@@ -7,7 +7,6 @@ const soles = (c) => formatoSoles(Math.round(c / 100));
 
 export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancelar, penalidadHoy }) {
   const ultimo = cobros && numero >= cobros;
-  const quedan = cobros && !ultimo;
   return {
     subject: `Recibimos tu pago${cobros ? ` · cobro ${numero} de ${cobros}` : ''} · AJL Nutrición`,
     html: marco(`
@@ -16,7 +15,7 @@ export function correoRecibo({ nombre, titulo, numero, cobros, cuota, urlCancela
       <p><strong>${soles(cuota)}</strong>${cobros ? ` · cobro ${numero} de ${cobros}` : ''}</p>
       ${ultimo ? '<p>Este fue tu último cobro: tu plan termina sin renovación y no se te cobra nada más.</p>' : ''}
       <p>Escríbenos por WhatsApp para agendar tus sesiones.</p>
-      ${ultimo ? '' : `<p style="font-size:13px;color:#5E6B63">¿Quieres dejar tu plan? <a href="${esc(urlCancelar)}">Cancelar mi plan</a>.${quedan && penalidadHoy > 0 ? ` Si cancelas antes del último cobro, pagas la diferencia de los meses usados con el precio mes a mes: hoy serían ${soles(penalidadHoy)}.` : ''}</p>`}`),
+      ${ultimo ? '' : `<p style="font-size:13px;color:#5E6B63">¿Quieres dejar tu plan? <a href="${esc(urlCancelar)}">Cancelar mi plan</a>.${cobros && penalidadHoy > 0 ? ` Si cancelas antes del último cobro, pagas la diferencia entre lo que pagaste y el precio que corresponde a los meses usados: hoy serían ${soles(penalidadHoy)}.` : ''}</p>`}`),
   };
 }
 
@@ -51,7 +50,7 @@ export function correoEquipoSuscripcion(tipo, s, extra = {}) {
       <ul style="padding-left:18px">
         <li>Plan: ${esc(titulo)}</li>
         <li>Cobros pagados: ${s.cobros_aprobados}${s.duracion_meses > 1 ? ` de ${s.duracion_meses}` : ''}</li>
-        <li>WhatsApp: ${esc(s.whatsapp ?? '—')} · Documento: ${esc(s.dni ?? '—')}</li>
+        <li>WhatsApp: ${esc(s.whatsapp ?? 'sin dato')} · Documento: ${esc(s.dni ?? 'sin dato')}</li>
       </ul>
       ${tipo === 'fallido' || tipo === 'cancelada_pendiente' ? '<p>Si vuelve a reservar, la web le pedirá pagar la penalidad antes. También puedes escribirle.</p>' : ''}
       <p>Detalle en el panel, sección «Suscripciones».</p>`),

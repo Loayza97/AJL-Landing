@@ -118,7 +118,7 @@ test('cancelar lanza si el conflicto persiste, y listar rechaza filtros inválid
   const db = d1DePrueba();
   await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));
   const prepare = db.prepare.bind(db);
-  db.prepare = (sql) => prepare(sql.includes('SET estado = ?2') ? sql.replace('cobros_aprobados = ?6', '0 = 1') : sql);
+  db.prepare = (sql) => prepare(sql.includes('SET estado = ?2') ? sql.replace('cobros_aprobados = ?6', 'cobros_aprobados = ?6 AND 0 = 1') : sql);
   await assert.rejects(sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 }), /conflicto de concurrencia/);
   await assert.rejects(sus.listar(db, { filtro: 'x' }), /filtro inválido/);
 });
