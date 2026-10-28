@@ -1,0 +1,24 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/reservar.css';
+---
+<Layout noindex title="Tu plan · AJL Nutrición">
+  <main class="rs"><section id="listo" aria-live="polite"><h1>Estamos confirmando tu pago…</h1><p class="rs-lead">Esto toma unos segundos.</p></section></main>
+</Layout>
+<script>
+  // Vuelta de Mercado Pago tras autorizar la suscripción del link: espera a que llegue el primer cobro.
+  const s = new URLSearchParams(location.search).get('s') || '';
+  const raiz = document.getElementById('listo');
+  const pintar = (titulo, texto) => { const h1 = document.createElement('h1'); h1.textContent = titulo; const p = document.createElement('p'); p.className = 'rs-lead'; p.textContent = texto; raiz.replaceChildren(h1, p); };
+  let intentos = 0;
+  async function mirar() {
+    intentos += 1;
+    try {
+      const d = await (await fetch(`/api/suscripciones/estado?s=${encodeURIComponent(s)}`, { cache: 'no-store' })).json();
+      if (d.estado === 'activa' || d.estado === 'terminada') { pintar('¡Listo! Tu suscripción está activa.', 'Te escribimos por WhatsApp para agendar tu primera sesión. Te llega un recibo con cada cobro.'); return; }
+    } catch {}
+    if (intentos < 20) setTimeout(mirar, 3000);
+    else pintar('Recibimos tu autorización.', 'El primer cobro puede tardar unos minutos. Te llega un correo cuando se confirme; si no llega en una hora, escríbenos por WhatsApp.');
+  }
+  mirar();
+</script>

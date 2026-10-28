@@ -1,0 +1,30 @@
+---
+// Link de suscripción que manda el equipo (spec 2026-10-27). Sirve una vez y vence en 7 días.
+import Layout from '../../layouts/Layout.astro';
+import { PAISES } from '../../data/telefono.js';
+import '../../styles/reservar.css';
+---
+<Layout noindex title="Tu plan · AJL Nutrición">
+  <main class="rs">
+    <section id="sus" aria-live="polite"><h1>Cargando tu plan…</h1></section>
+    <form id="sus-form" hidden novalidate>
+      <label for="s-email">Correo · aquí llegan tus recibos</label>
+      <input type="email" id="s-email" autocomplete="email" required>
+      <label for="s-doc">Documento</label>
+      <div class="rs-doc">
+        <select id="s-tipo-doc" aria-label="Tipo de documento"><option value="dni">DNI</option><option value="ce">CE</option><option value="pasaporte">Pasaporte</option></select>
+        <input type="text" id="s-doc" inputmode="numeric" maxlength="12" required>
+      </div>
+      <label for="s-whatsapp">WhatsApp</label>
+      <div class="rs-tel">
+        <select id="s-pais" aria-label="Código de país">{PAISES.map(([bandera, nombre, codigo]) => <option value={codigo}>{bandera} {nombre} +{codigo}</option>)}</select>
+        <input type="tel" id="s-whatsapp" inputmode="tel" required>
+      </div>
+      <label class="rs-check"><input type="checkbox" id="s-acepto"> <span id="s-acepto-t"></span></label>
+      <button type="submit" class="rs-btn" id="s-pagar">Suscribirme con Mercado Pago</button>
+      <p class="rs-nota" style="text-align:center">Pones tu tarjeta o Yape en Mercado Pago. Nosotros no vemos tus datos.</p>
+      <p class="rs-error" id="s-error" role="alert"></p>
+    </form>
+  </main>
+</Layout>
+<script>import '../../scripts/suscribirse.js';</script>

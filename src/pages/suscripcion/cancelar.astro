@@ -1,0 +1,12 @@
+---
+// «Cancelar mi plan» (spec 2026-10-27): llega desde cada recibo con ?s=<token>.
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/reservar.css';
+---
+<Layout noindex title="Cancelar mi plan · AJL Nutrición">
+  <main class="rs">
+    <section id="cp" aria-live="polite"><h1>Cargando tu plan…</h1></section>
+    <p class="rs-error" id="cp-error" role="alert"></p>
+  </main>
+</Layout>
+<script>import '../../scripts/cancelar-plan.js';</script>
