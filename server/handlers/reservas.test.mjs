@@ -368,8 +368,14 @@ test('webhook de suscripción: verifica firma y despacha por tipo', async () => 
 test('pagar dos veces la misma reserva mensual: anula la suscripción anterior y la fila queda con la nueva', async () => {
   let n = 0;
   const canceladas = [];
-  const d = deps({ mp: { crearSuscripcion: async () => ({ id: `pre${++n}`, init_point: `https://mp/sus${n}` }),
-    cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  let d;
+  d = deps({ mp: { crearSuscripcion: async () => ({ id: `pre${++n}`, init_point: `https://mp/sus${n}` }),
+    cancelarSuscripcion: async (id) => {
+      canceladas.push(id);
+      const fila = await d.db.prepare('SELECT mp_preapproval_id FROM suscripciones').first();
+      assert.equal(fila.mp_preapproval_id, 'pre2'); // la nueva ya estaba guardada al anular la vieja
+      return {};
+    } } });
   const { token } = await (await apartar(d, { forma: 'mensual' })).json();
   const body = { token, ...datos, acepto_suscripcion: true };
   await handlePagar(post('/api/reservas/pagar', body), env, d);
@@ -378,4 +384,29 @@ test('pagar dos veces la misma reserva mensual: anula la suscripción anterior y
   const s = await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id);
   assert.equal(s.mp_preapproval_id, 'pre2');
   assert.equal(s.email, 'otra@x.pe');
+});
+
+test('pagar de nuevo con crearSuscripcion fallando: 503, no se anula nada y la fila conserva la anterior', async () => {
+  let n = 0;
+  const canceladas = [];
+  const d = deps({ mp: { crearSuscripcion: async () => { if (++n === 2) throw new Error('MP caído'); return { id: 'pre1', init_point: 'https://mp/sus1' }; },
+    cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  assert.equal((await handlePagar(post('/api/reservas/pagar', body), env, d)).status, 200);
+  assert.equal((await handlePagar(post('/api/reservas/pagar', body), env, d)).status, 503);
+  assert.deepEqual(canceladas, []);
+  assert.equal((await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id)).mp_preapproval_id, 'pre1');
+});
+
+test('pagar con una suscripción ya activa para esa reserva: 409 y no se crea otra en Mercado Pago', async () => {
+  const d = deps();
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const reserva = await repo.reservaPorToken(d.db, token);
+  await sus.crear(d.db, { id: 'sx', token: 'tsx', reserva_id: reserva.id, producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000,
+    precio_mes_centimos: 44000, estado: 'activa', mp_preapproval_id: 'preX', creado_en: t0.toISOString() });
+  const r = await handlePagar(post('/api/reservas/pagar', { token, ...datos, acepto_suscripcion: true }), env, d);
+  assert.equal(r.status, 409);
+  assert.equal((await r.json()).motivo, 'suscripcion_existente');
+  assert.equal(d.creadas.length, 0);
 });

@@ -188,13 +188,8 @@ export async function handlePagar(request, env, deps) {
       const existente = await sus.porReserva(deps.db, r.id);
       const id = existente?.id ?? crypto.randomUUID();
       if (existente) {
-        // Reintento: se anula el intento anterior en Mercado Pago y la fila toma los datos nuevos.
-        if (existente.mp_preapproval_id && existente.estado === 'pendiente') {
-          try {
-            await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
-          } catch (e) {
-            console.error('cancelar suscripción anterior', e);
-          }
+        if (existente.estado !== 'pendiente') {
+          return bad(409, 'Tu pago mensual ya está registrado. Escríbenos por WhatsApp si necesitas ayuda.', { motivo: 'suscripcion_existente' });
         }
         await sus.actualizarContacto(deps.db, id, { nombre: cliente.nombre, email: cliente.email, dni: cliente.dni, whatsapp: cliente.whatsapp, ahora });
       } else {
@@ -206,6 +201,14 @@ export async function handlePagar(request, env, deps) {
       const pre = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, email: cliente.email,
         urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`, finEn: finDeCobros(ahora, precio.cobros) });
       await sus.guardarPreapproval(deps.db, id, pre.id, ahora);
+      // Reintento: solo con la nueva ya guardada se anula la anterior en Mercado Pago.
+      if (existente?.mp_preapproval_id && existente.mp_preapproval_id !== pre.id) {
+        try {
+          await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
+        } catch (e) {
+          console.error('cancelar suscripción anterior', e);
+        }
+      }
       return json(200, { ok: true, url: pre.init_point });
     }
     const pref = await deps.mp.crearPreferencia({
