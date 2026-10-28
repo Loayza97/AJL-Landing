@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
+import { createHmac, createHash } from 'node:crypto';
 import { crearMp, firmaValida, isoLima } from './mercadopago.mjs';
 
 test('isoLima escribe la hora de Lima con su desfase', () => {
@@ -47,6 +47,16 @@ test('firmaValida acepta la firma correcta y rechaza la alterada o ausente', asy
   assert.equal(await firmaValida({ ...base, dataId: '999', xSignature: `ts=1700000000,v1=${v1}` }), false);
 });
 
+test('crearSuscripcion: un reintento con otro correo usa otra idempotency key', async () => {
+  const keys = [];
+  const f = async (url, init) => { keys.push(init.headers['X-Idempotency-Key']); return new Response(JSON.stringify({ id: 'pre1', init_point: 'https://mp/sus' })); };
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'TEST-1' }, f);
+  for (const email of ['a@x.pe', 'a@x.pe', 'b@x.pe']) await mp.crearSuscripcion({ suscripcionId: 's1', titulo: 't', cuotaCentimos: 36000, email, urlRetorno: 'https://w' });
+  assert.equal(keys[0], keys[1]);
+  assert.notEqual(keys[0], keys[2]);
+  assert.match(keys[2], /^sus-s1-[0-9a-f]{12}$/);
+});
+
 test('crearSuscripcion: mensual en soles, pendiente, con fin y referencia', async () => {
   let pedido;
   const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'pre1', init_point: 'https://mp/sus' })); };
@@ -56,7 +66,9 @@ test('crearSuscripcion: mensual en soles, pendiente, con fin y referencia', asyn
   assert.deepEqual(r, { id: 'pre1', init_point: 'https://mp/sus' });
   assert.equal(pedido.url, 'https://api.mercadopago.com/preapproval');
   assert.equal(pedido.init.method, 'POST');
-  assert.equal(pedido.init.headers['X-Idempotency-Key'], 'sus-s1');
+  const hex = createHash('sha256').update('a@x.pe').digest('hex').slice(0, 12);
+  assert.equal(pedido.init.headers['X-Idempotency-Key'], `sus-s1-${hex}`);
+
   const c = JSON.parse(pedido.init.body);
   assert.equal(c.reason, 'AJL Nutrición · 2 sesiones al mes · 3 meses · pago mensual');
   assert.equal(c.external_reference, 's1');

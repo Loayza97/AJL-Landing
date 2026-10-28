@@ -1,6 +1,8 @@
 // Mercado Pago Checkout Pro: preferencia (la página de pago de MP), consulta
 // del pago y verificación de la firma del webhook. El monto nunca viene del
 // navegador: lo calcula catalogo.mjs.
+import { sha256Hex } from '../tokens.mjs';
+
 const API = 'https://api.mercadopago.com';
 
 export function isoLima(fecha) {
@@ -48,8 +50,9 @@ export function crearMp(env, fetchImpl = fetch) {
   }
 
   async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, email, urlRetorno, finEn }) {
+    // La key lleva el correo: un reintento con otro correo crea otro preapproval en vez de recibir el viejo.
     const d = await pedirSus('/preapproval', {
-      method: 'POST', headers: { 'X-Idempotency-Key': `sus-${suscripcionId}` },
+      method: 'POST', headers: { 'X-Idempotency-Key': `sus-${suscripcionId}-${(await sha256Hex(String(email))).slice(0, 12)}` },
       body: JSON.stringify({
         reason: `AJL Nutrición · ${titulo}`, external_reference: suscripcionId, payer_email: email, back_url: urlRetorno, status: 'pending',
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(finEn ? { end_date: finEn } : {}) },
