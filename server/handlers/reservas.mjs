@@ -23,6 +23,11 @@ import { icsDeReserva, enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
+import * as sus from '../suscripciones/repo.mjs';
+import { procesarCobro, procesarPreapproval, sincronizarDeReserva } from '../suscripciones/procesar.mjs';
+import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
+import { finDeCobros } from '../suscripciones/calculo.mjs';
+import { formatoSoles } from '../../src/data/duraciones.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
@@ -66,7 +71,7 @@ export function eventoDe(r) {
 }
 
 export function vista(r, deps, ultimo = null) {
-  const precio = cotizar(r.producto, r.duracion_meses);
+  const precio = cotizar(r.producto, r.duracion_meses, r.forma_pago ?? 'completo');
   const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
   const vencida = ['apartada', 'pagando'].includes(r.estado) && Date.parse(r.retencion_hasta) < deps.ahora().getTime();
   return {
@@ -86,6 +91,7 @@ export function vista(r, deps, ultimo = null) {
     meet: r.meet_url || null,
     google_calendar: r.estado === 'confirmada' ? enlaceGoogleCalendar(eventoDe(r)) : null,
     ultimo_pago: ultimo?.estado ?? null,
+    forma_pago: r.forma_pago ?? 'completo',
   };
 }
 
@@ -117,7 +123,8 @@ export async function handleHoras(request, env, deps) {
 export async function handleApartar(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const d = await readJson(request);
-  const precio = cotizar(d.producto, Number(d.duracion));
+  const forma = d.forma === 'mensual' ? 'mensual' : 'completo';
+  const precio = cotizar(d.producto, Number(d.duracion), forma);
   if (!precio || !MODALIDADES.has(d.modalidad) || !INICIO.test(d.inicio || '') || !nutriValida(deps, d.nutricionista)) return bad(400, 'Datos inválidos');
   const ahora = deps.ahora();
   const fecha = fechaLima(new Date(d.inicio));
@@ -131,7 +138,7 @@ export async function handleApartar(request, env, deps) {
     const res = await repo.crearRetencion(deps.db, {
       id: crypto.randomUUID(), token, producto: d.producto, duracion_meses: precio.duracion_meses, monto_centimos: precio.monto_centimos,
       peso_tope: precio.peso, nutricionista_id: hora.nutricionista_id, inicio_utc: hora.inicio, fecha_lima: fecha, modalidad: d.modalidad,
-      tope: topeMinutosDia(fecha), ahora,
+      tope: topeMinutosDia(fecha), ahora, forma_pago: forma,
       huella: await huellaDe(request, fechaLima(ahora)), maxRetenciones: MAX_RETENCIONES,
       // Versión del botón de la portada que vio (prueba A/B); cualquier otra cosa se descarta.
       variante: ['hero_a', 'hero_b'].includes(d.variante) ? d.variante.slice(-1) : null,
@@ -146,6 +153,7 @@ export async function handleApartar(request, env, deps) {
       ok: true, token, retencion_hasta: res.retencion_hasta, titulo: precio.titulo, monto_centimos: precio.monto_centimos,
       requiere_dni: precio.requiereDni, inicio: hora.inicio, etiqueta: etiquetaLima(hora.inicio), modalidad: d.modalidad,
       nutricionista: { id: n.id, nombre: n.nombre },
+      forma, precio_mes_centimos: precio.precio_mes_centimos ?? null, precio_3m_centimos: precio.precio_3m_centimos ?? null, cobros: precio.cobros ?? null,
     });
   } catch (e) {
     console.error('apartar', e);
@@ -158,10 +166,16 @@ export async function handlePagar(request, env, deps) {
   const d = await readJson(request);
   const r = await repo.reservaPorToken(deps.db, String(d.token || ''));
   if (!r) return bad(404, 'No encontramos tu reserva. Vuelve a elegir tu hora.');
-  const precio = cotizar(r.producto, r.duracion_meses);
+  const precio = cotizar(r.producto, r.duracion_meses, r.forma_pago ?? 'completo');
   const v = validarDatos(d, hoyEnLima(deps.ahora()));
   if (!v.ok) return bad(400, v.error);
   const { cliente } = v;
+  if (r.forma_pago === 'mensual' && d.acepto_suscripcion !== true) return bad(400, 'Para continuar, acepta los cobros mensuales automáticos.');
+  const deuda = await sus.deudaPorDni(deps.db, cliente.dni);
+  if (deuda) {
+    return bad(409, `Tienes una penalidad pendiente de ${formatoSoles(deuda.penalidad_centimos / 100)} de tu plan anterior. Págala para continuar.`,
+      { motivo: 'penalidad', url: `${siteUrl(env)}/suscripcion/cancelar/?s=${deuda.token}` });
+  }
 
   const ahora = deps.ahora();
   const res = await repo.guardarDatosYPagar(deps.db, {
@@ -170,6 +184,20 @@ export async function handlePagar(request, env, deps) {
   });
   if (!res.ok) return bad(410, 'Se venció el tiempo para pagar. Elige tu hora de nuevo.', { motivo: 'vencida' });
   try {
+    if (r.forma_pago === 'mensual') {
+      const existente = await sus.porReserva(deps.db, r.id);
+      const id = existente?.id ?? crypto.randomUUID();
+      if (!existente) {
+        await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: cliente.nombre, email: cliente.email, dni: cliente.dni,
+          whatsapp: cliente.whatsapp, producto: r.producto, duracion_meses: r.duracion_meses, cuota_centimos: r.monto_centimos,
+          precio_mes_centimos: precio.precio_mes_centimos, precio_3m_centimos: precio.precio_3m_centimos, estado: 'pendiente',
+          acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
+      }
+      const pre = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, email: cliente.email,
+        urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`, finEn: finDeCobros(ahora, precio.cobros) });
+      await sus.guardarPreapproval(deps.db, id, pre.id, ahora);
+      return json(200, { ok: true, url: pre.init_point });
+    }
     const pref = await deps.mp.crearPreferencia({
       reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email: cliente.email, nombre: cliente.nombre,
       venceEn: new Date(res.retencion_hasta), ahora, urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`,
@@ -178,7 +206,7 @@ export async function handlePagar(request, env, deps) {
     await repo.guardarPreferencia(deps.db, r.id, pref.id, ahora);
     return json(200, { ok: true, url: pref.init_point });
   } catch (e) {
-    console.error('preferencia', e);
+    console.error('pagar', e);
     return bad(503, 'No pudimos abrir Mercado Pago. Intenta de nuevo.');
   }
 }
@@ -197,6 +225,14 @@ export async function handleEstado(request, env, deps) {
       console.error('estado/procesarPago', e);
     }
   }
+  if (r.forma_pago === 'mensual' && !['confirmada', 'pagada_sin_hora'].includes(r.estado) && q.get('preapproval_id')) {
+    try {
+      await sincronizarDeReserva(deps, env, r.id);
+      r = await repo.reservaPorToken(deps.db, r.token);
+    } catch (e) {
+      console.error('estado/suscripción', e);
+    }
+  }
   return json(200, vista(r, deps, await repo.ultimoPago(deps.db, r.id)));
 }
 
@@ -204,9 +240,11 @@ export async function handleWebhookMp(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const q = new URL(request.url).searchParams;
   const cuerpo = await readJson(request);
-  const tipo = q.get('type') || cuerpo.type;
-  const dataId = String(q.get('data.id') || cuerpo?.data?.id || '');
-  if (tipo !== 'payment' || !dataId) return json(200, { ok: true, ignorado: true });
+  const TIPOS = { payment: 'payment', subscription_preapproval: 'preapproval', preapproval: 'preapproval',
+    subscription_authorized_payment: 'cobro', authorized_payment: 'cobro' };
+  const tipo = TIPOS[q.get('type') || q.get('topic') || cuerpo.type];
+  const dataId = String(q.get('data.id') || q.get('id') || cuerpo?.data?.id || '');
+  if (!tipo || !dataId) return json(200, { ok: true, ignorado: true });
   if (!env.MP_WEBHOOK_SECRET) {
     console.error('Falta MP_WEBHOOK_SECRET');
     return bad(503, 'Webhook sin configurar');
@@ -215,11 +253,17 @@ export async function handleWebhookMp(request, env, deps) {
     dataId, secreto: env.MP_WEBHOOK_SECRET });
   if (!valida) return bad(401, 'Firma inválida');
   try {
-    await procesarPago(deps, env, dataId);
+    if (tipo === 'preapproval') await procesarPreapproval(deps, env, dataId);
+    else if (tipo === 'cobro') await procesarCobro(deps, env, dataId);
+    else {
+      const pago = await deps.mp.obtenerPago(dataId);
+      if (String(pago?.external_reference ?? '').startsWith('pen-')) await procesarPagoPenalidad(deps, env, pago);
+      else await procesarPago(deps, env, dataId, { pago });
+    }
     return json(200, { ok: true });
   } catch (e) {
     console.error('webhook', e);
-    return bad(500, 'Error procesando el pago'); // Mercado Pago reintenta
+    return bad(500, 'Error procesando el aviso'); // Mercado Pago reintenta
   }
 }
 

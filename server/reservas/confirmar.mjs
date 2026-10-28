@@ -31,7 +31,7 @@ async function sinHora(deps, env, r) {
 
 export async function finalizarConfirmacion(deps, env, r) {
   const nutricionista = deps.nutricionistas.find((n) => n.id === r.nutricionista_id);
-  const precio = cotizar(r.producto, r.duracion_meses);
+  const precio = cotizar(r.producto, r.duracion_meses, r.forma_pago ?? 'completo');
   const titulo = precio ? precio.titulo : r.producto;
   const etiqueta = etiquetaLima(r.inicio_utc);
   let meet = null;
@@ -70,13 +70,10 @@ export async function finalizarConfirmacion(deps, env, r) {
   ]);
 }
 
-export async function procesarPago(deps, env, paymentId, { reservaId = null } = {}) {
-  const pago = await deps.mp.obtenerPago(paymentId);
-  const id = pago?.external_reference;
-  if (!id || (reservaId && id !== reservaId)) return { estado: 'desconocido' };
-  let r = await repo.reservaPorId(deps.db, id);
-  if (!r) return { estado: 'desconocido' };
-
+// Lo que pasa con un pago ya leído de Mercado Pago y su reserva. Lo usan el pago único
+// (procesarPago) y el primer cobro de una suscripción (suscripciones/procesar.mjs).
+export async function confirmarConPago(deps, env, reserva, pago) {
+  let r = reserva;
   const montoPagado = Math.round(Number(pago.transaction_amount) * 100);
   // Lo que queda tras la comisión de Mercado Pago; un pago pendiente aún no lo trae (0 o sin dato).
   const neto = Number(pago.transaction_details?.net_received_amount);
@@ -130,4 +127,13 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null } = 
       `Reserva ${r.id} quedó confirmada pero falló el aviso: ${e.message}. Revisa el calendario y escríbele al paciente.`);
   }
   return { estado: 'confirmada' };
+}
+
+export async function procesarPago(deps, env, paymentId, { reservaId = null, pago = null } = {}) {
+  pago = pago ?? await deps.mp.obtenerPago(paymentId);
+  const id = pago?.external_reference;
+  if (!id || (reservaId && id !== reservaId)) return { estado: 'desconocido' };
+  const r = await repo.reservaPorId(deps.db, id);
+  if (!r) return { estado: 'desconocido' };
+  return confirmarConPago(deps, env, r, pago);
 }

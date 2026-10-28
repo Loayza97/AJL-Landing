@@ -5,16 +5,19 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar, handleSincronizarCalendario } from './reservas.mjs';
 import * as repo from '../reservas/repo.mjs';
+import * as sus from '../suscripciones/repo.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok' };
 function deps(extra = {}) {
   const pagos = {};
+  const creadas = [];
   return {
-    db: d1DePrueba(), nutricionistas, ahora: () => t0, sendEmail: async () => true, pagos,
+    db: d1DePrueba(), nutricionistas, ahora: () => t0, sendEmail: async () => true, pagos, creadas,
     google: { listarEventos: async () => [], crearEvento: async () => ({ id: 'ev', meet: null }) },
-    mp: { crearPreferencia: async () => ({ id: 'pref', init_point: 'https://mp/pagar' }), obtenerPago: async (id) => pagos[id] },
     ...extra,
+    mp: { crearPreferencia: async () => ({ id: 'pref', init_point: 'https://mp/pagar' }), obtenerPago: async (id) => pagos[id],
+      crearSuscripcion: async (a) => { creadas.push(a); return { id: 'pre1', init_point: 'https://mp/sus' }; }, ...extra.mp },
   };
 }
 const get = (ruta) => new Request(`https://x.test${ruta}`);
@@ -301,4 +304,63 @@ test('horas: la ventana es de seis semanas (Romi, 2026-10-23): a 5 semanas hay h
   const conHoras = d.dias.filter((x) => x.horas.length).map((x) => x.fecha);
   assert.ok(conHoras.includes('2026-11-10'), 'a cinco semanas se ofrece');
   assert.ok(conHoras.every((f) => f <= '2026-11-16'), 'nada después de 42 días');
+});
+
+test('apartar con pago mensual: cotiza la cuota y guarda la forma', async () => {
+  const d = deps();
+  const r = await apartar(d, { forma: 'mensual' });
+  const j = await r.json();
+  assert.equal(j.monto_centimos, 36000);
+  assert.equal(j.forma, 'mensual');
+  assert.equal(j.precio_mes_centimos, 44000);
+  assert.equal((await repo.reservaPorToken(d.db, j.token)).forma_pago, 'mensual');
+  assert.equal((await apartar(deps(), { producto: 'basico', duracion: 1, forma: 'mensual' })).status, 400);
+});
+
+test('pagar con pago mensual: pide aceptar la suscripción, crea la suscripción y abre Mercado Pago', async () => {
+  const d = deps();
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const sin = await handlePagar(post('/api/reservas/pagar', { token, ...datos }), env, d);
+  assert.equal(sin.status, 400);
+  const r = await handlePagar(post('/api/reservas/pagar', { token, ...datos, acepto_suscripcion: true }), env, d);
+  assert.deepEqual(await r.json(), { ok: true, url: 'https://mp/sus' });
+  const reserva = await repo.reservaPorToken(d.db, token);
+  const s = await sus.porReserva(d.db, reserva.id);
+  assert.equal(s.cuota_centimos, 36000);
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.dni, '12345678');
+  assert.equal(d.creadas[0].cuotaCentimos, 36000);
+  assert.equal(d.creadas[0].urlRetorno, `https://www.ajlnutricion.com/reservar/listo/?r=${token}`);
+  assert.ok(d.creadas[0].finEn);
+});
+
+test('pagar con una penalidad pendiente en ese documento: 409 con el link para pagarla', async () => {
+  const d = deps();
+  await sus.crear(d.db, { id: 'old', token: 'told', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, penalidad_centimos: 8000,
+    estado: 'cancelada', penalidad_estado: 'pendiente', dni: '12345678', creado_en: t0.toISOString() });
+  const { token } = await (await apartar(d)).json();
+  const r = await handlePagar(post('/api/reservas/pagar', { token, ...datos }), env, d);
+  const j = await r.json();
+  assert.equal(r.status, 409);
+  assert.equal(j.motivo, 'penalidad');
+  assert.equal(j.url, 'https://www.ajlnutricion.com/suscripcion/cancelar/?s=told');
+  assert.match(j.error, /S\/80/);
+});
+
+test('webhook de suscripción: verifica firma y despacha por tipo', async () => {
+  const llamados = [];
+  const d = deps({ mp: { obtenerSuscripcion: async (id) => { llamados.push(['pre', id]); return { id, status: 'authorized' }; },
+    obtenerCobroSuscripcion: async (id) => { llamados.push(['ap', id]); return { id, preapproval_id: 'nada' }; } } });
+  const firmar = (dataId) => {
+    const ts = '1700000000';
+    const v1 = createHmac('sha256', 'sec').update(`id:${dataId};request-id:rq;ts:${ts};`).digest('hex');
+    return { 'x-signature': `ts=${ts},v1=${v1}`, 'x-request-id': 'rq' };
+  };
+  for (const [type, id] of [['subscription_preapproval', 'pre9'], ['subscription_authorized_payment', '77']]) {
+    const r = await handleWebhookMp(post(`/api/reservas/webhook-mp?type=${type}&data.id=${id}`, { type, data: { id } }, firmar(id)), env, d);
+    assert.equal(r.status, 200);
+  }
+  assert.deepEqual(llamados, [['pre', 'pre9'], ['ap', '77']]);
+  const mal = await handleWebhookMp(post('/api/reservas/webhook-mp?type=subscription_preapproval&data.id=x', {}, { 'x-signature': 'ts=1,v1=00' }), env, d);
+  assert.equal(mal.status, 401);
 });
