@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { correoRecibo, correoBaja, correoEquipoSuscripcion } from './correos.mjs';
+import { correoRecibo, correoBaja, correoEquipoSuscripcion, correoPenalidadPendiente } from './correos.mjs';
 
 test('recibo: cobro N de M, último cobro y enlace para cancelar con la penalidad', () => {
   const c = correoRecibo({ nombre: 'Lucía', titulo: '2 sesiones al mes · 3 meses · pago mensual', numero: 2, cobros: 3, cuota: 36000,
@@ -34,4 +34,13 @@ test('equipo: asunto según el tipo', () => {
   assert.equal(correoEquipoSuscripcion('fallido', s, { penalidad: 9000 }).subject, 'Cobro fallido: Ana Torres · penalidad S/90');
   assert.equal(correoEquipoSuscripcion('ultimo', s).subject, 'Ana Torres pagó su último cobro: ofrécele seguir');
   assert.equal(correoEquipoSuscripcion('nueva', s).subject, 'Suscripción nueva: Ana Torres');
+});
+
+test('penalidad pendiente: asunto, monto, botón con el link y nombre escapado', () => {
+  const c = correoPenalidadPendiente({ nombre: '<i>Ana</i>', monto: 8000, url: 'https://w/suscripcion/cancelar/?s=t' });
+  assert.equal(c.subject, 'Tu penalidad pendiente · AJL Nutrición');
+  assert.match(c.html, /S\/80/);
+  assert.match(c.html, /href="https:\/\/w\/suscripcion\/cancelar\/\?s=t"/);
+  assert.match(c.html, /Pagar la penalidad/);
+  assert.match(c.html, /&lt;i&gt;/);
 });

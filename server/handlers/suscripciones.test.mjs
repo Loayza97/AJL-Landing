@@ -104,9 +104,17 @@ test('link vencido: 410 en GET y en POST', async () => {
 test('link con penalidad pendiente en ese documento: 409 y el link sigue sin usar', async () => {
   const d = deps();
   await conLink(d);
-  await sus.crear(d.db, fila({ id: 'old', token: 'told', mp_preapproval_id: null, estado: 'cancelada', penalidad_estado: 'pendiente', dni: '70123456' }));
+  const enviados = [];
+  d.sendEmail = async (m) => { enviados.push(m); return true; };
+  await sus.crear(d.db, fila({ id: 'old', token: 'told', mp_preapproval_id: null, estado: 'cancelada', penalidad_estado: 'pendiente', penalidad_centimos: 8000, dni: '70123456', email: 'deudor@x.pe' }));
   const r = await handleSuscripcionLink(postLink(formLink), env, d);
   assert.equal(r.status, 409);
+  const j = await r.clone().json();
+  assert.equal(j.motivo, 'penalidad');
+  assert.equal(j.url, undefined);
+  assert.equal(enviados.length, 1);
+  assert.equal(enviados[0].to, 'deudor@x.pe');
+  assert.match(enviados[0].html, /suscripcion\/cancelar\/\?s=told/);
   assert.equal((await sus.porId(d.db, 'sl')).link_usado_en, null);
 });
 
@@ -114,4 +122,18 @@ test('estado: devuelve el estado por token', async () => {
   const d = deps();
   await sus.crear(d.db, fila());
   assert.equal((await (await handleSuscripcionEstado(new Request('https://x.test/api/suscripciones/estado?s=ts'), env, d)).json()).estado, 'activa');
+});
+
+test('link ya usado: GET devuelve 410', async () => {
+  const d = deps();
+  await conLink(d, { link_usado_en: t0.toISOString() });
+  assert.equal((await handleSuscripcionLink(new Request('https://x.test/api/suscripciones/link?l=L1'), env, d)).status, 410);
+});
+
+test('si Mercado Pago falla tras usar el link: 503 y el link queda usado', async () => {
+  const d = deps();
+  d.mp.crearSuscripcion = async () => { throw new Error('caído'); };
+  await conLink(d);
+  assert.equal((await handleSuscripcionLink(postLink(formLink), env, d)).status, 503);
+  assert.ok((await sus.porId(d.db, 'sl')).link_usado_en);
 });

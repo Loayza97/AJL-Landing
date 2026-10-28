@@ -334,16 +334,20 @@ test('pagar con pago mensual: pide aceptar la suscripción, crea la suscripción
   assert.ok(d.creadas[0].finEn);
 });
 
-test('pagar con una penalidad pendiente en ese documento: 409 con el link para pagarla', async () => {
-  const d = deps();
+test('pagar con una penalidad pendiente en ese documento: 409 sin link; el link va al correo del deudor', async () => {
+  const enviados = [];
+  const d = deps({ sendEmail: async (m) => { enviados.push(m); return true; } });
   await sus.crear(d.db, { id: 'old', token: 'told', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, penalidad_centimos: 8000,
-    estado: 'cancelada', penalidad_estado: 'pendiente', dni: '12345678', creado_en: t0.toISOString() });
+    estado: 'cancelada', penalidad_estado: 'pendiente', dni: '12345678', email: 'deudor@x.pe', creado_en: t0.toISOString() });
   const { token } = await (await apartar(d)).json();
   const r = await handlePagar(post('/api/reservas/pagar', { token, ...datos }), env, d);
   const j = await r.json();
   assert.equal(r.status, 409);
   assert.equal(j.motivo, 'penalidad');
-  assert.equal(j.url, 'https://www.ajlnutricion.com/suscripcion/cancelar/?s=told');
+  assert.equal(j.url, undefined);
+  assert.equal(enviados.length, 1);
+  assert.equal(enviados[0].to, 'deudor@x.pe');
+  assert.match(enviados[0].html, /suscripcion\/cancelar\/\?s=told/);
   assert.match(j.error, /S\/80/);
 });
 

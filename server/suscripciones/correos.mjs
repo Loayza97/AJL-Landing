@@ -1,5 +1,5 @@
 // Correos de suscripciones (spec 2026-10-27). El recibo de cada cobro lleva «Cancelar mi plan».
-import { esc, marco } from '../reservas/correos.mjs';
+import { esc, marco, boton } from '../reservas/correos.mjs';
 import { formatoSoles } from '../../src/data/duraciones.js';
 import { condicionesSuscripcion } from './calculo.mjs';
 
@@ -54,5 +54,16 @@ export function correoEquipoSuscripcion(tipo, s, extra = {}) {
       </ul>
       ${tipo === 'fallido' || tipo === 'cancelada_pendiente' ? '<p>Si vuelve a reservar, la web le pedirá pagar la penalidad antes. También puedes escribirle.</p>' : ''}
       <p>Detalle en el panel, sección «Suscripciones».</p>`),
+  };
+}
+
+export function correoPenalidadPendiente({ nombre, monto, url }) {
+  return {
+    subject: 'Tu penalidad pendiente · AJL Nutrición',
+    html: marco(`
+      <h2 style="font-family:Georgia,serif;color:#173C2C">${esc(nombre || 'Hola')}, tienes una penalidad pendiente</h2>
+      <p>Alguien intentó reservar o suscribirse con tu documento y tienes ${soles(monto)} pendientes de tu plan anterior. Págalos para poder continuar.</p>
+      ${boton(url, 'Pagar la penalidad')}
+      <p style="font-size:13px;color:#5E6B63">Si no fuiste tú, puedes ignorar este correo.</p>`),
   };
 }

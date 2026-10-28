@@ -6,7 +6,7 @@ import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { confirmarConPago } from '../reservas/confirmar.mjs';
 import { condicionesSuscripcion, esUltimoCobro, penalidadAlCancelar } from './calculo.mjs';
-import { correoRecibo, correoBaja, correoEquipoSuscripcion } from './correos.mjs';
+import { correoRecibo, correoBaja, correoEquipoSuscripcion, correoPenalidadPendiente } from './correos.mjs';
 import { avisarFijas } from '../reservas/aviso-equipo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
@@ -16,6 +16,11 @@ export const ESTADO_COBRO_FALLIDO = 'cancelled';
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 const titulo = (s) => condicionesSuscripcion(s.producto, s.duracion_meses)?.titulo ?? s.producto;
 export const urlCancelar = (env, s) => `${siteUrl(env)}/suscripcion/cancelar/?s=${s.token}`;
+
+// El 409 de «penalidad pendiente» no revela el token (cualquiera puede teclear un DNI ajeno):
+// el link de pago va solo al correo del deudor. Nunca rompe la respuesta.
+export const avisarPenalidadPendiente = (deps, env, deuda) => alPaciente(deps, env, deuda,
+  correoPenalidadPendiente({ nombre: deuda.nombre?.split(' ')[0], monto: deuda.penalidad_centimos, url: urlCancelar(env, deuda) }));
 
 async function alPaciente(deps, env, s, correo) {
   if (!s.email) return;

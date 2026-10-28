@@ -39,3 +39,13 @@ test('listar y marcar penalidad pagada a mano', async () => {
   assert.equal(s.penalidad_estado, 'pagada');
   assert.equal(s.penalidad_marcada_por, 'romi@x.pe');
 });
+
+test('penalidad: fila sin penalidad pendiente 409 y sin cambios; id desconocido 404', async () => {
+  const d = deps();
+  await sus.crear(d.db, { id: 'b', token: 'b', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, estado: 'activa', nombre: 'Bea', creado_en: t0.toISOString() });
+  assert.equal((await handleEquipoSuscripcionPenalidad(post('/api/equipo/suscripciones-penalidad', { id: 'b' }), env, d)).status, 409);
+  const s = await sus.porId(d.db, 'b');
+  assert.equal(s.penalidad_estado, 'no_aplica');
+  assert.equal(s.penalidad_marcada_por, null);
+  assert.equal((await handleEquipoSuscripcionPenalidad(post('/api/equipo/suscripciones-penalidad', { id: 'zz' }), env, d)).status, 404);
+});

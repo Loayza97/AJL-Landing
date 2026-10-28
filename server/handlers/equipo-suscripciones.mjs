@@ -52,6 +52,9 @@ export async function handleEquipoSuscripcionPenalidad(request, env, deps) {
   if (!acceso.ok) return sinAcceso();
   const d = await readJson(request);
   if (typeof d.id !== 'string') return bad(400, 'Datos inválidos');
+  const s = await sus.porId(deps.db, d.id);
+  if (!s) return bad(404, 'No encontramos esa suscripción.');
+  if (s.penalidad_estado !== 'pendiente') return bad(409, 'Esa suscripción no tiene una penalidad pendiente.');
   const ok = await sus.marcarPenalidadPagada(deps.db, { id: d.id, por: acceso.email, ahora: deps.ahora() });
-  return ok ? json(200, { ok: true }) : bad(409, 'Esa penalidad ya estaba pagada.');
+  return ok ? json(200, { ok: true }) : bad(409, 'Esa suscripción no tiene una penalidad pendiente.');
 }
