@@ -52,15 +52,33 @@ function pintar(d) {
   raiz.replaceChildren(...hijos);
 }
 
+const cargar = async (extra = '') => {
+  const r = await fetch(`/api/suscripciones/cancelar?s=${encodeURIComponent(s)}${extra}`, { cache: 'no-store' });
+  return { r, d: await r.json() };
+};
+const espera = (ms) => new Promise((ok) => { setTimeout(ok, ms); });
+
 (async () => {
+  const paymentId = q.get('pago') === '1' && /^\d+$/.test(q.get('payment_id') ?? '') ? q.get('payment_id') : '';
+  const conPago = paymentId ? `&payment_id=${paymentId}` : '';
   try {
-    const r = await fetch(`/api/suscripciones/cancelar?s=${encodeURIComponent(s)}`, { cache: 'no-store' });
-    const d = await r.json();
+    let { r, d } = await cargar(conPago);
     if (!r.ok) { raiz.replaceChildren(h('h1', 'No encontramos tu plan'), h('p', 'Escríbenos por WhatsApp y te ayudamos.', 'rs-lead')); return; }
-    if (q.get('pago') === '1' && d.modo !== 'cerrada') {
+    // Vuelta de Mercado Pago tras pagar la penalidad: se sondea (con el payment_id, el servidor procesa
+    // el pago si el webhook no llegó) y nunca se vuelve a ofrecer pagar. Un pago rechazado sí deja reintentar.
+    const estadoMp = q.get('status') ?? q.get('collection_status');
+    if (q.get('pago') === '1' && d.modo !== 'cerrada' && !['rejected', 'cancelled', 'null'].includes(estadoMp)) {
       raiz.replaceChildren(h('h1', 'Estamos confirmando tu pago…'), h('p', 'Esto toma unos segundos. Te llega un correo cuando quede listo.', 'rs-lead'));
-      setTimeout(() => location.replace(`?s=${encodeURIComponent(s)}`), 5000);
-      return;
+      for (let i = 0; i < 20 && d.modo !== 'cerrada'; i++) {
+        await espera(3000);
+        try {
+          ({ d } = await cargar(conPago));
+        } catch { /* se reintenta en el siguiente sondeo */ }
+      }
+      if (d.modo !== 'cerrada') {
+        raiz.replaceChildren(h('h1', 'Gracias'), h('p', 'Recibimos tu pago. Te llega un correo cuando tu plan quede cancelado.', 'rs-lead'));
+        return;
+      }
     }
     pintar(d);
   } catch {

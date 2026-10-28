@@ -55,6 +55,53 @@ test('si Mercado Pago no cancela, no se marca la baja y se responde 503', async 
   assert.equal((await sus.porId(d.db, 's1')).estado, 'activa');
 });
 
+test('si el PUT de cancelación falla pero ya está cancelada en Mercado Pago: la baja sigue (200)', async () => {
+  const d = deps();
+  d.mp.cancelarSuscripcion = async () => { throw new Error('400 ya cancelada'); };
+  d.mp.obtenerSuscripcion = async (id) => ({ id, status: 'cancelled' });
+  await sus.crear(d.db, fila());
+  const r = await handleSuscripcionCancelar(post({ s: 'ts', pagar: false }), env, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, cancelada: true, penalidad_centimos: 8000 });
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'cancelada');
+});
+
+test('si el PUT falla y no se puede consultar Mercado Pago, o sigue activa: 503 sin baja', async () => {
+  const d = deps();
+  d.mp.cancelarSuscripcion = async () => { throw new Error('caído'); };
+  d.mp.obtenerSuscripcion = async () => { throw new Error('caído'); };
+  await sus.crear(d.db, fila());
+  assert.equal((await handleSuscripcionCancelar(post({ s: 'ts', pagar: false }), env, d)).status, 503);
+  d.mp.obtenerSuscripcion = async (id) => ({ id, status: 'authorized' });
+  assert.equal((await handleSuscripcionCancelar(post({ s: 'ts', pagar: false }), env, d)).status, 503);
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'activa');
+});
+
+test('GET con payment_id de la penalidad: procesa el pago si el webhook no llegó y responde cerrada', async () => {
+  const d = deps();
+  const leidos = [];
+  d.mp.obtenerPago = async (id) => { leidos.push(id); return { id, status: 'approved', external_reference: 'pen-s1', transaction_amount: 80, currency_id: 'PEN' }; };
+  await sus.crear(d.db, fila({ penalidad_centimos: 8000 }));
+  const j = await (await handleSuscripcionCancelar(get('s=ts&pago=1&payment_id=123'), env, d)).json();
+  assert.equal(j.modo, 'cerrada');
+  assert.deepEqual(leidos, ['123']);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.penalidad_estado, 'pagada');
+  assert.equal(s.estado, 'cancelada');
+  assert.deepEqual(d.canceladas, ['pre1']);
+});
+
+test('GET con payment_id de otro plan o no numérico: no procesa nada', async () => {
+  const d = deps();
+  const leidos = [];
+  d.mp.obtenerPago = async (id) => { leidos.push(id); return { id, status: 'approved', external_reference: 'pen-otro', transaction_amount: 80, currency_id: 'PEN' }; };
+  await sus.crear(d.db, fila({ penalidad_centimos: 8000 }));
+  assert.equal((await (await handleSuscripcionCancelar(get('s=ts&payment_id=123'), env, d)).json()).modo, 'activa');
+  assert.equal((await (await handleSuscripcionCancelar(get('s=ts&payment_id=abc'), env, d)).json()).modo, 'activa');
+  assert.deepEqual(leidos, ['123']);
+  assert.equal((await sus.porId(d.db, 's1')).penalidad_estado, 'no_aplica');
+});
+
 test('deuda: modo deuda y solo se puede pagar; en el último mes no hay penalidad', async () => {
   const d = deps();
   await sus.crear(d.db, fila({ estado: 'cancelada', penalidad_estado: 'pendiente' }));

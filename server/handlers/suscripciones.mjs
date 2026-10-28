@@ -7,6 +7,7 @@ import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion, finDeCobros } from '../suscripciones/calculo.mjs';
 import { avisarBaja, avisarPenalidadPendiente } from '../suscripciones/procesar.mjs';
+import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { formatoSoles } from '../../src/data/duraciones.js';
@@ -38,7 +39,14 @@ async function cancelarYa(env, deps, s) {
     if (s.mp_preapproval_id) await deps.mp.cancelarSuscripcion(s.mp_preapproval_id);
   } catch (e) {
     console.error('cancelar en Mercado Pago', s.id, e);
-    return bad(503, 'No pudimos cancelar en este momento. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.');
+    // Si ya estaba cancelada en Mercado Pago (por ejemplo, desde la cuenta del paciente), la baja sigue.
+    let pre = null;
+    try {
+      pre = await deps.mp.obtenerSuscripcion(s.mp_preapproval_id);
+    } catch (e2) {
+      console.error('consultar suscripción en Mercado Pago', s.id, e2);
+    }
+    if (pre?.status !== 'cancelled') return bad(503, 'No pudimos cancelar en este momento. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.');
   }
   let res;
   try {
@@ -56,8 +64,21 @@ async function cancelarYa(env, deps, s) {
 export async function handleSuscripcionCancelar(request, env, deps) {
   if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
   const d = request.method === 'POST' ? await readJson(request) : Object.fromEntries(new URL(request.url).searchParams);
-  const s = typeof d.s === 'string' && d.s ? await sus.porToken(deps.db, d.s) : null;
+  let s = typeof d.s === 'string' && d.s ? await sus.porToken(deps.db, d.s) : null;
   if (!s) return bad(404, 'No encontramos tu plan.');
+  // Respaldo de la vuelta del pago de la penalidad (como handleEstado): si el webhook no llegó,
+  // se procesa el pago aquí. Solo cuenta un pago cuya referencia es la de este plan.
+  if (request.method === 'GET' && /^\d+$/.test(d.payment_id ?? '') && modo(s) !== 'cerrada') {
+    try {
+      const pago = await deps.mp.obtenerPago(d.payment_id);
+      if (pago?.external_reference === `pen-${s.id}`) {
+        await procesarPagoPenalidad(deps, env, pago);
+        s = await sus.porId(deps.db, s.id);
+      }
+    } catch (e) {
+      console.error('cancelar/procesarPagoPenalidad', s.id, e);
+    }
+  }
   const m = modo(s);
   const penalidad = penalidadDe(s);
   if (request.method === 'GET') {
