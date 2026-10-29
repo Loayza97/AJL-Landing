@@ -20,7 +20,6 @@ FROM_EMAIL = "reclamos@ajlnutricion.com"
 NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
 NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
 PUBLIC_SITE_URL = "https://reservas-pago.ajl-landing.pages.dev"
-MP_SIN_PAYER_EMAIL = "1" # experimento: suscripción sin payer_email (2026-10-28)
 
 # Base de reservas (Cloudflare D1). El preview usa su propia base para que las
 # pruebas nunca toquen reservas reales. Los bindings no se heredan entre entornos.

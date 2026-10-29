@@ -54,7 +54,7 @@ export function crearMp(env, fetchImpl = fetch) {
     const d = await pedirSus('/preapproval', {
       method: 'POST', headers: { 'X-Idempotency-Key': `sus-${suscripcionId}-${(await sha256Hex(String(email))).slice(0, 12)}` },
       body: JSON.stringify({
-        reason: `AJL Nutrición · ${titulo}`, external_reference: suscripcionId, ...(env.MP_SIN_PAYER_EMAIL ? {} : { payer_email: email }), back_url: urlRetorno, status: 'pending',
+        reason: `AJL Nutrición · ${titulo}`, external_reference: suscripcionId, payer_email: email, back_url: urlRetorno, status: 'pending',
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(finEn ? { end_date: finEn } : {}) },
       }),
     });
