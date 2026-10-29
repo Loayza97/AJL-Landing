@@ -4,6 +4,12 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+Nada por ahora.
+
+## 2026-10-13 a 2026-10-29 · publicado
+
+Links de agenda, panel unificado, editar y cancelar citas, tope por nutricionista, precios en /reservar/, links directos, base maestra y pagos con suscripción. El más reciente arriba.
+
 - Congelamiento con pago mensual: es manual. El paciente avisa, los cobros siguen en su fecha y el equipo le suma al final 1 semana (3 meses) o 2 semanas (6 meses). Dicho en /reservar/ y en condiciones 3b.
 - Pago mensual abierto a pacientes en producción (`SUSCRIPCIONES_ABIERTAS = "1"`), tras la prueba interna de S/5. El producto de prueba ya no se puede crear desde el panel.
 - «Cancelar mi plan»: se quitó el botón «Cancelar sin pagar ahora» cuando hay penalidad (decisión de Joaquín, 2026-10-29, para ver la respuesta de los pacientes). La baja desde la cuenta de Mercado Pago sigue dejando la penalidad pendiente.
