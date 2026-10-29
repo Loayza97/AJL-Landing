@@ -206,7 +206,8 @@ test('cobro aprobado de otro preapproval (duplicado de un reintento): no confirm
 // Suscripción con plan: la fila tiene mp_plan_id y todavía no sabe su preapproval.
 async function conPlan(d) {
   await reservaMensual(d);
-  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = NULL, mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = NULL WHERE id = 's1'").run();
+  await sus.guardarPlan(d.db, 's1', 'plan1', t0);
 }
 
 test('preapproval de nuestro plan sin referencia externa: se asocia y el plan se desactiva', async () => {
@@ -247,6 +248,7 @@ test('cobro de un segundo preapproval del mismo plan: anómalo, no suma', async 
   await reservaMensual(d);
   await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
   assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'anomalo' });
+  assert.equal(d.correos.filter((c) => /Cobro tras baja o duplicado/.test(c.subject)).length, 1);
   assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
   assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
   assert.deepEqual(d.canceladas, ['pre2']);
@@ -268,5 +270,69 @@ test('página de regreso antes de que el paciente autorice: no hay preapproval y
   await conPlan(d);
   await sincronizarDeReserva(d, env, 'r1');
   assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, null);
+  assert.deepEqual(d.desactivados, []);
+});
+
+const alertas = (d) => d.correos.filter((c) => /Cobro tras baja o duplicado: devolver y cancelar en Mercado Pago/.test(c.subject));
+
+test('dos preapprovals del mismo plan a la vez: uno cuenta y el otro avisa como anómalo', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: { ...cobro('a2', 'p2'), preapproval_id: 'pre2' } }, pagos: { p1: pago('p1'), p2: pago('p2') },
+    pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' }, pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  const res = await Promise.all([procesarCobro(d, env, 'a1'), procesarCobro(d, env, 'a2')]);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.deepEqual(res.map((r) => r.estado).sort(), ['anomalo', 'aprobado']);
+  const perdedor = s.mp_preapproval_id === 'pre1' ? 'pre2' : 'pre1';
+  assert.deepEqual(d.canceladas, [perdedor]);
+  assert.equal(alertas(d).length, 1);
+  assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
+});
+
+test('cobro de un plan reemplazado por un reintento: anómalo, avisa, cancela y no manda recibo', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre-viejo' } }, pagos: { p1: pago('p1') },
+    pre: { 'pre-viejo': { id: 'pre-viejo', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await sus.guardarPlan(d.db, 's1', 'plan2', t0);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'anomalo' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(s.mp_preapproval_id, null);
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal(alertas(d).length, 1);
+  assert.match(alertas(d)[0].html, /link de pago que se reemplazó/);
+  assert.deepEqual(d.canceladas, ['pre-viejo']);
+  assert.ok(!d.correos.some((c) => /Recibimos tu pago/.test(c.subject)));
+});
+
+test('preapproval autorizado de un plan reemplazado: se cancela en Mercado Pago, sin baja', async () => {
+  const d = armar({ pre: { 'pre-viejo': { id: 'pre-viejo', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await sus.guardarPlan(d.db, 's1', 'plan2', t0);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre-viejo'), { estado: 'reemplazada' });
+  assert.deepEqual(d.canceladas, ['pre-viejo']);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'pendiente');
+  assert.equal(s.mp_preapproval_id, null);
+  d.mp.obtenerSuscripcion = async (id) => ({ id, status: 'cancelled', preapproval_plan_id: 'plan1' });
+  await procesarPreapproval(d, env, 'pre-viejo');
+  assert.deepEqual(d.canceladas, ['pre-viejo']); // el aviso de su cancelación no la cancela otra vez
+});
+
+test('cobro aprobado de un plan que no es de ninguna suscripción: avisa al equipo', async () => {
+  const d = armar({ cobros: { z: { ...cobro('z', 'pz'), preapproval_id: 'pre-x' }, y: { ...cobro('y', 'py'), preapproval_id: 'pre-x' } },
+    pagos: { pz: pago('pz'), py: pago('py', 'rejected') }, pre: { 'pre-x': { id: 'pre-x', status: 'authorized', preapproval_plan_id: 'plan-x' } } });
+  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
+  assert.equal(alertas(d).length, 1);
+  assert.match(alertas(d)[0].html, /plan-x/);
+  assert.deepEqual(await procesarCobro(d, env, 'y'), { estado: 'desconocido' });
+  assert.equal(alertas(d).length, 1); // un cobro no aprobado no avisa
+});
+
+test('preapproval todavía pendiente: se asocia pero el plan no se desactiva', async () => {
+  const d = armar({ pre: { pre1: { id: 'pre1', status: 'pending', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await procesarPreapproval(d, env, 'pre1');
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
   assert.deepEqual(d.desactivados, []);
 });

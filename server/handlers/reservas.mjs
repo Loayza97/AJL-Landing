@@ -190,6 +190,10 @@ export async function handlePagar(request, env, deps) {
         if (existente.estado !== 'pendiente') {
           return bad(409, 'Tu pago mensual ya está registrado. Escríbenos por WhatsApp si necesitas ayuda.', { motivo: 'suscripcion_existente' });
         }
+        // Ya autorizó en Mercado Pago y falta el primer cobro: un plan nuevo dejaría dos suscripciones cobrando.
+        if (existente.mp_preapproval_id) {
+          return bad(409, 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.', { motivo: 'esperando_cobro' });
+        }
         await sus.actualizarContacto(deps.db, id, { nombre: cliente.nombre, email: cliente.email, dni: cliente.dni, whatsapp: cliente.whatsapp, ahora });
       } else {
         await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: cliente.nombre, email: cliente.email, dni: cliente.dni,
@@ -202,11 +206,11 @@ export async function handlePagar(request, env, deps) {
         urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}` });
       await sus.guardarPlan(deps.db, id, plan.planId, ahora);
       // Reintento con un plan nuevo: solo con el nuevo ya guardado se desactiva el anterior en Mercado Pago
-      // (y se cancela su preapproval, si el paciente ya lo había autorizado). Si falla, sigue: su link
-      // daría un preapproval que no es el guardado, y sus cobros quedan como anómalos.
-      if (existente?.mp_plan_id && existente.mp_plan_id !== plan.planId) {
+      // (y se cancela su preapproval, si hubiera uno). Si falla, sigue: el plan viejo queda en
+      // suscripcion_planes y lo que salga de él se trata como anómalo.
+      if (existente && existente.mp_plan_id !== plan.planId) {
         try {
-          await deps.mp.desactivarPlan(existente.mp_plan_id);
+          if (existente.mp_plan_id) await deps.mp.desactivarPlan(existente.mp_plan_id);
         } catch (e) {
           console.error('desactivar plan anterior', e);
         }

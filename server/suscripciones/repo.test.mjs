@@ -152,3 +152,23 @@ test('guardarPlan con un plan nuevo suelta el preapproval del anterior; con el m
   await sus.guardarPlan(db, 's1', 'plan1', t0);
   assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, 'pre2');
 });
+
+test('suscripcionDePlan recuerda los planes reemplazados', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base());
+  await sus.guardarPlan(db, 's1', 'plan1', t0);
+  await sus.guardarPlan(db, 's1', 'plan2', t0);
+  await sus.guardarPlan(db, 's1', 'plan2', t0); // el mismo plan otra vez no duplica
+  assert.equal(await sus.porPlan(db, 'plan1'), null);
+  assert.equal((await sus.suscripcionDePlan(db, 'plan1')).id, 's1');
+  assert.equal((await sus.suscripcionDePlan(db, 'plan2')).id, 's1');
+  assert.equal(await sus.suscripcionDePlan(db, 'otro'), null);
+});
+
+test('asociarPreapproval solo escribe si la fila no tiene uno', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base());
+  assert.equal(await sus.asociarPreapproval(db, 's1', 'pre1', t0), true);
+  assert.equal(await sus.asociarPreapproval(db, 's1', 'pre2', t0), false);
+  assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, 'pre1');
+});

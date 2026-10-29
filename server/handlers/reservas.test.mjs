@@ -434,21 +434,24 @@ test('pagar de nuevo y Mercado Pago devuelve el mismo plan (misma key): no se de
   assert.equal(d.creadas.length, 2);
 });
 
-test('pagar de nuevo cuando ya autorizó el plan anterior: se cancela ese preapproval y queda el plan nuevo', async () => {
-  let n = 0;
+test('pagar de nuevo cuando ya autorizó el plan: 409 esperando_cobro, sin plan nuevo ni cancelar nada', async () => {
   const canceladas = [];
-  const d = deps({ mp: { crearSuscripcion: async () => ({ planId: `plan${++n}`, init_point: `https://mp/sus${n}` }),
-    cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const d = deps({ mp: { cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
   const { token } = await (await apartar(d, { forma: 'mensual' })).json();
   const body = { token, ...datos, acepto_suscripcion: true };
   await handlePagar(post('/api/reservas/pagar', body), env, d);
   const id = (await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id)).id;
-  await sus.guardarPreapproval(d.db, id, 'pre1', t0);
-  await handlePagar(post('/api/reservas/pagar', body), env, d);
-  assert.deepEqual(canceladas, ['pre1']);
+  await sus.asociarPreapproval(d.db, id, 'pre1', t0);
+  const r = await handlePagar(post('/api/reservas/pagar', { ...body, email: 'otra@x.pe' }), env, d);
+  assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, motivo: 'esperando_cobro',
+    error: 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.' });
+  assert.equal(d.creadas.length, 1);
+  assert.deepEqual(canceladas, []);
+  assert.deepEqual(d.desactivados, []);
   const s = await sus.porId(d.db, id);
-  assert.equal(s.mp_plan_id, 'plan2');
-  assert.equal(s.mp_preapproval_id, null);
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.email, 'ana@x.pe');
 });
 
 test('pagar de nuevo con crearSuscripcion fallando: 503, no se desactiva nada y la fila conserva el plan anterior', async () => {

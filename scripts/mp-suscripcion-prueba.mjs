@@ -1,5 +1,6 @@
 // Prueba manual de suscripciones de Mercado Pago (modo de prueba). No es parte del sitio.
-// Uso: MP_ACCESS_TOKEN=TEST-... EMAIL=comprador_de_prueba@testuser.com node scripts/mp-suscripcion-prueba.mjs crear
+// Uso: MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs crear       (plan de S/10, 1 cobro; abre su init_point)
+//      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs plan <preapproval_plan_id>   (su preapproval)
 //      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs comprador
 //      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs ver <preapproval_id>
 //      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs cobros <preapproval_id>
@@ -16,7 +17,6 @@ if (!process.env.MP_ACCESS_TOKEN) {
     console.log('Eso no es un access token: es un texto largo que empieza con TEST- o APP_USR-. El usuario TESTUSER... no sirve aquí.');
     process.exit(1);
   }
-  if (!process.env.EMAIL && process.argv[2] === 'crear') process.env.EMAIL = (await rl.question('Correo del comprador de prueba: ')).trim();
   rl.close();
 }
 const auth = { Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`, 'Content-Type': 'application/json' };
@@ -24,12 +24,16 @@ const [accion, id] = process.argv.slice(2);
 const mostrar = async (r) => console.log(r.status, JSON.stringify(await r.json(), null, 2));
 
 if (accion === 'crear') {
-  const fin = new Date(Date.now() + 75 * 86400000).toISOString();
-  await mostrar(await fetch(`${API}/preapproval`, { method: 'POST', headers: auth, body: JSON.stringify({
-    reason: 'AJL Nutrición · prueba de suscripción', external_reference: `prueba-${Date.now()}`,
-    payer_email: process.env.EMAIL, back_url: 'https://reservas-pago.ajl-landing.pages.dev/reservar/listo/',
-    status: 'pending', auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: 10, currency_id: 'PEN', end_date: fin },
-  }) }));
+  // Como el sitio: un plan sin payer_email; el preapproval lo crea Mercado Pago cuando alguien autoriza en init_point.
+  const r = await fetch(`${API}/preapproval_plan`, { method: 'POST', headers: auth, body: JSON.stringify({
+    reason: 'AJL Nutrición · prueba de suscripción', back_url: 'https://reservas-pago.ajl-landing.pages.dev/reservar/listo/',
+    auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: 10, currency_id: 'PEN', repetitions: 1 },
+  }) });
+  const d = await r.json();
+  console.log(r.status, JSON.stringify(d, null, 2));
+  if (d.init_point) console.log(`\nAbre para autorizar: ${d.init_point}\nLuego: node scripts/mp-suscripcion-prueba.mjs plan ${d.id}`);
+} else if (accion === 'plan') {
+  await mostrar(await fetch(`${API}/preapproval/search?preapproval_plan_id=${id}`, { headers: auth }));
 } else if (accion === 'comprador') {
   // Crea un comprador de prueba de Perú y muestra su correo, usuario y contraseña.
   await mostrar(await fetch(`${API}/users/test`, { method: 'POST', headers: auth, body: JSON.stringify({ site_id: 'MPE', description: 'comprador suscripciones AJL' }) }));
@@ -40,5 +44,5 @@ if (accion === 'crear') {
 } else if (accion === 'cancelar') {
   await mostrar(await fetch(`${API}/preapproval/${id}`, { method: 'PUT', headers: auth, body: JSON.stringify({ status: 'cancelled' }) }));
 } else {
-  console.log('Acción: comprador | crear | ver <id> | cobros <id> | cancelar <id>');
+  console.log('Acción: comprador | crear | plan <plan_id> | ver <id> | cobros <id> | cancelar <id>');
 }

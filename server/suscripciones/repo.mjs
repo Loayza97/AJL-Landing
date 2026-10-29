@@ -33,11 +33,31 @@ export const guardarPreapproval = (db, id, mpId, ahora) => db.prepare(
 
 // Un plan nuevo (reintento de pago) suelta el preapproval del anterior: el que cuenta será el del plan nuevo.
 // Si Mercado Pago devolvió el mismo plan (misma idempotency key), se conserva.
-export const guardarPlan = (db, id, planId, ahora) => db.prepare(
-  `UPDATE suscripciones SET mp_plan_id = ?2, actualizado_en = ?3,
-     mp_preapproval_id = CASE WHEN mp_plan_id IS ?2 THEN mp_preapproval_id ELSE NULL END
-   WHERE id = ?1`,
-).bind(id, planId, ahora.toISOString()).run();
+// Cada plan queda también en suscripcion_planes, para reconocer después los cobros de uno reemplazado.
+export async function guardarPlan(db, id, planId, ahora) {
+  const a = ahora.toISOString();
+  await db.batch([
+    db.prepare(
+      `UPDATE suscripciones SET mp_plan_id = ?2, actualizado_en = ?3,
+         mp_preapproval_id = CASE WHEN mp_plan_id IS ?2 THEN mp_preapproval_id ELSE NULL END
+       WHERE id = ?1`,
+    ).bind(id, planId, a),
+    db.prepare('INSERT INTO suscripcion_planes (plan_id, suscripcion_id, creado_en) VALUES (?1, ?2, ?3) ON CONFLICT (plan_id) DO NOTHING').bind(planId, id, a),
+  ]);
+}
+
+// La suscripción a la que perteneció un plan (vigente o reemplazado).
+export const suscripcionDePlan = (db, planId) => db.prepare(
+  'SELECT s.* FROM suscripcion_planes p JOIN suscripciones s ON s.id = p.suscripcion_id WHERE p.plan_id = ?1',
+).bind(planId).first();
+
+// Asocia el preapproval que salió del plan solo si la fila todavía no tiene uno: si llegan dos
+// preapprovals del mismo plan a la vez, gana uno y el otro queda como anómalo.
+export async function asociarPreapproval(db, id, mpId, ahora) {
+  const r = await db.prepare('UPDATE suscripciones SET mp_preapproval_id = ?2, actualizado_en = ?3 WHERE id = ?1 AND mp_preapproval_id IS NULL')
+    .bind(id, mpId, ahora.toISOString()).run();
+  return r.meta.changes === 1;
+}
 
 // El link sirve una vez y solo vigente; quien lo toma escribe sus datos en la misma sentencia.
 export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condicionesVersion, ahora }) {
