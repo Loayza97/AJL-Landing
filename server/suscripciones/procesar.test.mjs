@@ -10,11 +10,12 @@ const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'eq@x.pe',
   CORREOS_EQUIPO: JSON.stringify({ nico: 'n@x.pe', romina: 'r@x.pe', irene: 'i@x.pe', alejandro: 'a@x.pe' }) };
 
-function armar({ cobros = {}, pagos = {}, pre = {} } = {}) {
+function armar({ cobros = {}, pagos = {}, pre = {}, planes = {} } = {}) {
   const correos = [];
   const canceladas = [];
+  const desactivados = [];
   const d = {
-    db: d1DePrueba(), nutricionistas, ahora: () => t0, correos, canceladas,
+    db: d1DePrueba(), nutricionistas, ahora: () => t0, correos, canceladas, desactivados,
     sendEmail: async (c) => { correos.push(c); return true; },
     google: { listarEventos: async () => [], crearEvento: async () => ({ id: 'ev', meet: null }) },
     mp: {
@@ -23,6 +24,8 @@ function armar({ cobros = {}, pagos = {}, pre = {} } = {}) {
       obtenerSuscripcion: async (id) => pre[id],
       cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; },
       buscarCobrosSuscripcion: async () => Object.values(cobros),
+      buscarSuscripcionDePlan: async (id) => planes[id] ?? null,
+      desactivarPlan: async (id) => { desactivados.push(id); return {}; },
     },
   };
   return d;
@@ -198,4 +201,72 @@ test('cobro aprobado de otro preapproval (duplicado de un reintento): no confirm
   assert.ok(!d.correos.some((c) => /Recibimos tu pago/.test(c.subject)));
   assert.equal(d.correos.filter((c) => /Cobro tras baja o duplicado/.test(c.subject)).length, 1);
   assert.deepEqual(d.canceladas, ['pre-viejo']);
+});
+
+// Suscripción con plan: la fila tiene mp_plan_id y todavía no sabe su preapproval.
+async function conPlan(d) {
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = NULL, mp_plan_id = 'plan1' WHERE id = 's1'").run();
+}
+
+test('preapproval de nuestro plan sin referencia externa: se asocia y el plan se desactiva', async () => {
+  const d = armar({ pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'authorized' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.estado, 'pendiente');
+  assert.deepEqual(d.desactivados, ['plan1']);
+  await procesarPreapproval(d, env, 'pre1');
+  assert.deepEqual(d.desactivados, ['plan1']); // ya asociado: no se vuelve a desactivar
+});
+
+test('si desactivar el plan falla, el preapproval igual queda asociado', async () => {
+  const d = armar({ pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  d.mp.desactivarPlan = async () => { throw new Error('caído'); };
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'authorized' });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
+});
+
+test('cobro que llega antes que el preapproval: se asocia por el plan y confirma la cita', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(d.desactivados, ['plan1']);
+});
+
+test('cobro de un segundo preapproval del mismo plan: anómalo, no suma', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre2' } }, pagos: { p1: pago('p1') },
+    pre: { pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'anomalo' });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+  assert.deepEqual(d.canceladas, ['pre2']);
+});
+
+test('página de regreso sin preapproval guardado: lo busca por el plan y procesa el primer cobro', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') }, planes: { plan1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await sincronizarDeReserva(d, env, 'r1');
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(d.desactivados, ['plan1']);
+});
+
+test('página de regreso antes de que el paciente autorice: no hay preapproval y no pasa nada', async () => {
+  const d = armar();
+  await conPlan(d);
+  await sincronizarDeReserva(d, env, 'r1');
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, null);
+  assert.deepEqual(d.desactivados, []);
 });

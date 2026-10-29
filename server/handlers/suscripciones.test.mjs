@@ -126,19 +126,23 @@ async function conLink(d, o = {}) {
 const postLink = (b) => new Request('https://x.test/api/suscripciones/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 const formLink = { l: 'L1', email: 'lucia@x.pe', tipo_documento: 'dni', documento: '70123456', whatsapp: '+51987654321', acepto: true };
 
-test('link: GET muestra el plan; POST crea la suscripción en Mercado Pago una sola vez', async () => {
+test('link: GET muestra el plan; POST crea el plan en Mercado Pago una sola vez y sin correo', async () => {
   const d = deps();
-  d.mp.crearSuscripcion = async (a) => { d.creadas = [...(d.creadas ?? []), a]; return { id: 'preL', init_point: 'https://mp/sus' }; };
+  d.mp.crearSuscripcion = async (a) => { d.creadas = [...(d.creadas ?? []), a]; return { planId: 'planL', init_point: 'https://mp/sus' }; };
   await conLink(d);
   const g = await (await handleSuscripcionLink(new Request('https://x.test/api/suscripciones/link?l=L1'), env, d)).json();
   assert.equal(g.cuota_centimos, 25000);
   assert.equal(g.ahorro_centimos, 7000);
   assert.equal(g.nombre, 'Lucía');
   assert.deepEqual(await (await handleSuscripcionLink(postLink(formLink), env, d)).json(), { ok: true, url: 'https://mp/sus' });
-  assert.equal(d.creadas[0].urlRetorno, 'https://www.ajlnutricion.com/suscribirse/listo/?s=tsl');
+  assert.deepEqual(d.creadas[0], { suscripcionId: 'sl', titulo: '1 sesión al mes · 6 meses · pago mensual', cuotaCentimos: 25000, cobros: 6,
+    urlRetorno: 'https://www.ajlnutricion.com/suscribirse/listo/?s=tsl' });
   assert.equal((await handleSuscripcionLink(postLink(formLink), env, d)).status, 410);
   assert.equal(d.creadas.length, 1);
-  assert.equal((await sus.porId(d.db, 'sl')).mp_preapproval_id, 'preL');
+  const s = await sus.porId(d.db, 'sl');
+  assert.equal(s.mp_plan_id, 'planL');
+  assert.equal(s.mp_preapproval_id, null); // llega cuando el paciente autoriza
+  assert.equal(s.email, 'lucia@x.pe'); // el correo se pide para los recibos
 });
 
 test('link vencido: 410 en GET y en POST', async () => {

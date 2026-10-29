@@ -47,42 +47,47 @@ test('firmaValida acepta la firma correcta y rechaza la alterada o ausente', asy
   assert.equal(await firmaValida({ ...base, dataId: '999', xSignature: `ts=1700000000,v1=${v1}` }), false);
 });
 
-test('crearSuscripcion: un reintento con otro correo usa otra idempotency key', async () => {
-  const keys = [];
-  const f = async (url, init) => { keys.push(init.headers['X-Idempotency-Key']); return new Response(JSON.stringify({ id: 'pre1', init_point: 'https://mp/sus' })); };
-  const mp = crearMp({ MP_ACCESS_TOKEN: 'TEST-1' }, f);
-  for (const email of ['a@x.pe', 'a@x.pe', 'b@x.pe']) await mp.crearSuscripcion({ suscripcionId: 's1', titulo: 't', cuotaCentimos: 36000, email, urlRetorno: 'https://w' });
-  assert.equal(keys[0], keys[1]);
-  assert.notEqual(keys[0], keys[2]);
-  assert.match(keys[2], /^sus-s1-[0-9a-f]{12}$/);
-});
-
-test('crearSuscripcion: mensual en soles, pendiente, con fin y referencia', async () => {
+test('crearSuscripcion: crea un plan mensual en soles, sin correo, con la key del retorno', async () => {
   let pedido;
-  const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'pre1', init_point: 'https://mp/sus' })); };
+  const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'plan1', init_point: 'https://mp/plan', status: 'active' })); };
   const mp = crearMp({ MP_ACCESS_TOKEN: 'TEST-1' }, f);
   const r = await mp.crearSuscripcion({ suscripcionId: 's1', titulo: '2 sesiones al mes · 3 meses · pago mensual', cuotaCentimos: 36000,
-    email: 'a@x.pe', urlRetorno: 'https://w/reservar/listo/?r=t', finEn: '2027-01-18T15:00:00.000Z' });
-  assert.deepEqual(r, { id: 'pre1', init_point: 'https://mp/sus' });
-  assert.equal(pedido.url, 'https://api.mercadopago.com/preapproval');
+    cobros: 3, urlRetorno: 'https://w/reservar/listo/?r=t' });
+  assert.deepEqual(r, { planId: 'plan1', init_point: 'https://mp/plan' });
+  assert.equal(pedido.url, 'https://api.mercadopago.com/preapproval_plan');
   assert.equal(pedido.init.method, 'POST');
-  const hex = createHash('sha256').update('a@x.pe').digest('hex').slice(0, 12);
-  assert.equal(pedido.init.headers['X-Idempotency-Key'], `sus-s1-${hex}`);
-
-  const c = JSON.parse(pedido.init.body);
-  assert.equal(c.reason, 'AJL Nutrición · 2 sesiones al mes · 3 meses · pago mensual');
-  assert.equal(c.external_reference, 's1');
-  assert.equal(c.payer_email, 'a@x.pe');
-  assert.equal(c.back_url, 'https://w/reservar/listo/?r=t');
-  assert.equal(c.status, 'pending');
-  assert.deepEqual(c.auto_recurring, { frequency: 1, frequency_type: 'months', transaction_amount: 360, currency_id: 'PEN', end_date: '2027-01-18T15:00:00.000Z' });
+  assert.equal(pedido.init.headers.Authorization, 'Bearer TEST-1');
+  const hex = createHash('sha256').update('https://w/reservar/listo/?r=t').digest('hex').slice(0, 12);
+  assert.equal(pedido.init.headers['X-Idempotency-Key'], `plan-s1-${hex}`);
+  assert.deepEqual(JSON.parse(pedido.init.body), {
+    reason: 'AJL Nutrición · 2 sesiones al mes · 3 meses · pago mensual', back_url: 'https://w/reservar/listo/?r=t',
+    auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: 360, currency_id: 'PEN', repetitions: 3 },
+  });
+  assert.doesNotMatch(pedido.init.body, /payer_email|email/);
 });
 
-test('crearSuscripcion de mes a mes va sin end_date', async () => {
+test('crearSuscripcion de mes a mes va sin repetitions', async () => {
   let cuerpo;
   const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async (u, i) => { cuerpo = JSON.parse(i.body); return new Response('{"id":"p","init_point":"u"}'); });
-  await mp.crearSuscripcion({ suscripcionId: 's', titulo: 't', cuotaCentimos: 44000, email: 'a@x.pe', urlRetorno: 'u', finEn: null });
-  assert.equal('end_date' in cuerpo.auto_recurring, false);
+  await mp.crearSuscripcion({ suscripcionId: 's', titulo: 't', cuotaCentimos: 44000, cobros: null, urlRetorno: 'u' });
+  assert.deepEqual(cuerpo.auto_recurring, { frequency: 1, frequency_type: 'months', transaction_amount: 440, currency_id: 'PEN' });
+});
+
+test('buscarSuscripcionDePlan devuelve el primer preapproval del plan, o null', async () => {
+  const pedidos = [];
+  let results = [{ id: 'pre2' }, { id: 'pre1' }];
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async (url, init = {}) => { pedidos.push([init.method || 'GET', url]); return new Response(JSON.stringify({ results })); });
+  assert.deepEqual(await mp.buscarSuscripcionDePlan('plan 1'), { id: 'pre2' });
+  results = [];
+  assert.equal(await mp.buscarSuscripcionDePlan('plan1'), null);
+  assert.deepEqual(pedidos[0], ['GET', 'https://api.mercadopago.com/preapproval/search?preapproval_plan_id=plan%201']);
+});
+
+test('desactivarPlan cancela el plan para que su link no sirva de nuevo', async () => {
+  let pedido;
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async (url, init) => { pedido = [init.method, url, init.body]; return new Response('{"id":"plan1","status":"cancelled"}'); });
+  await mp.desactivarPlan('plan1');
+  assert.deepEqual(pedido, ['PUT', 'https://api.mercadopago.com/preapproval_plan/plan1', '{"status":"cancelled"}']);
 });
 
 test('cancelar, obtener y buscar cobros usan las rutas de suscripción', async () => {
@@ -104,5 +109,6 @@ test('cancelar, obtener y buscar cobros usan las rutas de suscripción', async (
 test('las llamadas de suscripción lanzan si Mercado Pago responde error', async () => {
   const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async () => new Response('no', { status: 400 }));
   await assert.rejects(mp.cancelarSuscripcion('p'), /Mercado Pago suscripción 400/);
-  await assert.rejects(mp.crearSuscripcion({ suscripcionId: 's', titulo: 't', cuotaCentimos: 1, email: 'a@x.pe', urlRetorno: 'u', finEn: null }), /400/);
+  await assert.rejects(mp.crearSuscripcion({ suscripcionId: 's', titulo: 't', cuotaCentimos: 1, cobros: null, urlRetorno: 'u' }), /400/);
+  await assert.rejects(mp.desactivarPlan('p'), /400/);
 });

@@ -5,7 +5,7 @@
 // GET  /api/suscripciones/estado?s=     estado del plan por token
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion, finDeCobros } from '../suscripciones/calculo.mjs';
+import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
 import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
@@ -136,10 +136,11 @@ export async function handleSuscripcionLink(request, env, deps) {
   }
   try {
     const c = condicionesSuscripcion(s.producto, s.duracion_meses);
-    const pre = await deps.mp.crearSuscripcion({ suscripcionId: s.id, titulo: c.titulo, cuotaCentimos: s.cuota_centimos, email,
-      urlRetorno: `${siteUrl(env)}/suscribirse/listo/?s=${s.token}`, finEn: finDeCobros(ahora, c.cobros) });
-    await sus.guardarPreapproval(deps.db, s.id, pre.id, ahora);
-    return json(200, { ok: true, url: pre.init_point });
+    // El correo es para nuestros recibos; a Mercado Pago no se le manda (el preapproval llega por el plan).
+    const plan = await deps.mp.crearSuscripcion({ suscripcionId: s.id, titulo: c.titulo, cuotaCentimos: s.cuota_centimos, cobros: c.cobros,
+      urlRetorno: `${siteUrl(env)}/suscribirse/listo/?s=${s.token}` });
+    await sus.guardarPlan(deps.db, s.id, plan.planId, ahora);
+    return json(200, { ok: true, url: plan.init_point });
   } catch (e) {
     console.error('link de suscripción', e);
     return bad(503, 'No pudimos abrir Mercado Pago. Pídele al equipo un link nuevo.');

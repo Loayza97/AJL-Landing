@@ -3,7 +3,7 @@
 import { penalidadAlCancelar } from './calculo.mjs';
 
 const COLUMNAS = ['id', 'token', 'link_token_hash', 'link_usado_en', 'vence_en', 'reserva_id', 'nombre', 'email', 'dni', 'whatsapp',
-  'producto', 'duracion_meses', 'cuota_centimos', 'precio_mes_centimos', 'precio_3m_centimos', 'penalidad_centimos', 'mp_preapproval_id', 'estado', 'cobros_aprobados',
+  'producto', 'duracion_meses', 'cuota_centimos', 'precio_mes_centimos', 'precio_3m_centimos', 'penalidad_centimos', 'mp_plan_id', 'mp_preapproval_id', 'estado', 'cobros_aprobados',
   'penalidad_estado', 'creado_por', 'acepto_condiciones_version', 'creado_en'];
 const normalDni = (d) => String(d ?? '').replace(/[\s.-]+/g, '').toUpperCase();
 
@@ -20,6 +20,7 @@ export const porToken = una('token');
 export const porLinkHash = una('link_token_hash');
 export const porPreapproval = una('mp_preapproval_id');
 export const porReserva = una('reserva_id');
+export const porPlan = una('mp_plan_id');
 
 // Los datos de contacto de un reintento de pago: la fila debe coincidir con lo enviado a Mercado Pago.
 export const actualizarContacto = (db, id, { nombre, email, dni, whatsapp, ahora }) => db.prepare(
@@ -29,6 +30,14 @@ export const actualizarContacto = (db, id, { nombre, email, dni, whatsapp, ahora
 export const guardarPreapproval = (db, id, mpId, ahora) => db.prepare(
   'UPDATE suscripciones SET mp_preapproval_id = ?2, actualizado_en = ?3 WHERE id = ?1',
 ).bind(id, mpId, ahora.toISOString()).run();
+
+// Un plan nuevo (reintento de pago) suelta el preapproval del anterior: el que cuenta será el del plan nuevo.
+// Si Mercado Pago devolvió el mismo plan (misma idempotency key), se conserva.
+export const guardarPlan = (db, id, planId, ahora) => db.prepare(
+  `UPDATE suscripciones SET mp_plan_id = ?2, actualizado_en = ?3,
+     mp_preapproval_id = CASE WHEN mp_plan_id IS ?2 THEN mp_preapproval_id ELSE NULL END
+   WHERE id = ?1`,
+).bind(id, planId, ahora.toISOString()).run();
 
 // El link sirve una vez y solo vigente; quien lo toma escribe sus datos en la misma sentencia.
 export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condicionesVersion, ahora }) {

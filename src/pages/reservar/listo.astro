@@ -87,8 +87,9 @@ import '../../styles/reservar.css';
 
   async function consultar(intento) {
     let extra = pagoReal && intento === 0 && paymentId ? `&payment_id=${encodeURIComponent(paymentId)}` : '';
-    // El preapproval_id hace que el servidor consulte Mercado Pago: en el primer sondeo y luego cada 5.
-    if (preapproval && intento % 5 === 0) extra += `&preapproval_id=${encodeURIComponent(preapproval)}`;
+    // En el primer sondeo y luego cada 5, el servidor consulta Mercado Pago (pago mensual): con el
+    // preapproval_id si volvió con él; si no (el regreso del plan puede no traerlo), con sync=1.
+    if (intento % 5 === 0) extra += preapproval ? `&preapproval_id=${encodeURIComponent(preapproval)}` : '&sync=1';
     try {
       const r = await fetch(`/api/reservas/estado?r=${encodeURIComponent(token)}${extra}`);
       if (r.ok && pintar(await r.json())) return;

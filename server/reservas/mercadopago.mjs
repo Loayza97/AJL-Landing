@@ -41,31 +41,33 @@ export function crearMp(env, fetchImpl = fetch) {
     return r.json();
   }
 
-  // Suscripciones sin plan asociado y con pago pendiente: el paciente autoriza en
-  // init_point. Mercado Pago pide payer_email (Task 1 verifica si debe coincidir).
+  // Suscripciones con un plan propio por suscripción: el paciente autoriza en el init_point del plan
+  // y Mercado Pago crea el preapproval, que trae preapproval_plan_id. Sin payer_email: con él,
+  // Mercado Pago exige que coincida con la cuenta que paga (verificado el 2026-10-28).
   async function pedirSus(ruta, init = {}) {
     const r = await fetchImpl(`${API}${ruta}`, { ...init, headers: { ...auth, ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } });
     if (!r.ok) throw new Error(`Mercado Pago suscripción ${r.status}: ${await r.text()}`);
     return r.json();
   }
 
-  async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, email, urlRetorno, finEn }) {
-    // La key lleva el correo: un reintento con otro correo crea otro preapproval en vez de recibir el viejo.
-    const d = await pedirSus('/preapproval', {
-      method: 'POST', headers: { 'X-Idempotency-Key': `sus-${suscripcionId}-${(await sha256Hex(String(email))).slice(0, 12)}` },
+  async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, cobros, urlRetorno }) {
+    const d = await pedirSus('/preapproval_plan', {
+      method: 'POST', headers: { 'X-Idempotency-Key': `plan-${suscripcionId}-${(await sha256Hex(String(urlRetorno))).slice(0, 12)}` },
       body: JSON.stringify({
-        reason: `AJL Nutrición · ${titulo}`, external_reference: suscripcionId, payer_email: email, back_url: urlRetorno, status: 'pending',
-        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(finEn ? { end_date: finEn } : {}) },
+        reason: `AJL Nutrición · ${titulo}`, back_url: urlRetorno,
+        auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(cobros ? { repetitions: cobros } : {}) },
       }),
     });
-    return { id: d.id, init_point: d.init_point };
+    return { planId: d.id, init_point: d.init_point };
   }
+  const buscarSuscripcionDePlan = async (planId) => (await pedirSus(`/preapproval/search?preapproval_plan_id=${encodeURIComponent(planId)}`)).results?.[0] ?? null;
+  const desactivarPlan = (planId) => pedirSus(`/preapproval_plan/${encodeURIComponent(planId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   const obtenerSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`);
   const cancelarSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   const obtenerCobroSuscripcion = (id) => pedirSus(`/authorized_payments/${encodeURIComponent(id)}`);
   const buscarCobrosSuscripcion = async (id) => (await pedirSus(`/authorized_payments/search?preapproval_id=${encodeURIComponent(id)}`)).results ?? [];
 
-  return { crearPreferencia, obtenerPago, crearSuscripcion, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
+  return { crearPreferencia, obtenerPago, crearSuscripcion, buscarSuscripcionDePlan, desactivarPlan, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
 }
 
 function iguales(a, b) {

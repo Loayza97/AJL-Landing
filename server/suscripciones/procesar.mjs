@@ -61,17 +61,39 @@ export async function cancelarEnMp(deps, env, s) {
   }
 }
 
+// Una suscripción con plan no sabe su preapproval hasta que el paciente autoriza: se reconoce por el plan
+// y se guarda. Después se desactiva el plan para que su link no sirva otra vez (best effort: un segundo
+// preapproval que saliera de él no es el guardado, así que sus cobros quedan como anómalos).
+async function asociarPorPlan(deps, s, preapprovalId) {
+  if (s.mp_preapproval_id || !preapprovalId) return s;
+  await sus.guardarPreapproval(deps.db, s.id, preapprovalId, deps.ahora());
+  try {
+    await deps.mp.desactivarPlan(s.mp_plan_id);
+  } catch (e) {
+    console.error('desactivar plan', s.id, s.mp_plan_id, e);
+  }
+  return { ...s, mp_preapproval_id: preapprovalId };
+}
+
+// La suscripción de un preapproval: por su id guardado, si no por su plan, si no por la referencia externa.
+async function suscripcionDe(deps, p) {
+  const id = String(p?.id ?? '');
+  const s = id ? await sus.porPreapproval(deps.db, id) : null;
+  if (s) return s;
+  const porPlan = p?.preapproval_plan_id ? await sus.porPlan(deps.db, String(p.preapproval_plan_id)) : null;
+  if (porPlan) return asociarPorPlan(deps, porPlan, id);
+  return p?.external_reference ? sus.porId(deps.db, p.external_reference) : null;
+}
+
 export async function procesarCobro(deps, env, authorizedId) {
   const ap = await deps.mp.obtenerCobroSuscripcion(authorizedId);
   if (!ap?.preapproval_id) return { estado: 'desconocido' };
-  let s = await sus.porPreapproval(deps.db, String(ap.preapproval_id));
-  if (!s) {
-    // Un reintento de pago pudo reemplazar el preapproval guardado: se busca por la referencia que le pusimos.
-    const p = await deps.mp.obtenerSuscripcion(String(ap.preapproval_id));
-    s = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
-  }
-  if (!s) return { estado: 'desconocido' };
   const preapprovalId = String(ap.preapproval_id);
+  // Si no está guardado: el cobro llegó antes que el aviso del preapproval (se reconoce por el plan),
+  // o un reintento de pago lo reemplazó (por la referencia que le pusimos).
+  const s = (await sus.porPreapproval(deps.db, preapprovalId))
+    ?? (await suscripcionDe(deps, { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId }));
+  if (!s) return { estado: 'desconocido' };
   // Un cobro de una suscripción ya cerrada, o de otro preapproval que no es el vigente (un reintento
   // de pago dejó dos), no corresponde: se registra porque es dinero real, pero no cuenta para el plan.
   const anomalo = !['pendiente', 'activa'].includes(s.estado) || (s.mp_preapproval_id != null && preapprovalId !== s.mp_preapproval_id);
@@ -146,7 +168,7 @@ export async function procesarCobro(deps, env, authorizedId) {
 
 export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
-  const s = (await sus.porPreapproval(deps.db, String(p?.id ?? ''))) ?? (p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null);
+  const s = await suscripcionDe(deps, p);
   if (!s) return { estado: 'desconocido' };
   // Aviso de un preapproval que un reintento de pago reemplazó: no es una baja del paciente.
   if (s.mp_preapproval_id && p.id && String(p.id) !== s.mp_preapproval_id) return { estado: 'reemplazada' };
@@ -164,8 +186,14 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
 
 // Respaldo de la página de regreso: revisa los cobros de la suscripción de esa reserva.
 export async function sincronizarDeReserva(deps, env, reservaId) {
-  const s = await sus.porReserva(deps.db, reservaId);
-  if (!s?.mp_preapproval_id) return;
+  let s = await sus.porReserva(deps.db, reservaId);
+  if (!s) return;
+  // Con plan, el regreso puede no traer el preapproval: se le pregunta a Mercado Pago por el plan.
+  if (!s.mp_preapproval_id && s.mp_plan_id) {
+    const p = await deps.mp.buscarSuscripcionDePlan(s.mp_plan_id);
+    if (p?.id) s = await asociarPorPlan(deps, s, String(p.id));
+  }
+  if (!s.mp_preapproval_id) return;
   for (const ap of await deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id)) {
     await procesarCobro(deps, env, String(ap.id));
   }

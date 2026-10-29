@@ -26,7 +26,6 @@ import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import * as sus from '../suscripciones/repo.mjs';
 import { procesarCobro, procesarPreapproval, sincronizarDeReserva, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
-import { finDeCobros } from '../suscripciones/calculo.mjs';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
@@ -198,18 +197,26 @@ export async function handlePagar(request, env, deps) {
           precio_mes_centimos: precio.precio_mes_centimos, precio_3m_centimos: precio.precio_3m_centimos, estado: 'pendiente',
           acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
       }
-      const pre = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, email: cliente.email,
-        urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`, finEn: finDeCobros(ahora, precio.cobros) });
-      await sus.guardarPreapproval(deps.db, id, pre.id, ahora);
-      // Reintento: solo con la nueva ya guardada se anula la anterior en Mercado Pago.
-      if (existente?.mp_preapproval_id && existente.mp_preapproval_id !== pre.id) {
+      // Un plan por suscripción y sin correo: Mercado Pago exige que payer_email sea el de la cuenta que paga.
+      const plan = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, cobros: precio.cobros,
+        urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}` });
+      await sus.guardarPlan(deps.db, id, plan.planId, ahora);
+      // Reintento con un plan nuevo: solo con el nuevo ya guardado se desactiva el anterior en Mercado Pago
+      // (y se cancela su preapproval, si el paciente ya lo había autorizado). Si falla, sigue: su link
+      // daría un preapproval que no es el guardado, y sus cobros quedan como anómalos.
+      if (existente?.mp_plan_id && existente.mp_plan_id !== plan.planId) {
         try {
-          await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
+          await deps.mp.desactivarPlan(existente.mp_plan_id);
+        } catch (e) {
+          console.error('desactivar plan anterior', e);
+        }
+        try {
+          if (existente.mp_preapproval_id) await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
         } catch (e) {
           console.error('cancelar suscripción anterior', e);
         }
       }
-      return json(200, { ok: true, url: pre.init_point });
+      return json(200, { ok: true, url: plan.init_point });
     }
     const pref = await deps.mp.crearPreferencia({
       reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email: cliente.email, nombre: cliente.nombre,
@@ -238,7 +245,9 @@ export async function handleEstado(request, env, deps) {
       console.error('estado/procesarPago', e);
     }
   }
-  if (r.forma_pago === 'mensual' && !['confirmada', 'pagada_sin_hora'].includes(r.estado) && q.get('preapproval_id')) {
+  // Pago mensual: el regreso del plan puede no traer preapproval_id, así que la página también pide
+  // sincronizar con sync=1 (en el primer sondeo y cada 5) y se busca por el plan.
+  if (r.forma_pago === 'mensual' && !['confirmada', 'pagada_sin_hora'].includes(r.estado) && (q.get('preapproval_id') || q.get('sync') === '1')) {
     try {
       await sincronizarDeReserva(deps, env, r.id);
       r = await repo.reservaPorToken(deps.db, r.token);

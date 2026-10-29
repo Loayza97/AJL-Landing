@@ -132,3 +132,23 @@ test('cancelar lanza si el conflicto persiste, y listar rechaza filtros inválid
   await assert.rejects(sus.cancelar(db, { id: 's1', motivo: 'paciente_mp', ahora: t0 }), /conflicto de concurrencia/);
   await assert.rejects(sus.listar(db, { filtro: 'x' }), /filtro inválido/);
 });
+
+test('guardarPlan y porPlan: la suscripción se encuentra por su plan de Mercado Pago', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base());
+  assert.equal(await sus.porPlan(db, 'plan1'), null);
+  await sus.guardarPlan(db, 's1', 'plan1', t0);
+  assert.equal((await sus.porPlan(db, 'plan1')).id, 's1');
+  await sus.crear(db, base({ id: 's2', token: 'tok2' }));
+  await assert.rejects(sus.guardarPlan(db, 's2', 'plan1', t0)); // un plan es de una sola suscripción
+});
+
+test('guardarPlan con un plan nuevo suelta el preapproval del anterior; con el mismo lo conserva', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ mp_preapproval_id: 'pre1' }));
+  await sus.guardarPlan(db, 's1', 'plan1', t0);
+  assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, null);
+  await sus.guardarPreapproval(db, 's1', 'pre2', t0);
+  await sus.guardarPlan(db, 's1', 'plan1', t0);
+  assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, 'pre2');
+});
