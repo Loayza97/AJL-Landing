@@ -5,11 +5,17 @@
 //      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs cobros <preapproval_id>
 //      MP_ACCESS_TOKEN=TEST-... node scripts/mp-suscripcion-prueba.mjs cancelar <preapproval_id>
 const API = 'https://api.mercadopago.com';
+// Sin acción, crea un comprador de prueba (lo más común al empezar).
+if (!process.argv[2]) process.argv[2] = 'comprador';
 // Si no viene MP_ACCESS_TOKEN, lo pide en la terminal (no queda en el historial).
 if (!process.env.MP_ACCESS_TOKEN) {
   const { createInterface } = await import('node:readline/promises');
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  process.env.MP_ACCESS_TOKEN = (await rl.question('Pega tu access token de prueba (TEST-...) y Enter: ')).trim();
+  process.env.MP_ACCESS_TOKEN = (await rl.question('Pega tu access token de prueba (empieza con TEST-) y Enter: ')).trim();
+  if (!process.env.MP_ACCESS_TOKEN.startsWith('TEST-')) {
+    console.log('Eso no es un access token de prueba. Está en Tus integraciones > tu aplicación > Credenciales de prueba > Access Token, y empieza con TEST-.');
+    process.exit(1);
+  }
   if (!process.env.EMAIL && process.argv[2] === 'crear') process.env.EMAIL = (await rl.question('Correo del comprador de prueba: ')).trim();
   rl.close();
 }
