@@ -96,3 +96,7 @@ tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
 .lk-plegable > summary h2::before { content: '▸'; display: inline-block; width: 1em; transition: transform .15s; }
 .lk-plegable[open] > summary h2::before { transform: rotate(90deg); }
 .lk-plegable[open] > summary .lk-nota { display: none; }
+
+/* Suscripciones (2026-10-28) */
+.lk-sus { max-width: 560px; margin-top: 12px; }
+.lk-btn--mini { min-height: 36px; font-size: .8rem; padding: 0 10px; margin-top: 6px; }

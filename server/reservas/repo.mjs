@@ -71,13 +71,13 @@ export async function crearRetencion(db, r) {
   const fin = finIso(r.inicio_utc, duracion);
   const insertar = db.prepare(
     `INSERT INTO reservas (id, token, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id,
-       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante, fin_utc, duracion_min)
-     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?14, ?12, ?12, ?15, ?16, ?17
+       inicio_utc, fecha_lima, modalidad, estado, retencion_hasta, huella, creado_en, actualizado_en, variante, fin_utc, duracion_min, forma_pago)
+     SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'apartada', ?11, ?14, ?12, ?12, ?15, ?16, ?17, ?18
      WHERE ${MINUTOS_DIA('?9')} + ?17 <= ?13
        AND ${NUTRI_CON_CUPO({ fecha: '?9', nutri: '?7', dur: '?17' })}
        AND NOT ${CRUCE({ ini: '?8', fin: '?16', nutri: '?7', modalidad: '?10', excluir: '?1' })}`,
   ).bind(r.id, r.token, r.producto, r.duracion_meses, r.monto_centimos, r.peso_tope, r.nutricionista_id,
-    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.tope, huella, r.variante ?? null, fin, duracion);
+    r.inicio_utc, r.fecha_lima, r.modalidad, hasta, ahoraIso, r.tope, huella, r.variante ?? null, fin, duracion, r.forma_pago ?? 'completo');
   try {
     const [, res] = await db.batch([expirar(db, ahoraIso), insertar]);
     if (res.meta.changes === 0) {
@@ -230,7 +230,14 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
              OR (estado IN ('apartada', 'pagando') AND retencion_hasta < ?1)))
        AND id NOT IN (SELECT cliente_id FROM reservas
              WHERE cliente_id IS NOT NULL AND (estado IN ('confirmada', 'pagada_sin_hora') OR cancelada_en_panel IS NOT NULL))`,
-  ).bind(limite)]);
+  ).bind(limite),
+  // Los datos copiados en una suscripción que nunca cobró (ni dejó deuda) siguen el mismo plazo.
+  db.prepare(
+    `UPDATE suscripciones SET nombre = NULL, email = NULL, dni = NULL, whatsapp = NULL, actualizado_en = ?2
+     WHERE estado = 'pendiente' AND cobros_aprobados = 0 AND penalidad_estado <> 'pendiente'
+       AND COALESCE(link_usado_en, creado_en) < ?1
+       AND (nombre IS NOT NULL OR email IS NOT NULL OR dni IS NOT NULL OR whatsapp IS NOT NULL)`,
+  ).bind(limite, ahora.toISOString())]);
 };
 
 // Quienes dejaron sus datos y no pagaron: su plazo para pagar venció dentro de

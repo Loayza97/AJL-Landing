@@ -126,6 +126,7 @@ button.sel-d[aria-pressed=true] { background: var(--ink); color: #fff; }
 .rs-doc select { width: auto; max-width: 50%; }
 .rs .rs-check { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
 .rs .rs-check input { margin-top: 3px; accent-color: var(--gold-ink); }
+.rs .rs-check[hidden], .rs-forma[hidden] { display: none; }
 .rs-link { border: 0; background: none; padding: 0; font: inherit; color: var(--gold-ink); text-decoration: underline; cursor: pointer; }
 .rs-cuotas { text-align: center; font-size: .88rem; font-weight: 600; color: var(--gold-ink); margin: 10px 0 0; }
 .rs-aviso { background: #FFF7E6; border-radius: 10px; padding: 10px 12px; font-size: .85rem; margin-top: 12px; }
@@ -140,6 +141,19 @@ button.sel-d[aria-pressed=true] { background: var(--ink); color: #fff; }
 .rs-modal-cuerpo { flex: 1 1 auto; min-height: 0; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
 .rs-modal-cuerpo p { margin: 4px 0 0; font-size: .9rem; line-height: 1.5; color: #3A3A3A; }
 .rs-modal > .rs-btn { flex: none; width: calc(100% - 44px); margin: 0 22px 18px; }
+
+/* ¿Cómo quieres pagar? (suscripciones, 2026-10-28) */
+.rs-forma { margin-top: 24px; }
+.rs-forma h2 { font-size: 1.3rem; margin: 0 0 12px; }
+.rs-formas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px; }
+.rs .rs-forma-op { display: flex; font-weight: 400; gap: 10px; align-items: flex-start; border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px; cursor: pointer; background: #fff; }
+.rs .rs-forma-op:has(input:checked) { border: 2px solid #9C7A2B; background: #F8F3E6; padding: 15px; }
+.rs .rs-forma-op input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: #806420; flex-shrink: 0; }
+.rs-forma-op span { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rs-forma-t { font-size: 1.05rem; }
+.rs-forma-p { font-size: 1.5rem; }
+.rs-forma-op ul { list-style: disc; margin: 0; padding-left: 18px; font-size: .9rem; color: #2B2B2B; }
+#p2-seguir { margin-top: 16px; }
 
 /* Celular: tarjetas apiladas; en la pantalla 2, 3 meses primero */
 @media (max-width: 760px) {

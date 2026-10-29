@@ -37,3 +37,15 @@ test('combinaciones inválidas devuelven null', () => {
   assert.equal(cotizar('inventado', 1), null);
   assert.equal(cotizar('__proto__', 1), null);
 });
+
+test('pago mensual: cuota del paquete, penalidad y cobros; no aplica a pago único', () => {
+  const c = cotizar('constancia', 3, 'mensual');
+  assert.equal(c.monto_centimos, 36000);
+  assert.equal(c.titulo, '2 sesiones al mes · 3 meses · pago mensual');
+  assert.equal(c.forma, 'mensual');
+  assert.equal(c.precio_mes_centimos, 44000);
+  assert.equal(c.cobros, 3);
+  assert.equal(cotizar('basico', 1, 'mensual'), null);
+  assert.equal(cotizar('constancia', 3, 'cuotas'), null);
+  assert.deepEqual(cotizar('constancia', 3, 'completo'), cotizar('constancia', 3));
+});

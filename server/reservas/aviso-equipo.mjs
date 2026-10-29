@@ -66,3 +66,14 @@ export async function avisarEquipo(deps, env, { tipo, r, antes = null }) {
     }
   }
 }
+
+// Avisos de suscripciones (spec 2026-10-27): solo a las fijas, no hay nutricionista de cita.
+export async function avisarFijas(deps, env, c) {
+  const to = destinatarios(env, FIJAS);
+  if (!to.length) return;
+  try {
+    await deps.sendEmail({ from: remitente(env), to, ...c });
+  } catch (e) {
+    console.error('aviso-equipo suscripción', e);
+  }
+}

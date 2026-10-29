@@ -20,6 +20,8 @@ FROM_EMAIL = "reclamos@ajlnutricion.com"
 NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
 NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
 PUBLIC_SITE_URL = "https://reservas-pago.ajl-landing.pages.dev"
+# Interruptor del pago mensual: solo en preview. En producción NO se define (apagado) hasta que Joaquín lo decida.
+SUSCRIPCIONES_ABIERTAS = "1"
 
 # Base de reservas (Cloudflare D1). El preview usa su propia base para que las
 # pruebas nunca toquen reservas reales. Los bindings no se heredan entre entornos.

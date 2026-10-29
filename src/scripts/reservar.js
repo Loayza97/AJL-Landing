@@ -11,7 +11,10 @@ import { destinoLink } from '../data/links-reserva.js';
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
 const soles = (c) => formatoSoles(Math.round(c / 100));
-const estado = { producto: null, duracion: null, reserva: null, reloj: null, selector: null };
+// ¿Está abierto el pago mensual? Lo decide el servidor (SUSCRIPCIONES_ABIERTAS); si no se puede saber, se asume que no.
+const suscripcionesAbiertas = fetch('/api/reservas/opciones', { cache: 'no-store' })
+  .then((r) => r.json()).then((d) => d?.suscripciones === true).catch(() => false);
+const estado = { producto: null, duracion: null, forma: 'completo', reserva: null, reloj: null, selector: null };
 const params = new URLSearchParams(location.search);
 
 const h = (tag, cls, texto) => {
@@ -50,11 +53,12 @@ function irA(paso) {
 
 // La barra de direcciones lleva el producto y la duración elegidos, así el link se
 // puede copiar y abre en el mismo paso (Joaquín, 2026-10-26). Los demás parámetros (utm…) quedan.
-function marcarUrl(plan, meses) {
+function marcarUrl(plan, meses, forma) {
   try {
     const u = new URL(location.href);
     if (plan) u.searchParams.set('plan', plan); else u.searchParams.delete('plan');
     if (meses) u.searchParams.set('meses', String(meses)); else u.searchParams.delete('meses');
+    if (forma === 'mensual') u.searchParams.set('forma', 'mensual'); else u.searchParams.delete('forma');
     history.replaceState(history.state, '', u);
   } catch {}
 }
@@ -68,6 +72,8 @@ function medir(evento, extra = {}) {
 
 function elegirProducto(id) {
   estado.producto = id;
+  estado.forma = 'completo';
+  $('#p2-forma').hidden = true;
   marcarUrl(id);
   const plan = catalogo[id];
   if (plan.mensual) {
@@ -83,6 +89,30 @@ function elegirProducto(id) {
     estado.duracion = 1;
     abrirP3();
   }
+}
+
+// «¿Cómo quieres pagar?»: pago mensual automático o pago completo (suscripciones, 2026-10-28).
+function opcionesForma(d) {
+  const s = d.sus;
+  const caja = (titulo, precio, puntos) => {
+    const frag = document.createDocumentFragment();
+    frag.append(h('b', 'rs-forma-t', titulo), h('strong', 'rs-forma-p', precio));
+    const ul = h('ul');
+    ul.append(...puntos.map((t) => h('li', null, t)));
+    frag.append(ul);
+    return frag;
+  };
+  $('#p2-mensual').replaceChildren(caja('Pago mensual automático', `${soles(s.cuota_centimos)} cada mes`, s.cobros
+    ? [`Son ${s.cobros} cobros y termina solo, sin renovación`, 'Se cobra solo con tu tarjeta o Yape', 'Cancelas cuando quieras con un botón en cada recibo',
+      'Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes']
+    : ['Se cobra solo cada mes con tu tarjeta o Yape', 'Cancelas cuando quieras, sin penalidad']));
+  $('#p2-completo').replaceChildren(caja(d.meses === 1 ? 'Pagar este mes' : 'Pago completo', soles(d.total * 100),
+    d.meses === 1 ? ['Una sola vez, con tarjeta o Yape', 'El próximo mes decides si sigues'] : ['Con tarjeta o Yape', 'Con tarjeta de crédito, hasta 12 cuotas']));
+  document.querySelectorAll('[name=forma]').forEach((r) => { r.checked = false; });
+  estado.forma = 'completo';
+  $('#p2-seguir').disabled = true;
+  $('#p2-forma').hidden = false;
+  $('#p2-forma').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
 }
 
 function abrirP3(mensaje = '') {
@@ -115,7 +145,7 @@ async function apartar(eleccion) {
   try {
     const r = await fetch('/api/reservas/apartar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, ...eleccion, liberar: horaApartada(), variante: varianteHero() }),
+      body: JSON.stringify({ producto: estado.producto, duracion: estado.duracion, forma: estado.forma, ...eleccion, liberar: horaApartada(), variante: varianteHero() }),
     });
     const d = await r.json();
     if (!r.ok) { $('#p3-error').textContent = d.error || 'Esa hora ya no está disponible.'; estado.selector.recargar(); return; }
@@ -133,11 +163,21 @@ function abrirP4(reserva) {
   estado.reserva = reserva;
   $('#p4-resumen').innerHTML = '';
   const linea = (t) => { const p = document.createElement('div'); p.textContent = t; $('#p4-resumen').append(p); };
-  linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}`);
+  const mensual = (reserva.forma ?? reserva.forma_pago) === 'mensual';
+  estado.forma = mensual ? 'mensual' : 'completo';
+  linea(`${reserva.titulo} · ${soles(reserva.monto_centimos)}${mensual ? ' al mes' : ''}`);
   linea(`${reserva.etiqueta} · ${NOMBRE_MODALIDAD[reserva.modalidad]} · con ${reserva.nutricionista?.nombre ?? 'el equipo'}`);
   $('#p4-resumen').append(nodoDonde(reserva.modalidad));
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
-  $('#p4-pagar').textContent = `Pagar ${soles(reserva.monto_centimos)}`;
+  $('.rs-cuotas').hidden = mensual;
+  $('#l-acepto-sus').hidden = !mensual;
+  $('#f-acepto-sus').checked = false;
+  if (mensual) {
+    $('#t-acepto-sus').textContent = reserva.cobros
+      ? `Acepto ${reserva.cobros} cobros mensuales automáticos de ${soles(reserva.monto_centimos)} y que, si cancelo antes del último, pago la diferencia de los meses usados con el precio mes a mes${reserva.cobros === 6 ? ' (o con el paquete de 3 meses si ya usé 3)' : ''}.`
+      : `Acepto el cobro mensual automático de ${soles(reserva.monto_centimos)} hasta que cancele.`;
+  }
+  $('#p4-pagar').textContent = mensual ? 'Suscribirme con Mercado Pago' : `Pagar ${soles(reserva.monto_centimos)}`;
   $('#p4-error').textContent = '';
   clearInterval(estado.reloj);
   const tick = () => {
@@ -183,9 +223,15 @@ async function pagar(e) {
     apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto($('#f-pais').value, $('#f-whatsapp').value), email: $('#f-email').value,
     fecha_nacimiento: fechaNacimiento(), tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
     acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
+    acepto_suscripcion: $('#f-acepto-sus').checked,
   };
   const previa = validarDatos(datos, hoyEnLima(new Date()));
   if (!previa.ok) { $('#p4-error').textContent = previa.error; boton.disabled = false; return; }
+  if (estado.forma === 'mensual' && !datos.acepto_suscripcion) {
+    $('#p4-error').textContent = 'Para continuar, acepta los cobros mensuales automáticos.';
+    boton.disabled = false;
+    return;
+  }
   try {
     const r = await fetch('/api/reservas/pagar', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -193,6 +239,8 @@ async function pagar(e) {
     });
     const d = await r.json();
     if (r.status === 410) { abrirP3(d.error); return; }
+    // Con penalidad pendiente el servidor no da link: el aviso va por correo.
+    if (r.status === 409 && d.motivo === 'penalidad') { $('#p4-error').textContent = d.error; boton.disabled = false; return; }
     if (!r.ok) { $('#p4-error').textContent = d.error || 'Revisa tus datos.'; boton.disabled = false; return; }
     location.href = d.url;
   } catch {
@@ -209,13 +257,28 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-producto],[data-duracion],[data-volver]');
   if (!b) return;
   if (b.dataset.producto) elegirProducto(b.dataset.producto);
-  else if (b.dataset.duracion) { estado.duracion = Number(b.dataset.duracion); marcarUrl(estado.producto, estado.duracion); abrirP3(); }
+  else if (b.dataset.duracion) {
+    estado.duracion = Number(b.dataset.duracion);
+    document.querySelectorAll('[data-duracion]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const d = catalogo[estado.producto].duraciones.find((x) => x.meses === estado.duracion);
+    suscripcionesAbiertas.then((abiertas) => {
+      if (estado.duracion !== d.meses) return; // eligió otra mientras tanto
+      if (abiertas) opcionesForma(d);
+      else { estado.forma = 'completo'; marcarUrl(estado.producto, estado.duracion, 'completo'); abrirP3(); }
+    });
+  }
   else if (b.dataset.volver) {
     if (b.dataset.volver === 'p1') marcarUrl(null);
     irA(b.dataset.volver);
   }
 });
 $('#p4-form').addEventListener('submit', pagar);
+document.addEventListener('change', (e) => {
+  if (e.target.name !== 'forma') return;
+  estado.forma = e.target.value;
+  $('#p2-seguir').disabled = false;
+});
+$('#p2-seguir').addEventListener('click', () => { marcarUrl(estado.producto, estado.duracion, estado.forma); abrirP3(); });
 
 // Retomar una reserva apartada (volver desde Mercado Pago tras un rechazo).
 async function retomar(token) {
@@ -240,8 +303,9 @@ function leerGuardado(clave) {
   const token = params.get('r') || leerGuardado('ajl_reserva_r');
   if (token && await retomar(token)) return;
   // ?plan=constancia abre las duraciones; con &meses=3, directo al calendario.
-  const d = destinoLink(params.get('plan'), params.get('meses'));
+  const d = destinoLink(params.get('plan'), params.get('meses'), params.get('forma'));
+  if (d.forma === 'mensual' && !(await suscripcionesAbiertas)) d.forma = 'completo'; // apagado: se ignora &forma=mensual
   if (!d.plan || !catalogo[d.plan]) { irA('p1'); return; }
   elegirProducto(d.plan);
-  if (d.meses) { estado.duracion = d.meses; marcarUrl(d.plan, d.meses); abrirP3(); }
+  if (d.meses) { estado.duracion = d.meses; estado.forma = d.forma ?? 'completo'; marcarUrl(d.plan, d.meses, estado.forma); abrirP3(); }
 })();
