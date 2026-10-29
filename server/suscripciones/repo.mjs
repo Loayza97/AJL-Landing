@@ -154,7 +154,9 @@ export const deudaPorDni = (db, dni) => db.prepare(
 ).bind(normalDni(dni)).first();
 
 const FILTROS = {
-  todas: "estado <> 'pendiente'",
+  // Las pendientes que ya autorizaron en Mercado Pago (tienen preapproval) sí se listan:
+  // esperan el primer cobro y el equipo puede sincronizarlas.
+  todas: "(estado <> 'pendiente' OR mp_preapproval_id IS NOT NULL)",
   activas: "estado = 'activa'",
   terminan: "estado = 'activa' AND duracion_meses > 1 AND cobros_aprobados = duracion_meses - 1",
   fallido: "estado = 'cobro_fallido'",

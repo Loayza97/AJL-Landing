@@ -5,7 +5,7 @@ import { formatoSoles } from '../data/duraciones.js';
 const $ = (s) => document.querySelector(s);
 const soles = (c) => formatoSoles(Math.round(c / 100));
 const fecha = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short' }).format(new Date(iso)) : '—');
-const ESTADO = { activa: 'Activa', terminada: 'Terminó', cobro_fallido: 'Cobro fallido', cancelada: 'Cancelada' };
+const ESTADO = { pendiente: 'Esperando primer cobro', activa: 'Activa', terminada: 'Terminó', cobro_fallido: 'Cobro fallido', cancelada: 'Cancelada' };
 let filtro = 'todas';
 let esAdmin = false;
 

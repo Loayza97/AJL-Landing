@@ -91,12 +91,13 @@ test('listar filtra por estado y por último mes', async () => {
   await sus.crear(db, base({ id: 'b', token: 'b', estado: 'activa', cobros_aprobados: 2 }));
   await sus.crear(db, base({ id: 'c', token: 'c', estado: 'cancelada', penalidad_estado: 'pendiente' }));
   await sus.crear(db, base({ id: 'd', token: 'd', estado: 'pendiente' }));
+  await sus.crear(db, base({ id: 'e', token: 'e', estado: 'pendiente', mp_preapproval_id: 'pre-e' }));
   const ids = async (filtro) => (await sus.listar(db, { filtro })).map((s) => s.id).sort();
   assert.deepEqual(await ids('activas'), ['a', 'b']);
   assert.deepEqual(await ids('terminan'), ['b']);
   assert.deepEqual(await ids('penalidad'), ['c']);
   assert.deepEqual(await ids('canceladas'), ['c']);
-  assert.deepEqual(await ids('todas'), ['a', 'b', 'c']); // las pendientes sin pagar no se listan
+  assert.deepEqual(await ids('todas'), ['a', 'b', 'c', 'e']); // las pendientes sin autorizar no se listan
 });
 
 test('cancelar usa los cobros actuales (16000 con 2 cobros)', async () => {
