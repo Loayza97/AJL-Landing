@@ -436,7 +436,7 @@ test('pagar de nuevo y Mercado Pago devuelve el mismo plan (misma key): no se de
 
 test('pagar de nuevo cuando ya autorizó el plan: 409 esperando_cobro, sin plan nuevo ni cancelar nada', async () => {
   const canceladas = [];
-  const d = deps({ mp: { cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const d = deps({ mp: { cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; }, obtenerSuscripcion: async (id) => ({ id, status: 'authorized' }) } });
   const { token } = await (await apartar(d, { forma: 'mensual' })).json();
   const body = { token, ...datos, acepto_suscripcion: true };
   await handlePagar(post('/api/reservas/pagar', body), env, d);
@@ -494,4 +494,50 @@ test('pagar con una suscripción ya activa para esa reserva: 409 y no se crea ot
   assert.equal(r.status, 409);
   assert.equal((await r.json()).motivo, 'suscripcion_existente');
   assert.equal(d.creadas.length, 0);
+});
+
+test('pagar de nuevo con el preapproval guardado sin autorizar: plan nuevo, se suelta y cancela el viejo', async () => {
+  let n = 0;
+  const canceladas = [];
+  const d = deps({ mp: { crearSuscripcion: async () => ({ planId: `plan${++n}`, init_point: `https://mp/sus${n}` }),
+    obtenerSuscripcion: async (id) => ({ id, status: 'pending' }), cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  await handlePagar(post('/api/reservas/pagar', body), env, d);
+  const id = (await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id)).id;
+  await sus.asociarPreapproval(d.db, id, 'pre1', t0);
+  assert.deepEqual(await (await handlePagar(post('/api/reservas/pagar', body), env, d)).json(), { ok: true, url: 'https://mp/sus2' });
+  assert.deepEqual(canceladas, ['pre1']);
+  assert.deepEqual(d.desactivados, ['plan1']);
+  const s = await sus.porId(d.db, id);
+  assert.equal(s.mp_plan_id, 'plan2');
+  assert.equal(s.mp_preapproval_id, null);
+});
+
+test('pagar de nuevo sin autorizar y Mercado Pago devuelve el mismo plan: se suelta y cancela el preapproval viejo', async () => {
+  const canceladas = [];
+  const d = deps({ mp: { obtenerSuscripcion: async (id) => ({ id, status: 'pending' }), cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  await handlePagar(post('/api/reservas/pagar', body), env, d);
+  const id = (await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id)).id;
+  await sus.asociarPreapproval(d.db, id, 'pre1', t0);
+  assert.equal((await handlePagar(post('/api/reservas/pagar', body), env, d)).status, 200);
+  assert.deepEqual(canceladas, ['pre1']);
+  assert.deepEqual(d.desactivados, []);
+  assert.equal((await sus.porId(d.db, id)).mp_preapproval_id, null);
+});
+
+test('pagar de nuevo y no se puede revisar el preapproval guardado: 503 sin tocar nada', async () => {
+  const d = deps({ mp: { obtenerSuscripcion: async () => { throw new Error('caído'); } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  await handlePagar(post('/api/reservas/pagar', body), env, d);
+  const id = (await sus.porReserva(d.db, (await repo.reservaPorToken(d.db, token)).id)).id;
+  await sus.asociarPreapproval(d.db, id, 'pre1', t0);
+  const r = await handlePagar(post('/api/reservas/pagar', body), env, d);
+  assert.equal(r.status, 503);
+  assert.equal((await r.json()).error, 'No pudimos revisar tu pago. Intenta en unos minutos.');
+  assert.equal(d.creadas.length, 1);
+  assert.equal((await sus.porId(d.db, id)).mp_preapproval_id, 'pre1');
 });

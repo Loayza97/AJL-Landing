@@ -192,7 +192,16 @@ export async function handlePagar(request, env, deps) {
         }
         // Ya autorizó en Mercado Pago y falta el primer cobro: un plan nuevo dejaría dos suscripciones cobrando.
         if (existente.mp_preapproval_id) {
-          return bad(409, 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.', { motivo: 'esperando_cobro' });
+          let pre;
+          try {
+            pre = await deps.mp.obtenerSuscripcion(existente.mp_preapproval_id);
+          } catch (e) {
+            console.error('pagar/revisar suscripción', e);
+            return bad(503, 'No pudimos revisar tu pago. Intenta en unos minutos.');
+          }
+          if (pre?.status === 'authorized') {
+            return bad(409, 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.', { motivo: 'esperando_cobro' });
+          }
         }
         await sus.actualizarContacto(deps.db, id, { nombre: cliente.nombre, email: cliente.email, dni: cliente.dni, whatsapp: cliente.whatsapp, ahora });
       } else {
@@ -205,19 +214,21 @@ export async function handlePagar(request, env, deps) {
       const plan = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, cobros: precio.cobros,
         urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}` });
       await sus.guardarPlan(deps.db, id, plan.planId, ahora);
-      // Reintento con un plan nuevo: solo con el nuevo ya guardado se desactiva el anterior en Mercado Pago
-      // (y se cancela su preapproval, si hubiera uno). Si falla, sigue: el plan viejo queda en
+      // Reintento: solo con el plan ya guardado se cancela el preapproval anterior sin autorizar (guardarPlan
+      // lo soltó) y, si el plan cambió, se desactiva el anterior. Si falla, sigue: el plan viejo queda en
       // suscripcion_planes y lo que salga de él se trata como anómalo.
-      if (existente && existente.mp_plan_id !== plan.planId) {
+      if (existente?.mp_preapproval_id) {
         try {
-          if (existente.mp_plan_id) await deps.mp.desactivarPlan(existente.mp_plan_id);
-        } catch (e) {
-          console.error('desactivar plan anterior', e);
-        }
-        try {
-          if (existente.mp_preapproval_id) await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
+          await deps.mp.cancelarSuscripcion(existente.mp_preapproval_id);
         } catch (e) {
           console.error('cancelar suscripción anterior', e);
+        }
+      }
+      if (existente?.mp_plan_id && existente.mp_plan_id !== plan.planId) {
+        try {
+          await deps.mp.desactivarPlan(existente.mp_plan_id);
+        } catch (e) {
+          console.error('desactivar plan anterior', e);
         }
       }
       return json(200, { ok: true, url: plan.init_point });

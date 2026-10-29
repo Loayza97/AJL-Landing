@@ -219,7 +219,7 @@ test('preapproval de nuestro plan sin referencia externa: se asocia y el plan se
   assert.equal(s.estado, 'pendiente');
   assert.deepEqual(d.desactivados, ['plan1']);
   await procesarPreapproval(d, env, 'pre1');
-  assert.deepEqual(d.desactivados, ['plan1']); // ya asociado: no se vuelve a desactivar
+  assert.deepEqual(d.desactivados, ['plan1', 'plan1']); // idempotente: cada aviso authorized lo pide de nuevo
 });
 
 test('si desactivar el plan falla, el preapproval igual queda asociado', async () => {
@@ -335,4 +335,66 @@ test('preapproval todavía pendiente: se asocia pero el plan no se desactiva', a
   await procesarPreapproval(d, env, 'pre1');
   assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
   assert.deepEqual(d.desactivados, []);
+});
+
+test('asociado mientras estaba pendiente: el aviso authorized posterior desactiva el plan una vez', async () => {
+  const pre = { pre1: { id: 'pre1', status: 'pending', preapproval_plan_id: 'plan1' } };
+  const d = armar({ pre });
+  await conPlan(d);
+  await procesarPreapproval(d, env, 'pre1');
+  assert.deepEqual(d.desactivados, []);
+  pre.pre1 = { ...pre.pre1, status: 'authorized' };
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'authorized' });
+  assert.deepEqual(d.desactivados, ['plan1']);
+});
+
+test('primer cobro aprobado desactiva el plan aunque la fila se encuentre por su preapproval', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: cobro('a2', 'p2') }, pagos: { p1: pago('p1'), p2: pago('p2') } });
+  await conPlan(d);
+  await sus.asociarPreapproval(d.db, 's1', 'pre1', t0);
+  await procesarCobro(d, env, 'a1');
+  await procesarCobro(d, env, 'a2');
+  assert.deepEqual(d.desactivados, ['plan1']); // solo con el cobro número 1
+});
+
+test('aviso del preapproval que perdió la carrera del mismo plan: se cancela, sin baja', async () => {
+  const d = armar({ pre: { pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await sus.asociarPreapproval(d.db, 's1', 'pre1', t0);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre2'), { estado: 'reemplazada' });
+  assert.deepEqual(d.canceladas, ['pre2']);
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
+  assert.deepEqual(d.desactivados, []);
+});
+
+test('preapproval cancelado que soltó un reintento, del mismo plan: no se asocia ni da de baja', async () => {
+  const d = armar({ pre: { pre0: { id: 'pre0', status: 'cancelled', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre0'), { estado: 'reemplazada' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, null);
+  assert.equal(s.estado, 'pendiente');
+  assert.deepEqual(d.canceladas, []);
+});
+
+test('por la referencia externa se asocia solo si la fila no tiene uno', async () => {
+  const d = armar({ pre: { preA: { id: 'preA', status: 'authorized', external_reference: 's1' } } });
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = NULL WHERE id = 's1'").run();
+  // Otro aviso gana entre la lectura y la escritura.
+  const prepare = d.db.prepare.bind(d.db);
+  let una = true;
+  d.db.prepare = (sql) => {
+    if (una && sql.includes('mp_preapproval_id IS NULL')) {
+      una = false;
+      return { bind: (...a) => ({ run: async () => {
+        await prepare("UPDATE suscripciones SET mp_preapproval_id = 'preB' WHERE id = 's1'").run();
+        return prepare(sql).bind(...a).run();
+      } }) };
+    }
+    return prepare(sql);
+  };
+  assert.deepEqual(await procesarPreapproval(d, env, 'preA'), { estado: 'reemplazada' });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'preB');
+  assert.deepEqual(d.canceladas, ['preA']);
 });

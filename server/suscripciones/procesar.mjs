@@ -61,20 +61,24 @@ export async function cancelarEnMp(deps, env, s) {
   }
 }
 
+// Con el preapproval guardado autorizado (o su primer cobro aprobado) se desactiva el plan, para que su
+// link no sirva otra vez. Best effort e idempotente: otro preapproval que saliera de él sería anómalo.
+async function desactivarPlanDe(deps, s) {
+  if (!s.mp_plan_id) return;
+  try {
+    await deps.mp.desactivarPlan(s.mp_plan_id);
+  } catch (e) {
+    console.error('desactivar plan', s.id, s.mp_plan_id, e);
+  }
+}
+
 // Una suscripción con plan no sabe su preapproval hasta que el paciente autoriza: se reconoce por el plan
 // y se guarda, solo si la fila no tiene uno (si dos preapprovals del mismo plan llegan a la vez, gana uno
-// y se relee la fila, así el otro queda como anómalo). Con el preapproval autorizado se desactiva el plan
-// para que su link no sirva otra vez (best effort: otro preapproval que saliera de él sería anómalo).
+// y se relee la fila, así el otro queda como anómalo). Uno ya cancelado no se asocia: es el que soltó
+// un reintento de pago, y su aviso no debe dar de baja la suscripción.
 async function asociarPorPlan(deps, s, preapprovalId, status) {
-  if (s.mp_preapproval_id || !preapprovalId) return s;
+  if (s.mp_preapproval_id || !preapprovalId || status === 'cancelled') return s;
   if (!(await sus.asociarPreapproval(deps.db, s.id, preapprovalId, deps.ahora()))) return sus.porId(deps.db, s.id);
-  if (status === 'authorized') {
-    try {
-      await deps.mp.desactivarPlan(s.mp_plan_id);
-    } catch (e) {
-      console.error('desactivar plan', s.id, s.mp_plan_id, e);
-    }
-  }
   return { ...s, mp_preapproval_id: preapprovalId };
 }
 
@@ -159,7 +163,10 @@ export async function procesarCobro(deps, env, authorizedId) {
     await alPaciente(deps, env, actual, correoRecibo({ nombre: actual.nombre?.split(' ')[0] ?? '', titulo: titulo(actual), numero,
       cobros: actual.duracion_meses > 1 ? actual.duracion_meses : null, cuota: actual.cuota_centimos, urlCancelar: urlCancelar(env, actual),
       penalidadHoy: penalidadAlCancelar(actual) }));
-    if (numero === 1) await avisarFijas(deps, env, correoEquipoSuscripcion('nueva', actual));
+    if (numero === 1) {
+      await desactivarPlanDe(deps, actual);
+      await avisarFijas(deps, env, correoEquipoSuscripcion('nueva', actual));
+    }
     if (esUltimoCobro(actual, numero) && await sus.marcarTerminada(deps.db, s.id, deps.ahora())) {
       await cancelarEnMp(deps, env, actual);
       await avisarFijas(deps, env, correoEquipoSuscripcion('ultimo', actual));
@@ -197,7 +204,7 @@ export async function procesarCobro(deps, env, authorizedId) {
 
 export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
-  const { s, reemplazado } = await suscripcionDe(deps, p);
+  let { s, reemplazado } = await suscripcionDe(deps, p);
   if (!s) return { estado: 'desconocido' };
   // Preapproval de un plan reemplazado: no es la suscripción vigente; se cancela para que no cobre
   // (si falla, cancelarEnMp avisa al equipo; si igual cobra, el cobro queda como anómalo).
@@ -205,9 +212,18 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
     if (p.status !== 'cancelled') await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: String(p.id) });
     return { estado: 'reemplazada' };
   }
-  // Aviso de un preapproval que un reintento de pago reemplazó: no es una baja del paciente.
-  if (s.mp_preapproval_id && p.id && String(p.id) !== s.mp_preapproval_id) return { estado: 'reemplazada' };
-  if (!s.mp_preapproval_id && p.id) await sus.guardarPreapproval(deps.db, s.id, String(p.id), deps.ahora());
+  const id = String(p.id ?? '');
+  // Por la referencia externa: se asocia solo si la fila no tiene uno (si otro ganó, se relee).
+  if (!s.mp_preapproval_id && id && p.status !== 'cancelled') {
+    s = (await sus.asociarPreapproval(deps.db, s.id, id, deps.ahora())) ? { ...s, mp_preapproval_id: id } : await sus.porId(deps.db, s.id);
+  }
+  // Aviso de un preapproval que no es el guardado (lo reemplazó un reintento de pago, o perdió contra
+  // otro del mismo plan): no es una baja del paciente; si sigue vivo, se cancela para que no cobre.
+  if (id && id !== s.mp_preapproval_id) {
+    if (p.status !== 'cancelled') await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: id });
+    return { estado: 'reemplazada' };
+  }
+  if (p.status === 'authorized') await desactivarPlanDe(deps, s);
   if (p.status === 'cancelled') {
     const res = await sus.cancelar(deps.db, { id: s.id, motivo: 'paciente_mp', ahora: deps.ahora() });
     if (res.cambio) {

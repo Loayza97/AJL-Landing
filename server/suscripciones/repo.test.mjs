@@ -143,14 +143,15 @@ test('guardarPlan y porPlan: la suscripción se encuentra por su plan de Mercado
   await assert.rejects(sus.guardarPlan(db, 's2', 'plan1', t0)); // un plan es de una sola suscripción
 });
 
-test('guardarPlan con un plan nuevo suelta el preapproval del anterior; con el mismo lo conserva', async () => {
+test('guardarPlan suelta el preapproval guardado, aunque el plan sea el mismo', async () => {
   const db = d1DePrueba();
   await sus.crear(db, base({ mp_preapproval_id: 'pre1' }));
   await sus.guardarPlan(db, 's1', 'plan1', t0);
   assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, null);
   await sus.guardarPreapproval(db, 's1', 'pre2', t0);
   await sus.guardarPlan(db, 's1', 'plan1', t0);
-  assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, 'pre2');
+  assert.equal((await sus.porId(db, 's1')).mp_preapproval_id, null);
+  assert.equal((await sus.porId(db, 's1')).mp_plan_id, 'plan1');
 });
 
 test('suscripcionDePlan recuerda los planes reemplazados', async () => {
