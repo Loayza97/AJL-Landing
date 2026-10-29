@@ -4,7 +4,11 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Perfil de cada nutricionista en /reservar/ (opción 1 elegida por Romi, 2026-10-29): las fotos del equipo son burbujas que laten; al tocar una crece, aparece su perfil (tema y descripción) y el calendario muestra solo sus horas. «Ver horas de todo el equipo» quita el filtro. Fotos nuevas de Paola y Jussara.
+Nada por ahora.
+
+## 2026-10-29 · publicado
+
+- Perfil de cada nutricionista en /reservar/ (opción 1 elegida por Romi, 2026-10-29): las fotos del equipo son burbujas que laten; al tocar una crece, aparece su perfil (tema y descripción) y el calendario muestra solo sus horas. «Ver horas de todo el equipo» quita el filtro. Fotos nuevas de Nico, Paola y Jussara con el encuadre de Paolo.
 
 ## 2026-10-13 a 2026-10-29 · publicado
 
