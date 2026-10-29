@@ -1,4 +1,4 @@
-// /suscripcion/cancelar/?s=…: pagar la penalidad y cancelar, cancelar sin pagar, o seguir.
+// /suscripcion/cancelar/?s=…: pagar la penalidad y cancelar, o seguir con el plan.
 // Darse de baja nunca depende de pagar (spec 2026-10-27).
 import { formatoSoles } from '../data/duraciones.js';
 
@@ -40,9 +40,10 @@ function pintar(d) {
   if (d.penalidad_centimos > 0) {
     hijos.push(h('p', `Cancelar antes del último cobro tiene una penalidad de ${soles(d.penalidad_centimos)}: la diferencia de los meses que usaste con el precio que les correspondía (${d.detalle}). Después ya no se te cobra nada más.`, 'rs-aviso'),
       boton(`Pagar ${soles(d.penalidad_centimos)} y cancelar`, 'rs-btn', (e) => enviar(true, e.currentTarget)),
-      h('p', 'Pagas en Mercado Pago con tarjeta o Yape. Al confirmarse, tu plan queda cancelado.', 'rs-nota'),
-      boton('Cancelar sin pagar ahora', 'rs-btn rs-btn--ghost', (e) => enviar(false, e.currentTarget)),
-      h('p', `Tu plan se cancela igual. Los ${soles(d.penalidad_centimos)} quedan pendientes y se pagan si vuelves a reservar.`, 'rs-nota'));
+      h('p', 'Pagas en Mercado Pago con tarjeta o Yape. Al confirmarse, tu plan queda cancelado.', 'rs-nota'));
+    // «Cancelar sin pagar ahora» se quitó de la página (Joaquín, 2026-10-29) para ver cómo responden
+    // los pacientes. La API lo sigue aceptando y la baja desde la cuenta de Mercado Pago deja la
+    // penalidad pendiente como antes.
   } else {
     hijos.push(h('p', 'No tienes penalidad. Al cancelar ya no se te cobra nada más.', 'rs-lead'), boton('Cancelar mi plan', 'rs-btn', (e) => enviar(false, e.currentTarget)));
   }
