@@ -5,8 +5,8 @@ import * as sus from '../suscripciones/repo.mjs';
 import { handleEquipoSuscripciones, handleEquipoSuscripcionPenalidad } from './equipo-suscripciones.mjs';
 
 const t0 = new Date('2026-11-03T15:00:00Z');
-const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com' };
-const deps = (o = {}) => ({ db: d1DePrueba(), ahora: () => t0, acceso: async () => ({ ok: true, email: 'romi@x.pe' }), ...o });
+const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', SUSCRIPCIONES_ABIERTAS: '1' };
+const deps = (o = {}) => ({ db: d1DePrueba(), ahora: () => t0, acceso: async () => ({ ok: true, email: 'romi@x.pe', admin: false }), ...o });
 const post = (ruta, b) => new Request(`https://x.test${ruta}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) });
 
 test('crear link: cuota y penalidad del servidor, vence en 7 días, URL de un solo uso', async () => {
@@ -48,4 +48,34 @@ test('penalidad: fila sin penalidad pendiente 409 y sin cambios; id desconocido 
   assert.equal(s.penalidad_estado, 'no_aplica');
   assert.equal(s.penalidad_marcada_por, null);
   assert.equal((await handleEquipoSuscripcionPenalidad(post('/api/equipo/suscripciones-penalidad', { id: 'zz' }), env, d)).status, 404);
+});
+
+const crear = (e, d, producto = 'prueba', meses = 3) => handleEquipoSuscripciones(post('/api/equipo/suscripciones', { nombre: 'Yo', producto, meses }), e, d);
+const admin = () => deps({ acceso: async () => ({ ok: true, email: 'joaquin@x.pe', admin: true }) });
+
+test('prueba: solo administradores (403 al equipo), cuota S/5 y 3 cobros', async () => {
+  assert.equal((await crear(env, deps())).status, 403);
+  const d = admin();
+  const j = await (await crear(env, d)).json();
+  assert.equal(j.cuota_centimos, 500);
+  assert.equal(j.titulo, 'Prueba interna · 3 meses · pago mensual');
+  const s = await d.db.prepare("SELECT producto, duracion_meses, cuota_centimos, precio_mes_centimos FROM suscripciones").first();
+  assert.deepEqual({ ...s }, { producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 1000 });
+  assert.equal((await crear(env, admin(), 'prueba', 6)).status, 400);
+});
+
+test('interruptor apagado: prueba sigue disponible para administradores, cualquier otro producto 400', async () => {
+  for (const e of [{ PUBLIC_SITE_URL: env.PUBLIC_SITE_URL }, { ...env, SUSCRIPCIONES_ABIERTAS: '0' }]) {
+    assert.equal((await crear(e, admin(), 'constancia', 3)).status, 400);
+    assert.equal((await crear(e, deps(), 'constancia', 3)).status, 400);
+    assert.equal((await crear(e, deps())).status, 403);
+    assert.equal((await crear(e, admin())).status, 200);
+  }
+  assert.equal((await crear(env, deps(), 'constancia', 3)).status, 200);
+});
+
+test('listar devuelve admin para que el panel decida qué ofrecer', async () => {
+  const j = async (d) => (await handleEquipoSuscripciones(new Request('https://x.test/api/equipo/suscripciones'), env, d)).json();
+  assert.equal((await j(admin())).admin, true);
+  assert.equal((await j(deps())).admin, false);
 });

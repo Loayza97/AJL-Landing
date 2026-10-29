@@ -5,7 +5,7 @@
 import { json, readJson, siteUrl } from '../http.mjs';
 import { randomToken, sha256Hex } from '../tokens.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { condicionesSuscripcion } from '../suscripciones/calculo.mjs';
+import { condicionesSuscripcion, PRODUCTO_PRUEBA } from '../suscripciones/calculo.mjs';
 
 const VENCE_DIAS = 7;
 const MES = 30 * 86400000;
@@ -20,12 +20,14 @@ const fila = (s) => ({
   cancelada_en: s.cancelada_en, motivo_cancelacion: s.motivo_cancelacion,
 });
 
-async function crearLink(request, env, deps, email) {
+async function crearLink(request, env, deps, { email, admin }) {
   const d = await readJson(request);
   const nombre = String(d.nombre ?? '').trim().slice(0, 120);
   const c = condicionesSuscripcion(d.producto, Number(d.meses));
   if (!nombre) return bad(400, 'Escribe el nombre del paciente.');
   if (!c) return bad(400, 'Elige el plan y el paquete.');
+  if (d.producto === PRODUCTO_PRUEBA && admin !== true) return bad(403, 'El producto de prueba es solo para administradores.');
+  if (d.producto !== PRODUCTO_PRUEBA && env.SUSCRIPCIONES_ABIERTAS !== '1') return bad(400, 'El pago mensual todavía no está disponible.');
   const token = randomToken();
   const ahora = deps.ahora();
   const vence = new Date(ahora.getTime() + VENCE_DIAS * 86400000).toISOString();
@@ -40,10 +42,10 @@ export async function handleEquipoSuscripciones(request, env, deps) {
   if (!['GET', 'POST'].includes(request.method)) return bad(405, 'Método no permitido');
   const acceso = await deps.acceso(request, env);
   if (!acceso.ok) return sinAcceso();
-  if (request.method === 'POST') return crearLink(request, env, deps, acceso.email);
+  if (request.method === 'POST') return crearLink(request, env, deps, acceso);
   const filtro = new URL(request.url).searchParams.get('filtro') || 'todas';
   if (!sus.FILTROS_SUSCRIPCION.includes(filtro)) return bad(400, 'Filtro inválido');
-  return json(200, { ok: true, filas: (await sus.listar(deps.db, { filtro })).map(fila), conteos: await sus.conteos(deps.db) });
+  return json(200, { ok: true, admin: acceso.admin === true, filas: (await sus.listar(deps.db, { filtro })).map(fila), conteos: await sus.conteos(deps.db) });
 }
 
 export async function handleEquipoSuscripcionPenalidad(request, env, deps) {

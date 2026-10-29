@@ -82,7 +82,7 @@ import '../../styles/panel.css';
         </details>
       </section>
 
-      <section>
+      <section id="sus-seccion" hidden>
         <details class="lk-plegable">
           <summary><h2>Cobrar con suscripción</h2><span class="lk-nota">link de un solo uso · toca para abrir</span></summary>
           <p class="lk-nota">Para un paciente con quien ya hablaste por WhatsApp. El link sirve una vez y vence en 7 días. No agenda cita: las sesiones se agendan con los links de siempre.</p>
@@ -91,7 +91,10 @@ import '../../styles/panel.css';
             <label class="lk-campo">Plan y paquete
               <select id="sus-plan">
                 <option value="">Elige el plan y el paquete</option>
-                {paquetes.map((p) => <optgroup label={p.nombre}>{p.opciones.map((o) => (
+                <optgroup label="Prueba interna (solo administradores)" id="sus-prueba" hidden disabled>
+                  <option value="prueba:3">Prueba · S/5 al mes · se cancela tras el primer cobro</option>
+                </optgroup>
+                {paquetes.map((p) => <optgroup label={p.nombre} data-regular>{p.opciones.map((o) => (
                   <option value={`${p.id}:${o.meses}`}>{o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`} · S/{o.cuota_centimos / 100} al mes · {o.cobros ? 'penalidad: diferencia con mes a mes' : 'sin penalidad'}</option>
                 ))}</optgroup>)}
               </select>

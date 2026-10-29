@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
-import { handleHoras, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar, handleSincronizarCalendario } from './reservas.mjs';
+import { handleHoras, handleOpciones, handleApartar, handlePagar, handleEstado, handleWebhookMp, handleIcs, handleResumenDiario, handleReubicar, handleSincronizarCalendario } from './reservas.mjs';
 import * as repo from '../reservas/repo.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { avisarPenalidadPendiente } from '../suscripciones/procesar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
-const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok' };
+const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'equipo@x.pe', MP_WEBHOOK_SECRET: 'sec', RESUMEN_TOKEN: 'tok', SUSCRIPCIONES_ABIERTAS: '1' };
 function deps(extra = {}) {
   const pagos = {};
   const creadas = [];
@@ -20,7 +20,7 @@ function deps(extra = {}) {
     ...extra,
     mp: { crearPreferencia: async () => ({ id: 'pref', init_point: 'https://mp/pagar' }), obtenerPago: async (id) => pagos[id],
       crearSuscripcion: async (a) => { creadas.push(a); return { planId: 'plan1', init_point: 'https://mp/sus' }; },
-      desactivarPlan: async (id) => { desactivados.push(id); return {}; }, ...extra.mp },
+      desactivarPlan: async (id) => { desactivados.push(id); return {}; }, buscarSuscripcionDePlan: async () => null, ...extra.mp },
   };
 }
 const get = (ruta) => new Request(`https://x.test${ruta}`);
@@ -513,6 +513,55 @@ test('pagar de nuevo con el preapproval guardado sin autorizar: plan nuevo, se s
   const s = await sus.porId(d.db, id);
   assert.equal(s.mp_plan_id, 'plan2');
   assert.equal(s.mp_preapproval_id, null);
+});
+
+test('pagar de nuevo con plan guardado y sin preapproval: si el plan ya tiene una suscripción autorizada, 409 esperando_cobro y no se crea otro plan', async () => {
+  const buscadas = [];
+  const d = deps({ mp: { buscarSuscripcionDePlan: async (id) => { buscadas.push(id); return { id: 'pre1', status: 'authorized' }; } } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  assert.equal((await handlePagar(post('/api/reservas/pagar', body), env, d)).status, 200);
+  const r = await handlePagar(post('/api/reservas/pagar', body), env, d);
+  assert.equal(r.status, 409);
+  assert.deepEqual(await r.json(), { ok: false, motivo: 'esperando_cobro',
+    error: 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.' });
+  assert.deepEqual(buscadas, ['plan1']);
+  assert.equal(d.creadas.length, 1);
+  assert.deepEqual(d.desactivados, []);
+});
+
+test('pagar de nuevo con plan guardado y sin preapproval: si el plan no tiene suscripción autorizada, plan nuevo como siempre', async () => {
+  let n = 0;
+  const d = deps({ mp: { crearSuscripcion: async () => ({ planId: `plan${++n}`, init_point: `https://mp/sus${n}` }), buscarSuscripcionDePlan: async () => ({ id: 'pre1', status: 'pending' }) } });
+  const { token } = await (await apartar(d, { forma: 'mensual' })).json();
+  const body = { token, ...datos, acepto_suscripcion: true };
+  await handlePagar(post('/api/reservas/pagar', body), env, d);
+  assert.deepEqual(await (await handlePagar(post('/api/reservas/pagar', body), env, d)).json(), { ok: true, url: 'https://mp/sus2' });
+  assert.deepEqual(d.desactivados, ['plan1']);
+});
+
+test('apartar con pago mensual y el interruptor apagado: 400; el pago completo sigue igual', async () => {
+  for (const apagado of [{}, { SUSCRIPCIONES_ABIERTAS: '0' }, { SUSCRIPCIONES_ABIERTAS: 'true' }]) {
+    const e = { ...env, SUSCRIPCIONES_ABIERTAS: undefined, ...apagado };
+    const r = await handleApartar(post('/api/reservas/apartar', { producto: 'constancia', duracion: 3, modalidad: 'presencial', inicio: '2026-10-06T17:00:00Z', forma: 'mensual' }), e, deps());
+    assert.equal(r.status, 400);
+    assert.equal((await r.json()).error, 'El pago mensual todavía no está disponible.');
+    const ok = await handleApartar(post('/api/reservas/apartar', { producto: 'constancia', duracion: 3, modalidad: 'presencial', inicio: '2026-10-06T17:00:00Z' }), e, deps());
+    assert.equal(ok.status, 200);
+  }
+});
+
+test('apartar con el producto interno prueba desde la web: 400, aunque el pago mensual esté abierto', async () => {
+  const r = await apartar(deps(), { producto: 'prueba', duracion: 3, forma: 'mensual' });
+  assert.equal(r.status, 400);
+});
+
+test('opciones: dice si el pago mensual está abierto solo con "1"', async () => {
+  const pide = async (e) => (await handleOpciones(get('/api/reservas/opciones'), e)).json();
+  assert.deepEqual(await pide({ SUSCRIPCIONES_ABIERTAS: '1' }), { ok: true, suscripciones: true });
+  assert.deepEqual(await pide({}), { ok: true, suscripciones: false });
+  assert.deepEqual(await pide({ SUSCRIPCIONES_ABIERTAS: 'true' }), { ok: true, suscripciones: false });
+  assert.equal((await handleOpciones(post('/api/reservas/opciones', {}), {})).status, 405);
 });
 
 test('pagar de nuevo y no se puede revisar el preapproval guardado: 503 sin tocar nada', async () => {

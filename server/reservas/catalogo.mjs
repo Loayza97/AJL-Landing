@@ -13,6 +13,7 @@ function armar(titulo, soles, duracion_meses, peso) {
 // forma 'mensual' (spec 2026-10-27): la cuota del paquete, cobrada cada mes por Mercado Pago.
 export function cotizar(producto, duracion, forma = 'completo') {
   if (forma === 'mensual') {
+    if (!Object.hasOwn(plans, producto)) return null; // 'prueba' es interno: solo se crea desde el panel
     const c = condicionesSuscripcion(producto, duracion);
     if (!c) return null;
     return { ...armar(c.titulo, c.cuota_centimos / 100, c.duracion_meses, 1), forma: 'mensual',

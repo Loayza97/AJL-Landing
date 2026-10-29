@@ -119,10 +119,20 @@ export async function handleHoras(request, env, deps) {
   }
 }
 
+// Interruptor del pago mensual: apagado salvo que SUSCRIPCIONES_ABIERTAS sea exactamente "1".
+export const suscripcionesAbiertas = (env) => env?.SUSCRIPCIONES_ABIERTAS === '1';
+
+// Qué ofrece /reservar/ hoy (el navegador no ve las variables del servidor).
+export function handleOpciones(request, env) {
+  if (request.method !== 'GET') return bad(405, 'Método no permitido');
+  return json(200, { ok: true, suscripciones: suscripcionesAbiertas(env) });
+}
+
 export async function handleApartar(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const d = await readJson(request);
   const forma = d.forma === 'mensual' ? 'mensual' : 'completo';
+  if (forma === 'mensual' && !suscripcionesAbiertas(env)) return bad(400, 'El pago mensual todavía no está disponible.');
   const precio = cotizar(d.producto, Number(d.duracion), forma);
   if (!precio || !MODALIDADES.has(d.modalidad) || !INICIO.test(d.inicio || '') || !nutriValida(deps, d.nutricionista)) return bad(400, 'Datos inválidos');
   const ahora = deps.ahora();
@@ -191,10 +201,13 @@ export async function handlePagar(request, env, deps) {
           return bad(409, 'Tu pago mensual ya está registrado. Escríbenos por WhatsApp si necesitas ayuda.', { motivo: 'suscripcion_existente' });
         }
         // Ya autorizó en Mercado Pago y falta el primer cobro: un plan nuevo dejaría dos suscripciones cobrando.
-        if (existente.mp_preapproval_id) {
+        if (existente.mp_preapproval_id || existente.mp_plan_id) {
           let pre;
           try {
-            pre = await deps.mp.obtenerSuscripcion(existente.mp_preapproval_id);
+            // Sin preapproval guardado todavía, puede haber autorizado en el plan sin que lo sepamos: se busca por el plan.
+            pre = existente.mp_preapproval_id
+              ? await deps.mp.obtenerSuscripcion(existente.mp_preapproval_id)
+              : await deps.mp.buscarSuscripcionDePlan(existente.mp_plan_id);
           } catch (e) {
             console.error('pagar/revisar suscripción', e);
             return bad(503, 'No pudimos revisar tu pago. Intenta en unos minutos.');

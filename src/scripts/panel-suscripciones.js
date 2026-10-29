@@ -62,12 +62,23 @@ function filaVacia() {
   return tr;
 }
 
+// «Cobrar con suscripción»: se ve si el pago mensual está abierto o si quien mira es administrador;
+// el producto de prueba solo para administradores y los demás planes solo con el pago mensual abierto.
+function ofrecer({ admin, abiertas }) {
+  $('#sus-seccion').hidden = !(abiertas || admin);
+  const prueba = $('#sus-prueba');
+  prueba.hidden = prueba.disabled = !admin;
+  document.querySelectorAll('#sus-plan optgroup[data-regular]').forEach((g) => { g.hidden = g.disabled = !abiertas; });
+}
+const opcionesAbiertas = fetch('/api/reservas/opciones', { cache: 'no-store' }).then((r) => r.json()).then((d) => d?.suscripciones === true).catch(() => false);
+
 export async function cargarSuscripciones() {
   const r = await fetch(`/api/equipo/suscripciones?filtro=${filtro}`, { cache: 'no-store' }).catch(() => null);
   if (r?.status === 401) return false;
   const d = await r?.json().catch(() => null);
   if (!d?.ok) { aviso('No pudimos cargar las suscripciones. Recarga la página.'); return; }
   aviso();
+  ofrecer({ admin: d.admin === true, abiertas: await opcionesAbiertas });
   document.querySelectorAll('#sus-filtros [data-filtro]').forEach((b) => { b.querySelector('span').textContent = d.conteos[b.dataset.filtro] ?? 0; });
   $('#sus-filas').replaceChildren(...(d.filas.length ? d.filas.map(filaDe) : [filaVacia()]));
 }

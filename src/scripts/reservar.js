@@ -11,6 +11,9 @@ import { destinoLink } from '../data/links-reserva.js';
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
 const soles = (c) => formatoSoles(Math.round(c / 100));
+// ¿Está abierto el pago mensual? Lo decide el servidor (SUSCRIPCIONES_ABIERTAS); si no se puede saber, se asume que no.
+const suscripcionesAbiertas = fetch('/api/reservas/opciones', { cache: 'no-store' })
+  .then((r) => r.json()).then((d) => d?.suscripciones === true).catch(() => false);
 const estado = { producto: null, duracion: null, forma: 'completo', reserva: null, reloj: null, selector: null };
 const params = new URLSearchParams(location.search);
 
@@ -257,7 +260,12 @@ document.addEventListener('click', (e) => {
   else if (b.dataset.duracion) {
     estado.duracion = Number(b.dataset.duracion);
     document.querySelectorAll('[data-duracion]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
-    opcionesForma(catalogo[estado.producto].duraciones.find((x) => x.meses === estado.duracion));
+    const d = catalogo[estado.producto].duraciones.find((x) => x.meses === estado.duracion);
+    suscripcionesAbiertas.then((abiertas) => {
+      if (estado.duracion !== d.meses) return; // eligió otra mientras tanto
+      if (abiertas) opcionesForma(d);
+      else { estado.forma = 'completo'; marcarUrl(estado.producto, estado.duracion, 'completo'); abrirP3(); }
+    });
   }
   else if (b.dataset.volver) {
     if (b.dataset.volver === 'p1') marcarUrl(null);
@@ -296,6 +304,7 @@ function leerGuardado(clave) {
   if (token && await retomar(token)) return;
   // ?plan=constancia abre las duraciones; con &meses=3, directo al calendario.
   const d = destinoLink(params.get('plan'), params.get('meses'), params.get('forma'));
+  if (d.forma === 'mensual' && !(await suscripcionesAbiertas)) d.forma = 'completo'; // apagado: se ignora &forma=mensual
   if (!d.plan || !catalogo[d.plan]) { irA('p1'); return; }
   elegirProducto(d.plan);
   if (d.meses) { estado.duracion = d.meses; estado.forma = d.forma ?? 'completo'; marcarUrl(d.plan, d.meses, estado.forma); abrirP3(); }

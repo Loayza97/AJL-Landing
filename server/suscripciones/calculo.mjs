@@ -9,7 +9,17 @@ import { duracionesDe, formatoSoles } from '../../src/data/duraciones.js';
 
 const DIA = 86400000;
 
+// Producto interno de prueba (solo administradores, desde el panel): S/5 al mes. 3 meses porque la base
+// solo admite 1, 3 o 6; se cancela tras el primer cobro, así que nunca se llega al tercero. No está en
+// plans.js ni en /reservar/, por eso cotizar('prueba', …) sigue devolviendo null.
+export const PRODUCTO_PRUEBA = 'prueba';
+const PRUEBA = {
+  producto: PRODUCTO_PRUEBA, duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 1000, precio_3m_centimos: null,
+  ahorro_mes_centimos: 500, cobros: 3, titulo: 'Prueba interna · 3 meses · pago mensual',
+};
+
 export function condicionesSuscripcion(producto, meses) {
+  if (producto === PRODUCTO_PRUEBA) return Number(meses) === 3 ? { ...PRUEBA } : null;
   if (!Object.hasOwn(plans, producto)) return null;
   const durs = duracionesDe(producto);
   if (!durs) return null;

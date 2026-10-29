@@ -77,3 +77,16 @@ test('la migración crea las tablas', async () => {
   const col = await db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('reservas') WHERE name = 'forma_pago'").first();
   assert.equal(col.n, 1);
 });
+
+test('producto de prueba: S/5 al mes, 3 cobros, penalidad S/5 con 1 cobro; fuera de plans y de la cotización', async () => {
+  assert.deepEqual(condicionesSuscripcion('prueba', 3), { producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 1000,
+    precio_3m_centimos: null, ahorro_mes_centimos: 500, cobros: 3, titulo: 'Prueba interna · 3 meses · pago mensual' });
+  assert.equal(condicionesSuscripcion('prueba', 1), null);
+  assert.equal(condicionesSuscripcion('prueba', 6), null);
+  assert.equal(penalidadAlCancelar({ ...condicionesSuscripcion('prueba', 3), cobros_aprobados: 1 }), 500);
+  const { plans } = await import('../../src/data/plans.js');
+  assert.equal(Object.hasOwn(plans, 'prueba'), false);
+  const { cotizar } = await import('../reservas/catalogo.mjs');
+  assert.equal(cotizar('prueba', 3, 'completo'), null);
+  assert.equal(cotizar('prueba', 3, 'mensual'), null);
+});
