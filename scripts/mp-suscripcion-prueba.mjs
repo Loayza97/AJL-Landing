@@ -11,9 +11,9 @@ if (!process.argv[2]) process.argv[2] = 'comprador';
 if (!process.env.MP_ACCESS_TOKEN) {
   const { createInterface } = await import('node:readline/promises');
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  process.env.MP_ACCESS_TOKEN = (await rl.question('Pega tu access token de prueba (empieza con TEST-) y Enter: ')).trim();
-  if (!process.env.MP_ACCESS_TOKEN.startsWith('TEST-')) {
-    console.log('Eso no es un access token de prueba. Está en Tus integraciones > tu aplicación > Credenciales de prueba > Access Token, y empieza con TEST-.');
+  process.env.MP_ACCESS_TOKEN = (await rl.question('Pega el access token de la versión de prueba (empieza con TEST- o APP_USR-) y Enter: ')).trim();
+  if (!/^(TEST|APP_USR)-/.test(process.env.MP_ACCESS_TOKEN)) {
+    console.log('Eso no es un access token: es un texto largo que empieza con TEST- o APP_USR-. El usuario TESTUSER... no sirve aquí.');
     process.exit(1);
   }
   if (!process.env.EMAIL && process.argv[2] === 'crear') process.env.EMAIL = (await rl.question('Correo del comprador de prueba: ')).trim();
