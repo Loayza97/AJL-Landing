@@ -138,7 +138,7 @@ export async function handleSuscripcionLink(request, env, deps) {
     const c = condicionesSuscripcion(s.producto, s.duracion_meses);
     // El correo es para nuestros recibos; a Mercado Pago no se le manda (el preapproval llega por el plan).
     const plan = await deps.mp.crearSuscripcion({ suscripcionId: s.id, titulo: c.titulo, cuotaCentimos: s.cuota_centimos, cobros: c.cobros,
-      urlRetorno: `${siteUrl(env)}/suscribirse/listo/?s=${s.token}` });
+      urlRetorno: `${siteUrl(env)}/suscribirse/listo/?s=${s.token}`, numeroPlan: await sus.contarPlanes(deps.db, s.id) });
     await sus.guardarPlan(deps.db, s.id, plan.planId, ahora);
     return json(200, { ok: true, url: plan.init_point });
   } catch (e) {

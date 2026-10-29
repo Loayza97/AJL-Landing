@@ -32,7 +32,7 @@ export const guardarPreapproval = (db, id, mpId, ahora) => db.prepare(
 ).bind(id, mpId, ahora.toISOString()).run();
 
 // Un reintento de pago suelta el preapproval guardado (/pagar solo reintenta si no está autorizado y lo
-// cancela): el que cuente será el que salga del plan, aunque Mercado Pago devuelva el mismo plan.
+// cancela): el que cuente será el que salga del plan nuevo.
 // Cada plan queda también en suscripcion_planes, para reconocer después los cobros de uno reemplazado.
 export async function guardarPlan(db, id, planId, ahora) {
   const a = ahora.toISOString();
@@ -42,6 +42,11 @@ export async function guardarPlan(db, id, planId, ahora) {
     ).bind(id, planId, a),
     db.prepare('INSERT INTO suscripcion_planes (plan_id, suscripcion_id, creado_en) VALUES (?1, ?2, ?3) ON CONFLICT (plan_id) DO NOTHING').bind(planId, id, a),
   ]);
+}
+
+export async function contarPlanes(db, id) {
+  const f = await db.prepare('SELECT COUNT(*) AS n FROM suscripcion_planes WHERE suscripcion_id = ?1').bind(id).first();
+  return f?.n ?? 0;
 }
 
 // La suscripción a la que perteneció un plan (vigente o reemplazado).

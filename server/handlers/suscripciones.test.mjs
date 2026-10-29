@@ -136,7 +136,7 @@ test('link: GET muestra el plan; POST crea el plan en Mercado Pago una sola vez 
   assert.equal(g.nombre, 'Lucía');
   assert.deepEqual(await (await handleSuscripcionLink(postLink(formLink), env, d)).json(), { ok: true, url: 'https://mp/sus' });
   assert.deepEqual(d.creadas[0], { suscripcionId: 'sl', titulo: '1 sesión al mes · 6 meses · pago mensual', cuotaCentimos: 25000, cobros: 6,
-    urlRetorno: 'https://www.ajlnutricion.com/suscribirse/listo/?s=tsl' });
+    urlRetorno: 'https://www.ajlnutricion.com/suscribirse/listo/?s=tsl', numeroPlan: 0 });
   assert.equal((await handleSuscripcionLink(postLink(formLink), env, d)).status, 410);
   assert.equal(d.creadas.length, 1);
   const s = await sus.porId(d.db, 'sl');

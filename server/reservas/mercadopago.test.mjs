@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac, createHash } from 'node:crypto';
+import { createHmac } from 'node:crypto';
 import { crearMp, firmaValida, isoLima } from './mercadopago.mjs';
 
 test('isoLima escribe la hora de Lima con su desfase', () => {
@@ -47,23 +47,24 @@ test('firmaValida acepta la firma correcta y rechaza la alterada o ausente', asy
   assert.equal(await firmaValida({ ...base, dataId: '999', xSignature: `ts=1700000000,v1=${v1}` }), false);
 });
 
-test('crearSuscripcion: crea un plan mensual en soles, sin correo, con la key del retorno', async () => {
+test('crearSuscripcion: crea un plan mensual en soles, sin correo, con la key del número de plan', async () => {
   let pedido;
   const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'plan1', init_point: 'https://mp/plan', status: 'active' })); };
   const mp = crearMp({ MP_ACCESS_TOKEN: 'TEST-1' }, f);
   const r = await mp.crearSuscripcion({ suscripcionId: 's1', titulo: '2 sesiones al mes · 3 meses · pago mensual', cuotaCentimos: 36000,
     cobros: 3, urlRetorno: 'https://w/reservar/listo/?r=t' });
   assert.deepEqual(r, { planId: 'plan1', init_point: 'https://mp/plan' });
+  assert.equal(pedido.init.headers['X-Idempotency-Key'], 'plan-s1-0');
   assert.equal(pedido.url, 'https://api.mercadopago.com/preapproval_plan');
   assert.equal(pedido.init.method, 'POST');
   assert.equal(pedido.init.headers.Authorization, 'Bearer TEST-1');
-  const hex = createHash('sha256').update('https://w/reservar/listo/?r=t').digest('hex').slice(0, 12);
-  assert.equal(pedido.init.headers['X-Idempotency-Key'], `plan-s1-${hex}`);
   assert.deepEqual(JSON.parse(pedido.init.body), {
     reason: 'AJL Nutrición · 2 sesiones al mes · 3 meses · pago mensual', back_url: 'https://w/reservar/listo/?r=t',
     auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: 360, currency_id: 'PEN', repetitions: 3 },
   });
   assert.doesNotMatch(pedido.init.body, /payer_email|email/);
+  await mp.crearSuscripcion({ suscripcionId: 's1', titulo: 't', cuotaCentimos: 36000, cobros: 3, urlRetorno: 'https://w/reservar/listo/?r=t', numeroPlan: 1 });
+  assert.equal(pedido.init.headers['X-Idempotency-Key'], 'plan-s1-1'); // reintento de pago: otro plan
 });
 
 test('crearSuscripcion de mes a mes va sin repetitions', async () => {

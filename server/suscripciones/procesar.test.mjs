@@ -367,14 +367,48 @@ test('aviso del preapproval que perdió la carrera del mismo plan: se cancela, s
   assert.deepEqual(d.desactivados, []);
 });
 
-test('preapproval cancelado que soltó un reintento, del mismo plan: no se asocia ni da de baja', async () => {
-  const d = armar({ pre: { pre0: { id: 'pre0', status: 'cancelled', preapproval_plan_id: 'plan1' } } });
+test('reintento tras soltar el preapproval: sus avisos van por el plan reemplazado, sin baja', async () => {
+  const pre = { pre0: { id: 'pre0', status: 'pending', preapproval_plan_id: 'plan1' } };
+  const d = armar({ pre });
   await conPlan(d);
+  await procesarPreapproval(d, env, 'pre0'); // pendiente: se asocia
+  await sus.guardarPlan(d.db, 's1', 'plan2', t0); // /pagar de nuevo: plan nuevo, suelta pre0
+  pre.pre0 = { ...pre.pre0, status: 'cancelled' }; // /pagar lo canceló
   assert.deepEqual(await procesarPreapproval(d, env, 'pre0'), { estado: 'reemplazada' });
   const s = await sus.porId(d.db, 's1');
   assert.equal(s.mp_preapproval_id, null);
   assert.equal(s.estado, 'pendiente');
   assert.deepEqual(d.canceladas, []);
+});
+
+test('cobro aprobado y cancelación procesados tarde: cuenta el cobro 1 y luego la baja con penalidad', async () => {
+  // Cuando llega el cobro, Mercado Pago ya dice que el preapproval está cancelado.
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'cancelada' });
+  await procesarPreapproval(d, env, 'pre1');
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'cancelada');
+  assert.equal(s.motivo_cancelacion, 'paciente_mp');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(s.penalidad_estado, 'pendiente');
+  assert.equal(s.penalidad_centimos, 8000);
+  assert.equal(d.correos.filter((c) => c.to === 'ana@x.pe' && /quedó cancelado/.test(c.subject)).length, 1);
+  assert.ok(d.correos.some((c) => c.subject === 'Ana Pérez canceló su plan · penalidad pendiente S/80'));
+});
+
+test('solo llega el aviso de cancelación, sin preapproval guardado: se asocia y es baja del paciente', async () => {
+  const d = armar({ pre: { pre1: { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'cancelada' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.estado, 'cancelada');
+  assert.equal(s.motivo_cancelacion, 'paciente_mp');
 });
 
 test('por la referencia externa se asocia solo si la fila no tiene uno', async () => {

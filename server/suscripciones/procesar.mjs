@@ -73,11 +73,12 @@ async function desactivarPlanDe(deps, s) {
 }
 
 // Una suscripción con plan no sabe su preapproval hasta que el paciente autoriza: se reconoce por el plan
-// y se guarda, solo si la fila no tiene uno (si dos preapprovals del mismo plan llegan a la vez, gana uno
-// y se relee la fila, así el otro queda como anómalo). Uno ya cancelado no se asocia: es el que soltó
-// un reintento de pago, y su aviso no debe dar de baja la suscripción.
-async function asociarPorPlan(deps, s, preapprovalId, status) {
-  if (s.mp_preapproval_id || !preapprovalId || status === 'cancelled') return s;
+// (o por la referencia externa) y se guarda, solo si la fila no tiene uno (si dos preapprovals del mismo
+// plan llegan a la vez, gana uno y se relee la fila, así el otro queda como anómalo). Se asocia en
+// cualquier estado: si ya viene cancelado, es una baja del paciente que llegó tarde. Un preapproval que
+// soltó un reintento de pago nunca llega aquí: es de un plan reemplazado.
+async function asociar(deps, s, preapprovalId) {
+  if (s.mp_preapproval_id || !preapprovalId) return s;
   if (!(await sus.asociarPreapproval(deps.db, s.id, preapprovalId, deps.ahora()))) return sus.porId(deps.db, s.id);
   return { ...s, mp_preapproval_id: preapprovalId };
 }
@@ -91,9 +92,9 @@ async function suscripcionDe(deps, p) {
   if (porPre) return { s: porPre };
   const planId = p?.preapproval_plan_id ? String(p.preapproval_plan_id) : null;
   const porPlan = planId ? await sus.porPlan(deps.db, planId) : null;
-  if (porPlan) return { s: await asociarPorPlan(deps, porPlan, id, p?.status) };
+  if (porPlan) return { s: await asociar(deps, porPlan, id) };
   const porRef = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
-  if (porRef) return { s: porRef };
+  if (porRef) return { s: await asociar(deps, porRef, id) };
   const deUnPlanViejo = planId ? await sus.suscripcionDePlan(deps.db, planId) : null;
   if (deUnPlanViejo) return { s: deUnPlanViejo, reemplazado: true };
   return { s: null, planDesconocido: planId };
@@ -204,7 +205,7 @@ export async function procesarCobro(deps, env, authorizedId) {
 
 export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
-  let { s, reemplazado } = await suscripcionDe(deps, p);
+  const { s, reemplazado } = await suscripcionDe(deps, p);
   if (!s) return { estado: 'desconocido' };
   // Preapproval de un plan reemplazado: no es la suscripción vigente; se cancela para que no cobre
   // (si falla, cancelarEnMp avisa al equipo; si igual cobra, el cobro queda como anómalo).
@@ -213,12 +214,9 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
     return { estado: 'reemplazada' };
   }
   const id = String(p.id ?? '');
-  // Por la referencia externa: se asocia solo si la fila no tiene uno (si otro ganó, se relee).
-  if (!s.mp_preapproval_id && id && p.status !== 'cancelled') {
-    s = (await sus.asociarPreapproval(deps.db, s.id, id, deps.ahora())) ? { ...s, mp_preapproval_id: id } : await sus.porId(deps.db, s.id);
-  }
-  // Aviso de un preapproval que no es el guardado (lo reemplazó un reintento de pago, o perdió contra
-  // otro del mismo plan): no es una baja del paciente; si sigue vivo, se cancela para que no cobre.
+  // Ya asociado (suscripcionDe asocia si la fila no tenía uno): si no es el guardado, perdió contra otro
+  // del mismo plan (o lo reemplazó un reintento con referencia externa). No es una baja del paciente;
+  // si sigue vivo, se cancela para que no cobre.
   if (id && id !== s.mp_preapproval_id) {
     if (p.status !== 'cancelled') await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: id });
     return { estado: 'reemplazada' };
@@ -242,7 +240,7 @@ export async function sincronizarDeReserva(deps, env, reservaId) {
   // Con plan, el regreso puede no traer el preapproval: se le pregunta a Mercado Pago por el plan.
   if (!s.mp_preapproval_id && s.mp_plan_id) {
     const p = await deps.mp.buscarSuscripcionDePlan(s.mp_plan_id);
-    if (p?.id) s = await asociarPorPlan(deps, s, String(p.id), p.status);
+    if (p?.id) s = await asociar(deps, s, String(p.id));
   }
   if (!s.mp_preapproval_id) return;
   for (const ap of await deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id)) {

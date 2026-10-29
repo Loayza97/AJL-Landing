@@ -1,7 +1,6 @@
 // Mercado Pago Checkout Pro: preferencia (la página de pago de MP), consulta
 // del pago y verificación de la firma del webhook. El monto nunca viene del
 // navegador: lo calcula catalogo.mjs.
-import { sha256Hex } from '../tokens.mjs';
 
 const API = 'https://api.mercadopago.com';
 
@@ -50,9 +49,11 @@ export function crearMp(env, fetchImpl = fetch) {
     return r.json();
   }
 
-  async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, cobros, urlRetorno }) {
+  // numeroPlan: cuántos planes tuvo ya la suscripción. Un reintento de red repite la key (mismo plan);
+  // un reintento de pago, ya con el plan anterior guardado, crea otro distinto.
+  async function crearSuscripcion({ suscripcionId, titulo, cuotaCentimos, cobros, urlRetorno, numeroPlan = 0 }) {
     const d = await pedirSus('/preapproval_plan', {
-      method: 'POST', headers: { 'X-Idempotency-Key': `plan-${suscripcionId}-${(await sha256Hex(String(urlRetorno))).slice(0, 12)}` },
+      method: 'POST', headers: { 'X-Idempotency-Key': `plan-${suscripcionId}-${numeroPlan}` },
       body: JSON.stringify({
         reason: `AJL Nutrición · ${titulo}`, back_url: urlRetorno,
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(cobros ? { repetitions: cobros } : {}) },

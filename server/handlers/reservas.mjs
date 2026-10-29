@@ -211,8 +211,10 @@ export async function handlePagar(request, env, deps) {
           acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
       }
       // Un plan por suscripción y sin correo: Mercado Pago exige que payer_email sea el de la cuenta que paga.
+      // Cada reintento crea un plan distinto (key con el número de plan): lo que salga de uno anterior
+      // se reconoce como de un plan reemplazado.
       const plan = await deps.mp.crearSuscripcion({ suscripcionId: id, titulo: precio.titulo, cuotaCentimos: r.monto_centimos, cobros: precio.cobros,
-        urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}` });
+        urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`, numeroPlan: await sus.contarPlanes(deps.db, id) });
       await sus.guardarPlan(deps.db, id, plan.planId, ahora);
       // Reintento: solo con el plan ya guardado se cancela el preapproval anterior sin autorizar (guardarPlan
       // lo soltó) y, si el plan cambió, se desactiva el anterior. Si falla, sigue: el plan viejo queda en
