@@ -76,9 +76,14 @@ export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condici
 // el UPDATE solo pasa si ese pago todavía no figura como aprobado, en el mismo batch.
 // contar = false: un cobro que no corresponde (tras la baja o de otro preapproval) queda registrado,
 // con numero 0, sin sumar a los cobros del plan. pagoNuevoAprobado dice si esta llamada lo dejó aprobado.
-export async function registrarCobro(db, { suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos = null, metodo = null, ahora, contar = true }) {
+export async function registrarCobro(db, { suscripcionId, mpPaymentId, cobroAutorizadoId = null, estado, montoCentimos, netoCentimos = null, metodo = null, ahora, contar = true }) {
   const a = ahora.toISOString();
   const aprobado = estado === 'approved';
+  // Si el cobro se registró antes de tener pago (fila `ap-<id>`), esa fila pasa a llevar el id real del pago.
+  if (cobroAutorizadoId && !mpPaymentId.startsWith('ap-')) {
+    await db.prepare("UPDATE suscripcion_cobros SET mp_payment_id = ?1 WHERE mp_payment_id = ?2 AND suscripcion_id = ?3 AND estado <> 'approved' AND NOT EXISTS (SELECT 1 FROM suscripcion_cobros WHERE mp_payment_id = ?1)")
+      .bind(mpPaymentId, `ap-${cobroAutorizadoId}`, suscripcionId).run();
+  }
   const sumar = db.prepare(
     `UPDATE suscripciones SET cobros_aprobados = cobros_aprobados + 1, ultimo_cobro_en = ?3, actualizado_en = ?3,
        estado = CASE WHEN estado = 'pendiente' THEN 'activa' ELSE estado END
@@ -149,7 +154,9 @@ export const deudaPorDni = (db, dni) => db.prepare(
 ).bind(normalDni(dni)).first();
 
 const FILTROS = {
-  todas: "estado <> 'pendiente'",
+  // Las pendientes que ya autorizaron en Mercado Pago (tienen preapproval) sí se listan:
+  // esperan el primer cobro y el equipo puede sincronizarlas.
+  todas: "(estado <> 'pendiente' OR mp_preapproval_id IS NOT NULL)",
   activas: "estado = 'activa'",
   terminan: "estado = 'activa' AND duracion_meses > 1 AND cobros_aprobados = duracion_meses - 1",
   fallido: "estado = 'cobro_fallido'",

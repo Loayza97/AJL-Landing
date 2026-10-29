@@ -24,7 +24,7 @@ import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import * as sus from '../suscripciones/repo.mjs';
-import { procesarCobro, procesarPreapproval, sincronizarDeReserva, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
+import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
@@ -310,7 +310,14 @@ export async function handleWebhookMp(request, env, deps) {
     else {
       const pago = await deps.mp.obtenerPago(dataId);
       if (String(pago?.external_reference ?? '').startsWith('pen-')) await procesarPagoPenalidad(deps, env, pago);
-      else await procesarPago(deps, env, dataId, { pago });
+      else {
+        const r = await procesarPago(deps, env, dataId, { pago });
+        // Un cobro de suscripción llega como `payment` y no trae una reserva en su referencia: si el pago
+        // dice de qué preapproval es, se revisan los cobros de esa suscripción (el aviso del cobro
+        // pudo llegar antes, cuando todavía no tenía payment.id).
+        const pre = r?.estado === 'desconocido' ? (pago?.metadata?.preapproval_id ?? pago?.point_of_interaction?.transaction_data?.subscription_id) : null;
+        if (pre) await sincronizarPreapproval(deps, env, String(pre));
+      }
     }
     return json(200, { ok: true });
   } catch (e) {

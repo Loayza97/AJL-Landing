@@ -5,8 +5,9 @@ import { formatoSoles } from '../data/duraciones.js';
 const $ = (s) => document.querySelector(s);
 const soles = (c) => formatoSoles(Math.round(c / 100));
 const fecha = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short' }).format(new Date(iso)) : '—');
-const ESTADO = { activa: 'Activa', terminada: 'Terminó', cobro_fallido: 'Cobro fallido', cancelada: 'Cancelada' };
+const ESTADO = { pendiente: 'Esperando primer cobro', activa: 'Activa', terminada: 'Terminó', cobro_fallido: 'Cobro fallido', cancelada: 'Cancelada' };
 let filtro = 'todas';
+let esAdmin = false;
 
 function aviso(t = '') { $('#sus-msg').textContent = t; $('#sus-msg').hidden = !t; }
 const celda = (...lineas) => {
@@ -32,6 +33,12 @@ function filaDe(s) {
     b.addEventListener('click', () => marcarPagada(s, b));
     acciones.append(b);
   }
+  if (esAdmin) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lk-btn lk-btn--borde lk-btn--mini'; b.textContent = 'Sincronizar con Mercado Pago';
+    b.addEventListener('click', () => sincronizar(s, b));
+    acciones.append(b);
+  }
   const penalidad = s.penalidad_estado === 'pendiente' ? `Penalidad ${soles(s.penalidad_centimos)} pendiente`
     : s.penalidad_estado === 'pagada' ? `Penalidad ${soles(s.penalidad_centimos)} pagada` : null;
   tr.append(
@@ -51,6 +58,15 @@ async function marcarPagada(s, b) {
   b.disabled = true;
   const r = await fetch('/api/equipo/suscripciones-penalidad', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id }) }).catch(() => null);
   if (!r?.ok) { b.disabled = false; aviso('No se pudo marcar. Intenta de nuevo.'); return; }
+  cargarSuscripciones();
+}
+
+async function sincronizar(s, b) {
+  b.disabled = true;
+  const r = await fetch('/api/equipo/suscripciones-sincronizar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: s.id }) }).catch(() => null);
+  const d = await r?.json().catch(() => null);
+  b.disabled = false;
+  if (!d?.ok) { aviso(d?.error || 'No se pudo sincronizar. Intenta de nuevo.'); return; }
   cargarSuscripciones();
 }
 
@@ -78,6 +94,7 @@ export async function cargarSuscripciones() {
   const d = await r?.json().catch(() => null);
   if (!d?.ok) { aviso('No pudimos cargar las suscripciones. Recarga la página.'); return; }
   aviso();
+  esAdmin = d.admin === true;
   ofrecer({ admin: d.admin === true, abiertas: await opcionesAbiertas });
   document.querySelectorAll('#sus-filtros [data-filtro]').forEach((b) => { b.querySelector('span').textContent = d.conteos[b.dataset.filtro] ?? 0; });
   $('#sus-filas').replaceChildren(...(d.filas.length ? d.filas.map(filaDe) : [filaVacia()]));

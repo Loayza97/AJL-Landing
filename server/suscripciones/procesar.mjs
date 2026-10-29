@@ -77,7 +77,7 @@ async function desactivarPlanDe(deps, s) {
 // plan llegan a la vez, gana uno y se relee la fila, así el otro queda como anómalo). Se asocia en
 // cualquier estado: si ya viene cancelado, es una baja del paciente que llegó tarde. Un preapproval que
 // soltó un reintento de pago nunca llega aquí: es de un plan reemplazado.
-async function asociar(deps, s, preapprovalId) {
+export async function asociar(deps, s, preapprovalId) {
   if (s.mp_preapproval_id || !preapprovalId) return s;
   if (!(await sus.asociarPreapproval(deps.db, s.id, preapprovalId, deps.ahora()))) return sus.porId(deps.db, s.id);
   return { ...s, mp_preapproval_id: preapprovalId };
@@ -137,7 +137,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   const neto = Number(pago?.transaction_details?.net_received_amount);
   const montoCentimos = Math.round(Number(ap.transaction_amount) * 100);
   const { nuevoAprobado, pagoNuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
-    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, estado, montoCentimos,
+    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, cobroAutorizadoId: String(ap.id), estado, montoCentimos,
     netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(), contar: !anomalo,
   });
 
@@ -233,6 +233,13 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
   return { estado: p.status };
 }
 
+// Revisa de nuevo todos los cobros de un preapproval (procesarCobro vuelve a pedir cada uno a Mercado Pago).
+export async function sincronizarPreapproval(deps, env, preapprovalId) {
+  for (const ap of await deps.mp.buscarCobrosSuscripcion(preapprovalId)) {
+    await procesarCobro(deps, env, String(ap.id));
+  }
+}
+
 // Respaldo de la página de regreso: revisa los cobros de la suscripción de esa reserva.
 export async function sincronizarDeReserva(deps, env, reservaId) {
   let s = await sus.porReserva(deps.db, reservaId);
@@ -243,7 +250,5 @@ export async function sincronizarDeReserva(deps, env, reservaId) {
     if (p?.id) s = await asociar(deps, s, String(p.id));
   }
   if (!s.mp_preapproval_id) return;
-  for (const ap of await deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id)) {
-    await procesarCobro(deps, env, String(ap.id));
-  }
+  await sincronizarPreapproval(deps, env, s.mp_preapproval_id);
 }
