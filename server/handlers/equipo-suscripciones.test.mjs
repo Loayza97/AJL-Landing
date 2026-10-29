@@ -53,23 +53,15 @@ test('penalidad: fila sin penalidad pendiente 409 y sin cambios; id desconocido 
 const crear = (e, d, producto = 'prueba', meses = 3) => handleEquipoSuscripciones(post('/api/equipo/suscripciones', { nombre: 'Yo', producto, meses }), e, d);
 const admin = () => deps({ acceso: async () => ({ ok: true, email: 'joaquin@x.pe', admin: true }) });
 
-test('prueba: solo administradores (403 al equipo), cuota S/5 y 3 cobros', async () => {
-  assert.equal((await crear(env, deps())).status, 403);
-  const d = admin();
-  const j = await (await crear(env, d)).json();
-  assert.equal(j.cuota_centimos, 500);
-  assert.equal(j.titulo, 'Prueba interna · 3 meses · pago mensual');
-  const s = await d.db.prepare("SELECT producto, duracion_meses, cuota_centimos, precio_mes_centimos FROM suscripciones").first();
-  assert.deepEqual({ ...s }, { producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 1000 });
-  assert.equal((await crear(env, admin(), 'prueba', 6)).status, 400);
+test('prueba interna terminada: ya no se crean links de prueba, ni siquiera administradores', async () => {
+  assert.equal((await crear(env, admin())).status, 400);
+  assert.equal((await crear(env, deps())).status, 400);
 });
 
-test('interruptor apagado: prueba sigue disponible para administradores, cualquier otro producto 400', async () => {
+test('interruptor apagado: ningún producto (400); abierto: los planes del catálogo (200)', async () => {
   for (const e of [{ PUBLIC_SITE_URL: env.PUBLIC_SITE_URL }, { ...env, SUSCRIPCIONES_ABIERTAS: '0' }]) {
     assert.equal((await crear(e, admin(), 'constancia', 3)).status, 400);
     assert.equal((await crear(e, deps(), 'constancia', 3)).status, 400);
-    assert.equal((await crear(e, deps())).status, 403);
-    assert.equal((await crear(e, admin())).status, 200);
   }
   assert.equal((await crear(env, deps(), 'constancia', 3)).status, 200);
 });

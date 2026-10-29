@@ -91,9 +91,6 @@ import '../../styles/panel.css';
             <label class="lk-campo">Plan y paquete
               <select id="sus-plan">
                 <option value="">Elige el plan y el paquete</option>
-                <optgroup label="Prueba interna (solo administradores)" id="sus-prueba" hidden disabled>
-                  <option value="prueba:3">Prueba · S/5 al mes · se cancela tras el primer cobro</option>
-                </optgroup>
                 {paquetes.map((p) => <optgroup label={p.nombre} data-regular>{p.opciones.map((o) => (
                   <option value={`${p.id}:${o.meses}`}>{o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`} · S/{o.cuota_centimos / 100} al mes · {o.cobros ? 'penalidad: diferencia con mes a mes' : 'sin penalidad'}</option>
                 ))}</optgroup>)}
