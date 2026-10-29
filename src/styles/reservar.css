@@ -78,11 +78,29 @@
 /* Pantalla 3: calendario del mes y horas del día */
 .sel-filtros { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .sel-etq { font-size: .78rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); margin: 8px 0 4px; }
-.sel-modalidad, .sel-nutris { display: flex; gap: 8px; flex-wrap: wrap; }
-.sel-modalidad button, .sel-nutris button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--hair); background: var(--paper); border-radius: 999px; padding: 8px 16px; font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--ink); }
-.sel-nutris button { padding: 4px 14px 4px 4px; }
-.sel-nutris img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
-.sel-modalidad button[aria-pressed=true], .sel-nutris button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.sel-modalidad { display: flex; gap: 8px; flex-wrap: wrap; }
+.sel-modalidad button { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--hair); background: var(--paper); border-radius: 999px; padding: 8px 16px; font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; color: var(--ink); }
+.sel-modalidad button[aria-pressed=true] { background: var(--ink); color: #fff; border-color: var(--ink); }
+/* Burbujas del equipo: laten suave hasta que eligen a alguien */
+.sel-nutris { display: flex; justify-content: flex-start; gap: 20px; flex-wrap: wrap; }
+.sel-nutris button { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 80px; min-height: 104px; justify-content: flex-start; border: 0; background: none; padding: 0; font: inherit; font-size: .85rem; cursor: pointer; color: var(--ink); }
+.sel-nutris img { width: 64px; height: 64px; margin: 8px 0; border-radius: 50%; object-fit: cover; object-position: center 30%; border: 3px solid var(--paper); box-shadow: 0 0 0 1px var(--hair); transition: width .2s, height .2s, margin .2s, border-color .2s; }
+.sel-nutris button[aria-pressed=true] img { width: 80px; height: 80px; margin: 0; border-color: var(--gold-ink); box-shadow: none; }
+.sel-nutris button:focus-visible { outline: 2px solid var(--gold-ink); outline-offset: 4px; border-radius: 12px; }
+@keyframes sel-latido { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.sel-nutris:not(.sel-nutris--elegida) button { animation: sel-latido 2.4s ease-in-out infinite; }
+.sel-nutris button:nth-child(2) { animation-delay: .6s; }
+.sel-nutris button:nth-child(3) { animation-delay: 1.2s; }
+.sel-nutris button:nth-child(4) { animation-delay: 1.8s; }
+@media (prefers-reduced-motion: reduce) { .sel-nutris button { animation: none !important; } .sel-nutris img { transition: none; } }
+.sel-toca { margin: 0; font-size: .88rem; color: var(--muted); }
+.sel-perfil--abierta { background: var(--gold-pale); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 10px; max-width: 560px; }
+.sel-perfil-tarjeta { display: flex; gap: 12px; align-items: center; }
+.sel-perfil-tarjeta img { width: 96px; height: 96px; border-radius: 16px; object-fit: cover; object-position: center 30%; flex-shrink: 0; }
+.sel-perfil-tarjeta b { display: block; font-size: 1.15rem; }
+.sel-perfil-tarjeta small { display: block; margin-top: 2px; font-size: .8rem; font-weight: 700; color: var(--gold-ink); }
+.sel-perfil p { margin: 0; font-size: .92rem; line-height: 1.55; color: #2B2B2B; }
+.sel-todas { align-self: flex-start; min-height: 44px; border: 0; background: none; padding: 0; font: inherit; font-size: .88rem; font-weight: 700; color: var(--gold-ink); text-decoration: underline; cursor: pointer; }
 .sel-proxima { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--gold-pale); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
 .sel-proxima[hidden] { display: none; }
 .sel-proxima small { display: block; color: var(--gold-ink); font-weight: 700; font-size: .85rem; }
