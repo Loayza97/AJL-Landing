@@ -4,7 +4,7 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
-import { procesarCobro, procesarPreapproval, sincronizarDeReserva } from './procesar.mjs';
+import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval } from './procesar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'eq@x.pe',
@@ -431,4 +431,20 @@ test('por la referencia externa se asocia solo si la fila no tiene uno', async (
   assert.deepEqual(await procesarPreapproval(d, env, 'preA'), { estado: 'reemplazada' });
   assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'preB');
   assert.deepEqual(d.canceladas, ['preA']);
+});
+
+test('cobro programado sin payment.id y luego con pago: la fila ap- pasa al id real, cuenta una vez y manda un recibo', async () => {
+  const cobros = { a1: { ...cobro('a1', null, 'scheduled'), payment: undefined } };
+  const d = armar({ cobros, pagos: { p1: pago('p1') } });
+  await reservaMensual(d);
+  assert.equal((await procesarCobro(d, env, 'a1')).estado, 'pending');
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+  cobros.a1 = cobro('a1', 'p1');
+  await sincronizarPreapproval(d, env, 'pre1');
+  await sincronizarPreapproval(d, env, 'pre1');
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.cobros_aprobados, 1);
+  const filas = (await d.db.prepare('SELECT mp_payment_id, estado, numero FROM suscripcion_cobros').all()).results;
+  assert.deepEqual(filas.map((f) => [f.mp_payment_id, f.estado, f.numero]), [['p1', 'approved', 1]]);
+  assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
 });

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { handleEquipoSuscripciones, handleEquipoSuscripcionPenalidad } from './equipo-suscripciones.mjs';
+import { handleEquipoSuscripciones, handleEquipoSuscripcionPenalidad, handleEquipoSuscripcionSincronizar } from './equipo-suscripciones.mjs';
 
 const t0 = new Date('2026-11-03T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', SUSCRIPCIONES_ABIERTAS: '1' };
@@ -78,4 +78,24 @@ test('listar devuelve admin para que el panel decida qué ofrecer', async () => 
   const j = async (d) => (await handleEquipoSuscripciones(new Request('https://x.test/api/equipo/suscripciones'), env, d)).json();
   assert.equal((await j(admin())).admin, true);
   assert.equal((await j(deps())).admin, false);
+});
+
+test('sincronizar: 401 sin acceso, 403 al equipo, 200 al admin con los cobros revisados', async () => {
+  const req = () => post('/api/equipo/suscripciones-sincronizar', { id: 'sy' });
+  assert.equal((await handleEquipoSuscripcionSincronizar(req(), env, deps({ acceso: async () => ({ ok: false }) }))).status, 401);
+  assert.equal((await handleEquipoSuscripcionSincronizar(req(), env, deps())).status, 403);
+  const buscados = [];
+  const d = { ...admin(), correos: [], sendEmail: async () => true,
+    mp: { buscarSuscripcionDePlan: async (p) => { buscados.push(p); return { id: 'pre7' }; },
+      buscarCobrosSuscripcion: async (p) => { buscados.push(p); return [{ id: 'a1' }]; },
+      obtenerCobroSuscripcion: async () => ({ id: 'a1', preapproval_id: 'pre7', status: 'processed', transaction_amount: 5, payment: { id: 'p1' } }),
+      obtenerPago: async () => ({ id: 'p1', status: 'approved', payment_method_id: 'visa' }) } };
+  await sus.crear(d.db, { id: 'sy', token: 'sy', producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 500, estado: 'pendiente',
+    mp_plan_id: 'plan9', nombre: 'Yo', creado_en: t0.toISOString() });
+  assert.equal((await handleEquipoSuscripcionSincronizar(post('/api/equipo/suscripciones-sincronizar', { id: 'zz' }), env, d)).status, 404);
+  const r = await handleEquipoSuscripcionSincronizar(req(), env, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, estado: 'activa', cobros_aprobados: 1 });
+  assert.deepEqual(buscados, ['plan9', 'pre7']);
+  assert.equal((await sus.porId(d.db, 'sy')).mp_preapproval_id, 'pre7');
 });

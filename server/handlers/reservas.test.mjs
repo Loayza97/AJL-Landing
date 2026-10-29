@@ -577,3 +577,25 @@ test('pagar de nuevo y no se puede revisar el preapproval guardado: 503 sin toca
   assert.equal(d.creadas.length, 1);
   assert.equal((await sus.porId(d.db, id)).mp_preapproval_id, 'pre1');
 });
+
+test('webhook payment de un cobro de suscripción (metadata.preapproval_id): revisa los cobros y cuenta uno solo', async () => {
+  const enviados = [];
+  const cobros = { a1: { id: 'a1', preapproval_id: 'pre1', status: 'scheduled', transaction_amount: 5 } };
+  const pagos = { p1: { id: 'p1', status: 'approved', external_reference: 'sin-reserva', metadata: { preapproval_id: 'pre1' }, payment_method_id: 'visa' } };
+  const d = deps({ sendEmail: async (m) => { enviados.push(m); return true; }, mp: {
+    obtenerPago: async (id) => pagos[id], obtenerCobroSuscripcion: async (id) => cobros[id],
+    buscarCobrosSuscripcion: async () => Object.values(cobros) } });
+  await sus.crear(d.db, { id: 's1', token: 'ts', producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 500, estado: 'pendiente',
+    nombre: 'Yo', email: 'yo@x.pe', mp_preapproval_id: 'pre1', creado_en: t0.toISOString() });
+  const { procesarCobro } = await import('../suscripciones/procesar.mjs');
+  await procesarCobro(d, env, 'a1'); // aviso del cobro programado, sin payment.id
+  cobros.a1 = { ...cobros.a1, status: 'processed', payment: { id: 'p1' } };
+  const v1 = createHmac('sha256', 'sec').update('id:p1;request-id:q;ts:9;').digest('hex');
+  const llamar = () => handleWebhookMp(post('/api/reservas/webhook-mp?type=payment&data.id=p1', { type: 'payment', data: { id: 'p1' } }, { 'x-signature': `ts=9,v1=${v1}`, 'x-request-id': 'q' }), env, d);
+  assert.equal((await llamar()).status, 200);
+  assert.equal((await llamar()).status, 200);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(s.estado, 'activa');
+  assert.equal(enviados.filter((m) => /Recibimos tu pago/.test(m.subject)).length, 1);
+});
