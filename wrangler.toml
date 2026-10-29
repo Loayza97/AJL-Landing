@@ -13,6 +13,8 @@ FROM_EMAIL = "reclamos@ajlnutricion.com"
 NOTIFICATION_EMAIL = "ajlnutricion@gmail.com"
 NEWSLETTER_FROM = "AJL Nutrición <hola@ajlnutricion.com>"
 PUBLIC_SITE_URL = "https://www.ajlnutricion.com"
+# Pago mensual con suscripción abierto a pacientes (Joaquín, 2026-10-29, tras la prueba de S/5).
+SUSCRIPCIONES_ABIERTAS = "1"
 
 # vars no se hereda entre entornos: el preview repite todas.
 [env.preview.vars]

@@ -78,12 +78,9 @@ function filaVacia() {
   return tr;
 }
 
-// «Cobrar con suscripción»: se ve si el pago mensual está abierto o si quien mira es administrador;
-// el producto de prueba solo para administradores y los demás planes solo con el pago mensual abierto.
-function ofrecer({ admin, abiertas }) {
-  $('#sus-seccion').hidden = !(abiertas || admin);
-  const prueba = $('#sus-prueba');
-  prueba.hidden = prueba.disabled = !admin;
+// «Cobrar con suscripción»: se ve solo con el pago mensual abierto.
+function ofrecer({ abiertas }) {
+  $('#sus-seccion').hidden = !abiertas;
   document.querySelectorAll('#sus-plan optgroup[data-regular]').forEach((g) => { g.hidden = g.disabled = !abiertas; });
 }
 const opcionesAbiertas = fetch('/api/reservas/opciones', { cache: 'no-store' }).then((r) => r.json()).then((d) => d?.suscripciones === true).catch(() => false);

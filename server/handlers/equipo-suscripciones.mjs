@@ -28,8 +28,9 @@ async function crearLink(request, env, deps, { email, admin }) {
   const c = condicionesSuscripcion(d.producto, Number(d.meses));
   if (!nombre) return bad(400, 'Escribe el nombre del paciente.');
   if (!c) return bad(400, 'Elige el plan y el paquete.');
-  if (d.producto === PRODUCTO_PRUEBA && admin !== true) return bad(403, 'El producto de prueba es solo para administradores.');
-  if (d.producto !== PRODUCTO_PRUEBA && env.SUSCRIPCIONES_ABIERTAS !== '1') return bad(400, 'El pago mensual todavía no está disponible.');
+  // La prueba interna de S/5 terminó (Joaquín, 2026-10-29): ya no se crean links de prueba.
+  if (d.producto === PRODUCTO_PRUEBA) return bad(400, 'Ese plan ya no está disponible.');
+  if (env.SUSCRIPCIONES_ABIERTAS !== '1') return bad(400, 'El pago mensual todavía no está disponible.');
   const token = randomToken();
   const ahora = deps.ahora();
   const vence = new Date(ahora.getTime() + VENCE_DIAS * 86400000).toISOString();
