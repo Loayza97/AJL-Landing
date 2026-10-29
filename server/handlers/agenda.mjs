@@ -18,6 +18,7 @@ import { MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import { enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
+import { datosPublicos } from '../../src/data/nutricionistas.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:(00|30):00Z$/;
@@ -46,7 +47,7 @@ export async function handleAgendaLink(request, env, deps) {
   const l = await cargar(deps, new URL(request.url).searchParams.get('l'));
   if (!l) return bad(404, MSJ_NO_EXISTE);
   const estado = agenda.estadoLink(l, deps.ahora());
-  const cuerpo = { ok: true, estado, tipo: tipoPublico(l.tipo), nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) };
+  const cuerpo = { ok: true, estado, tipo: tipoPublico(l.tipo), nutricionistas: deps.nutricionistas.map(datosPublicos) };
   if (estado === 'sin_usar' && l.nutri_sugerida && nutriValida(deps, l.nutri_sugerida)) cuerpo.nutricionista_sugerida = l.nutri_sugerida;
   if (estado === 'agendado') {
     // Con la modalidad va el link de Meet si ya existe: la pantalla muestra dónde es la cita.
@@ -76,7 +77,7 @@ export async function handleAgendaHoras(request, env, deps) {
       const fecha = sumarDias(desde, i);
       dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, filtro, ...delTipo(tipo) }) });
     }
-    return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) });
+    return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(datosPublicos) });
   } catch (e) {
     console.error('agenda/horas', e);
     return bad(503, 'No pudimos consultar la agenda. Intenta en un momento.');

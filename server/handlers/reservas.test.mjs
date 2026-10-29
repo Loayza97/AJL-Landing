@@ -35,7 +35,7 @@ test('horas: 7 días y el equipo, sin datos privados', async () => {
   assert.equal(r.status, 200);
   assert.equal(d.dias.length, 7);
   assert.equal(d.dias[0].horas[0].inicio, '2026-10-06T15:00:00Z');
-  assert.deepEqual(Object.keys(d.nutricionistas[0]).sort(), ['foto', 'id', 'nombre']);
+  assert.deepEqual(Object.keys(d.nutricionistas[0]).sort(), ['foto', 'id', 'nombre', 'perfil', 'tema']);
 });
 
 test('horas: parámetros inválidos dan 400', async () => {

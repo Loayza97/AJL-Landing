@@ -26,6 +26,7 @@ import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
 import * as sus from '../suscripciones/repo.mjs';
 import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
+import { datosPublicos } from '../../src/data/nutricionistas.js';
 
 const FECHA = /^\d{4}-\d{2}-\d{2}$/;
 const INICIO = /^\d{4}-\d{2}-\d{2}T\d{2}:00:00Z$/;
@@ -112,7 +113,7 @@ export async function handleHoras(request, env, deps) {
       const fecha = sumarDias(desde, i);
       dias.push({ fecha, horas: libresDelDia(deps, ctx, { fecha, modalidad, filtro }) });
     }
-    return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(({ id, nombre, foto }) => ({ id, nombre, foto })) });
+    return json(200, { ok: true, dias, nutricionistas: deps.nutricionistas.map(datosPublicos) });
   } catch (e) {
     console.error('horas', e);
     return bad(503, 'No pudimos consultar la agenda. Intenta en un momento.');
