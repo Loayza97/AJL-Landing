@@ -104,7 +104,9 @@ function opcionesForma(d) {
   };
   $('#p2-mensual').replaceChildren(caja('Pago mensual automático', `${soles(s.cuota_centimos)} cada mes`, s.cobros
     ? [`Son ${s.cobros} cobros y termina solo, sin renovación`, 'Se cobra solo con tu tarjeta o Yape', 'Cancelas cuando quieras con un botón en cada recibo',
-      'Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes']
+      'Si cancelas antes de terminar, pagas la diferencia de los meses usados con el precio mes a mes',
+      // Congelamiento en pago mensual (Joaquín, 2026-10-29): manual; los cobros siguen y se suman días al final.
+      `Si viajas, avísanos: tus cobros siguen en su fecha y te sumamos ${d.congelarSemanas} ${d.congelarSemanas === 1 ? 'semana' : 'semanas'} de servicio al final`]
     : ['Se cobra solo cada mes con tu tarjeta o Yape', 'Cancelas cuando quieras, sin penalidad']));
   $('#p2-completo').replaceChildren(caja(d.meses === 1 ? 'Pagar este mes' : 'Pago completo', soles(d.total * 100),
     d.meses === 1 ? ['Una sola vez, con tarjeta o Yape', 'El próximo mes decides si sigues'] : ['Con tarjeta o Yape', 'Con tarjeta de crédito, hasta 12 cuotas']));
