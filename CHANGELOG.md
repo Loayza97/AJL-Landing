@@ -4,10 +4,11 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Calendario: un evento que diga «solo virtual» y nombre a una nutricionista (p. ej. «Nico solo virtual») hace que ese día (evento de día completo) o ese tramo (evento con hora) solo se le ofrezca por video. Sin nombre, vale para todas. Una cita a mano que solo diga «virtual» sigue ocupando la hora.
+Nada por ahora.
 
 ## 2026-10-30 · publicado
 
+- Calendario: un evento que diga «solo virtual» y nombre a una nutricionista (p. ej. «Nico solo virtual») hace que ese día (evento de día completo) o ese tramo (evento con hora) solo se le ofrezca por video. Sin nombre, vale para todas. Una cita a mano que solo diga «virtual» sigue ocupando la hora.
 - Tabla de planes de la portada: cada duración muestra lo que se paga al mes (S/320, 270, 250; 440, 360, 325; 600, 510, 468) con «al mes» debajo, como el banner «Cuánto pagas al mes». Ya no muestra el total del paquete.
 - /reservar/ paso 3 más corto en celular: sin el texto de entrada ni el recuadro «Próxima hora disponible»; burbujas en una sola fila con «Ver perfil» y aviso «Toca una foto para conocer a cada nutricionista»; en presencial solo la dirección.
 
