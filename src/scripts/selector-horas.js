@@ -36,6 +36,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       </div>
       <div class="sel-donde"></div>
       <p class="sel-etq">Elige a tu nutricionista</p>
+      <p class="sel-toca">👆 Toca una foto para conocer a cada nutricionista</p>
       <div class="sel-nutris"></div>
       <div class="sel-perfil" aria-live="polite"></div>
     </div>
@@ -80,18 +81,18 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
 
   function pintar() {
     raiz.querySelectorAll('[data-modalidad]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modalidad === estado.modalidad)));
-    $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad));
+    $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad, null, { corto: true }));
     const equipo = Object.fromEntries(estado.datos.nutricionistas.map((n) => [n.id, n]));
     // Burbujas con la cara de cada una: al tocar, se ve su perfil y solo sus horas.
     $('.sel-nutris').classList.toggle('sel-nutris--elegida', Boolean(estado.nutricionista));
     $('.sel-nutris').innerHTML = estado.datos.nutricionistas.map((n) => `<button type="button" data-filtro="${esc(n.id)}" aria-pressed="${estado.nutricionista === n.id}" aria-label="Ver perfil y horas de ${esc(n.nombre)}">`
-      + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}<b>${esc(n.nombre)}</b></button>`).join('');
+      + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}<b>${esc(n.nombre)}</b><small>${estado.nutricionista === n.id ? 'Elegido' : 'Ver perfil'}</small></button>`).join('');
     const elegida = equipo[estado.nutricionista];
     $('.sel-perfil').classList.toggle('sel-perfil--abierta', Boolean(elegida?.perfil));
     $('.sel-perfil').innerHTML = elegida?.perfil
       ? `<div class="sel-perfil-tarjeta">${elegida.foto ? `<img src="${esc(elegida.foto)}" alt="">` : ''}<div><b>${esc(elegida.nombre)}</b><small>${esc(elegida.tema ?? '')}</small></div></div>`
         + `<p>${esc(elegida.perfil)}</p><button type="button" class="sel-todas" data-filtro="${esc(elegida.id)}">Ver horas de todo el equipo</button>`
-      : '<p class="sel-toca">Toca una foto para conocer a tu nutricionista</p>';
+      : '';
 
     // Próxima hora disponible: la primera del primer día con horas.
     const horas = porFecha();
