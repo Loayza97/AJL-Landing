@@ -4,7 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-Nada por ahora.
+- Tabla de planes de la portada: cada duración muestra lo que se paga al mes (S/320, 270, 250; 440, 360, 325; 600, 510, 468) con «al mes» debajo, como el banner «Cuánto pagas al mes». Ya no muestra el total del paquete.
 
 ## 2026-10-30 · publicado
 
