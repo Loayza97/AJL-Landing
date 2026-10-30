@@ -21,7 +21,8 @@ export function nodoRequisitos(modalidad) {
 }
 
 // meet: link de la videollamada si ya existe; null mientras no se crea.
-export function nodoDonde(modalidad, meet = null) {
+// corto: solo la dirección, sin «En nuestro consultorio» (selector de horas).
+export function nodoDonde(modalidad, meet = null, { corto = false } = {}) {
   const caja = document.createElement('div');
   caja.className = 'rs-donde';
   const texto = document.createElement('span');
@@ -32,7 +33,7 @@ export function nodoDonde(modalidad, meet = null) {
     texto.textContent = meet ? 'Por Google Meet.' : 'Por Google Meet. El link te llega en la invitación a tu correo.';
     if (meet) { link.href = meet; link.textContent = 'Entrar a la videollamada'; }
   } else {
-    texto.textContent = `En nuestro consultorio: ${contacto.direccion}.`;
+    texto.textContent = corto ? `${contacto.direccion}.` : `En nuestro consultorio: ${contacto.direccion}.`;
     link.href = contacto.maps.ficha;
     link.textContent = 'Ver en Google Maps';
   }

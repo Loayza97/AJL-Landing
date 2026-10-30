@@ -36,10 +36,10 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       </div>
       <div class="sel-donde"></div>
       <p class="sel-etq">Elige a tu nutricionista</p>
+      <p class="sel-toca">👆 Toca una foto para conocer a cada nutricionista</p>
       <div class="sel-nutris"></div>
       <div class="sel-perfil" aria-live="polite"></div>
     </div>
-    <div class="sel-proxima" hidden></div>
     <div class="sel-cuerpo">
       <div class="sel-cal">
         <div class="sel-cal-cab"><button type="button" class="sel-prev" aria-label="Mes anterior">‹</button><b class="sel-mes"></b><button type="button" class="sel-next" aria-label="Mes siguiente">›</button></div>
@@ -80,30 +80,21 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
 
   function pintar() {
     raiz.querySelectorAll('[data-modalidad]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modalidad === estado.modalidad)));
-    $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad));
+    $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad, null, { corto: true }));
     const equipo = Object.fromEntries(estado.datos.nutricionistas.map((n) => [n.id, n]));
     // Burbujas con la cara de cada una: al tocar, se ve su perfil y solo sus horas.
     $('.sel-nutris').classList.toggle('sel-nutris--elegida', Boolean(estado.nutricionista));
     $('.sel-nutris').innerHTML = estado.datos.nutricionistas.map((n) => `<button type="button" data-filtro="${esc(n.id)}" aria-pressed="${estado.nutricionista === n.id}" aria-label="Ver perfil y horas de ${esc(n.nombre)}">`
-      + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}<b>${esc(n.nombre)}</b></button>`).join('');
+      + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}<b>${esc(n.nombre)}</b><small>${estado.nutricionista === n.id ? 'Elegido' : 'Ver perfil'}</small></button>`).join('');
     const elegida = equipo[estado.nutricionista];
     $('.sel-perfil').classList.toggle('sel-perfil--abierta', Boolean(elegida?.perfil));
     $('.sel-perfil').innerHTML = elegida?.perfil
       ? `<div class="sel-perfil-tarjeta">${elegida.foto ? `<img src="${esc(elegida.foto)}" alt="">` : ''}<div><b>${esc(elegida.nombre)}</b><small>${esc(elegida.tema ?? '')}</small></div></div>`
         + `<p>${esc(elegida.perfil)}</p><button type="button" class="sel-todas" data-filtro="${esc(elegida.id)}">Ver horas de todo el equipo</button>`
-      : '<p class="sel-toca">Toca una foto para conocer a tu nutricionista</p>';
+      : '';
 
-    // Próxima hora disponible: la primera del primer día con horas.
     const horas = porFecha();
     const primerDia = estado.datos.dias.find((d) => d.horas.length);
-    const prox = $('.sel-proxima');
-    prox.hidden = !primerDia;
-    if (primerDia) {
-      const h = primerDia.horas[0];
-      const n = equipo[h.nutricionista_id];
-      prox.innerHTML = `<span><small>Próxima hora disponible</small><b>${esc(nombreDia(primerDia.fecha))}, ${hora12(h.hora)}</b> con ${esc(n?.nombre ?? 'el equipo')}</span>`
-        + `<button type="button" class="sel-hora sel-hora--prox" data-inicio="${esc(h.inicio)}" data-nutri="${esc(h.nutricionista_id)}" data-nombre="${esc(n?.nombre ?? '')}">Elegir</button>`;
-    }
 
     // Calendario del mes.
     $('.sel-mes').textContent = nombreMes(estado.mes);
