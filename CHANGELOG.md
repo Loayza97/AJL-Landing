@@ -8,6 +8,7 @@ Nada por ahora.
 
 ## 2026-10-30 · publicado
 
+- Tabla de planes de la portada: cada duración muestra lo que se paga al mes (S/320, 270, 250; 440, 360, 325; 600, 510, 468) con «al mes» debajo, como el banner «Cuánto pagas al mes». Ya no muestra el total del paquete.
 - /reservar/ paso 3 más corto en celular: sin el texto de entrada ni el recuadro «Próxima hora disponible»; burbujas en una sola fila con «Ver perfil» y aviso «Toca una foto para conocer a cada nutricionista»; en presencial solo la dirección.
 
 ## 2026-10-29 · publicado

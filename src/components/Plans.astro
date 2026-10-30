@@ -11,6 +11,7 @@
 //     Nunca «regalo» ni «bono».
 //   - «El que recomendamos» aparece una sola vez (2 sesiones).
 //   - Sin tachados, sin porcentajes, sin ahorro (el ahorro se muestra solo en /reservar). Sin recargo por tarjeta.
+//   - Cada duración muestra lo que se paga al mes (banner «Cuánto pagas al mes», Joaquín 2026-10-30).
 //   - La sesión única es «Compra única», nunca «/mes».
 //   - Clases pbtn / data-section / data-pkg / aria-label: las usa la medición.
 //   - Tipografía Montserrat 400–800 (reemplazo web de Gilroy), sin serifas.
@@ -18,6 +19,8 @@ import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data
 
 // Detalle del ícono «i» (mismo `checkoutSummary` que el checkout).
 const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
+// Precio mensual de cada duración («S/270 al mes» → «270»), como el banner «Cuánto pagas al mes».
+const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
 ---
 
 <section id="section-packages" class="ajl-planes" aria-label="Planes de nutrición">
@@ -68,16 +71,17 @@ const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">1 mes</span>
             <span class="ap-pr"><span class="ap-cu">S/</span>{p.price}</span>
+            <span class="ap-eq">al mes</span>
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">3 meses</span>
-            <span class="ap-pr"><span class="ap-cu">S/</span>{p.programs[0].total.replace('S/', '')}</span>
-            <span class="ap-eq">{p.programs[0].perMes}</span>
+            <span class="ap-pr"><span class="ap-cu">S/</span>{alMes(p.programs[0])}</span>
+            <span class="ap-eq">al mes</span>
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">6 meses</span>
-            <span class="ap-pr"><span class="ap-cu">S/</span>{p.programs[1].total.replace('S/', '')}</span>
-            <span class="ap-eq">{p.programs[1].perMes}</span>
+            <span class="ap-pr"><span class="ap-cu">S/</span>{alMes(p.programs[1])}</span>
+            <span class="ap-eq">al mes</span>
           </div>
           <div class="ap-cta" role="cell">
             <a
