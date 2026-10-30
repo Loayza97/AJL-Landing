@@ -40,7 +40,6 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       <div class="sel-nutris"></div>
       <div class="sel-perfil" aria-live="polite"></div>
     </div>
-    <div class="sel-proxima" hidden></div>
     <div class="sel-cuerpo">
       <div class="sel-cal">
         <div class="sel-cal-cab"><button type="button" class="sel-prev" aria-label="Mes anterior">‹</button><b class="sel-mes"></b><button type="button" class="sel-next" aria-label="Mes siguiente">›</button></div>
@@ -94,17 +93,8 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
         + `<p>${esc(elegida.perfil)}</p><button type="button" class="sel-todas" data-filtro="${esc(elegida.id)}">Ver horas de todo el equipo</button>`
       : '';
 
-    // Próxima hora disponible: la primera del primer día con horas.
     const horas = porFecha();
     const primerDia = estado.datos.dias.find((d) => d.horas.length);
-    const prox = $('.sel-proxima');
-    prox.hidden = !primerDia;
-    if (primerDia) {
-      const h = primerDia.horas[0];
-      const n = equipo[h.nutricionista_id];
-      prox.innerHTML = `<span><small>Próxima hora disponible</small><b>${esc(nombreDia(primerDia.fecha))}, ${hora12(h.hora)}</b> con ${esc(n?.nombre ?? 'el equipo')}</span>`
-        + `<button type="button" class="sel-hora sel-hora--prox" data-inicio="${esc(h.inicio)}" data-nutri="${esc(h.nutricionista_id)}" data-nombre="${esc(n?.nombre ?? '')}">Elegir</button>`;
-    }
 
     // Calendario del mes.
     $('.sel-mes').textContent = nombreMes(estado.mes);
