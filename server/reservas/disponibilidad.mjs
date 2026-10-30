@@ -21,12 +21,26 @@ function contienePalabra(texto, palabra) {
 
 const cubreDia = (ev, fecha) => ev.todoElDia && ev.desde <= fecha && fecha < ev.hasta;
 
+// «Nico solo virtual» (Joaquín, 2026-10-30): ese día o tramo no va presencial,
+// pero sigue atendiendo por video. Sin nombre, vale para todas. Hace falta
+// «solo virtual»: una cita a mano que solo diga «virtual» sigue ocupando.
+const esSoloVirtual = (t) => /(^|[^a-z0-9])solo virtual([^a-z0-9]|$)/.test(t);
+const nombradasEn = (t, nutricionistas) => {
+  const n = nutricionistas.filter((x) => x.apodos.some((a) => contienePalabra(t, a)));
+  return n.length ? n : nutricionistas;
+};
+
 export function ausenciasDelDia(eventos, fecha, nutricionistas) {
   const ausentes = new Set();
+  const soloVirtual = new Set();
   let cerrada = false;
   for (const ev of eventos) {
     if (!cubreDia(ev, fecha)) continue;
     const t = normalizar(ev.titulo);
+    if (esSoloVirtual(t)) {
+      for (const n of nombradasEn(t, nutricionistas)) soloVirtual.add(n.id);
+      continue;
+    }
     if (contienePalabra(t, 'cerrado') || contienePalabra(t, 'feriado')) cerrada = true;
     // «nico viene» marca presencia en su sábado alterno; solo «no viene» es ausencia.
     if (contienePalabra(t, 'viene') && !t.includes('no viene')) continue;
@@ -34,7 +48,7 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
       if (n.apodos.some((a) => contienePalabra(t, a))) ausentes.add(n.id);
     }
   }
-  return { ausentes, cerrada };
+  return { ausentes, cerrada, soloVirtual };
 }
 
 // Tope diario en minutos (Alejandro, 2026-10-22): suman las citas de la web y
@@ -58,13 +72,18 @@ const seCruza = (ev, ini, fin) => !ev.todoElDia && Date.parse(ev.desde) < fin &&
 // nombra a una nutricionista (por su apodo), solo a ella; si no nombra a
 // nadie, a todas (Alejandro y Joaquín, 2026-10-22). Los que creó el sistema
 // (propio) ya están en la base y los marcados como libres no cuentan.
-function bloqueadasPorEventos(eventos, nutricionistas, ini, fin) {
+// «solo virtual» con hora solo las saca de lo presencial en ese tramo.
+function bloqueadasPorEventos(eventos, nutricionistas, ini, fin, modalidad) {
   const bloqueadas = new Set();
   for (const ev of eventos) {
-    if (ev.propio || !ev.bloquea || !seCruza(ev, ini, fin)) continue;
+    if (ev.propio || !seCruza(ev, ini, fin)) continue;
     const t = normalizar(ev.titulo);
-    const nombradas = nutricionistas.filter((n) => n.apodos.some((a) => contienePalabra(t, a)));
-    for (const n of nombradas.length ? nombradas : nutricionistas) bloqueadas.add(n.id);
+    if (esSoloVirtual(t)) {
+      if (modalidad === 'presencial') for (const n of nombradasEn(t, nutricionistas)) bloqueadas.add(n.id);
+      continue;
+    }
+    if (!ev.bloquea) continue;
+    for (const n of nombradasEn(t, nutricionistas)) bloqueadas.add(n.id);
   }
   return bloqueadas;
 }
@@ -100,7 +119,7 @@ export function horasLibres({
   const distancia = diasEntre(fechaLima(ahora), fecha);
   if (distancia < desdeDias || distancia > hastaDias) return [];
 
-  const { ausentes, cerrada } = ausenciasDelDia(eventos, fecha, nutricionistas);
+  const { ausentes, cerrada, soloVirtual } = ausenciasDelDia(eventos, fecha, nutricionistas);
   if (cerrada) return [];
 
   const delDia = reservas.filter((r) => r.fecha_lima === fecha);
@@ -120,8 +139,9 @@ export function horasLibres({
     if (modalidad === 'presencial'
       && delDia.some((r) => r.modalidad === 'presencial' && cruza(r, ini, fin))) continue;
 
-    const bloqueadas = bloqueadasPorEventos(eventos, nutricionistas, ini, fin);
+    const bloqueadas = bloqueadasPorEventos(eventos, nutricionistas, ini, fin, modalidad);
     const candidatas = nutricionistas.filter((n) => !ausentes.has(n.id) && !bloqueadas.has(n.id)
+      && !(modalidad === 'presencial' && soloVirtual.has(n.id))
       && (sinTope || minutosNutri(n.id) + duracionMin <= topeNutri)
       && (!filtroNutricionista || n.id === filtroNutricionista)
       && ventanaCubre(n, fecha, modalidad, m, duracionMin)

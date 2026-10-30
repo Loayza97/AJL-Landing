@@ -264,3 +264,35 @@ test('tope por nutri: el sábado caben 5 horas por nutricionista', () => {
   assert.ok(horasLibres({ ...base, reservas: sab([9, 10, 11, 12]), fecha: '2026-10-10', modalidad: 'video', filtroNutricionista: 'nico' }).length > 0);
   assert.deepEqual(horasLibres({ ...base, reservas: sab([9, 10, 11, 12, 14]), fecha: '2026-10-10', modalidad: 'video', filtroNutricionista: 'nico' }), []);
 });
+
+test('«Nico solo virtual» de día completo: ese día Nico solo se ofrece por video; las demás siguen presencial', () => {
+  const eventos = [diaCompleto('Nico solo virtual', '2026-10-06', '2026-10-07')];
+  const q = { ...base, eventos, fecha: '2026-10-06' };
+  assert.deepEqual(horasLibres({ ...q, modalidad: 'presencial', filtroNutricionista: 'nico' }), []);
+  assert.ok(horasLibres({ ...q, modalidad: 'video', filtroNutricionista: 'nico' }).length > 0);
+  assert.ok(horasLibres({ ...q, modalidad: 'presencial', filtroNutricionista: 'jussara' }).length > 0);
+  assert.ok(!horasLibres({ ...q, modalidad: 'presencial' }).some((h) => h.nutricionista_id === 'nico'));
+});
+
+test('«Nico solo virtual» con hora: en ese tramo Nico no va presencial pero sí por video', () => {
+  const eventos = [conHora('Nico solo virtual', '2026-10-06T14:00:00-05:00', '2026-10-06T16:00:00-05:00')];
+  const q = { ...base, eventos, fecha: '2026-10-06', filtroNutricionista: 'nico' };
+  const pres = horas(horasLibres({ ...q, modalidad: 'presencial' }));
+  assert.ok(!pres.includes('14:00') && !pres.includes('15:00'));
+  assert.ok(pres.includes('12:00') && pres.includes('16:00'));
+  const video = horas(horasLibres({ ...q, modalidad: 'video' }));
+  assert.ok(video.includes('14:00') && video.includes('15:00'));
+});
+
+test('«Solo virtual» sin nombre: ese día nadie presencial; tildes y mayúsculas no importan', () => {
+  const eventos = [diaCompleto('SÓLO VIRTUAL', '2026-10-06', '2026-10-07')];
+  const q = { ...base, eventos, fecha: '2026-10-06' };
+  assert.deepEqual(horasLibres({ ...q, modalidad: 'presencial' }), []);
+  assert.ok(horasLibres({ ...q, modalidad: 'video' }).length > 0);
+});
+
+test('una cita a mano que dice «virtual» (sin «solo») sigue bloqueando a esa nutricionista', () => {
+  const eventos = [conHora('Juan Pérez virtual · Nico', '2026-10-06T14:00:00-05:00', '2026-10-06T15:00:00-05:00')];
+  const video = horas(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'nico' }));
+  assert.ok(!video.includes('14:00'));
+});

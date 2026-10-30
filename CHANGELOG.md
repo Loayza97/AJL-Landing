@@ -4,7 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-Nada por ahora.
+- Calendario: un evento que diga «solo virtual» y nombre a una nutricionista (p. ej. «Nico solo virtual») hace que ese día (evento de día completo) o ese tramo (evento con hora) solo se le ofrezca por video. Sin nombre, vale para todas. Una cita a mano que solo diga «virtual» sigue ocupando la hora.
 
 ## 2026-10-30 · publicado
 
