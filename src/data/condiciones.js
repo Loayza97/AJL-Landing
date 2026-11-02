@@ -1,6 +1,6 @@
 // Versiones de los textos que el paciente acepta en el paso 4. Se guardan con
 // cada reserva: si el texto cambia, sube la versión.
-export const CONDICIONES_VERSION = '2026-10-28';
+export const CONDICIONES_VERSION = '2026-11-02';
 export const NOVEDADES_TEXTO =
   'Quiero recibir novedades y promociones de AJL Nutrición por correo. (v2026-10-01)';
 
@@ -9,9 +9,9 @@ export const NOVEDADES_TEXTO =
 export const RESUMEN_CONDICIONES = [
   { t: 'Precio y pago', d: 'Los precios están en soles y no tienen recargo por tarjeta. Pagas en Mercado Pago con tarjeta, Yape o dinero en tu cuenta. Con tarjeta de crédito puedes pagar en cuotas; si hay intereses, los cobra tu banco.' },
   { t: 'Pago mensual automático', d: 'Sin renovación; si cancelas un paquete antes del último cobro, pagas la diferencia de los meses usados con el precio que les correspondía.' },
-  { t: 'Tus citas', d: 'Al comprar eliges tu primera sesión. Las siguientes las coordinas con tu nutricionista dentro del plazo de tu plan.' },
-  { t: 'Plazo', d: 'El paquete de 3 meses se usa en 3 meses y el de 6 meses en 6, desde que recibes tu plan. Puedes congelarlo 1 semana en el de 3 meses y 2 semanas en el de 6.' },
-  { t: 'Mover o cancelar', d: 'Mover una cita es gratis hasta 48 horas antes. Con menos de 48 horas cuesta S/80. Si no vienes, la sesión se pierde.' },
+  { t: 'Tus citas', d: 'Al comprar eliges tu primera sesión. Las siguientes las coordinas con tu nutricionista dentro del plazo de tu plan. Si no agendas, te escribimos hasta 4 veces; si no respondes, esa sesión se da por usada y no se devuelve.' },
+  { t: 'Plazo', d: 'El paquete de 3 meses se usa en 3 meses y el de 6 meses en 6, desde que recibes tu plan. Puedes congelarlo 1 semana en el de 3 meses y 2 semanas en el de 6. Si pediste hora a tiempo y no tuvimos ninguna, te alargamos el plazo.' },
+  { t: 'Mover o cancelar', d: 'Mover una cita es gratis hasta 48 horas antes. Con menos de 48 horas cuesta S/40. La evaluación y la sesión única se devuelven si cancelas hasta 48 horas antes; después solo se pueden mover. Si no vienes, la sesión se pierde.' },
   { t: 'Si no podemos atenderte', d: 'Si AJL no puede darte el servicio, te devolvemos lo que no usaste.' },
 ];
 
