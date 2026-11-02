@@ -4,7 +4,9 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-Nada por ahora.
+## 2026-11-02 · publicado
+
+- Links de agenda: al reconocer al paciente por DNI, el correo se muestra con 3 letras al inicio y 3 al final del usuario (p. ej. luc••••••mos@gmail.com); con usuarios cortos, menos, para que siempre queden ocultas al menos 2.
 
 ## 2026-10-30 · publicado
 
