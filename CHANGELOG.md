@@ -4,9 +4,9 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Condiciones del servicio (versión 2026-11-02): mover una cita con menos de 48 horas cuesta S/40 (antes S/80, también en /reservar/). La evaluación y la sesión única se devuelven si se cancelan hasta 48 horas antes; después solo se mueven. Si el paciente no agenda, el equipo le escribe hasta 4 veces; sin respuesta, la sesión se da por usada y no se devuelve. Si pidió hora a tiempo y AJL no tuvo ninguna, se le alarga el plazo. Si suben los precios, quien renueva dentro del mes siguiente a terminar su plan mantiene su precio. El resumen del paso 4 dice lo mismo.
-
 ## 2026-11-02 · publicado
+
+- Condiciones del servicio (versión 2026-11-02): mover una cita con menos de 48 horas cuesta S/40 (antes S/80, también en /reservar/). La evaluación y la sesión única se devuelven si se cancelan hasta 48 horas antes; después solo se mueven. Si el paciente no agenda, el equipo le escribe hasta 4 veces; sin respuesta, la sesión se da por usada y no se devuelve. Si pidió hora a tiempo y AJL no tuvo ninguna, se le alarga el plazo. Si suben los precios, quien renueva dentro del mes siguiente a terminar su plan mantiene su precio. El resumen del paso 4 dice lo mismo.
 
 - Links de agenda: al reconocer al paciente por DNI, el correo se muestra con 3 letras al inicio y 3 al final del usuario (p. ej. luc••••••mos@gmail.com); con usuarios cortos, menos, para que siempre queden ocultas al menos 2.
 
