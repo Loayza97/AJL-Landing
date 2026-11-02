@@ -47,7 +47,7 @@ Ver el estado: `npx wrangler pages deployment list --project-name ajl-landing --
 2. `npm test` y `npm run build` sin errores.
 3. Anotar el cambio visible en `CHANGELOG.md`, en «Pendiente de publicar».
 4. Push a `reservas-pago` y probar en la versión de prueba.
-5. **Solo con aprobación de Joaquín:** merge a `main` y push. Mover la entrada del CHANGELOG a una sección «AAAA-MM-DD · publicado».
+5. **Solo con aprobación de Joaquín o Alejandro** (cualquiera de los dos basta): merge a `main` y push. Mover la entrada del CHANGELOG a una sección «AAAA-MM-DD · publicado».
 6. Verificar producción: `npm run smoke -- https://www.ajlnutricion.com` (debe dar todo OK).
 
 ### Si el cambio toca la base (D1)

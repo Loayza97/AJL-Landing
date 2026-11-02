@@ -8,7 +8,7 @@ Este repo es la web de AJL Nutrición (Astro 4 + Cloudflare Pages Functions + D1
 
 Reglas clave:
 - No hay comando de despliegue. Push a `reservas-pago` publica la versión de prueba; push a `main` publica producción.
-- Trabajar en `reservas-pago`. Merge a `main` solo con aprobación de Joaquín.
+- Trabajar en `reservas-pago`. Merge a `main` solo con aprobación de Joaquín o Alejandro (cualquiera de los dos basta).
 - `npm test` y `npm run build` antes de cada push; `npm run smoke -- https://www.ajlnutricion.com` después de publicar.
 - Cambios visibles en `CHANGELOG.md`.
 - El repo es público: ningún secreto en el código. La versión de prueba usa el Google Calendar real.
