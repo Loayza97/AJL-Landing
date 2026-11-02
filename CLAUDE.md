@@ -13,7 +13,7 @@ Reglas clave:
 - Cambios visibles en `CHANGELOG.md`.
 - El repo es público: ningún secreto en el código. La versión de prueba usa el Google Calendar real.
 
-Todo lo que sigue abajo es del workspace anterior (`ailab`, por rubros) y no aplica a la web.
+Todo lo que sigue abajo es del workspace anterior (`ailab`, por rubros), retirado el 2026-09-28, y no aplica a la web. Se dejó por ahora; Alejandro decide si se borra.
 
 ## Project Overview
 
