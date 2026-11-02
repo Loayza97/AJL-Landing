@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Este repo: la web ajlnutricion.com
+
+Este repo es la web de AJL Nutrición (Astro 4 + Cloudflare Pages Functions + D1), con reserva y pago, panel del equipo y links de agenda. **Antes de trabajar, leer `DESARROLLO.md`**: stack, despliegue, flujo de ramas, migraciones y secretos.
+
+Reglas clave:
+- No hay comando de despliegue. Push a `reservas-pago` publica la versión de prueba; push a `main` publica producción.
+- Trabajar en `reservas-pago`. Merge a `main` solo con aprobación de Joaquín.
+- `npm test` y `npm run build` antes de cada push; `npm run smoke -- https://www.ajlnutricion.com` después de publicar.
+- Cambios visibles en `CHANGELOG.md`.
+- El repo es público: ningún secreto en el código. La versión de prueba usa el Google Calendar real.
+
+Todo lo que sigue abajo es del workspace anterior (`ailab`, por rubros) y no aplica a la web.
+
 ## Project Overview
 
 This is a workspace organized by business areas (rubros) containing commercial projects, automations, and research.
