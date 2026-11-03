@@ -4,10 +4,15 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Campaña Cyber Wow (hasta el domingo 8 de noviembre de 2026, 11:59 p. m. hora de Lima; se apaga sola al vencer): franja fija con contador y «Ver ofertas»; estrella naranja «Hasta 26% de descuento» en la portada, en los planes y en los pasos 1 y 2 de /reservar/ (no en el calendario ni después); en la tabla de planes, el mes regular tachado y el porcentaje de cada cuota de 3 y 6 meses, más «Hasta −X% con Cyber Wow» en cada plan; en el paso 1, el tachado y la insignia por plan; en el paso 2, la insignia con el porcentaje en cada paquete. El botón de la portada dice «Ver los planes con descuento →» (las dos versiones de la prueba A/B). Los precios no cambian; los porcentajes salen de la misma cuenta de «Ahorras …». Además, los nombres de plan ya no llevan «+» delante («1 sesión al mes», no «+ 1 sesión al mes»).
 - Citas virtuales: el Meet de cada cita nueva (web, links y cambio a virtual desde el panel) queda con acceso abierto, así el paciente con Hotmail u otro correo sin cuenta de Google entra sin esperar a que lo acepten. La nutricionista de la cita va como invitada del evento (correo del secreto `CORREOS_EQUIPO`); si el panel la reasigna, la invitación pasa a la nueva y se conservan los demás invitados. Requiere activar la Google Meet API y volver a autorizar con `scripts/google-oauth.mjs` (permiso nuevo `meetings.space.settings`); sin eso, el Meet queda como antes y la cita se crea igual.
 
+## 2026-11-03 · publicado
+
+- Links de agenda: el paso de identificación pide el tipo de documento (DNI, carné de extranjería o pasaporte). Antes solo aceptaba DNI de 8 dígitos y un paciente con carné de extranjería no podía agendar. Un paciente se reconoce por el tipo y el número.
+
 ## 2026-11-02 · publicado
+
+- Campaña Cyber Wow (hasta el domingo 8 de noviembre de 2026, 11:59 p. m. hora de Lima; se apaga sola al vencer): franja fija con contador y «Ver ofertas»; estrella naranja «Hasta 26% de descuento» en la portada, en los planes y en los pasos 1 y 2 de /reservar/ (no en el calendario ni después); en la tabla de planes, el mes regular tachado y el porcentaje de cada cuota de 3 y 6 meses, más «Hasta −X% con Cyber Wow» en cada plan; en el paso 1, el tachado y la insignia por plan; en el paso 2, la insignia con el porcentaje en cada paquete. El botón de la portada dice «Ver los planes con descuento →» (las dos versiones de la prueba A/B). Los precios no cambian; los porcentajes salen de la misma cuenta de «Ahorras …». Además, los nombres de plan ya no llevan «+» delante («1 sesión al mes», no «+ 1 sesión al mes»).
 
 - Condiciones del servicio (versión 2026-11-02): mover una cita con menos de 48 horas cuesta S/40 (antes S/80, también en /reservar/). La evaluación y la sesión única se devuelven si se cancelan hasta 48 horas antes; después solo se mueven. Si el paciente no agenda, el equipo le escribe hasta 4 veces; sin respuesta, la sesión se da por usada y no se devuelve. Si pidió hora a tiempo y AJL no tuvo ninguna, se le alarga el plazo. Si suben los precios, quien renueva dentro del mes siguiente a terminar su plan mantiene su precio. El resumen del paso 4 dice lo mismo.
 
