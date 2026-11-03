@@ -256,3 +256,18 @@ test('confirmar con link: aviso «Nueva cita» a Romina, Irene y la nutri de la 
   const aviso = d.correos.find((c) => /^Nueva cita: /.test(c.subject));
   assert.deepEqual(aviso.to, ['romi@x.pe', 'irene@x.pe', JSON.parse(conEquipo.CORREOS_EQUIPO)[r.nutricionista_id]]);
 });
+
+test('carné de extranjería: agenda con CE y luego lo reconoce solo con ese tipo', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  const ce = { dni: '007940042', tipo_documento: 'ce' };
+  assert.equal((await handleAgendaDni(post('/api/agenda/dni', { l, dni: '007940042' }), env, d)).status, 400);
+  assert.deepEqual(await (await handleAgendaDni(post('/api/agenda/dni', { l, ...ce }), env, d)).json(), { ok: true, conocido: false });
+  assert.equal((await confirmar(d, l, ce)).status, 200);
+  const c = await d.db.prepare('SELECT dni, tipo_documento FROM clientes').first();
+  assert.deepEqual({ ...c }, { dni: '007940042', tipo_documento: 'ce' });
+  const l2 = await conLink(d, 's60');
+  assert.equal((await (await handleAgendaDni(post('/api/agenda/dni', { l: l2, ...ce }), env, d)).json()).conocido, true);
+  assert.equal((await (await handleAgendaDni(post('/api/agenda/dni', { l: l2, dni: '007940042', tipo_documento: 'pasaporte' }), env, d)).json()).conocido, false);
+  assert.equal((await handleAgendaDni(post('/api/agenda/dni', { l: l2, dni: '1', tipo_documento: 'otro' }), env, d)).status, 400);
+});
