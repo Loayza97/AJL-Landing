@@ -2,7 +2,7 @@
 // nuevo: datos) → listo. Las horas, el DNI y la cita los decide el servidor.
 import { montarSelector } from './selector-horas.js';
 import { NOMBRE_MODALIDAD as MOD, nodoDonde, nodoRequisitos } from './donde.js';
-import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
+import { validarDatos, hoyEnLima, revisarDocumento } from '../data/validar-datos.js';
 import { contacto } from '../data/contacto.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 
@@ -11,7 +11,7 @@ const token = new URLSearchParams(location.search).get('l') || '';
 // volverA: tras un 409 (hora tomada) el paciente vuelve directo al paso donde
 // estaba (conocido o datos) con lo que ya respondió /dni: no repite el DNI ni
 // gasta otra consulta del cupo del link.
-const estado = { link: null, hora: null, dni: null, selector: null, volverA: null };
+const estado = { link: null, hora: null, dni: null, tipoDoc: 'dni', selector: null, volverA: null };
 
 function irA(paso) {
   document.querySelectorAll('.rs-paso').forEach((s) => { s.hidden = s.dataset.paso !== paso; });
@@ -67,7 +67,7 @@ async function confirmar(datos, errorSel) {
   const btns = document.querySelectorAll('.rs-btn');
   btns.forEach((b) => { b.disabled = true; });
   const h = estado.hora;
-  const { status, d } = await api('/api/agenda/confirmar', { l: token, inicio: h.inicio, modalidad: h.modalidad, nutricionista: h.nutricionista, dni: estado.dni, datos });
+  const { status, d } = await api('/api/agenda/confirmar', { l: token, inicio: h.inicio, modalidad: h.modalidad, nutricionista: h.nutricionista, dni: estado.dni, tipo_documento: estado.tipoDoc, datos });
   btns.forEach((b) => { b.disabled = false; });
   if (status === 0) {
     $(errorSel).textContent = MSJ_RED_CONFIRMAR;
@@ -100,14 +100,17 @@ async function confirmar(datos, errorSel) {
 
 $('#a-form-dni').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const dni = $('#a-dni').value.replace(/[\s.-]+/g, '');
-  if (!/^\d{8}$/.test(dni)) { $('#a-error-dni').textContent = 'Escribe tu DNI (8 dígitos).'; return; }
+  const tipoDoc = $('#a-tipo-doc').value;
+  const doc = revisarDocumento(tipoDoc, $('#a-dni').value);
+  if (!doc.ok) { $('#a-error-dni').textContent = doc.error; return; }
+  const dni = doc.documento;
   $('#a-error-dni').textContent = '';
-  const { status, d } = await api('/api/agenda/dni', { l: token, dni });
+  const { status, d } = await api('/api/agenda/dni', { l: token, dni, tipo_documento: tipoDoc });
   if (status === 410) return linkNoVigente();
   if (status === 0) { $('#a-error-dni').textContent = MSJ_RED; return; }
   if (status !== 200) { $('#a-error-dni').textContent = d.error || 'No pudimos revisar tu DNI. Intenta de nuevo.'; return; }
   estado.dni = dni;
+  estado.tipoDoc = tipoDoc;
   estado.volverA = null;
   if (!d.conocido) return irA('datos');
   $('#a-hola').textContent = `Hola, ${d.nombre}`;
@@ -129,7 +132,7 @@ $('#a-form-datos').addEventListener('submit', (e) => {
     fecha_nacimiento: `${$('#a-nac-anio').value}-${$('#a-nac-mes').value}-${$('#a-nac-dia').value}`,
     acepto: $('#a-acepto').checked,
   };
-  const v = validarDatos({ ...datos, tipo_documento: 'dni', documento: estado.dni }, hoyEnLima(new Date()));
+  const v = validarDatos({ ...datos, tipo_documento: estado.tipoDoc, documento: estado.dni }, hoyEnLima(new Date()));
   if (!v.ok) { $('#a-error-datos').textContent = v.error; return; }
   $('#a-error-datos').textContent = '';
   confirmar(datos, '#a-error-datos');
@@ -173,3 +176,11 @@ async function iniciar() {
 }
 
 iniciar();
+
+$('#a-tipo-doc').addEventListener('change', () => {
+  const dni = $('#a-tipo-doc').value === 'dni';
+  $('#a-dni').inputMode = dni ? 'numeric' : 'text';
+  $('#a-dni').maxLength = dni ? 10 : 14;
+  $('#a-dni').placeholder = dni ? '8 dígitos' : '';
+  $('#a-error-dni').textContent = '';
+});

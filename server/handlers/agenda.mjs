@@ -16,7 +16,7 @@ import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { contexto, libresDelDia, eventoDe } from './reservas.mjs';
 import { MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import { enlaceGoogleCalendar } from '../reservas/ics.mjs';
-import { validarDatos, hoyEnLima } from '../../src/data/validar-datos.js';
+import { validarDatos, hoyEnLima, revisarDocumento } from '../../src/data/validar-datos.js';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { datosPublicos } from '../../src/data/nutricionistas.js';
 
@@ -28,7 +28,6 @@ const MSJ_NO_VIGENTE = 'Este link ya se usó o venció. Escríbenos por WhatsApp
 const MSJ_OCUPADA = 'Esa hora acaba de ocuparse. Elige otra.';
 const MSJ_TOPE = 'Ese día ya no tiene cupos. Elige otro día.';
 const MSJ_INTENTOS = 'Demasiados intentos con este link. Escríbenos por WhatsApp.';
-const dniLimpio = (s) => String(s ?? '').replace(/[\s.-]+/g, '');
 
 async function cargar(deps, token) {
   if (typeof token !== 'string' || !token || token.length > 100) return null;
@@ -93,10 +92,13 @@ export async function handleAgendaDni(request, env, deps) {
   const l = await cargar(deps, d.l);
   if (!l) return bad(404, MSJ_NO_EXISTE);
   if (agenda.estadoLink(l, deps.ahora()) !== 'sin_usar') return bad(410, MSJ_NO_VIGENTE, { motivo: 'link' });
-  const dni = dniLimpio(d.dni);
-  if (!/^\d{8}$/.test(dni)) return bad(400, 'Escribe tu DNI (8 dígitos).');
+  // Tipo de documento: DNI, carné de extranjería o pasaporte (2026-11-03).
+  // Sin tipo se asume DNI, como antes.
+  const tipoDoc = d.tipo_documento ?? 'dni';
+  const doc = revisarDocumento(tipoDoc, d.dni);
+  if (!doc.ok) return bad(400, doc.error);
   if (!(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) return bad(429, MSJ_INTENTOS);
-  const p = await agenda.pacientePorDni(deps.db, dni);
+  const p = await agenda.pacientePorDni(deps.db, doc.documento, tipoDoc);
   if (!p) return json(200, { ok: true, conocido: false });
   return json(200, { ok: true, conocido: true, nombre: primerNombre(p),
     email: enmascararCorreo(p.email), whatsapp: enmascararTelefono(p.whatsapp) });
@@ -111,19 +113,21 @@ export async function handleAgendaConfirmar(request, env, deps) {
   if (agenda.estadoLink(l, ahora) !== 'sin_usar') return bad(410, MSJ_NO_VIGENTE, { motivo: 'link' });
   const tipo = TIPOS_LINK[l.tipo];
   if (!INICIO.test(d.inicio || '') || !tipo.modalidades.includes(d.modalidad) || !nutriValida(deps, d.nutricionista)) return bad(400, 'Datos inválidos');
-  const dni = dniLimpio(d.dni);
-  if (!/^\d{8}$/.test(dni)) return bad(400, 'Escribe tu DNI (8 dígitos).');
+  const tipoDoc = d.tipo_documento ?? 'dni';
+  const doc = revisarDocumento(tipoDoc, d.dni);
+  if (!doc.ok) return bad(400, doc.error);
+  const dni = doc.documento;
 
   const conDatos = Boolean(d.datos && typeof d.datos === 'object');
   // Sin datos, la respuesta revela si el DNI es paciente (200 o 400 'datos'):
   // gasta una consulta del mismo cupo que /dni.
   if (!conDatos && !(await agenda.contarConsultaDni(deps.db, l.id, MAX_CONSULTAS_DNI))) return bad(429, MSJ_INTENTOS);
 
-  const previo = await agenda.pacientePorDni(deps.db, dni);
+  const previo = await agenda.pacientePorDni(deps.db, dni, tipoDoc);
   let cliente = null;
   let clienteId = previo?.id ?? null;
   if (conDatos) {
-    const v = validarDatos({ ...d.datos, tipo_documento: 'dni', documento: dni }, hoyEnLima(ahora));
+    const v = validarDatos({ ...d.datos, tipo_documento: tipoDoc, documento: dni }, hoyEnLima(ahora));
     if (!v.ok) return bad(400, v.error);
     cliente = v.cliente;
     clienteId = crypto.randomUUID();

@@ -60,12 +60,12 @@ export async function contarConsultaDni(db, id, max) {
 
 // Es paciente quien tiene un cliente con ese DNI y alguna cita confirmada o
 // pagada; se usan sus datos más recientes.
-export const pacientePorDni = (db, dni) => db.prepare(
+export const pacientePorDni = (db, dni, tipo = 'dni') => db.prepare(
   `SELECT c.* FROM clientes c
-   WHERE c.dni = ?1 AND c.tipo_documento = 'dni' AND c.nombre IS NOT NULL
+   WHERE c.dni = ?1 AND c.tipo_documento = ?2 AND c.nombre IS NOT NULL
      AND EXISTS (SELECT 1 FROM reservas r WHERE r.cliente_id = c.id AND r.estado IN ('confirmada', 'pagada_sin_hora'))
    ORDER BY c.creado_en DESC LIMIT 1`,
-).bind(dni).first();
+).bind(dni, tipo).first();
 
 const VIGENTE = (id, ahora) => `EXISTS (SELECT 1 FROM links_agenda WHERE id = ${id} AND usado_en IS NULL AND vence_en > ${ahora})`;
 
@@ -78,13 +78,13 @@ export async function agendarConLink(db, a) {
     const c = a.cliente;
     sentencias.push(db.prepare(
       `INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno, fecha_nacimiento, tipo_documento, creado_en)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'dni', ?10
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?19, ?10
        WHERE ${VIGENTE('?11', '?10')}
          AND NOT ${CRUCE({ ini: '?12', fin: '?13', nutri: '?14', modalidad: '?15', excluir: "''" })}
          AND ${MINUTOS_DIA('?16')} + ?17 <= ?18
          AND ${NUTRI_CON_CUPO({ fecha: '?16', nutri: '?14', dur: '?17' })}`,
     ).bind(a.clienteId, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno ?? null, c.fecha_nacimiento,
-      ahoraIso, a.link, h.inicio, h.fin, h.nutricionista_id, h.modalidad, h.fecha_lima, h.duracion_min, tope));
+      ahoraIso, a.link, h.inicio, h.fin, h.nutricionista_id, h.modalidad, h.fecha_lima, h.duracion_min, tope, c.tipo_documento ?? 'dni'));
   }
   sentencias.push(db.prepare(
     `INSERT INTO reservas (id, token, cliente_id, producto, duracion_meses, monto_centimos, peso_tope, nutricionista_id, inicio_utc, fin_utc,

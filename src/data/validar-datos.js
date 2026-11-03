@@ -22,6 +22,17 @@ function edad(nacimiento, hoy) {
   return ha - a - (hm < m || (hm === m && hd < d) ? 1 : 0);
 }
 
+// Tipo y número de documento, ya limpio (sin espacios, puntos ni guiones, en
+// mayúsculas). Lo usan /reservar y los links de agenda.
+export function revisarDocumento(tipo, valor) {
+  if (!Object.hasOwn(DOCUMENTO, String(tipo ?? ''))) return mal('Elige tu tipo de documento.');
+  const documento = String(valor ?? '').replace(/[\s.-]+/g, '').toUpperCase();
+  if (!DOCUMENTO[tipo].test(documento)) {
+    return mal(tipo === 'dni' ? 'Escribe tu DNI (8 dígitos).' : 'Revisa el número de tu documento.');
+  }
+  return { ok: true, documento };
+}
+
 export function validarDatos(d, hoyLima) {
   const nombres = limpio(d.nombres);
   const paterno = limpio(d.apellido_paterno);
@@ -38,11 +49,9 @@ export function validarDatos(d, hoyLima) {
   const anios = edad(nacimiento, hoyLima);
   if (anios < 10 || anios > 100) return mal('Revisa tu fecha de nacimiento.');
   const tipo = String(d.tipo_documento ?? '');
-  if (!Object.hasOwn(DOCUMENTO, tipo)) return mal('Elige tu tipo de documento.');
-  const documento = String(d.documento ?? '').replace(/[\s.-]+/g, '').toUpperCase();
-  if (!DOCUMENTO[tipo].test(documento)) {
-    return mal(tipo === 'dni' ? 'Escribe tu DNI (8 dígitos).' : 'Revisa el número de tu documento.');
-  }
+  const doc = revisarDocumento(tipo, d.documento);
+  if (!doc.ok) return doc;
+  const { documento } = doc;
   if (d.acepto !== true) return mal('Para continuar, acepta las condiciones del servicio.');
   return {
     ok: true,

@@ -40,10 +40,14 @@ const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
     <section class="rs-paso" data-paso="dni" hidden>
       <button type="button" class="rs-volver" data-volver="horario">‹ Cambiar hora</button>
       <div class="rs-resumen" data-resumen></div>
-      <h1>¿Cuál es tu DNI?</h1>
+      <h1>¿Cuál es tu documento?</h1>
       <p class="rs-lead">Si ya eres paciente, no tienes que llenar nada más.</p>
       <form id="a-form-dni" novalidate>
-        <label for="a-dni">Número de DNI</label>
+        <label for="a-tipo-doc">Tipo de documento</label>
+        <select id="a-tipo-doc">
+          <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+        </select>
+        <label for="a-dni">Número de documento</label>
         <input type="text" id="a-dni" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="8 dígitos" required>
         <button type="submit" class="rs-btn">Continuar</button>
         <p class="rs-error" id="a-error-dni" role="alert"></p>
