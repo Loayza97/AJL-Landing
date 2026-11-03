@@ -4,6 +4,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Nico atiende solo por video los jueves desde la semana del 9 de noviembre de 2026 (trabaja remoto): el jueves 12 en adelante ya no se le ofrece presencial. El jueves 5 sigue como siempre. Las demás nutricionistas no cambian. Para eso las ventanas de horario aceptan ahora un rango de fechas (`vigenteDesde` / `vigenteHasta`).
+
 ## 2026-11-02 · publicado
 
 - Campaña Cyber Wow (hasta el domingo 8 de noviembre de 2026, 11:59 p. m. hora de Lima; se apaga sola al vencer): franja fija con contador y «Ver ofertas»; estrella naranja «Hasta 26% de descuento» en la portada, en los planes y en los pasos 1 y 2 de /reservar/ (no en el calendario ni después); en la tabla de planes, el mes regular tachado y el porcentaje de cada cuota de 3 y 6 meses, más «Hasta −X% con Cyber Wow» en cada plan; en el paso 1, el tachado y la insignia por plan; en el paso 2, la insignia con el porcentaje en cada paquete. El botón de la portada dice «Ver los planes con descuento →» (las dos versiones de la prueba A/B). Los precios no cambian; los porcentajes salen de la misma cuenta de «Ahorras …». Además, los nombres de plan ya no llevan «+» delante («1 sesión al mes», no «+ 1 sesión al mes»).

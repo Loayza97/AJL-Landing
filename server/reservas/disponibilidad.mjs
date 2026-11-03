@@ -99,6 +99,10 @@ function ventanaCubre(nutricionista, fecha, modalidad, m, dur) {
     // (Alejandro, 2026-10-15); una ventana solo virtual no se vuelve presencial.
     if (v.modalidad && v.modalidad !== modalidad && !(v.modalidad === 'presencial' && modalidad === 'video')) return false;
     if (v.cadaDosSemanas && Math.abs(diasEntre(v.cadaDosSemanas, fecha)) % 14 !== 0) return false;
+    // Una ventana puede regir solo en un rango de fechas de Lima («AAAA-MM-DD», ambas incluidas):
+    // `vigenteDesde` y `vigenteHasta`. Sirve para cambios de horario que empiezan o terminan un día fijo.
+    if (v.vigenteDesde && fecha < v.vigenteDesde) return false;
+    if (v.vigenteHasta && fecha > v.vigenteHasta) return false;
     let desde = v.desde;
     let hasta = v.hasta;
     if (modalidad === 'presencial') {

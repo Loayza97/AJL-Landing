@@ -18,6 +18,11 @@
 // 7-nov-2026 (Romi, 2026-10-15). Paolo alterna martes y sábado: viene el
 // sábado 17-oct-2026 y el martes 20-oct-2026 (Romi, 2026-10-15).
 //
+// `vigenteDesde` / `vigenteHasta` («AAAA-MM-DD», hora de Lima, ambas incluidas): la
+// ventana solo rige en ese rango. Nico pasa los jueves a solo virtual desde la
+// semana del 9-nov-2026 (trabaja remoto; Alejandro, 2026-11-02): hasta el 8-nov
+// el jueves es presencial o video, desde el 9-nov solo video.
+//
 // `tema` y `perfil`: lo que ve el paciente al tocar su foto en /reservar/
 // (textos aprobados por Romi, 2026-10-29).
 
@@ -33,7 +38,8 @@ export const nutricionistas = [
       { dia: 'lunes', modalidad: null, desde: 11, hasta: 20 },
       { dia: 'martes', modalidad: null, desde: 11, hasta: 20 },
       { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-28' },
-      { dia: 'jueves', modalidad: null, desde: 11, hasta: 20 },
+      { dia: 'jueves', modalidad: null, desde: 11, hasta: 20, vigenteHasta: '2026-11-08' },
+      { dia: 'jueves', modalidad: 'video', desde: 11, hasta: 20, vigenteDesde: '2026-11-09' },
       { dia: 'viernes', modalidad: 'video', desde: 11, hasta: 20 },
       { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-11-07' },
     ],
