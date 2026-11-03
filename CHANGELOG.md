@@ -6,6 +6,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-11-02 · publicado
 
+- Campaña Cyber Wow (hasta el domingo 8 de noviembre de 2026, 11:59 p. m. hora de Lima; se apaga sola al vencer): franja fija con contador y «Ver ofertas»; estrella naranja «Hasta 26% de descuento» en la portada, en los planes y en los pasos 1 y 2 de /reservar/ (no en el calendario ni después); en la tabla de planes, el mes regular tachado y el porcentaje de cada cuota de 3 y 6 meses, más «Hasta −X% con Cyber Wow» en cada plan; en el paso 1, el tachado y la insignia por plan; en el paso 2, la insignia con el porcentaje en cada paquete. El botón de la portada dice «Ver los planes con descuento →» (las dos versiones de la prueba A/B). Los precios no cambian; los porcentajes salen de la misma cuenta de «Ahorras …». Además, los nombres de plan ya no llevan «+» delante («1 sesión al mes», no «+ 1 sesión al mes»).
+
 - Condiciones del servicio (versión 2026-11-02): mover una cita con menos de 48 horas cuesta S/40 (antes S/80, también en /reservar/). La evaluación y la sesión única se devuelven si se cancelan hasta 48 horas antes; después solo se mueven. Si el paciente no agenda, el equipo le escribe hasta 4 veces; sin respuesta, la sesión se da por usada y no se devuelve. Si pidió hora a tiempo y AJL no tuvo ninguna, se le alarga el plazo. Si suben los precios, quien renueva dentro del mes siguiente a terminar su plan mantiene su precio. El resumen del paso 4 dice lo mismo.
 
 - Links de agenda: al reconocer al paciente por DNI, el correo se muestra con 3 letras al inicio y 3 al final del usuario (p. ej. luc••••••mos@gmail.com); con usuarios cortos, menos, para que siempre queden ocultas al menos 2.

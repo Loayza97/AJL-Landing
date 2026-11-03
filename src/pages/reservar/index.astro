@@ -6,6 +6,10 @@ import { condicionesSuscripcion } from '../../../server/suscripciones/calculo.mj
 import { PAISES } from '../../data/telefono.js';
 import { NOVEDADES_TEXTO, RESUMEN_CONDICIONES, RESUMEN_PRIVACIDAD } from '../../data/condiciones.js';
 import '../../styles/reservar.css';
+import '../../styles/cyberwow.css';
+import CyberFranja from '../../components/CyberFranja.astro';
+import CyberEstrella from '../../components/CyberEstrella.astro';
+import { descuentoMaxDe, descuentoMaxGlobal } from '../../data/cyberwow.js';
 
 // Todo lo que trae cada plan, para el recuadro «Incluye» de la pantalla 2.
 const ORDINAL = { 2: '2da', 3: '3ra', 4: '4ta', 5: '5ta' };
@@ -42,13 +46,19 @@ const VENTANAS = [
 ];
 ---
 <Layout noindex title="Reserva tu primera sesión · AJL Nutrición">
+  <CyberFranja />
   <main class="rs">
     <script is:inline type="application/json" id="catalogo" set:html={JSON.stringify(catalogo)} />
 
     <section class="rs-paso" data-paso="p1" hidden>
-      <div class="rs-progreso"><span>Paso 1 de 4</span></div>
-      <h1>¿Cómo quieres que te acompañemos?</h1>
-      <p class="rs-lead">Elige cada cuánto te vemos. Entre sesión y sesión, nunca te quedas solo.</p>
+      <div class="rs-titlebar">
+        <div>
+          <div class="rs-progreso"><span>Paso 1 de 4</span></div>
+          <h1>¿Cómo quieres que te acompañemos?</h1>
+          <p class="rs-lead">Elige cada cuánto te vemos. Entre sesión y sesión, nunca te quedas solo.</p>
+        </div>
+        <CyberEstrella class="cw-star--rs" pct={descuentoMaxGlobal()} />
+      </div>
       <div class="rs-bloque">
         <p class="rs-k">Planes con seguimiento continuo</p>
         <div class="rs-incluye">
@@ -62,8 +72,9 @@ const VENTANAS = [
         <div class="rs-planes">
           {monthlyPlans.map((p) => (
             <article class:list={['rs-plan', { 'rs-plan--star': p.highlight }]}>
+              <span class="cw cw-dscto"><small>Hasta</small>−{descuentoMaxDe(p.id)}%</span>
               <header><b>{p.name}</b>{p.highlight && <span class="rs-badge">Recomendado</span>}</header>
-              <p class="rs-desde"><small>desde</small><b>{desdeMes(p.id)}</b> <span>al mes</span></p>
+              <p class="rs-desde"><small>desde</small><s class="cw cw-was">{formatoSoles(p.price)}</s> <b>{desdeMes(p.id)}</b> <span>al mes</span></p>
               <ul class="rs-lista">
                 <li>{p.sessionsPerMonth === 1 ? '1 sesión' : `${p.sessionsPerMonth} sesiones`} al mes con tu nutricionista</li>
                 <li>Tu plan ajustado a tu día a día</li>
@@ -84,9 +95,14 @@ const VENTANAS = [
 
     <section class="rs-paso" data-paso="p2" hidden>
       <button type="button" class="rs-volver" data-volver="p1">‹ Cambiar acompañamiento</button>
-      <div class="rs-progreso"><span>Paso 2 de 4</span></div>
-      <h1>¿Por cuánto tiempo?</h1>
-      <p class="rs-lead" id="p2-plan"></p>
+      <div class="rs-titlebar">
+        <div>
+          <div class="rs-progreso"><span>Paso 2 de 4</span></div>
+          <h1>¿Por cuánto tiempo?</h1>
+          <p class="rs-lead" id="p2-plan"></p>
+        </div>
+        <CyberEstrella class="cw-star--rs" pct={descuentoMaxGlobal()} />
+      </div>
       <div class="rs-duraciones" id="p2-opciones"></div>
       <div class="rs-consultas" id="p2-consultas"></div>
       <div class="rs-forma" id="p2-forma" hidden>
