@@ -1,0 +1,6 @@
+---
+// Estrella «Hasta X% de descuento» de la campaña Cyber Wow. Se oculta sola al vencer.
+import '../styles/cyberwow.css';
+const { pct, class: clase = '' } = Astro.props;
+---
+<div class:list={['cw', 'cw-star', clase]} aria-hidden="true"><div><small>Hasta</small><b>{pct}<sup>%</sup></b><small>de descuento</small></div></div>

@@ -56,6 +56,16 @@ Ver el estado: `npx wrangler pages deployment list --project-name ajl-landing --
 2. Aplicarla en prueba: `npx wrangler d1 migrations apply ajl-reservas-preview --remote --env preview`
 3. Aplicarla en producción **antes** del merge a `main` (si no, producción falla): `npx wrangler d1 migrations apply ajl-reservas --remote`
 
+## Versionado: cómo volver a una versión
+
+- **Tag `default`** = la versión base de producción (`237508e`, 02-nov-2026, antes de Cyber Wow). No se mueve. Es a lo que se vuelve si algo sale mal.
+- **Tags con fecha** marcan cada versión publicada en `main` que merece volver a ella: `<nombre>-AAAA-MM-DD`, por ejemplo `cyber-wow-2026-11-02`. Se crean sobre el commit que queda en `main`, justo después de publicar:
+  `git tag -a cyber-wow-2026-11-02 <commit> -m "qué es" && git push origin cyber-wow-2026-11-02`.
+  Un tag no se mueve ni se borra; si hace falta otra versión, se crea otro con otra fecha.
+- **Volver rápido (producción):** Cloudflare → Workers y Pages → `ajl-landing` → Despliegues → el despliegue anterior → «Rollback to this deployment». Es instantáneo, pero no deshace migraciones de D1 ni cambios de secretos.
+- **Volver desde git:** `git checkout default` para ver el código; para publicarlo, hacer un commit nuevo en `main` con ese contenido (por ejemplo `git revert` del merge), sin `--force`.
+- Ver qué hay: `git tag -n` lista los tags con su descripción.
+
 ## Secretos
 
 El repo es **público**: nada secreto en el código ni en `wrangler.toml`.

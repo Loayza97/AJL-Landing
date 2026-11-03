@@ -1,0 +1,65 @@
+/* Campaña Cyber Wow (02 al 08-nov-2026). Todo lo de la campaña lleva la clase
+   `cw` (o `cw-franja` / `cw-band`) y se oculta solo cuando vence: el script de
+   CyberFranja.astro marca <html data-cw="off">. En /reservar también se oculta
+   desde el paso 3 (calendario): reservar.js marca <body data-rs-paso>. Para
+   quitar la campaña del código: borrar este archivo, los componentes
+   CyberFranja/CyberEstrella, src/data/cyberwow.js y los elementos `cw`. */
+html[data-cw="off"] .cw, html[data-cw="off"] .cw-franja, html[data-cw="off"] .cw-band { display: none !important; }
+body[data-rs-paso="p3"] .cw, body[data-rs-paso="p3"] .cw-franja,
+body[data-rs-paso="p4"] .cw, body[data-rs-paso="p4"] .cw-franja { display: none !important; }
+
+/* Franja fija arriba, con contador */
+.cw-franja { position: sticky; top: 0; z-index: 900; background: var(--dorado-osc); color: #fff; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 16px; padding: 9px clamp(12px, 4vw, 32px); font-size: .85rem; line-height: 1.3; text-align: center; }
+.cw-franja strong { font-weight: 800; letter-spacing: .12em; text-transform: uppercase; font-size: .75rem; }
+.cw-franja .cw-timer { background: rgba(0, 0, 0, .18); border-radius: 999px; padding: 3px 12px; }
+.cw-franja a { background: #fff; color: var(--dorado-osc); font-weight: 800; border-radius: 999px; padding: 6px 16px; text-decoration: none; }
+.cw-franja a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.cw-timer { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+/* Estrella «Hasta X% de descuento» */
+.cw-star { flex: none; aspect-ratio: 1; display: grid; place-items: center; text-align: center; background: var(--dorado-osc); color: #fff; transform: rotate(9deg); font-family: var(--font-head);
+  clip-path: polygon(50% 0%, 61% 8%, 75% 4%, 80% 18%, 94% 23%, 91% 38%, 100% 50%, 91% 62%, 94% 77%, 80% 82%, 75% 96%, 61% 92%, 50% 100%, 39% 92%, 25% 96%, 20% 82%, 6% 77%, 9% 62%, 0% 50%, 9% 38%, 6% 23%, 20% 18%, 25% 4%, 39% 8%); }
+.cw-star > div { display: grid; line-height: 1; }
+.cw-star small { font-family: var(--font); font-size: .55em; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.cw-star b { font-weight: 900; font-size: 3.4em; line-height: .95; letter-spacing: -.03em; }
+.cw-star b sup { font-size: .5em; vertical-align: top; position: relative; top: .1em; }
+@media (prefers-reduced-motion: no-preference) { .cw-star { animation: cw-pulso 2.8s ease-in-out infinite; } }
+@keyframes cw-pulso { 50% { transform: rotate(9deg) scale(1.05); } }
+
+/* Hero */
+.cw-star--hero { position: absolute; z-index: 2; right: clamp(.75rem, 5vw, 4rem); top: clamp(5.5rem, 9vw, 7rem); width: clamp(7rem, 19vw, 14rem); font-size: clamp(.6rem, 1.6vw, 1rem); }
+@media (max-width: 768px) {
+  html:not([data-cw="off"]) .hero { padding-top: 8.5rem; }
+  .cw-star--hero { top: 1rem; width: 6.5rem; font-size: .62rem; }
+}
+
+/* Planes de la portada */
+html:not([data-cw="off"]) .ajl-planes .ap-inner { position: relative; gap: 12px; }
+.cw-band { background: var(--dorado-osc); color: #fff; border-radius: 12px; padding: 12px 16px; display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; justify-content: space-between; font-size: 14px; }
+.cw-band b { font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: 12px; }
+.cw-star--planes { position: absolute; top: 118px; right: 20px; width: clamp(5.25rem, 11vw, 7.25rem); font-size: clamp(.4rem, .9vw, .55rem); }
+@media (max-width: 640px) { .cw-star--planes { position: static; align-self: center; width: 5.75rem; font-size: .4rem; } }
+.cw-hasta { background: var(--dorado-osc); color: #fff; border-radius: 99px; padding: 5px 13px; font-size: 13px; font-weight: 800; white-space: nowrap; box-shadow: 0 4px 12px rgba(190, 110, 66, .35); }
+.cw-was { font-size: 15px; color: #6B6B6B; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: var(--dorado-osc); font-variant-numeric: tabular-nums; white-space: nowrap; display: block; }
+.cw-chip { display: inline-block; background: var(--dorado-osc); color: #fff; border-radius: 99px; padding: 5px 13px; font-size: 15px; font-weight: 800; white-space: nowrap; box-shadow: 0 4px 12px rgba(190, 110, 66, .35); margin-top: 2px; }
+html:not([data-cw="off"]) .ajl-planes .ap-tabla { gap: 8px; }
+html:not([data-cw="off"]) .ajl-planes .ap-fila { padding: 12px 14px; }
+html:not([data-cw="off"]) .ajl-planes .ap-fila--star { padding-top: 20px; }
+html:not([data-cw="off"]) .ajl-planes .ap-fila .ap-precio { padding-top: 0; }
+html:not([data-cw="off"]) .ajl-planes .ap-plan { gap: 4px; align-items: flex-start; }
+html:not([data-cw="off"]) .ajl-planes .ap-incluye { gap: 8px; }
+
+/* /reservar: título con estrella, tarjetas con insignia */
+.rs-titlebar { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.rs-titlebar > div:first-child { min-width: 0; flex: 1; }
+.cw-star--rs { width: clamp(5.25rem, 12vw, 8.25rem); font-size: clamp(.4rem, .95vw, .58rem); margin-top: 2px; }
+.cw-dscto { position: absolute; top: -16px; right: 14px; z-index: 3; background: var(--dorado-osc); color: #fff; border-radius: 12px; padding: 6px 12px 7px; text-align: center; font-weight: 800; font-size: 24px; line-height: 1; letter-spacing: -.02em; box-shadow: 0 8px 18px rgba(190, 110, 66, .45); transform: rotate(3deg); font-variant-numeric: tabular-nums; }
+.cw-dscto small { display: block; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 3px; font-weight: 800; }
+html:not([data-cw="off"]) .rs-plan, html:not([data-cw="off"]) .rs-dur { position: relative; }
+html:not([data-cw="off"]) .rs-planes, html:not([data-cw="off"]) .rs-duraciones { padding-top: 14px; }
+html:not([data-cw="off"]) .rs-plan header { padding-right: 100px; flex-wrap: wrap; }
+html:not([data-cw="off"]) .rs-dur .rs-badge { margin-right: 96px; }
+
+/* Ajustes de espacio para que la estrella no tape el título */
+@media (min-width: 641px) { html:not([data-cw="off"]) .ajl-planes .ap-hl { padding-inline: 8rem; } }
+html:not([data-cw="off"]) .rs-titlebar { margin-bottom: 22px; }

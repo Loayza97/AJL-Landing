@@ -7,6 +7,7 @@ import { formatoSoles } from '../data/duraciones.js';
 import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 import { destinoLink } from '../data/links-reserva.js';
+import { cyberActivo } from '../data/cyberwow.js';
 
 const catalogo = JSON.parse(document.getElementById('catalogo').textContent);
 const $ = (s) => document.querySelector(s);
@@ -28,6 +29,12 @@ function tarjetaDuracion(o, precioMes) {
   const b = h('button', o.meses === 3 ? 'rs-dur rs-dur--star' : 'rs-dur');
   b.type = 'button';
   b.dataset.duracion = String(o.meses);
+  // Cyber Wow (02 al 08-nov-2026): insignia con el % de ahorro del paquete (el mismo ahorroPct de «Ahorras …»).
+  if (o.meses > 1 && cyberActivo()) {
+    const d = h('span', 'cw cw-dscto');
+    d.append(h('small', null, 'Cyber Wow'), `−${o.ahorroPct}%`);
+    b.append(d);
+  }
   if (o.meses === 3) b.append(h('span', 'rs-badge', 'Recomendado'));
   b.append(h('b', 'rs-dur-t', o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`));
   const precio = h('span', 'rs-dur-p');
@@ -48,6 +55,8 @@ function tarjetaDuracion(o, precioMes) {
 
 function irA(paso) {
   document.querySelectorAll('.rs-paso').forEach((s) => { s.hidden = s.dataset.paso !== paso; });
+  // La campaña Cyber Wow solo se ve en los pasos 1 y 2 (src/styles/cyberwow.css).
+  document.body.dataset.rsPaso = paso;
   window.scrollTo(0, 0);
 }
 

@@ -1,5 +1,7 @@
 ---
 import { contacto } from '../data/contacto.js';
+import CyberEstrella from './CyberEstrella.astro';
+import { descuentoMaxGlobal } from '../data/cyberwow.js';
 
 // Señales de confianza above-the-fold (sin credenciales).
 // "+800 pacientes" = redondeo conservador de ~820 DNI únicos en la base real.
@@ -11,6 +13,7 @@ const trust = [
 ---
 
 <section id="section-hero" class="hero">
+  <CyberEstrella class="cw-star--hero" pct={descuentoMaxGlobal()} />
   <div class="container hero__inner">
     <h1 class="hero__title">
       Deja de hacer <span class="hero__tachar">dietas</span>.<br />
@@ -47,6 +50,9 @@ const trust = [
           }
           var boton = document.getElementById('hero-cta');
           boton.textContent = V[v][0];
+          // Cyber Wow (02 al 08-nov-2026): mientras dure, las dos versiones dicen lo mismo.
+          // La variante se sigue anotando, pero el texto no compara nada esos días.
+          if (document.documentElement.getAttribute('data-cw') !== 'off') boton.textContent = 'Ver los planes con descuento →';
           boton.setAttribute('data-variante', v);
           document.getElementById('hero-cta-promesa').textContent = V[v][1];
           var enviar = function (evento) {
