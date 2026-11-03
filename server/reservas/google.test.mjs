@@ -193,3 +193,70 @@ test('eliminarEvento: DELETE con aviso al paciente; 404 o 410 cuentan como ya bo
     assert.equal(e instanceof Error, falla, String(status));
   }
 });
+
+const envEquipo = { ...env, CORREOS_EQUIPO: JSON.stringify({ romina: 'ro@x.pe', nico: 'Nico@X.pe', paolo: 'paolo@x.pe' }) };
+
+test('crearEvento invita a la nutricionista de la cita y abre el Meet', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events?', { id: 'ev1', hangoutLink: 'https://meet.google.com/abc-defg-hij', conferenceData: { conferenceId: 'abc-defg-hij' } }],
+    ['meet.googleapis.com/v2/spaces/abc-defg-hij', { name: 'spaces/S1' }],
+    ['meet.googleapis.com/v2/spaces/S1?', { name: 'spaces/S1', config: { accessType: 'OPEN' } }],
+  ]);
+  const g = crearGoogle(envEquipo, f);
+  const r = await g.crearEvento({ reservaId: 'r1', titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'video',
+    invitado: { email: 'ana@x.pe', nombre: 'Ana' }, nutricionistaId: 'nico' });
+  assert.deepEqual(r, { id: 'ev1', meet: 'https://meet.google.com/abc-defg-hij' });
+  assert.deepEqual(JSON.parse(f.llamadas[1].init.body).attendees, [{ email: 'ana@x.pe', displayName: 'Ana' }, { email: 'nico@x.pe' }]);
+  const patch = f.llamadas[3];
+  assert.equal(patch.init.method, 'PATCH');
+  assert.match(patch.url, /spaces\/S1\?updateMask=config\.accessType$/);
+  assert.deepEqual(JSON.parse(patch.init.body), { config: { accessType: 'OPEN' } });
+});
+
+test('crearEvento: si abrir el Meet falla, la cita se crea igual; sin correo de la nutri, solo el paciente', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events?', { id: 'ev1', hangoutLink: 'https://meet.google.com/x', conferenceData: { conferenceId: 'x' } }],
+    ['meet.googleapis.com', { error: 'insufficient scopes' }, 403],
+  ]);
+  const g = crearGoogle(envEquipo, f);
+  const r = await g.crearEvento({ reservaId: 'r1', titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'video',
+    invitado: { email: 'ana@x.pe', nombre: 'Ana' }, nutricionistaId: 'paola' });
+  assert.deepEqual(r, { id: 'ev1', meet: 'https://meet.google.com/x' });
+  assert.deepEqual(JSON.parse(f.llamadas[1].init.body).attendees, [{ email: 'ana@x.pe', displayName: 'Ana' }]);
+});
+
+test('crearEvento presencial invita a la nutri y no toca Meet', async () => {
+  const f = fetchFalso([['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }], ['/events?', { id: 'ev2' }]]);
+  const g = crearGoogle(envEquipo, f);
+  await g.crearEvento({ reservaId: 'r2', titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'presencial', direccion: 'Jr. X',
+    invitado: { email: 'a@x.pe', nombre: 'A' }, nutricionistaId: 'paolo' });
+  assert.equal(f.llamadas.length, 2);
+  assert.deepEqual(JSON.parse(f.llamadas[1].init.body).attendees.map((a) => a.email), ['a@x.pe', 'paolo@x.pe']);
+});
+
+test('actualizarEvento reasignado: cambia la nutri invitada y conserva al paciente y a otros invitados', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events/ev5?fields=attendees', { attendees: [{ email: 'ana@x.pe', responseStatus: 'accepted' }, { email: 'nico@x.pe' }, { email: 'mama@x.pe' }] }],
+    ['/events/ev5?conferenceDataVersion', { id: 'ev5', hangoutLink: 'https://meet.google.com/m' }],
+  ]);
+  const g = crearGoogle(envEquipo, f);
+  await g.actualizarEvento('ev5', { titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'video', cambiaModalidad: false, nutricionistaId: 'paolo' });
+  const c = JSON.parse(f.llamadas[2].init.body);
+  assert.deepEqual(c.attendees, [{ email: 'ana@x.pe', responseStatus: 'accepted' }, { email: 'mama@x.pe' }, { email: 'paolo@x.pe' }]);
+});
+
+test('actualizarEvento a virtual abre el Meet nuevo', async () => {
+  const f = fetchFalso([
+    ['oauth2.googleapis.com/token', { access_token: 'AT', expires_in: 3600 }],
+    ['/events/ev6?', { id: 'ev6', hangoutLink: 'https://meet.google.com/n', conferenceData: { conferenceId: 'n' } }],
+    ['meet.googleapis.com/v2/spaces/n', { name: 'spaces/N' }],
+    ['meet.googleapis.com/v2/spaces/N?', {}],
+  ]);
+  const g = crearGoogle(env, f);
+  await g.actualizarEvento('ev6', { titulo: 't', descripcion: 'd', inicioUtc: 'a', finUtc: 'b', modalidad: 'video', cambiaModalidad: true });
+  assert.equal(f.llamadas.at(-1).init.method, 'PATCH');
+  assert.match(f.llamadas.at(-1).url, /spaces\/N\?updateMask/);
+});

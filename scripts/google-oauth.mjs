@@ -15,7 +15,9 @@ if (!id || !secreto) { console.error('Faltan GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SE
 const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
 url.search = new URLSearchParams({
   client_id: id, redirect_uri: REDIRECT, response_type: 'code', access_type: 'offline', prompt: 'consent',
-  scope: 'https://www.googleapis.com/auth/calendar.events',
+  // calendar.events: leer y escribir citas. meetings.space.settings: dejar el
+  // Meet de cada cita con acceso abierto (2026-11-02).
+  scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/meetings.space.settings',
 });
 console.log(`Abre este enlace con la cuenta dueña del calendario:\n\n${url}\n`);
 

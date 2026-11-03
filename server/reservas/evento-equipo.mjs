@@ -48,5 +48,5 @@ export function eventoEquipo(r, nutricionista) {
   const req = r.modalidad ? requisitosDe(r.modalidad) : null;
   const lineas = lineasCita(r, nutricionista);
   const descripcion = (req ? [...lineas, '', req.titulo, ...req.items.map((i) => `• ${i}`)] : lineas).join('\n');
-  return { titulo, descripcion };
+  return { titulo, descripcion, nutricionistaId: r.nutricionista_id };
 }

@@ -4,6 +4,8 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
+- Citas virtuales: el Meet de cada cita nueva (web, links y cambio a virtual desde el panel) queda con acceso abierto, así el paciente con Hotmail u otro correo sin cuenta de Google entra sin esperar a que lo acepten. La nutricionista de la cita va como invitada del evento (correo del secreto `CORREOS_EQUIPO`); si el panel la reasigna, la invitación pasa a la nueva y se conservan los demás invitados. Requiere activar la Google Meet API y volver a autorizar con `scripts/google-oauth.mjs` (permiso nuevo `meetings.space.settings`); sin eso, el Meet queda como antes y la cita se crea igual.
+
 ## 2026-11-02 · publicado
 
 - Condiciones del servicio (versión 2026-11-02): mover una cita con menos de 48 horas cuesta S/40 (antes S/80, también en /reservar/). La evaluación y la sesión única se devuelven si se cancelan hasta 48 horas antes; después solo se mueven. Si el paciente no agenda, el equipo le escribe hasta 4 veces; sin respuesta, la sesión se da por usada y no se devuelve. Si pidió hora a tiempo y AJL no tuvo ninguna, se le alarga el plazo. Si suben los precios, quien renueva dentro del mes siguiente a terminar su plan mantiene su precio. El resumen del paso 4 dice lo mismo.

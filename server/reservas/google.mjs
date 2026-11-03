@@ -1,8 +1,13 @@
 // Google Calendar del equipo (Gmail normal, sin Workspace): OAuth con el
 // refresh token de la cuenta dueña del calendario. Se lee para saber qué está
 // ocupado y se escribe al confirmar un pago.
+import { correosEquipo } from './aviso-equipo.mjs';
+import { nutricionistas } from '../../src/data/nutricionistas.js';
+
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const API = 'https://www.googleapis.com/calendar/v3';
+const MEET_API = 'https://meet.googleapis.com/v2';
+const CORREO = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 const CACHE_EVENTOS_MS = 60 * 1000;
 
 // Caché a nivel de módulo: sobrevive entre requests del mismo isolate.
@@ -40,6 +45,15 @@ export function cambioDeEvento(ev) {
 
 export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
   const calendario = encodeURIComponent(env.GOOGLE_CALENDAR_ID || '');
+
+  // Correos de las nutricionistas (secreto CORREOS_EQUIPO). La de la cita va
+  // como invitada del evento (Joaquín, 2026-11-02): así la cita sale en su
+  // calendario y entra al Meet sin depender de la cuenta dueña.
+  const correoDe = (id) => {
+    const c = String(correosEquipo(env)[id] ?? '').trim().toLowerCase();
+    return CORREO.test(c) ? c : null;
+  };
+  const correosNutris = () => new Set(nutricionistas.map((n) => correoDe(n.id)).filter(Boolean));
 
   async function token() {
     if (tokenCacheado && tokenCacheado.vence > reloj() + 60000) return tokenCacheado.valor;
@@ -98,13 +112,38 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     return cambios;
   }
 
+  // Meet con acceso abierto (Joaquín, 2026-11-02): el paciente con Hotmail u
+  // otro correo sin cuenta de Google no queda en «Pedir unirse», que en un
+  // Gmail normal solo la cuenta dueña puede aceptar. Necesita el permiso
+  // meetings.space.settings en el token. Nunca lanza: si falla, el Meet queda
+  // como lo crea Google y la cita sigue.
+  async function abrirMeet(ev) {
+    const codigo = ev?.conferenceData?.conferenceId;
+    if (!codigo) return;
+    try {
+      const auth = { Authorization: `Bearer ${await token()}` };
+      const g = await fetchImpl(`${MEET_API}/spaces/${encodeURIComponent(codigo)}`, { headers: auth });
+      if (!g.ok) throw new Error(`Meet spaces.get ${g.status}: ${await g.text()}`);
+      const { name } = await g.json();
+      const p = await fetchImpl(`${MEET_API}/${name}?updateMask=config.accessType`, {
+        method: 'PATCH',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: { accessType: 'OPEN' } }),
+      });
+      if (!p.ok) throw new Error(`Meet spaces.patch ${p.status}: ${await p.text()}`);
+    } catch (err) {
+      console.warn('abrirMeet', err.message);
+    }
+  }
+
   async function crearEvento(e) {
+    const nutri = correoDe(e.nutricionistaId);
     const cuerpo = {
       summary: e.titulo,
       description: e.descripcion,
       start: { dateTime: e.inicioUtc, timeZone: 'America/Lima' },
       end: { dateTime: e.finUtc, timeZone: 'America/Lima' },
-      attendees: [{ email: e.invitado.email, displayName: e.invitado.nombre }],
+      attendees: [{ email: e.invitado.email, displayName: e.invitado.nombre }, ...(nutri ? [{ email: nutri }] : [])],
       extendedProperties: { private: { ajl_reserva_id: e.reservaId } },
     };
     if (e.modalidad === 'presencial') cuerpo.location = e.direccion;
@@ -118,6 +157,7 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     if (!r.ok) throw new Error(`Google events.insert ${r.status}: ${await r.text()}`);
     const d = await r.json();
     eventosCacheados.clear();
+    await abrirMeet(d);
     return { id: d.id, meet: d.hangoutLink || null };
   }
 
@@ -130,6 +170,20 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
       start: { dateTime: e.inicioUtc, timeZone: 'America/Lima' },
       end: { dateTime: e.finUtc, timeZone: 'America/Lima' },
     };
+    // Nutricionista de la cita como invitada: se lee la lista actual para
+    // conservar al paciente (y a quien se haya agregado a mano) y cambiar solo
+    // a la nutricionista si se reasignó.
+    const nutri = correoDe(e.nutricionistaId);
+    if (nutri) {
+      const g = await fetchImpl(`${API}/calendars/${calendario}/events/${encodeURIComponent(eventId)}?fields=attendees`, {
+        headers: { Authorization: `Bearer ${await token()}` },
+      });
+      if (g.ok) {
+        const equipo = correosNutris();
+        const otros = ((await g.json()).attendees || []).filter((a) => !equipo.has(String(a.email).toLowerCase()));
+        cuerpo.attendees = [...otros, { email: nutri }];
+      }
+    }
     if (e.cambiaModalidad) {
       if (e.modalidad === 'presencial') {
         cuerpo.location = e.direccion;
@@ -154,6 +208,7 @@ export function crearGoogle(env, fetchImpl = fetch, reloj = Date.now) {
     // Un evento borrado a mano sigue existiendo en Google con status 'cancelled':
     // el PATCH responde 200 pero no se ve. Se trata como inexistente y se crea otro.
     if (d.status === 'cancelled') throw Object.assign(new Error(`Google: evento ${eventId} borrado`), { noExiste: true });
+    if (e.cambiaModalidad && e.modalidad !== 'presencial') await abrirMeet(d);
     return { id: d.id, meet: e.modalidad === 'presencial' ? null : d.hangoutLink || null };
   }
 
