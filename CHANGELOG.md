@@ -4,7 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
 
-- Nico atiende solo por video los jueves desde la semana del 9 de noviembre de 2026 (trabaja remoto): el jueves 12 en adelante ya no se le ofrece presencial. El jueves 5 sigue como siempre. Las demás nutricionistas no cambian. Para eso las ventanas de horario aceptan ahora un rango de fechas (`vigenteDesde` / `vigenteHasta`).
+- Nico alterna los jueves desde el 12 de noviembre de 2026 (trabaja remoto una semana sí y otra no): 12-nov y 26-nov solo por video; 19-nov y 3-dic presencial o video, y así cada dos semanas. El jueves 5 sigue como siempre. Los viernes de Nico son por video. Las demás nutricionistas no cambian. Para eso las ventanas de horario aceptan ahora un rango de fechas (`vigenteDesde` / `vigenteHasta`).
 
 ## 2026-11-02 · publicado
 

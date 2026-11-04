@@ -297,14 +297,20 @@ test('una cita a mano que dice «virtual» (sin «solo») sigue bloqueando a esa
   assert.ok(!video.includes('14:00'));
 });
 
-test('Nico solo virtual los jueves desde el 9-nov-2026: antes es presencial o video, desde esa semana solo video; las demás no cambian', () => {
+test('Nico jueves alternados desde el 12-nov-2026: 12 y 26 solo video, 19-nov y 3-dic presencial o video; 5-nov sin cambio', () => {
   const hoy = new Date('2026-11-02T15:00:00Z');
   const nico = (fecha, modalidad) => horas(horasLibres({ ...base, ahora: hoy, fecha, modalidad, filtroNutricionista: 'nico' }));
   const turno = ['11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00'];
   assert.deepEqual(nico('2026-11-05', 'presencial'), turno); // jueves de esta semana: sin cambio
   assert.deepEqual(nico('2026-11-12', 'presencial'), []); // jueves de la semana del 9
   assert.deepEqual(nico('2026-11-12', 'video'), turno); // sigue atendiendo por video
-  assert.deepEqual(nico('2026-11-19', 'presencial'), []);
+  assert.deepEqual(nico('2026-11-19', 'presencial'), turno); // jueves presencial de la alternancia
+  // Más adelante (el motor solo ofrece unas semanas hacia adelante): se alterna.
+  const tarde = (fecha, modalidad) => horas(horasLibres({ ...base, ahora: new Date('2026-11-24T15:00:00Z'), fecha, modalidad, filtroNutricionista: 'nico' }));
+  assert.deepEqual(tarde('2026-11-26', 'presencial'), []); // vuelve a virtual
+  assert.deepEqual(tarde('2026-11-26', 'video'), turno);
+  assert.deepEqual(tarde('2026-12-03', 'presencial'), turno);
+  assert.deepEqual(tarde('2026-12-10', 'presencial'), []);
   // Otros días de Nico y otras nutricionistas no cambian.
   assert.deepEqual(nico('2026-11-10', 'presencial'), turno); // martes
   const jussara = horas(horasLibres({ ...base, ahora: hoy, fecha: '2026-11-12', modalidad: 'presencial', filtroNutricionista: 'jussara' }));

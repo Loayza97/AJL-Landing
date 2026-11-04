@@ -39,7 +39,9 @@ export const nutricionistas = [
       { dia: 'martes', modalidad: null, desde: 11, hasta: 20 },
       { dia: 'miercoles', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-10-28' },
       { dia: 'jueves', modalidad: null, desde: 11, hasta: 20, vigenteHasta: '2026-11-08' },
-      { dia: 'jueves', modalidad: 'video', desde: 11, hasta: 20, vigenteDesde: '2026-11-09' },
+      // Desde el 12-nov: jueves alternados. 12-nov virtual, 19-nov presencial (o virtual), 26-nov virtual...
+      { dia: 'jueves', modalidad: 'video', desde: 11, hasta: 20, cadaDosSemanas: '2026-11-12', vigenteDesde: '2026-11-09' },
+      { dia: 'jueves', modalidad: null, desde: 11, hasta: 20, cadaDosSemanas: '2026-11-19', vigenteDesde: '2026-11-09' },
       { dia: 'viernes', modalidad: 'video', desde: 11, hasta: 20 },
       { dia: 'sabado', modalidad: null, desde: 9, hasta: 18, cadaDosSemanas: '2026-11-07' },
     ],
