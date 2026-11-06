@@ -134,6 +134,8 @@ export async function handleApartar(request, env, deps) {
   const d = await readJson(request);
   const forma = d.forma === 'mensual' ? 'mensual' : 'completo';
   if (forma === 'mensual' && !suscripcionesAbiertas(env)) return bad(400, 'El pago mensual todavía no está disponible.');
+  // El mes a mes se paga una sola vez: el cobro automático sin fin quedó fuera (Alejandro, 2026-11-06).
+  if (forma === 'mensual' && Number(d.duracion) === 1) return bad(400, 'El plan de 1 mes se paga una sola vez, sin cobro automático.');
   const precio = cotizar(d.producto, Number(d.duracion), forma);
   if (!precio || !MODALIDADES.has(d.modalidad) || !INICIO.test(d.inicio || '') || !nutriValida(deps, d.nutricionista)) return bad(400, 'Datos inválidos');
   const ahora = deps.ahora();

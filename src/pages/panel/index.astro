@@ -12,7 +12,8 @@ import { duracionesDe } from '../../data/duraciones.js';
 import { condicionesSuscripcion } from '../../../server/suscripciones/calculo.mjs';
 const tipos = Object.entries(TIPOS_LINK);
 const paquetes = monthlyPlans.map((p) => ({ id: p.id, nombre: p.internalName,
-  opciones: duracionesDe(p.id).map((d) => ({ meses: d.meses, ...condicionesSuscripcion(p.id, d.meses) })) }));
+  // Sin mes a mes: cobraría sin fin hasta que alguien lo cancele (Alejandro, 2026-11-06).
+  opciones: duracionesDe(p.id).filter((d) => d.meses > 1).map((d) => ({ meses: d.meses, ...condicionesSuscripcion(p.id, d.meses) })) }));
 import '../../styles/panel.css';
 ---
 <!doctype html>

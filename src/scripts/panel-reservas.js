@@ -61,6 +61,14 @@ function filtros() {
 }
 
 const sinCorte = (c) => { c.className = 'lk-sin-corte'; return c; };
+// Pago web: arriba lo que nos queda tras la comisión de Mercado Pago, debajo lo que pagó
+// el cliente (pedido de Alejandro, 2026-11-05). Los pagos de antes del 26-oct-2026 no
+// tienen neto guardado: se ve el bruto con el aviso.
+const pagoCelda = (f) => {
+  if (f.procedencia !== 'web') return [f.pago, f.pago_detalle];
+  if (f.neto) return [`Recibimos ${f.neto}`, `Cliente pagó ${f.pago}`, f.pago_detalle];
+  return [`Cliente pagó ${f.pago}`, 'Neto sin dato: ver en Mercado Pago', f.pago_detalle];
+};
 
 function entro(d) {
   $('#login').hidden = true; $('#app').hidden = false; $('#salir').hidden = false;
@@ -166,7 +174,7 @@ function pintar() {
       cita.append(cajaRevisar);
     }
     tr.append(celdaCaja, td([f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' ')), td(f.nombres), sinCorte(td(f.dni)), td(f.email),
-      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(f.pago, f.neto && `Neto ${f.neto}`, f.pago_detalle)),
+      sinCorte(td(f.whatsapp)), sinCorte(td(dmy(f.fecha_nacimiento))), td(f.pais), sinCorte(cita), sinCorte(td(f.plan, f.cita)), sinCorte(td(...pagoCelda(f))),
       td(f.paciente_nuevo == null ? '' : f.paciente_nuevo ? 'Nuevo' : 'Ya paciente'), td(MOD[f.modalidad]), td(f.nutricionista),
       sinCorte(td(chip(PROC[f.procedencia], `lk-proc lk-proc--${f.procedencia}`), `Agendó ${lima(f.agendado_en)}`)));
     return tr;

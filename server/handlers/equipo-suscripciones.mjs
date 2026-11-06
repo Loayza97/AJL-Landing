@@ -17,7 +17,8 @@ const bad = (status, error) => json(status, { ok: false, error });
 const fila = (s) => ({
   id: s.id, nombre: s.nombre, dni: s.dni, whatsapp: s.whatsapp, producto: s.producto, duracion_meses: s.duracion_meses,
   titulo: condicionesSuscripcion(s.producto, s.duracion_meses)?.titulo ?? s.producto, cobros_aprobados: s.cobros_aprobados,
-  cuota_centimos: s.cuota_centimos, estado: s.estado, penalidad_estado: s.penalidad_estado, penalidad_centimos: s.penalidad_centimos,
+  cuota_centimos: s.cuota_centimos, neto_ultimo_centimos: s.neto_ultimo_centimos ?? null,
+  con_cobro: s.cobrado_ultimo_centimos != null, estado: s.estado, penalidad_estado: s.penalidad_estado, penalidad_centimos: s.penalidad_centimos,
   proximo_cobro: s.estado === 'activa' && s.ultimo_cobro_en ? new Date(Date.parse(s.ultimo_cobro_en) + MES).toISOString() : null,
   cancelada_en: s.cancelada_en, motivo_cancelacion: s.motivo_cancelacion,
 });
@@ -28,6 +29,8 @@ async function crearLink(request, env, deps, { email, admin }) {
   const c = condicionesSuscripcion(d.producto, Number(d.meses));
   if (!nombre) return bad(400, 'Escribe el nombre del paciente.');
   if (!c) return bad(400, 'Elige el plan y el paquete.');
+  // El mes a mes cobraría sin fin hasta que alguien lo cancele: desde el panel solo 3 o 6 meses (Alejandro, 2026-11-06).
+  if (c.duracion_meses === 1) return bad(400, 'El mes a mes no se cobra con suscripción desde el panel: elige 3 o 6 meses.');
   // La prueba interna de S/5 terminó (Joaquín, 2026-10-29): ya no se crean links de prueba.
   if (d.producto === PRODUCTO_PRUEBA) return bad(400, 'Ese plan ya no está disponible.');
   if (env.SUSCRIPCIONES_ABIERTAS !== '1') return bad(400, 'El pago mensual todavía no está disponible.');

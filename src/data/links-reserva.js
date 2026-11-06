@@ -15,12 +15,14 @@ export function destinoLink(plan, n, forma) {
   const durs = duracionesDe(plan);
   if (!durs) return { paso: 'p3', plan, forma: 'completo' };
   const d = durs.find((x) => String(x.meses) === String(n));
-  return d ? { paso: 'p3', plan, meses: d.meses, forma: forma === 'mensual' ? 'mensual' : 'completo' } : { paso: 'p2', plan };
+  // El mes a mes no tiene pago mensual automático: un link con &forma=mensual abre el pago único (2026-11-06).
+  return d ? { paso: 'p3', plan, meses: d.meses, forma: forma === 'mensual' && d.meses > 1 ? 'mensual' : 'completo' } : { paso: 'p2', plan };
 }
 
 export const LINKS_RESERVA = [
   ...monthlyPlans.flatMap((p) => duracionesDe(p.id).map((d) => ({
-    producto: p.internalName, detalle: `${p.name}, ${meses(d.meses).toLowerCase()}`, ruta: linkReserva(p.id, d.meses), rutaMensual: linkReserva(p.id, d.meses, 'mensual'),
+    producto: p.internalName, detalle: `${p.name}, ${meses(d.meses).toLowerCase()}`, ruta: linkReserva(p.id, d.meses), // Sin «Copiar (mensual)» en el mes a mes: cobraría sin fin (Alejandro, 2026-11-06).
+    rutaMensual: d.meses > 1 ? linkReserva(p.id, d.meses, 'mensual') : null,
   }))),
   { producto: plans.basico.internalName, detalle: plans.basico.name, ruta: linkReserva('basico') },
   { producto: 'Evaluación', detalle: 'Una evaluación', ruta: linkReserva('evaluacion') },

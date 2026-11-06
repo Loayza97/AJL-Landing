@@ -91,3 +91,32 @@ test('sincronizar: 401 sin acceso, 403 al equipo, 200 al admin con los cobros re
   assert.deepEqual(buscados, ['plan9', 'pre7']);
   assert.equal((await sus.porId(d.db, 'sy')).mp_preapproval_id, 'pre7');
 });
+
+test('listar trae el neto del último cobro aprobado (lo que nos queda tras Mercado Pago)', async () => {
+  const d = deps();
+  const base = { producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000, estado: 'activa', creado_en: t0.toISOString() };
+  await sus.crear(d.db, { ...base, id: 'n1', token: 'n1', nombre: 'Con neto', cobros_aprobados: 2 });
+  await sus.crear(d.db, { ...base, id: 'n2', token: 'n2', nombre: 'Sin neto', cobros_aprobados: 1 });
+  await sus.crear(d.db, { ...base, id: 'n3', token: 'n3', nombre: 'Sin cobro', mp_preapproval_id: 'pre3' });
+  const ins = d.db.prepare(`INSERT INTO suscripcion_cobros (id, suscripcion_id, mp_payment_id, numero, estado, monto_centimos, neto_centimos, metodo, creado_en)
+    VALUES (?1, ?2, ?1, ?3, ?4, 36000, ?5, NULL, ?6)`);
+  await ins.bind('c1', 'n1', 1, 'approved', 34300, '2026-10-05T00:00:00Z').run();
+  await ins.bind('c2', 'n1', 2, 'approved', 34320, '2026-11-05T00:00:00Z').run();
+  await ins.bind('c3', 'n1', 0, 'rejected', null, '2026-11-06T00:00:00Z').run();
+  await ins.bind('c4', 'n2', 1, 'approved', null, '2026-11-05T00:00:00Z').run();
+  const j = await (await handleEquipoSuscripciones(new Request('https://x.test/api/equipo/suscripciones?filtro=todas'), env, d)).json();
+  const por = Object.fromEntries(j.filas.map((f) => [f.nombre, [f.cuota_centimos, f.neto_ultimo_centimos, f.con_cobro]]));
+  assert.deepEqual(por['Con neto'], [36000, 34320, true], 'el último aprobado, no el rechazado');
+  assert.deepEqual(por['Sin neto'], [36000, null, true]);
+  assert.deepEqual(por['Sin cobro'], [36000, null, false]);
+});
+
+test('mes a mes: el panel no crea links que cobrarían sin fin (400); 3 y 6 meses sí', async () => {
+  for (const p of ['acompanamiento', 'constancia', 'transformacion']) {
+    const r = await crear(env, deps(), p, 1);
+    assert.equal(r.status, 400, p);
+    assert.match((await r.json()).error, /mes a mes/);
+    assert.equal((await crear(env, deps(), p, 3)).status, 200, p);
+    assert.equal((await crear(env, deps(), p, 6)).status, 200, p);
+  }
+});

@@ -274,7 +274,8 @@ document.addEventListener('click', (e) => {
     const d = catalogo[estado.producto].duraciones.find((x) => x.meses === estado.duracion);
     suscripcionesAbiertas.then((abiertas) => {
       if (estado.duracion !== d.meses) return; // eligió otra mientras tanto
-      if (abiertas) opcionesForma(d);
+      // El mes a mes se paga una sola vez, sin cobro automático (Alejandro, 2026-11-06).
+      if (abiertas && d.meses > 1) opcionesForma(d);
       else { estado.forma = 'completo'; marcarUrl(estado.producto, estado.duracion, 'completo'); abrirP3(); }
     });
   }

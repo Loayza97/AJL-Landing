@@ -39,3 +39,15 @@ test('links de reserva: forma mensual en el link y en el destino', () => {
   assert.equal(c.rutaMensual, '/reservar/?plan=constancia&meses=3&forma=mensual');
   assert.equal(LINKS_RESERVA.find((l) => l.ruta === '/reservar/?plan=basico').rutaMensual, undefined);
 });
+
+test('links de reserva: el mes a mes no tiene «Copiar (mensual)» (cobraría sin fin)', () => {
+  for (const p of ['acompanamiento', 'constancia', 'transformacion']) {
+    assert.equal(LINKS_RESERVA.find((l) => l.ruta === `/reservar/?plan=${p}&meses=1`).rutaMensual, null, p);
+    assert.ok(LINKS_RESERVA.find((l) => l.ruta === `/reservar/?plan=${p}&meses=3`).rutaMensual, p);
+  }
+});
+
+test('links de reserva: &forma=mensual en el mes a mes abre el pago único', () => {
+  assert.deepEqual(destinoLink('constancia', '1', 'mensual'), { paso: 'p3', plan: 'constancia', meses: 1, forma: 'completo' });
+  assert.equal(destinoLink('constancia', '6', 'mensual').forma, 'mensual');
+});

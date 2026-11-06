@@ -4,6 +4,8 @@ import { formatoSoles } from '../data/duraciones.js';
 
 const $ = (s) => document.querySelector(s);
 const soles = (c) => formatoSoles(Math.round(c / 100));
+// El neto lleva céntimos (la comisión no es redonda): «S/257,70».
+const solesExactos = (c) => `S/${(c / 100).toFixed(2).replace('.', ',')}`;
 const fecha = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short' }).format(new Date(iso)) : '—');
 const ESTADO = { pendiente: 'Esperando primer cobro', activa: 'Activa', terminada: 'Terminó', cobro_fallido: 'Cobro fallido', cancelada: 'Cancelada' };
 let filtro = 'todas';
@@ -45,7 +47,10 @@ function filaDe(s) {
     celda(s.nombre ?? '—', s.dni ? `Doc. ${s.dni}` : null),
     celda(s.titulo),
     celda(s.duracion_meses > 1 ? `${s.cobros_aprobados} de ${s.duracion_meses}` : String(s.cobros_aprobados)),
-    celda(soles(s.cuota_centimos)),
+    // Arriba lo que nos dejó Mercado Pago en el último cobro; debajo lo que se le cobra al cliente.
+    s.neto_ultimo_centimos != null ? celda(`Recibimos ${solesExactos(s.neto_ultimo_centimos)}`, `Cliente paga ${soles(s.cuota_centimos)}`)
+      : s.con_cobro ? celda(`Cliente paga ${soles(s.cuota_centimos)}`, 'Neto sin dato: ver en Mercado Pago')
+        : celda(`Cliente paga ${soles(s.cuota_centimos)}`, 'Aún sin cobro'),
     celda(s.estado === 'activa' ? fecha(s.proximo_cobro) : '—'),
     celda(ESTADO[s.estado] ?? s.estado, penalidad),
     celda(acciones),

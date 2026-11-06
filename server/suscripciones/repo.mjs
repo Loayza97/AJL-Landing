@@ -167,7 +167,11 @@ export const FILTROS_SUSCRIPCION = Object.keys(FILTROS);
 
 export async function listar(db, { filtro }) {
   if (!Object.hasOwn(FILTROS, filtro)) throw new Error('filtro inválido');
-  const { results } = await db.prepare(`SELECT * FROM suscripciones WHERE ${FILTROS[filtro]} ORDER BY actualizado_en DESC LIMIT 200`).all();
+  // Lo que nos dejó Mercado Pago en el último cobro aprobado, tras su comisión (2026-11-05).
+  const ultimo = (campo) => `(SELECT c.${campo} FROM suscripcion_cobros c WHERE c.suscripcion_id = suscripciones.id AND c.estado = 'approved'
+    ORDER BY c.creado_en DESC LIMIT 1)`;
+  const { results } = await db.prepare(`SELECT suscripciones.*, ${ultimo('neto_centimos')} AS neto_ultimo_centimos, ${ultimo('monto_centimos')} AS cobrado_ultimo_centimos
+    FROM suscripciones WHERE ${FILTROS[filtro]} ORDER BY actualizado_en DESC LIMIT 200`).all();
   return results;
 }
 

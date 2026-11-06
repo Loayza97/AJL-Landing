@@ -599,3 +599,12 @@ test('webhook payment de un cobro de suscripción (metadata.preapproval_id): rev
   assert.equal(s.estado, 'activa');
   assert.equal(enviados.filter((m) => /Recibimos tu pago/.test(m.subject)).length, 1);
 });
+
+test('plan de 1 mes: sin cobro automático (400); pago único del mismo plan sí aparta', async () => {
+  for (const producto of ['acompanamiento', 'constancia', 'transformacion']) {
+    const r = await apartar(deps(), { producto, duracion: 1, forma: 'mensual' });
+    assert.equal(r.status, 400, producto);
+    assert.match((await r.json()).error, /una sola vez/);
+    assert.equal((await apartar(deps(), { producto, duracion: 1 })).status, 200, producto);
+  }
+});
