@@ -2,13 +2,12 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
-## Pendiente de publicar (rama `reservas-pago`, versión de prueba)
+## 2026-11-07 · publicado
 
 - Panel de reservas, columna «Pago» de los pagos web: arriba va lo que recibe AJL tras la comisión de Mercado Pago («Recibimos S/257,70») y debajo lo que pagó el cliente («Cliente pagó S/270»). Los pagos sin neto guardado (los de antes del 26-oct-2026) muestran el bruto con «Neto sin dato: ver en Mercado Pago». El CSV y la copia para la base maestra no cambian (bruto en O, neto en P).
 - Panel: ya no se puede cobrar el mes a mes con suscripción, porque cobraría cada mes sin fin hasta que alguien lo cancele. En «Cobrar con suscripción» solo quedan 3 y 6 meses (el servidor también rechaza el mes a mes), y en «Links de reserva web» las filas de mes a mes ya no tienen «Copiar (mensual)», solo el link de pago único.
 - /reservar/: el plan de 1 mes (1, 2 o 4 sesiones) se paga una sola vez, con tarjeta (en cuotas si es de crédito) o Yape. Al elegir «1 mes» ya no aparece «¿Cómo quieres pagar?»: pasa directo al calendario. Un link con `meses=1&forma=mensual` abre el pago único, y el servidor rechaza el cobro automático en 1 mes. Los paquetes de 3 y 6 meses siguen con las dos formas. Condiciones del servicio, versión 2026-11-06: el punto 3b ya no ofrece cobro automático en el plan de 1 mes.
 - Panel, suscripciones: la columna «Cuota» muestra arriba lo que nos dejó Mercado Pago en el último cobro aprobado («Recibimos S/257,70») y debajo lo que se le cobra al cliente («Cliente paga S/270»). Sin cobro aún, «Aún sin cobro»; con cobro pero sin neto guardado, «Neto sin dato: ver en Mercado Pago».
-
 - Citas virtuales: el Meet de cada cita nueva (web, links y cambio a virtual desde el panel) queda con acceso abierto, así el paciente con Hotmail u otro correo sin cuenta de Google entra sin esperar a que lo acepten. La nutricionista de la cita va como invitada del evento (correo del secreto `CORREOS_EQUIPO`); si el panel la reasigna, la invitación pasa a la nueva y se conservan los demás invitados. Requiere la Google Meet API (activada el 02-nov-2026 en el proyecto `ajl-nutricion-forms`) y el permiso nuevo `meetings.space.settings`: Alejandro volvió a autorizar con `scripts/google-oauth.mjs` el 07-nov-2026, con el cliente OAuth `ajl-agenda`. Sin el permiso, el Meet queda como antes y la cita se crea igual (probado en la versión de prueba: Google responde 403 y la cita sale con su Meet).
 
 ## 2026-11-03 · publicado
