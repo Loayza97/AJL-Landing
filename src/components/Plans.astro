@@ -11,16 +11,11 @@
 //     Nunca «regalo» ni «bono».
 //   - «El que recomendamos» aparece una sola vez (2 sesiones).
 //   - Sin tachados, sin porcentajes, sin ahorro (el ahorro se muestra solo en /reservar). Sin recargo por tarjeta.
-//     EXCEPCIÓN TEMPORAL: Cyber Wow (02 al 08-nov-2026). Los elementos con clase `cw` (tachado, porcentaje, «Hasta X%»,
-//     franja y estrella) se ven solo durante la campaña y se ocultan solos al vencer (src/styles/cyberwow.css).
 //   - Cada duración muestra lo que se paga al mes (banner «Cuánto pagas al mes», Joaquín 2026-10-30).
 //   - La sesión única es «Compra única», nunca «/mes».
 //   - Clases pbtn / data-section / data-pkg / aria-label: las usa la medición.
 //   - Tipografía Montserrat 400–800 (reemplazo web de Gilroy), sin serifas.
 import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data/plans.js';
-import CyberEstrella from './CyberEstrella.astro';
-import { descuentoDe, descuentoMaxDe, descuentoMaxGlobal, CYBER_FIN_TEXTO } from '../data/cyberwow.js';
-import '../styles/cyberwow.css';
 
 // Detalle del ícono «i» (mismo `checkoutSummary` que el checkout).
 const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
@@ -37,8 +32,6 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
   </defs></svg>
 
   <div class="ap-inner">
-    <div class="cw cw-band"><b>Cyber Wow</b><span>Descuento en paquetes de 3 y 6 meses</span><span class="cw-timer"></span></div>
-    <CyberEstrella class="cw-star--planes" pct={descuentoMaxGlobal()} />
     <p class="ap-eyebrow">Planes</p>
     <h2 class="ap-hl">Estamos contigo durante todo el proceso</h2>
 
@@ -74,27 +67,21 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
               </span>
             </span>
             {p.firstMonthEval && <span class="ap-eval">+ 1 evaluación el primer mes</span>}
-            <span class="cw cw-hasta">Hasta −{descuentoMaxDe(p.id)}% con Cyber Wow</span>
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">1 mes</span>
-            <s class="cw cw-was" style="visibility:hidden" aria-hidden="true">S/{p.price}</s>
             <span class="ap-pr"><span class="ap-cu">S/</span>{p.price}</span>
             <span class="ap-eq">al mes</span>
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">3 meses</span>
-            <s class="cw cw-was">S/{p.price}</s>
             <span class="ap-pr"><span class="ap-cu">S/</span>{alMes(p.programs[0])}</span>
             <span class="ap-eq">al mes</span>
-            <span class="cw cw-chip">−{descuentoDe(p.id, 3)}%</span>
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">6 meses</span>
-            <s class="cw cw-was">S/{p.price}</s>
             <span class="ap-pr"><span class="ap-cu">S/</span>{alMes(p.programs[1])}</span>
             <span class="ap-eq">al mes</span>
-            <span class="cw cw-chip">−{descuentoDe(p.id, 6)}%</span>
           </div>
           <div class="ap-cta" role="cell">
             <a
@@ -110,7 +97,6 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
     </div>
 
     <p class="ap-nota"><b>La evaluación:</b> al cierre del primer mes medimos tu avance y decides cómo sigues.</p>
-    <p class="cw ap-nota"><b>Cyber Wow:</b> el precio tachado es el mes regular y cada cuota lleva su porcentaje de descuento. Hasta el {CYBER_FIN_TEXTO}.</p>
 
     <div class="ap-sola">
       <div>

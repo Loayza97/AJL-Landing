@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-09 · publicado
+
+- Termina la campaña Cyber Wow: se quitan de la portada y de /reservar/ la franja, la estrella, los tachados y los porcentajes, también del código (ya estaban ocultos desde el 08-nov a medianoche). Los precios no cambian. Para reusar el diseño: tag `cyber-wow-2026-11-02`.
+
 ## 2026-11-07 · publicado
 
 - Panel de reservas, columna «Pago» de los pagos web: arriba va lo que recibe AJL tras la comisión de Mercado Pago («Recibimos S/257,70») y debajo lo que pagó el cliente («Cliente pagó S/270»). Los pagos sin neto guardado (los de antes del 26-oct-2026) muestran el bruto con «Neto sin dato: ver en Mercado Pago». El CSV y la copia para la base maestra no cambian (bruto en O, neto en P).
