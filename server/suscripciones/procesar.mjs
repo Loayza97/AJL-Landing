@@ -87,19 +87,26 @@ export async function asociar(deps, s, preapprovalId) {
 // La suscripción de un preapproval: por su id guardado, por su plan vigente, por la referencia externa
 // o, si es de un plan que un reintento de pago reemplazó, la dueña de ese plan (reemplazado: true).
 // planDesconocido: el preapproval sale de un plan que no es de ninguna suscripción del sitio.
+// delPlan: se encontró por su plan vigente (puede ser otro preapproval del mismo plan que el guardado).
 async function suscripcionDe(deps, p) {
   const id = String(p?.id ?? '');
   const porPre = id ? await sus.porPreapproval(deps.db, id) : null;
   if (porPre) return { s: porPre };
   const planId = p?.preapproval_plan_id ? String(p.preapproval_plan_id) : null;
   const porPlan = planId ? await sus.porPlan(deps.db, planId) : null;
-  if (porPlan) return { s: await asociar(deps, porPlan, id) };
+  if (porPlan) return { s: await asociar(deps, porPlan, id), delPlan: true };
   const porRef = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
   if (porRef) return { s: await asociar(deps, porRef, id) };
   const deUnPlanViejo = planId ? await sus.suscripcionDePlan(deps.db, planId) : null;
   if (deUnPlanViejo) return { s: deUnPlanViejo, reemplazado: true };
   return { s: null, planDesconocido: planId, reason: p?.reason ?? null };
 }
+
+// Otro preapproval del mismo plan mientras la suscripción no tiene ningún cobro aprobado: el paciente
+// volvió a intentar con otra tarjeta y Mercado Pago creó otro preapproval (prueba de S/5 del 10-nov-2026).
+// No se cancela: el primero que tenga un cobro aprobado se queda con la suscripción.
+const otraTarjeta = (s, preapprovalId, delPlan) => delPlan && s.mp_preapproval_id != null && preapprovalId !== s.mp_preapproval_id
+  && s.estado === 'pendiente' && s.cobros_aprobados === 0;
 
 // Un plan que no crea la web (sin el prefijo) es uno hecho a mano en la cuenta: no se avisa. Sin reason no se
 // puede saber, y se avisa como antes, para no perder una alerta real (spec 2026-11-09).
@@ -123,6 +130,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   // o un reintento de pago lo reemplazó (por la referencia que le pusimos o por el plan viejo).
   let s = await sus.porPreapproval(deps.db, preapprovalId);
   let reemplazado = false;
+  let delPlan = false;
   if (!s) {
     const r = await suscripcionDe(deps, { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId });
     if (!r.s) {
@@ -132,10 +140,12 @@ export async function procesarCobro(deps, env, authorizedId) {
     }
     s = r.s;
     reemplazado = Boolean(r.reemplazado);
+    delPlan = Boolean(r.delPlan);
   }
+  const candidato = !reemplazado && otraTarjeta(s, preapprovalId, delPlan);
   // Un cobro de una suscripción ya cerrada, de otro preapproval que no es el vigente o de un plan
   // reemplazado (un reintento de pago), no corresponde: se registra porque es dinero real, pero no cuenta.
-  const anomalo = reemplazado || !['pendiente', 'activa'].includes(s.estado) || (s.mp_preapproval_id != null && preapprovalId !== s.mp_preapproval_id);
+  const anomalo = !candidato && (reemplazado || !['pendiente', 'activa'].includes(s.estado) || (s.mp_preapproval_id != null && preapprovalId !== s.mp_preapproval_id));
   const pagoId = ap.payment?.id ? String(ap.payment.id) : null;
   const pago = pagoId ? await deps.mp.obtenerPago(pagoId) : null;
   // Solo cuenta lo que la API de pagos confirma; el estado que trae el cobro no se toma como cierto.
@@ -143,14 +153,25 @@ export async function procesarCobro(deps, env, authorizedId) {
   const neto = Number(pago?.transaction_details?.net_received_amount);
   const montoCentimos = Math.round(Number(ap.transaction_amount) * 100);
   const { nuevoAprobado, pagoNuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
-    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, cobroAutorizadoId: String(ap.id), estado, montoCentimos,
+    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, preapprovalId, reclamar: candidato, cobroAutorizadoId: String(ap.id), estado, montoCentimos,
     netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(), contar: !anomalo,
   });
 
-  if (anomalo) {
+  // Ganó con la otra tarjeta: la suscripción pasa a este preapproval y el anterior, sin cobros, se cancela
+  // para que Mercado Pago no reintente la primera tarjeta.
+  if (candidato && nuevoAprobado) {
+    await cancelarEnMp(deps, env, s);
+    s = { ...s, mp_preapproval_id: preapprovalId };
+  } else if (candidato && !pagoNuevoAprobado) return { estado };
+  // Cobro aprobado que no sumó: otro preapproval se quedó con la suscripción en el mismo momento.
+  const perdio = !anomalo && pagoNuevoAprobado && !nuevoAprobado;
+
+  if (anomalo || perdio) {
     // Sin recibo ni confirmación. Solo quien dejó el pago aprobado avisa (un aviso repetido no alerta otra vez).
     if (pagoNuevoAprobado) {
-      const motivo = reemplazado ? 'es de un link de pago que se reemplazó' : `plan ${s.estado}${s.mp_preapproval_id && preapprovalId !== s.mp_preapproval_id ? `, la vigente es ${s.mp_preapproval_id}` : ''}`;
+      const motivo = reemplazado ? 'es de un link de pago que se reemplazó'
+        : perdio ? 'el paciente ya pagó con otra suscripción del mismo plan'
+          : `plan ${s.estado}${s.mp_preapproval_id && preapprovalId !== s.mp_preapproval_id ? `, la vigente es ${s.mp_preapproval_id}` : ''}`;
       await avisarFijas(deps, env, correoEquipoAlerta({ asunto: ASUNTO_ANOMALO,
         detalle: `${s.nombre}: Mercado Pago cobró ${formatoSoles(montoCentimos / 100)} en la suscripción ${preapprovalId}, que ya no corresponde (${motivo}). Devuelve ese pago y revisa que la suscripción quede cancelada en Mercado Pago.` }));
       await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: preapprovalId });
@@ -211,7 +232,7 @@ export async function procesarCobro(deps, env, authorizedId) {
 
 export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
-  const { s, reemplazado } = await suscripcionDe(deps, p);
+  const { s, reemplazado, delPlan } = await suscripcionDe(deps, p);
   if (!s) return { estado: 'desconocido' };
   // Preapproval de un plan reemplazado: no es la suscripción vigente; se cancela para que no cobre
   // (si falla, cancelarEnMp avisa al equipo; si igual cobra, el cobro queda como anómalo).
@@ -224,6 +245,7 @@ export async function procesarPreapproval(deps, env, preapprovalId) {
   // del mismo plan (o lo reemplazó un reintento con referencia externa). No es una baja del paciente;
   // si sigue vivo, se cancela para que no cobre.
   if (id && id !== s.mp_preapproval_id) {
+    if (p.status !== 'cancelled' && otraTarjeta(s, id, delPlan)) return { estado: 'en_espera' };
     if (p.status !== 'cancelled') await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: id });
     return { estado: 'reemplazada' };
   }

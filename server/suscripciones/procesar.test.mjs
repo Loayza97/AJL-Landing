@@ -242,15 +242,53 @@ test('cobro que llega antes que el preapproval: se asocia por el plan y confirma
   assert.deepEqual(d.desactivados, ['plan1']);
 });
 
-test('cobro de un segundo preapproval del mismo plan: anómalo, no suma', async () => {
+// Caso real del 10-nov-2026 (prueba de S/5): la primera tarjeta es rechazada y el paciente paga con otra.
+// Mercado Pago crea un segundo preapproval del mismo plan; ese es el que paga.
+test('tarjeta rechazada y pago con otra (segundo preapproval del mismo plan): se queda con la suscripción, confirma y cancela el primero', async () => {
+  const d = armar({
+    cobros: { a0: { ...cobro('a0', 'p0'), status: 'recycling', payment: { id: 'p0', status: 'rejected' } }, a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre2' } },
+    pagos: { p0: pago('p0', 'rejected'), p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'pending', preapproval_plan_id: 'plan1' }, pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  await procesarCobro(d, env, 'a0');
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre2');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(s.estado, 'activa');
+  assert.equal((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal(alertas(d).length, 0);
+  assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
+  assert.deepEqual(d.canceladas, ['pre1']);
+  // El aviso posterior del primero (ya cancelado) no es una baja.
+  d.mp.obtenerSuscripcion = async (id) => (id === 'pre1' ? { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' } : null);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'reemplazada' });
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'activa');
+});
+
+test('cobro rechazado de un segundo preapproval del mismo plan sin cobros todavía: se registra, sin baja ni alerta', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1', 'cancelled'), preapproval_id: 'pre2' } }, pagos: { p1: pago('p1', 'rejected') },
+    pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1' }, pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  await procesarCobro(d, env, 'a1');
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'pendiente');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.deepEqual(d.canceladas, []);
+  assert.equal(d.correos.length, 0);
+});
+
+test('cobro de un segundo preapproval del mismo plan cuando ya hubo un cobro: anómalo, no suma', async () => {
   const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre2' } }, pagos: { p1: pago('p1') },
     pre: { pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
   await reservaMensual(d);
-  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1', estado = 'activa', cobros_aprobados = 1 WHERE id = 's1'").run();
   assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'anomalo' });
   assert.equal(d.correos.filter((c) => /Cobro tras baja o duplicado/.test(c.subject)).length, 1);
   assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
-  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 1);
   assert.deepEqual(d.canceladas, ['pre2']);
 });
 
@@ -284,7 +322,8 @@ test('dos preapprovals del mismo plan a la vez: uno cuenta y el otro avisa como 
   assert.equal(s.cobros_aprobados, 1);
   assert.deepEqual(res.map((r) => r.estado).sort(), ['anomalo', 'aprobado']);
   const perdedor = s.mp_preapproval_id === 'pre1' ? 'pre2' : 'pre1';
-  assert.deepEqual(d.canceladas, [perdedor]);
+  // Si gana el segundo, él cancela el primero y el primero también cancela el suyo: puede pedirse dos veces.
+  assert.deepEqual([...new Set(d.canceladas)], [perdedor]);
   assert.equal(alertas(d).length, 1);
   assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
 });
@@ -373,14 +412,26 @@ test('primer cobro aprobado desactiva el plan aunque la fila se encuentre por su
   assert.deepEqual(d.desactivados, ['plan1']); // solo con el cobro número 1
 });
 
-test('aviso del preapproval que perdió la carrera del mismo plan: se cancela, sin baja', async () => {
+test('aviso de un segundo preapproval del mismo plan sin cobros todavía: no se cancela (puede ser otra tarjeta)', async () => {
   const d = armar({ pre: { pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
   await conPlan(d);
   await sus.asociarPreapproval(d.db, 's1', 'pre1', t0);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre2'), { estado: 'en_espera' });
+  assert.deepEqual(d.canceladas, []);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'pendiente');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.deepEqual(d.desactivados, []);
+});
+
+test('aviso de un segundo preapproval del mismo plan cuando ya hubo un cobro: se cancela, sin baja', async () => {
+  const d = armar({ pre: { pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  await conPlan(d);
+  await sus.asociarPreapproval(d.db, 's1', 'pre1', t0);
+  await d.db.prepare("UPDATE suscripciones SET estado = 'activa', cobros_aprobados = 1 WHERE id = 's1'").run();
   assert.deepEqual(await procesarPreapproval(d, env, 'pre2'), { estado: 'reemplazada' });
   assert.deepEqual(d.canceladas, ['pre2']);
-  assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
-  assert.deepEqual(d.desactivados, []);
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'activa');
 });
 
 test('reintento tras soltar el preapproval: sus avisos van por el plan reemplazado, sin baja', async () => {
