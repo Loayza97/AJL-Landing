@@ -62,6 +62,17 @@ export async function cancelarEnMp(deps, env, s) {
   }
 }
 
+// Igual que cancelarEnMp, pero si Mercado Pago ya lo canceló no se pide de nuevo: cancelar uno cancelado falla
+// y avisaría «Cancelar a mano» sin motivo (Mercado Pago cancela solo el preapproval cuyo primer cobro rechaza).
+async function cancelarSiSigueVivo(deps, env, s) {
+  try {
+    if ((await deps.mp.obtenerSuscripcion(s.mp_preapproval_id))?.status === 'cancelled') return;
+  } catch (e) {
+    console.error('consultar antes de cancelar', s.id, s.mp_preapproval_id, e);
+  }
+  await cancelarEnMp(deps, env, s);
+}
+
 // Con el preapproval guardado autorizado (o su primer cobro aprobado) se desactiva el plan, para que su
 // link no sirva otra vez. Best effort e idempotente: otro preapproval que saliera de él sería anómalo.
 async function desactivarPlanDe(deps, s) {
@@ -160,7 +171,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   // Ganó con la otra tarjeta: la suscripción pasa a este preapproval y el anterior, sin cobros, se cancela
   // para que Mercado Pago no reintente la primera tarjeta.
   if (candidato && nuevoAprobado) {
-    await cancelarEnMp(deps, env, s);
+    await cancelarSiSigueVivo(deps, env, s);
     s = { ...s, mp_preapproval_id: preapprovalId };
   } else if (candidato && !pagoNuevoAprobado) return { estado };
   // Cobro aprobado que no sumó: otro preapproval se quedó con la suscripción en el mismo momento.
@@ -174,7 +185,7 @@ export async function procesarCobro(deps, env, authorizedId) {
           : `plan ${s.estado}${s.mp_preapproval_id && preapprovalId !== s.mp_preapproval_id ? `, la vigente es ${s.mp_preapproval_id}` : ''}`;
       await avisarFijas(deps, env, correoEquipoAlerta({ asunto: ASUNTO_ANOMALO,
         detalle: `${s.nombre}: Mercado Pago cobró ${formatoSoles(montoCentimos / 100)} en la suscripción ${preapprovalId}, que ya no corresponde (${motivo}). Devuelve ese pago y revisa que la suscripción quede cancelada en Mercado Pago.` }));
-      await cancelarEnMp(deps, env, { ...s, mp_preapproval_id: preapprovalId });
+      await cancelarSiSigueVivo(deps, env, { ...s, mp_preapproval_id: preapprovalId });
     }
     return { estado: 'anomalo' };
   }
@@ -268,15 +279,22 @@ export async function sincronizarPreapproval(deps, env, preapprovalId) {
   }
 }
 
+// Respaldo cuando un aviso de Mercado Pago no llega (pasa con el primer cobro que queda pendiente): revisa los
+// cobros de todos los preapprovals del plan, no solo el guardado, porque si el paciente probó otra tarjeta el que
+// pagó es otro. Primero los otros, al final el guardado: si uno nuevo cobró, se queda con la suscripción antes de
+// que un cobro viejo de la tarjeta rechazada pueda contar como baja. false: Mercado Pago no tiene ninguno todavía.
+export async function sincronizarSuscripcion(deps, env, s) {
+  const pres = s.mp_plan_id ? (await deps.mp.buscarSuscripcionesDePlan(s.mp_plan_id)).filter((p) => p?.id) : [];
+  // Sin preapproval guardado (el regreso no lo trajo): se guarda uno del plan, mejor uno que siga vivo.
+  if (!s.mp_preapproval_id && pres.length) s = await asociar(deps, s, String((pres.find((p) => p.status !== 'cancelled') ?? pres[0]).id));
+  const delPlan = pres.map((p) => String(p.id));
+  const ids = [...new Set([...delPlan.filter((id) => id !== s.mp_preapproval_id), ...(s.mp_preapproval_id ? [s.mp_preapproval_id] : [])])];
+  for (const id of ids) await sincronizarPreapproval(deps, env, id);
+  return ids.length > 0;
+}
+
 // Respaldo de la página de regreso: revisa los cobros de la suscripción de esa reserva.
 export async function sincronizarDeReserva(deps, env, reservaId) {
-  let s = await sus.porReserva(deps.db, reservaId);
-  if (!s) return;
-  // Con plan, el regreso puede no traer el preapproval: se le pregunta a Mercado Pago por el plan.
-  if (!s.mp_preapproval_id && s.mp_plan_id) {
-    const p = await deps.mp.buscarSuscripcionDePlan(s.mp_plan_id);
-    if (p?.id) s = await asociar(deps, s, String(p.id));
-  }
-  if (!s.mp_preapproval_id) return;
-  await sincronizarPreapproval(deps, env, s.mp_preapproval_id);
+  const s = await sus.porReserva(deps.db, reservaId);
+  if (s) await sincronizarSuscripcion(deps, env, s);
 }

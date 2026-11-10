@@ -4,7 +4,7 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
-import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval } from './procesar.mjs';
+import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval, sincronizarSuscripcion } from './procesar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'eq@x.pe',
@@ -24,7 +24,7 @@ function armar({ cobros = {}, pagos = {}, pre = {}, planes = {} } = {}) {
       obtenerSuscripcion: async (id) => pre[id],
       cancelarSuscripcion: async (id) => { canceladas.push(id); return {}; },
       buscarCobrosSuscripcion: async () => Object.values(cobros),
-      buscarSuscripcionDePlan: async (id) => planes[id] ?? null,
+      buscarSuscripcionesDePlan: async (id) => [planes[id] ?? []].flat(),
       desactivarPlan: async (id) => { desactivados.push(id); return {}; },
     },
   };
@@ -265,6 +265,43 @@ test('tarjeta rechazada y pago con otra (segundo preapproval del mismo plan): se
   d.mp.obtenerSuscripcion = async (id) => (id === 'pre1' ? { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' } : null);
   assert.deepEqual(await procesarPreapproval(d, env, 'pre1'), { estado: 'reemplazada' });
   assert.equal((await sus.porId(d.db, 's1')).estado, 'activa');
+});
+
+test('si Mercado Pago ya canceló el preapproval de la tarjeta rechazada, no se cancela de nuevo ni se avisa «Cancelar a mano»', async () => {
+  const d = armar({ cobros: { a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre2' } }, pagos: { p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' }, pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } } });
+  d.mp.cancelarSuscripcion = async (id) => { if (d.mp.obtenerSuscripcion && (await d.mp.obtenerSuscripcion(id))?.status === 'cancelled') throw new Error('400 ya cancelada'); d.canceladas.push(id); };
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  assert.deepEqual(d.canceladas, []);
+  assert.equal(d.correos.filter((c) => /Cancelar a mano/.test(c.subject)).length, 0);
+});
+
+test('sincronizarSuscripcion revisa todos los preapprovals del plan: recupera el pago con otra tarjeta que Mercado Pago no avisó', async () => {
+  const cobros = { a0: { ...cobro('a0', 'p0'), status: 'recycling', payment: { id: 'p0', status: 'rejected' } }, a1: { ...cobro('a1', 'p1'), preapproval_id: 'pre2' } };
+  const d = armar({ cobros, pagos: { p0: pago('p0', 'rejected'), p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'cancelled', preapproval_plan_id: 'plan1' }, pre2: { id: 'pre2', status: 'authorized', preapproval_plan_id: 'plan1' } },
+    planes: { plan1: [{ id: 'pre1' }, { id: 'pre2' }] } });
+  const revisados = [];
+  d.mp.buscarCobrosSuscripcion = async (pre) => { revisados.push(pre); return pre === 'pre1' ? [cobros.a0] : [cobros.a1]; };
+  await reservaMensual(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_plan_id = 'plan1' WHERE id = 's1'").run();
+  assert.equal(await sincronizarSuscripcion(d, env, await sus.porId(d.db, 's1')), true);
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.estado, 'activa');
+  assert.equal(s.mp_preapproval_id, 'pre2');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
+  assert.equal(alertas(d).length, 0);
+  assert.deepEqual(revisados, ['pre2', 'pre1']); // primero los otros del plan, al final el guardado
+});
+
+test('sincronizarSuscripcion sin preapproval guardado ni en el plan: false, sin tocar nada', async () => {
+  const d = armar();
+  await conPlan(d);
+  assert.equal(await sincronizarSuscripcion(d, env, await sus.porId(d.db, 's1')), false);
+  assert.equal((await sus.porId(d.db, 's1')).estado, 'pendiente');
 });
 
 test('cobro rechazado de un segundo preapproval del mismo plan sin cobros todavía: se registra, sin baja ni alerta', async () => {

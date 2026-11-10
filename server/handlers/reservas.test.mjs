@@ -20,7 +20,7 @@ function deps(extra = {}) {
     ...extra,
     mp: { crearPreferencia: async () => ({ id: 'pref', init_point: 'https://mp/pagar' }), obtenerPago: async (id) => pagos[id],
       crearSuscripcion: async (a) => { creadas.push(a); return { planId: 'plan1', init_point: 'https://mp/sus' }; },
-      desactivarPlan: async (id) => { desactivados.push(id); return {}; }, buscarSuscripcionDePlan: async () => null, ...extra.mp },
+      desactivarPlan: async (id) => { desactivados.push(id); return {}; }, buscarSuscripcionDePlan: async () => null, buscarSuscripcionesDePlan: async () => [], ...extra.mp },
   };
 }
 const get = (ruta) => new Request(`https://x.test${ruta}`);
@@ -468,7 +468,7 @@ test('pagar de nuevo con crearSuscripcion fallando: 503, no se desactiva nada y 
 test('estado de una reserva mensual sin preapproval_id: con sync busca por el plan y confirma; sin sync no consulta', async () => {
   const consultas = [];
   const d = deps({ mp: {
-    buscarSuscripcionDePlan: async (id) => { consultas.push(id); return { id: 'pre1', status: 'authorized', preapproval_plan_id: id }; },
+    buscarSuscripcionesDePlan: async (id) => { consultas.push(id); return [{ id: 'pre1', status: 'authorized', preapproval_plan_id: id }]; },
     buscarCobrosSuscripcion: async () => [{ id: 'a1' }],
     obtenerCobroSuscripcion: async (id) => ({ id, preapproval_id: 'pre1', status: 'processed', transaction_amount: 360, payment: { id: 'p1' } }),
     obtenerSuscripcion: async (id) => ({ id, status: 'authorized', preapproval_plan_id: 'plan1' }),

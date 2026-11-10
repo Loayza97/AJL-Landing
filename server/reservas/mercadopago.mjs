@@ -64,14 +64,16 @@ export function crearMp(env, fetchImpl = fetch) {
     });
     return { planId: d.id, init_point: d.init_point };
   }
-  const buscarSuscripcionDePlan = async (planId) => (await pedirSus(`/preapproval/search?preapproval_plan_id=${encodeURIComponent(planId)}`)).results?.[0] ?? null;
+  // Un plan puede tener varios preapprovals: Mercado Pago crea uno por cada tarjeta que el paciente intenta.
+  const buscarSuscripcionesDePlan = async (planId) => (await pedirSus(`/preapproval/search?preapproval_plan_id=${encodeURIComponent(planId)}`)).results ?? [];
+  const buscarSuscripcionDePlan = async (planId) => (await buscarSuscripcionesDePlan(planId))[0] ?? null;
   const desactivarPlan = (planId) => pedirSus(`/preapproval_plan/${encodeURIComponent(planId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   const obtenerSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`);
   const cancelarSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   const obtenerCobroSuscripcion = (id) => pedirSus(`/authorized_payments/${encodeURIComponent(id)}`);
   const buscarCobrosSuscripcion = async (id) => (await pedirSus(`/authorized_payments/search?preapproval_id=${encodeURIComponent(id)}`)).results ?? [];
 
-  return { crearPreferencia, obtenerPago, crearSuscripcion, buscarSuscripcionDePlan, desactivarPlan, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
+  return { crearPreferencia, obtenerPago, crearSuscripcion, buscarSuscripcionDePlan, buscarSuscripcionesDePlan, desactivarPlan, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
 }
 
 function iguales(a, b) {
