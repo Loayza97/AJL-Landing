@@ -11,6 +11,7 @@ import { avisarFijas } from '../reservas/aviso-equipo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
 import { formatoSoles } from '../../src/data/duraciones.js';
+import { PREFIJO_PLAN } from '../reservas/mercadopago.mjs';
 
 // authorized payment que Mercado Pago ya no reintentará.
 export const ESTADO_COBRO_FALLIDO = 'cancelled';
@@ -97,12 +98,16 @@ async function suscripcionDe(deps, p) {
   if (porRef) return { s: await asociar(deps, porRef, id) };
   const deUnPlanViejo = planId ? await sus.suscripcionDePlan(deps.db, planId) : null;
   if (deUnPlanViejo) return { s: deUnPlanViejo, reemplazado: true };
-  return { s: null, planDesconocido: planId };
+  return { s: null, planDesconocido: planId, reason: p?.reason ?? null };
 }
+
+// Un plan que no crea la web (sin el prefijo) es uno hecho a mano en la cuenta: no se avisa. Sin reason no se
+// puede saber, y se avisa como antes, para no perder una alerta real (spec 2026-11-09).
+const esPlanDeLaWeb = (reason) => reason == null || String(reason).startsWith(PREFIJO_PLAN);
 
 const ASUNTO_ANOMALO = 'Cobro tras baja o duplicado: devolver y cancelar en Mercado Pago';
 
-// Todos los planes de la cuenta son del sitio: un cobro aprobado de uno que no conocemos se avisa.
+// Un cobro aprobado de un plan de la web que no conocemos se avisa (los planes hechos a mano se filtran antes).
 async function avisarPlanDesconocido(deps, env, ap, planId, preapprovalId) {
   const pago = ap.payment?.id ? await deps.mp.obtenerPago(String(ap.payment.id)) : null;
   if (pago?.status !== 'approved') return;
@@ -121,7 +126,8 @@ export async function procesarCobro(deps, env, authorizedId) {
   if (!s) {
     const r = await suscripcionDe(deps, { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId });
     if (!r.s) {
-      if (r.planDesconocido) await avisarPlanDesconocido(deps, env, ap, r.planDesconocido, preapprovalId);
+      if (r.planDesconocido && esPlanDeLaWeb(r.reason)) await avisarPlanDesconocido(deps, env, ap, r.planDesconocido, preapprovalId);
+      else if (r.planDesconocido) console.log('plan ajeno a la web', r.planDesconocido, r.reason);
       return { estado: 'desconocido' };
     }
     s = r.s;

@@ -329,6 +329,22 @@ test('cobro aprobado de un plan que no es de ninguna suscripción: avisa al equi
   assert.equal(alertas(d).length, 1); // un cobro no aprobado no avisa
 });
 
+// La cuenta de Mercado Pago también tiene planes creados a mano (spec 2026-11-09): sus cobros no son de la web.
+const conPlanAjeno = (reason) => armar({ cobros: { z: { ...cobro('z', 'pz'), preapproval_id: 'pre-x' } }, pagos: { pz: pago('pz') },
+  pre: { 'pre-x': { id: 'pre-x', status: 'authorized', preapproval_plan_id: 'plan-x', reason } } });
+
+test('cobro aprobado de un plan propio de Alejandro (reason sin el prefijo): no avisa', async () => {
+  const d = conPlanAjeno('Prueba S/5');
+  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
+  assert.equal(alertas(d).length, 0);
+});
+
+test('cobro aprobado de un plan de la web que no está en la base: avisa', async () => {
+  const d = conPlanAjeno('AJL Nutrición · Constancia · 3 meses');
+  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
+  assert.equal(alertas(d).length, 1);
+});
+
 test('preapproval todavía pendiente: se asocia pero el plan no se desactiva', async () => {
   const d = armar({ pre: { pre1: { id: 'pre1', status: 'pending', preapproval_plan_id: 'plan1' } } });
   await conPlan(d);

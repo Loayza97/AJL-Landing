@@ -8,6 +8,9 @@ export function isoLima(fecha) {
   return new Date(fecha.getTime() - 5 * 3600 * 1000).toISOString().replace('Z', '-05:00');
 }
 
+// Todo plan que crea la web empieza así: la cuenta también tiene planes hechos a mano, que no son de la web.
+export const PREFIJO_PLAN = 'AJL Nutrición · ';
+
 export function crearMp(env, fetchImpl = fetch) {
   const auth = { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` };
 
@@ -55,7 +58,7 @@ export function crearMp(env, fetchImpl = fetch) {
     const d = await pedirSus('/preapproval_plan', {
       method: 'POST', headers: { 'X-Idempotency-Key': `plan-${suscripcionId}-${numeroPlan}` },
       body: JSON.stringify({
-        reason: `AJL Nutrición · ${titulo}`, back_url: urlRetorno,
+        reason: `${PREFIJO_PLAN}${titulo}`, back_url: urlRetorno,
         auto_recurring: { frequency: 1, frequency_type: 'months', transaction_amount: cuotaCentimos / 100, currency_id: 'PEN', ...(cobros ? { repetitions: cobros } : {}) },
       }),
     });
