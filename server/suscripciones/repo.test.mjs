@@ -41,6 +41,37 @@ test('registrarCobro con contar=false: guarda el pago con numero 0 sin sumar, y 
   assert.equal((await sus.porId(db, 's1')).cobros_aprobados, 1);
 });
 
+test('registrarCobro con preapprovalId: si la suscripción ya tiene otro, guarda el pago con numero 0 sin sumar', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ mp_preapproval_id: 'pre1' }));
+  const r = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p2', preapprovalId: 'pre2', estado: 'approved', montoCentimos: 36000, ahora: t0 });
+  assert.deepEqual(r, { nuevoAprobado: false, pagoNuevoAprobado: true, numero: 0 });
+  const s = await sus.porId(db, 's1');
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(s.mp_preapproval_id, 'pre1');
+});
+
+test('registrarCobro reclamando: el primer cobro aprobado de otro preapproval se queda con la suscripción sin cobros', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ mp_preapproval_id: 'pre1' }));
+  const r = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p2', preapprovalId: 'pre2', reclamar: true, estado: 'approved', montoCentimos: 36000, ahora: t0 });
+  assert.deepEqual(r, { nuevoAprobado: true, pagoNuevoAprobado: true, numero: 1 });
+  const s = await sus.porId(db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre2');
+  assert.equal(s.cobros_aprobados, 1);
+  assert.equal(s.estado, 'activa');
+});
+
+test('registrarCobro reclamando: si ya hay un cobro aprobado no reclama ni suma', async () => {
+  const db = d1DePrueba();
+  await sus.crear(db, base({ mp_preapproval_id: 'pre1', estado: 'activa', cobros_aprobados: 1 }));
+  const r = await sus.registrarCobro(db, { suscripcionId: 's1', mpPaymentId: 'p2', preapprovalId: 'pre2', reclamar: true, estado: 'approved', montoCentimos: 36000, ahora: t0 });
+  assert.deepEqual(r, { nuevoAprobado: false, pagoNuevoAprobado: true, numero: 0 });
+  const s = await sus.porId(db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.cobros_aprobados, 1);
+});
+
 test('cancelar a mitad deja la penalidad pendiente; al final no; la segunda vez no cambia nada', async () => {
   const db = d1DePrueba();
   await sus.crear(db, base({ estado: 'activa', cobros_aprobados: 1 }));

@@ -78,7 +78,7 @@ test('sincronizar: 401 sin acceso, 403 al equipo, 200 al admin con los cobros re
   assert.equal((await handleEquipoSuscripcionSincronizar(req(), env, deps())).status, 403);
   const buscados = [];
   const d = { ...admin(), correos: [], sendEmail: async () => true,
-    mp: { buscarSuscripcionDePlan: async (p) => { buscados.push(p); return { id: 'pre7' }; },
+    mp: { buscarSuscripcionesDePlan: async (p) => { buscados.push(p); return [{ id: 'pre7' }]; },
       buscarCobrosSuscripcion: async (p) => { buscados.push(p); return [{ id: 'a1' }]; },
       obtenerCobroSuscripcion: async () => ({ id: 'a1', preapproval_id: 'pre7', status: 'processed', transaction_amount: 5, payment: { id: 'p1' } }),
       obtenerPago: async () => ({ id: 'p1', status: 'approved', payment_method_id: 'visa' }) } };

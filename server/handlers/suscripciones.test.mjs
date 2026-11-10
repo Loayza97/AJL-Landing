@@ -178,6 +178,32 @@ test('estado: devuelve el estado por token', async () => {
   assert.equal((await (await handleSuscripcionEstado(new Request('https://x.test/api/suscripciones/estado?s=ts'), env, d)).json()).estado, 'activa');
 });
 
+test('estado con sync=1 y el plan pendiente: le pregunta a Mercado Pago y devuelve el estado al día', async () => {
+  const d = deps();
+  const revisados = [];
+  d.correos = [];
+  d.mp = { ...d.mp, buscarSuscripcionesDePlan: async () => [{ id: 'pre9' }],
+    buscarCobrosSuscripcion: async (p) => { revisados.push(p); return [{ id: 'a9' }]; },
+    obtenerCobroSuscripcion: async () => ({ id: 'a9', preapproval_id: 'pre9', status: 'processed', transaction_amount: 5, payment: { id: 'p9' } }),
+    obtenerSuscripcion: async () => ({ id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan9' }),
+    obtenerPago: async () => ({ id: 'p9', status: 'approved', payment_method_id: 'visa' }), desactivarPlan: async () => ({}) };
+  await sus.crear(d.db, fila({ estado: 'pendiente', cobros_aprobados: 0, mp_preapproval_id: null, mp_plan_id: 'plan9' }));
+  const url = (q) => new Request(`https://x.test/api/suscripciones/estado?s=ts${q}`);
+  assert.equal((await (await handleSuscripcionEstado(url(''), env, d)).json()).estado, 'pendiente');
+  assert.deepEqual(revisados, []); // sin sync=1 no consulta a Mercado Pago
+  assert.equal((await (await handleSuscripcionEstado(url('&sync=1'), env, d)).json()).estado, 'activa');
+  assert.deepEqual(revisados, ['pre9']);
+});
+
+test('estado con sync=1: si Mercado Pago falla, igual responde el estado guardado', async () => {
+  const d = deps();
+  d.mp = { ...d.mp, buscarSuscripcionesDePlan: async () => { throw new Error('caído'); } };
+  await sus.crear(d.db, fila({ estado: 'pendiente', cobros_aprobados: 0, mp_preapproval_id: null, mp_plan_id: 'plan9' }));
+  const r = await handleSuscripcionEstado(new Request('https://x.test/api/suscripciones/estado?s=ts&sync=1'), env, d);
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).estado, 'pendiente');
+});
+
 test('link ya usado: GET devuelve 410', async () => {
   const d = deps();
   await conLink(d, { link_usado_en: t0.toISOString() });

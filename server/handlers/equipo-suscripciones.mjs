@@ -3,10 +3,11 @@
 // POST /api/equipo/suscripciones             crea un link de suscripción (la URL solo se ve aquí)
 // POST /api/equipo/suscripciones-penalidad   marca a mano una penalidad como pagada
 // POST /api/equipo/suscripciones-sincronizar  (solo administradores) revisa en Mercado Pago los cobros de una suscripción
+//                                             (de todos los preapprovals de su plan)
 import { json, readJson, siteUrl } from '../http.mjs';
 import { randomToken, sha256Hex } from '../tokens.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { asociar, sincronizarPreapproval } from '../suscripciones/procesar.mjs';
+import { sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
 import { condicionesSuscripcion, PRODUCTO_PRUEBA } from '../suscripciones/calculo.mjs';
 
 const VENCE_DIAS = 7;
@@ -75,15 +76,10 @@ export async function handleEquipoSuscripcionSincronizar(request, env, deps) {
   if (acceso.admin !== true) return bad(403, 'Solo administradores.');
   const d = await readJson(request);
   if (typeof d.id !== 'string') return bad(400, 'Datos inválidos');
-  let s = await sus.porId(deps.db, d.id);
+  const s = await sus.porId(deps.db, d.id);
   if (!s) return bad(404, 'No encontramos esa suscripción.');
   try {
-    if (!s.mp_preapproval_id && s.mp_plan_id) {
-      const p = await deps.mp.buscarSuscripcionDePlan(s.mp_plan_id);
-      if (p?.id) s = await asociar(deps, s, String(p.id));
-    }
-    if (!s.mp_preapproval_id) return bad(409, 'Mercado Pago todavía no tiene una suscripción autorizada para este plan.');
-    await sincronizarPreapproval(deps, env, s.mp_preapproval_id);
+    if (!(await sincronizarSuscripcion(deps, env, s))) return bad(409, 'Mercado Pago todavía no tiene una suscripción autorizada para este plan.');
   } catch (e) {
     console.error('sincronizar suscripción', d.id, e);
     return bad(502, 'No se pudo consultar Mercado Pago. Intenta de nuevo.');

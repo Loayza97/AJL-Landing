@@ -2,11 +2,11 @@
 // GET  /api/suscripciones/cancelar?s=   datos de «Cancelar mi plan»
 // POST /api/suscripciones/cancelar      { s, pagar } paga la penalidad o cancela sin pagar
 // GET/POST /api/suscripciones/link      link de un solo uso creado en el panel
-// GET  /api/suscripciones/estado?s=     estado del plan por token
+// GET  /api/suscripciones/estado?s=     estado del plan por token (&sync=1: antes le pregunta a Mercado Pago)
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
-import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA } from '../suscripciones/procesar.mjs';
+import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA, sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
@@ -149,7 +149,18 @@ export async function handleSuscripcionLink(request, env, deps) {
 
 export async function handleSuscripcionEstado(request, env, deps) {
   if (request.method !== 'GET') return bad(405, 'Método no permitido');
-  const s = await sus.porToken(deps.db, new URL(request.url).searchParams.get('s') || '');
+  const q = new URL(request.url).searchParams;
+  let s = await sus.porToken(deps.db, q.get('s') || '');
   if (!s) return bad(404, 'No encontramos tu plan.');
+  // Mercado Pago a veces no avisa cuando el primer cobro pendiente se aprueba: la página de regreso pide
+  // sync=1 de vez en cuando y la web le pregunta ella misma. Si Mercado Pago falla, responde lo guardado.
+  if (q.get('sync') === '1' && s.estado === 'pendiente' && (s.mp_plan_id || s.mp_preapproval_id)) {
+    try {
+      await sincronizarSuscripcion(deps, env, s);
+      s = await sus.porId(deps.db, s.id);
+    } catch (e) {
+      console.error('estado/sincronizar suscripción', s.id, e);
+    }
+  }
   return json(200, { ok: true, estado: s.estado, titulo: titulo(s), nombre: s.nombre?.split(' ')[0] ?? null });
 }
