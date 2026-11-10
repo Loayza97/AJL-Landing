@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-10 · publicado
+
+- Política de privacidad, versión 1.8: sección 2.7 sobre los mensajes por Facebook Messenger e Instagram (qué recibimos, para qué y dónde se guardan: Chatwoot en nuestro servidor de Contabo en Estados Unidos), su finalidad en la tabla 3, Contabo en la tabla 4, su plazo en la sección 5 y la sección 7.1 «Cómo pedir que borremos tus datos» (ancla `#borrar-datos`, para la URL de instrucciones de borrado del panel de Meta). En 4.1 ya no se afirma cifrado en reposo para ese servidor. Lo pide el App Review de la app AJL para responder desde Chatwoot.
+
 ## 2026-11-09 · publicado
 
 - Termina la campaña Cyber Wow: se quitan de la portada y de /reservar/ la franja, la estrella, los tachados y los porcentajes, también del código (ya estaban ocultos desde el 08-nov a medianoche). Los precios no cambian. Para reusar el diseño: tag `cyber-wow-2026-11-02`.

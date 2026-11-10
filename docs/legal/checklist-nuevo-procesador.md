@@ -142,7 +142,7 @@ Registrar internamente:
 
 ---
 
-## Anexo — Procesadores actuales (a 2026-09-30)
+## Anexo — Procesadores actuales (a 2026-11-10)
 
 Para referencia, esta es la lista de procesadores activos hoy. Actualizar
 cuando se agreguen/quiten.
@@ -161,3 +161,4 @@ cuando se agreguen/quiten.
 | Namecheap | Registro de dominio y DNS | EE.UU. | Datos de contacto del titular del dominio (no de usuarios) | Standard ToS | ya existente |
 | Mercado Pago | Pagos de la web | Perú / otros | Datos de pago (no pasan por nosotros), nombre y correo del pagador | Términos y política de Mercado Pago | 2026-10-01 |
 | Google (Calendar) | Agenda e invitaciones de sesiones | EE.UU. | Nombre, correo, fecha y modalidad de la sesión | Google Workspace/Cloud DPA no aplica a Gmail personal: términos de Google | 2026-10-01 |
+| Contabo | Servidor propio de la bandeja de atención (Chatwoot) | EE.UU. | Conversaciones de WhatsApp, Messenger e Instagram | Por revisar (acuerdo de tratamiento de datos de Contabo) | En uso desde antes; declarado en la política v1.8 el 2026-11-10 |
