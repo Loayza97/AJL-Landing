@@ -84,6 +84,31 @@ npx wrangler pages secret put MP_WEBHOOK_SECRET --project-name ajl-landing --env
   Para no pagar paquetes completos de prueba, primero hay que confirmar con Alejandro qué plan y monto se usan. `prueba` está bloqueado en el panel.
 - [ ] **Step 5:** si algo falla, se detiene aquí. Si Mercado Pago no deja crear planes desde la web con la cuenta personal, se le avisa a Alejandro.
 
+### Resultado de la Task 2 (10-nov-2026)
+
+**Configuración**
+- Aplicación «AJL Nutricion Web» (273911547585681) en la cuenta personal: producción activada, rubro Alimentos / Diética.
+- Webhook productivo apuntando al sitio de prueba, con «Pagos (legacy)» y «Planes y suscripciones».
+- Secretos cargados en preview.
+- El token también está en el Llavero de macOS (`ajl-mercadopago-personal`).
+
+**Qué se comprobó con dinero real** (link de S/5 creado directo en la base de preview)
+- La web crea el plan y Mercado Pago, la suscripción.
+- El cobro se aprueba, el aviso llega con la firma válida y la API responde con el token nuevo.
+- Salen los correos al paciente y al equipo.
+- La cancelación llega por webhook y se procesa.
+- El preapproval trae `reason`.
+
+**Lo que encontró la prueba y se arregló**
+- `2859ac9`: si la primera tarjeta es rechazada y el paciente paga con otra, Mercado Pago crea otro preapproval del mismo plan. Antes, la web lo tomaba como duplicado y lo cancelaba. Ahora, mientras la suscripción no tiene ningún cobro, el primero que cobra se queda con ella.
+- `11be9b6`, primer arreglo: Mercado Pago no avisó la aprobación de un primer cobro que pasó por «pendiente». Ahora `sincronizarSuscripcion` revisa todos los preapprovals del plan. La usan el botón «Sincronizar», el regreso de /reservar y /suscribirse/listo (con `sync=1`). Se comprobó en vivo: la suscripción quedó activa y salieron el recibo y el aviso al equipo.
+- `11be9b6`, segundo arreglo: Mercado Pago cancela solo el preapproval de una tarjeta rechazada. Ahora, antes de cancelar, la web consulta si ya está cancelado, y así no avisa «Cancelar a mano» sin motivo.
+
+**Pendiente: rechazos `cc_rejected_high_risk`**
+- Son del antifraude de Mercado Pago, no del banco. En la cuenta nueva fueron 4 de 6 intentos, incluido un pago de S/325 de un paciente que pagó con un plan hecho a mano.
+- El panel de Mercado Pago dice «el banco rechazó».
+- Alejandro lo verá con el soporte de Mercado Pago. No bloquea el código.
+
 ### Task 3: cambio en producción (solo con el OK de Alejandro o Joaquín)
 
 Se hace en un rato sin reservas a medio pagar, todo seguido.
