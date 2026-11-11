@@ -6,7 +6,10 @@ import { TOPE_MINUTOS, TOPE_NUTRI_MINUTOS } from './constantes.mjs';
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
-export const HORARIO_CLINICA = { 1: [10, 20], 2: [10, 20], 3: [10, 20], 4: [10, 20], 5: [10, 20], 6: [9, 19] };
+// Miércoles desde las 9 para las presenciales de Jussara, la única que atiende a
+// esa hora (Alejandro, 2026-11-10; antes 10). El horario público de contacto.js
+// sigue diciendo 10 a. m.: esa hora es solo para sus citas.
+export const HORARIO_CLINICA = { 1: [10, 20], 2: [10, 20], 3: [9, 20], 4: [10, 20], 5: [10, 20], 6: [9, 19] };
 const MIN_MS = 60 * 1000;
 // De 1 a 2 p. m. es el almuerzo del equipo, todos los días: esa hora no se ofrece.
 export const HORA_ALMUERZO = 13;
