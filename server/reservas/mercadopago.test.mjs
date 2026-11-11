@@ -18,7 +18,7 @@ test('crearPreferencia: un ítem en soles, una cuota, sin efectivo, con vencimie
   assert.equal(pedido.url, 'https://api.mercadopago.com/checkout/preferences');
   assert.equal(pedido.init.headers.Authorization, 'Bearer TEST-1');
   const c = JSON.parse(pedido.init.body);
-  assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', description: 'AJL Nutrición · 2 sesiones al mes · 3 meses', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
+  assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', description: 'AJL Nutrición · 2 sesiones al mes · 3 meses', category_id: 'services', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
   assert.equal(c.external_reference, 'r1');
   // Sin pagador no se manda payer (el correo y el nombre sueltos se ignoran).
   assert.equal(c.payer, undefined);

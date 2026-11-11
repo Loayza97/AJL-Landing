@@ -38,7 +38,7 @@ export function crearMp(env, fetchImpl = fetch) {
 
   async function crearPreferencia({ reservaId, titulo, montoCentimos, venceEn, ahora, urlRetorno, urlNotificacion, pagador = null, dispositivo = null }) {
     const cuerpo = {
-      items: [{ id: reservaId, title: titulo, description: `AJL Nutrición · ${titulo}`, quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
+      items: [{ id: reservaId, title: titulo, description: `AJL Nutrición · ${titulo}`, category_id: 'services', quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
       external_reference: reservaId,
       back_urls: { success: urlRetorno, pending: urlRetorno, failure: urlRetorno },
       auto_return: 'approved',
