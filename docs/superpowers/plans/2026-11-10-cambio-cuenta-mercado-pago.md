@@ -134,6 +134,6 @@ npx wrangler d1 execute ajl-reservas --remote --command "SELECT count(*) FROM re
 - **No probado en producción:** `/reservar` mensual (reserva + Google Calendar + suscripción) y el pago único con Checkout Pro. El código no cambió; lo cubre el primer lead real.
 - El mismo día entró un cobro aprobado de S/270 de un plan hecho a mano en Mercado Pago («3 meses-1 sesión mes»): la web lo ignora, como corresponde.
 
-- [ ] **Step 7:** actualizar el `Estado` del spec, el `CHANGELOG.md` y la memoria `proyecto-link-suscripcion-unico-pausa-culqi`. La pausa del link único se puede levantar: era por el RUC 20.
+- [x] **Step 7 (11-nov-2026):** actualizar el `Estado` del spec, el `CHANGELOG.md` y la memoria `proyecto-link-suscripcion-unico-pausa-culqi`. La pausa del link único se puede levantar: era por el RUC 20.
 
 **Para volver atrás:** volver a cargar las credenciales de FJ (se generan otra vez en la aplicación de FJ) y hacer rollback del despliegue en Cloudflare.

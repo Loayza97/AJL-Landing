@@ -1,6 +1,6 @@
 # Cambiar la web a la cuenta personal de Mercado Pago (RUC 10)
 
-Estado: **diseño, sin construir** · 09-nov-2026 · lo pidió Alejandro.
+Estado: **en producción** desde el 10-nov-2026 (merge fc4a709), con la reducción de abajo · diseño del 09-nov-2026 · lo pidió Alejandro.
 
 > **Reducción del 10-nov-2026 (Alejandro):** solo se cambian las credenciales y el webhook, y se filtra la alerta de plan desconocido (§2, último punto, que se queda porque el equipo crea planes a mano en Mercado Pago). **Se sacan** la columna `cuenta_mp` y las guardas de las filas de FJ (el resto de §2). Con eso, en las suscripciones viejas de FJ, «Sincronizar» da error y «Cancelar mi plan» en el último mes le pide al paciente escribir por WhatsApp. La penalidad pagada ya avisa al equipo para cancelar a mano (`cancelarEnMp`). Para los links sin pasar por las primeras pantallas, se usa «Copiar (mensual)» de «Links de reserva web», que ya existe. Plan: `docs/superpowers/plans/2026-11-10-cambio-cuenta-mercado-pago.md`.
 
