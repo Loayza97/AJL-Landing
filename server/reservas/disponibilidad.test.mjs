@@ -296,3 +296,17 @@ test('una cita a mano que dice «virtual» (sin «solo») sigue bloqueando a esa
   const video = horas(horasLibres({ ...base, eventos, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'nico' }));
   assert.ok(!video.includes('14:00'));
 });
+
+test('apertura puntual (Alejandro, 2026-11-10): abre esa hora solo a esa nutricionista y solo en esa fecha, también presencial', () => {
+  const ahoraNov = new Date('2026-11-10T15:00:00Z'); // martes 10-nov-2026, 10:00 en Lima
+  const x = { id: 'x', apodos: ['equis'], ventanas: [{ dia: 'jueves', modalidad: null, desde: 10, hasta: 12 }],
+    aperturas: [{ fecha: '2026-11-12', desde: 9, hasta: 10 }] };
+  const y = { id: 'y', apodos: ['ye'], ventanas: [{ dia: 'jueves', modalidad: null, desde: 8, hasta: 12 }] };
+  const libres = (fecha, modalidad) => horasLibres({ ...base, nutricionistas: [x, y], ahora: ahoraNov, fecha, modalidad })
+    .map((h) => [h.hora, h.nutricionista_id]);
+  // Presencial a las 9 solo ella: a la otra el consultorio la sigue recortando a las 10.
+  assert.deepEqual(libres('2026-11-12', 'presencial'), [['09:00', 'x'], ['10:00', 'x'], ['11:00', 'x']]);
+  assert.deepEqual(libres('2026-11-12', 'video'), [['08:00', 'y'], ['09:00', 'x'], ['10:00', 'x'], ['11:00', 'x']]);
+  // El jueves siguiente ya no hay apertura.
+  assert.deepEqual(libres('2026-11-19', 'presencial'), [['10:00', 'x'], ['11:00', 'x']]);
+});
