@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { crearMp, firmaValida, isoLima } from './mercadopago.mjs';
+import { crearMp, firmaValida, pagadorMp, isoLima } from './mercadopago.mjs';
 
 test('isoLima escribe la hora de Lima con su desfase', () => {
   assert.equal(isoLima(new Date('2026-10-06T17:30:00Z')), '2026-10-06T12:30:00.000-05:00');
@@ -18,16 +18,77 @@ test('crearPreferencia: un ítem en soles, una cuota, sin efectivo, con vencimie
   assert.equal(pedido.url, 'https://api.mercadopago.com/checkout/preferences');
   assert.equal(pedido.init.headers.Authorization, 'Bearer TEST-1');
   const c = JSON.parse(pedido.init.body);
-  assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
+  assert.deepEqual(c.items, [{ id: 'r1', title: '2 sesiones al mes · 3 meses', description: 'AJL Nutrición · 2 sesiones al mes · 3 meses', quantity: 1, unit_price: 1080, currency_id: 'PEN' }]);
   assert.equal(c.external_reference, 'r1');
-  // Sin payer: el correo del paciente no debe atar el pago a su cuenta de Mercado Pago.
+  // Sin pagador no se manda payer (el correo y el nombre sueltos se ignoran).
   assert.equal(c.payer, undefined);
+  assert.equal(pedido.init.headers['X-Idempotency-Key'], `r1-${new Date('2026-10-05T15:30:00Z').getTime()}`);
   assert.equal(c.notification_url, 'https://w/api/reservas/webhook-mp');
   assert.deepEqual(c.payment_methods, { excluded_payment_types: [{ id: 'ticket' }, { id: 'atm' }], installments: 12 });
   assert.equal(c.expires, true);
   assert.equal(c.expiration_date_to, '2026-10-05T10:30:00.000-05:00');
   assert.equal(c.back_urls.success, 'https://w/reservar/listo/?r=t');
   assert.equal(c.auto_return, 'approved');
+});
+
+test('pagadorMp: datos en el formato de Mercado Pago Perú y nada que no calce', () => {
+  assert.deepEqual(pagadorMp({ nombres: 'Ana María', apellidos: 'Pérez Soto', email: 'a@x.pe', tipoDocumento: 'dni', documento: '12345678', whatsapp: '+51987654321' }), {
+    name: 'Ana María', surname: 'Pérez Soto', email: 'a@x.pe', phone: { area_code: '51', number: '987654321' }, identification: { type: 'DNI', number: '12345678' },
+  });
+  assert.deepEqual(pagadorMp({ tipoDocumento: 'ce', documento: '001234567', whatsapp: '987654321' }), {
+    phone: { area_code: '51', number: '987654321' }, identification: { type: 'C.E', number: '001234567' } });
+  // Pasaporte o CE con letras, y teléfonos de otro país: no se mandan.
+  assert.equal(pagadorMp({ tipoDocumento: 'pasaporte', documento: 'AB123456', whatsapp: '+34600111222' }), null);
+  assert.equal(pagadorMp({ tipoDocumento: 'ce', documento: 'X1234567' }), null);
+  assert.equal(pagadorMp(), null);
+});
+
+test('crearPreferencia con pagador: lo manda en payer, con otra key', async () => {
+  let pedido;
+  const f = async (url, init) => { pedido = { url, init }; return new Response(JSON.stringify({ id: 'pref1', init_point: 'https://mp/pay' })); };
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, f);
+  const venceEn = new Date('2026-10-05T15:30:00Z');
+  await mp.crearPreferencia({ reservaId: 'r1', titulo: 't', montoCentimos: 8000, venceEn, ahora: new Date(), urlRetorno: 'u',
+    pagador: { name: 'Ana', email: 'a@x.pe' } });
+  assert.deepEqual(JSON.parse(pedido.init.body).payer, { name: 'Ana', email: 'a@x.pe' });
+  assert.match(pedido.init.headers['X-Idempotency-Key'], new RegExp(`^r1-${venceEn.getTime()}-p[0-9a-f]{12}$`));
+  // Otros datos de quien paga (corrigió tras un rechazo): otra clave, para que Mercado Pago no devuelva la preferencia vieja.
+  const antes = pedido.init.headers['X-Idempotency-Key'];
+  await mp.crearPreferencia({ reservaId: 'r1', titulo: 't', montoCentimos: 8000, venceEn, ahora: new Date(), urlRetorno: 'u', pagador: { name: 'Luis' } });
+  assert.notEqual(pedido.init.headers['X-Idempotency-Key'], antes);
+});
+
+test('crearPreferencia: si Mercado Pago rechaza el pagador (4xx), reintenta sin payer', async () => {
+  const pedidos = [];
+  const f = async (url, init) => {
+    pedidos.push(JSON.parse(init.body));
+    return pedidos.length === 1 ? new Response('{"message":"invalid payer"}', { status: 400 }) : new Response(JSON.stringify({ id: 'pref2', init_point: 'https://mp/pay2' }));
+  };
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, f);
+  const r = await mp.crearPreferencia({ reservaId: 'r1', titulo: 't', montoCentimos: 8000, venceEn: new Date(), ahora: new Date(), urlRetorno: 'u',
+    pagador: { name: 'Ana' } });
+  assert.deepEqual(r, { id: 'pref2', init_point: 'https://mp/pay2' });
+  assert.equal(pedidos.length, 2);
+  assert.ok(pedidos[0].payer);
+  assert.equal(pedidos[1].payer, undefined);
+});
+
+test('crearPreferencia: el Device ID va en X-meli-session-id; sin él, no hay header', async () => {
+  const pedidos = [];
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async (url, init) => { pedidos.push(init); return new Response(JSON.stringify({ id: 'p', init_point: 'u' })); });
+  const base = { reservaId: 'r', titulo: 't', montoCentimos: 100, venceEn: new Date(), ahora: new Date(), urlRetorno: 'u' };
+  await mp.crearPreferencia({ ...base, dispositivo: 'armor.abc123' });
+  await mp.crearPreferencia(base);
+  assert.equal(pedidos[0].headers['X-meli-session-id'], 'armor.abc123');
+  assert.equal(pedidos[1].headers['X-meli-session-id'], undefined);
+});
+
+test('crearPreferencia: un 5xx con pagador no reintenta, lanza', async () => {
+  let n = 0;
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async () => { n++; return new Response('x', { status: 503 }); });
+  await assert.rejects(mp.crearPreferencia({ reservaId: 'r', titulo: 't', montoCentimos: 100, venceEn: new Date(), ahora: new Date(), urlRetorno: 'u',
+    pagador: { name: 'A' } }), /Mercado Pago 503/);
+  assert.equal(n, 1);
 });
 
 test('crearPreferencia lanza si MP responde error', async () => {

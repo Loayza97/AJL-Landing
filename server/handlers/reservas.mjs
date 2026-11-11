@@ -18,7 +18,7 @@ import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.
 import { DESDE_DIAS, HASTA_DIAS, MAX_RETENCIONES, MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
-import { firmaValida } from '../reservas/mercadopago.mjs';
+import { firmaValida, pagadorMp } from '../reservas/mercadopago.mjs';
 import { icsDeReserva, enlaceGoogleCalendar } from '../reservas/ics.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 import { contacto } from '../../src/data/contacto.js';
@@ -90,6 +90,10 @@ export function vista(r, deps, ultimo = null) {
     meet: r.meet_url || null,
     google_calendar: r.estado === 'confirmada' ? enlaceGoogleCalendar(eventoDe(r)) : null,
     ultimo_pago: ultimo?.estado ?? null,
+    // Motivo real (status_detail) y n.º de operación del último intento: la pantalla de rechazo los muestra.
+    ultimo_pago_detalle: ultimo?.detalle ?? null,
+    ultimo_pago_id: ultimo?.mp_payment_id && /^\d+$/.test(ultimo.mp_payment_id) ? ultimo.mp_payment_id : null,
+    whatsapp_equipo: contacto.whatsappNumber,
     forma_pago: r.forma_pago ?? 'completo',
     cobros: precio?.cobros ?? null,
   };
@@ -173,6 +177,9 @@ export async function handleApartar(request, env, deps) {
   }
 }
 
+// Device ID del script de seguridad de Mercado Pago (MP_DEVICE_SESSION_ID): se pasa tal cual solo si parece uno.
+const idDispositivo = (v) => (typeof v === 'string' && /^[A-Za-z0-9.:_-]{8,200}$/.test(v) ? v : null);
+
 export async function handlePagar(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const d = await readJson(request);
@@ -181,17 +188,20 @@ export async function handlePagar(request, env, deps) {
   const precio = cotizar(r.producto, r.duracion_meses, r.forma_pago ?? 'completo');
   const v = validarDatos(d, hoyEnLima(deps.ahora()));
   if (!v.ok) return bad(400, v.error);
-  const { cliente } = v;
+  const { cliente, pagador, paraMi } = v;
   if (r.forma_pago === 'mensual' && d.acepto_suscripcion !== true) return bad(400, 'Para continuar, acepta los cobros mensuales automáticos.');
-  const deuda = await sus.deudaPorDni(deps.db, cliente.dni);
+  // Una penalidad pendiente bloquea al paciente y también a quien paga (es quien asume los cobros).
+  const deuda = await sus.deudaPorDni(deps.db, cliente.dni) ?? (pagador.documento !== cliente.dni ? await sus.deudaPorDni(deps.db, pagador.documento) : null);
   if (deuda) {
     await avisarPenalidadPendiente(deps, env, deuda);
     return bad(409, MSJ_DEUDA, { motivo: 'penalidad' });
   }
 
   const ahora = deps.ahora();
+  // La suscripción (recibos, «Cancelar mi plan», penalidad) es de quien paga.
+  const nombrePagador = [pagador.nombres, pagador.apellido_paterno, pagador.apellido_materno].filter(Boolean).join(' ');
   const res = await repo.guardarDatosYPagar(deps.db, {
-    reserva: r, cliente,
+    reserva: r, cliente, pagador, paraMi,
     condicionesVersion: CONDICIONES_VERSION, novedades: d.novedades === true, ahora,
   });
   if (!res.ok) return bad(410, 'Se venció el tiempo para pagar. Elige tu hora de nuevo.', { motivo: 'vencida' });
@@ -219,10 +229,10 @@ export async function handlePagar(request, env, deps) {
             return bad(409, 'Ya autorizaste tu pago mensual. Estamos esperando el primer cobro de Mercado Pago; te llega un correo cuando se confirme.', { motivo: 'esperando_cobro' });
           }
         }
-        await sus.actualizarContacto(deps.db, id, { nombre: cliente.nombre, email: cliente.email, dni: cliente.dni, whatsapp: cliente.whatsapp, ahora });
+        await sus.actualizarContacto(deps.db, id, { nombre: nombrePagador, email: pagador.email, dni: pagador.documento, whatsapp: pagador.whatsapp, ahora });
       } else {
-        await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: cliente.nombre, email: cliente.email, dni: cliente.dni,
-          whatsapp: cliente.whatsapp, producto: r.producto, duracion_meses: r.duracion_meses, cuota_centimos: r.monto_centimos,
+        await sus.crear(deps.db, { id, token: randomToken(), reserva_id: r.id, nombre: nombrePagador, email: pagador.email, dni: pagador.documento,
+          whatsapp: pagador.whatsapp, producto: r.producto, duracion_meses: r.duracion_meses, cuota_centimos: r.monto_centimos,
           precio_mes_centimos: precio.precio_mes_centimos, precio_3m_centimos: precio.precio_3m_centimos, estado: 'pendiente',
           acepto_condiciones_version: CONDICIONES_VERSION, creado_en: ahora.toISOString() });
       }
@@ -252,7 +262,9 @@ export async function handlePagar(request, env, deps) {
       return json(200, { ok: true, url: plan.init_point });
     }
     const pref = await deps.mp.crearPreferencia({
-      reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, email: cliente.email, nombre: cliente.nombre,
+      reservaId: r.id, titulo: precio.titulo, montoCentimos: r.monto_centimos, dispositivo: idDispositivo(d.dispositivo),
+      pagador: pagadorMp({ nombres: pagador.nombres, apellidos: [pagador.apellido_paterno, pagador.apellido_materno].filter(Boolean).join(' '),
+        email: pagador.email, tipoDocumento: pagador.tipo_documento, documento: pagador.documento, whatsapp: pagador.whatsapp }),
       venceEn: new Date(res.retencion_hasta), ahora, urlRetorno: `${siteUrl(env)}/reservar/listo/?r=${r.token}`,
       urlNotificacion: `${siteUrl(env)}/api/reservas/webhook-mp`,
     });

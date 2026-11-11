@@ -165,7 +165,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   const montoCentimos = Math.round(Number(ap.transaction_amount) * 100);
   const { nuevoAprobado, pagoNuevoAprobado, numero } = await sus.registrarCobro(deps.db, {
     suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, preapprovalId, reclamar: candidato, cobroAutorizadoId: String(ap.id), estado, montoCentimos,
-    netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, ahora: deps.ahora(), contar: !anomalo,
+    netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, detalle: pago?.status_detail ?? null, ahora: deps.ahora(), contar: !anomalo,
   });
 
   // Ganó con la otra tarjeta: la suscripción pasa a este preapproval y el anterior, sin cobros, se cancela

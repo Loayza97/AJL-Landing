@@ -72,3 +72,30 @@ test('correo, WhatsApp y aceptación', () => {
 test('hoyEnLima usa la hora de Lima', () => {
   assert.equal(hoyEnLima(new Date('2026-10-10T03:00:00Z')), '2026-10-09');
 });
+
+test('para mí (por defecto): quien paga es el paciente, con su correo y su documento', () => {
+  const v = validarDatos({ ...base }, hoy);
+  assert.equal(v.paraMi, true);
+  assert.deepEqual(v.pagador, { nombres: 'María José', apellido_paterno: "O'Brien", apellido_materno: 'Núñez-Ríos', tipo_documento: 'dni',
+    documento: '12345678', whatsapp: '+51987654321', email: 'ana@x.pe' });
+  assert.equal(v.cliente.dni, '12345678');
+  assert.equal(v.cliente.email, v.pagador.email);
+});
+
+test('la sesión es para otra persona: el paciente con sus datos y, sin correo propio, el de quien paga', () => {
+  const otro = { ...base, para_mi: false, fecha_nacimiento: '', paciente_nombres: 'Lucía', paciente_apellido_paterno: 'Rojas',
+    paciente_apellido_materno: 'Díaz', paciente_fecha_nacimiento: '2011-03-14', paciente_tipo_documento: 'dni', paciente_documento: '81234567' };
+  const v = validarDatos(otro, hoy);
+  assert.equal(v.ok, true);
+  assert.equal(v.paraMi, false);
+  assert.equal(v.cliente.nombre, 'Lucía Rojas Díaz');
+  assert.equal(v.cliente.dni, '81234567');
+  assert.equal(v.cliente.fecha_nacimiento, '2011-03-14');
+  assert.equal(v.cliente.email, v.pagador.email);
+  assert.equal(v.pagador.documento, '12345678');
+  assert.equal(validarDatos({ ...otro, paciente_email: 'Lucia@X.pe ' }, hoy).cliente.email, 'lucia@x.pe');
+  assert.equal(validarDatos({ ...otro, paciente_email: 'malo' }, hoy).error, 'Revisa el correo del paciente.');
+  assert.equal(validarDatos({ ...otro, paciente_nombres: '' }, hoy).error, 'Escribe los nombres del paciente.');
+  assert.equal(validarDatos({ ...otro, paciente_fecha_nacimiento: '' }, hoy).error, 'Revisa la fecha de nacimiento del paciente.');
+  assert.equal(validarDatos({ ...otro, paciente_documento: '12' }, hoy).error, 'Escribe el DNI del paciente (8 dígitos).');
+});

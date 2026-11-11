@@ -6,7 +6,9 @@
 // Los datos los da /api/equipo/*, que exige acceso. /panel/links/ redirige aquí.
 import { TIPOS_LINK } from '../../../server/agenda/tipos.mjs';
 import { productosDeTipo } from '../../../server/agenda/opciones.mjs';
-import { LINKS_RESERVA } from '../../data/links-reserva.js';
+import { linkReserva } from '../../data/links-reserva.js';
+import { plans } from '../../data/plans.js';
+import { cotizar } from '../../../server/reservas/catalogo.mjs';
 import { monthlyPlans } from '../../data/plans.js';
 import { duracionesDe } from '../../data/duraciones.js';
 import { condicionesSuscripcion } from '../../../server/suscripciones/calculo.mjs';
@@ -14,6 +16,19 @@ const tipos = Object.entries(TIPOS_LINK);
 const paquetes = monthlyPlans.map((p) => ({ id: p.id, nombre: p.internalName,
   // Sin mes a mes: cobraría sin fin hasta que alguien lo cancele (Alejandro, 2026-11-06).
   opciones: duracionesDe(p.id).filter((d) => d.meses > 1).map((d) => ({ meses: d.meses, ...condicionesSuscripcion(p.id, d.meses) })) }));
+// «Generar link de reserva» (spec 2026-11-10): plan, duración y forma de pago con selectores. El link es el
+// de siempre (/reservar/?plan=…&meses=…[&forma=mensual]); generarlo no crea nada en Mercado Pago.
+const soles = (c) => `S/${(c / 100).toLocaleString('es-PE').replace(/,/g, ' ')}`;
+const generador = [
+  ...monthlyPlans.map((p) => ({ id: p.id, nombre: p.name, duraciones: duracionesDe(p.id).map((d) => {
+    const completo = cotizar(p.id, d.meses, 'completo');
+    const mensual = d.meses > 1 ? cotizar(p.id, d.meses, 'mensual') : null;
+    return { meses: d.meses, total: soles(completo.monto_centimos), cuota: mensual ? soles(mensual.monto_centimos) : null,
+      ruta: linkReserva(p.id, d.meses), rutaMensual: mensual ? linkReserva(p.id, d.meses, 'mensual') : null };
+  }) })),
+  { id: 'basico', nombre: plans.basico.name, precio: `S/${plans.basico.price}`, ruta: linkReserva('basico') },
+  { id: 'evaluacion', nombre: 'Evaluación', precio: `S/${plans.evaluacion.price}`, ruta: linkReserva('evaluacion') },
+];
 import '../../styles/panel.css';
 ---
 <!doctype html>
@@ -72,14 +87,30 @@ import '../../styles/panel.css';
 
       <section>
         <details class="lk-plegable">
-        <summary><h2>Links de reserva web</h2><span class="lk-nota">11 links · toca para ver</span></summary>
-        <p class="lk-nota">Llevan directo al calendario del producto. El paciente elige su hora y paga en la web. Sirven siempre, para cualquier paciente.</p>
-        <div class="lk-scroll"><table><thead><tr><th>Producto</th><th>Link</th><th></th></tr></thead><tbody id="r-links">
-          {LINKS_RESERVA.map((l) => (
-            <tr><td><b>{l.producto}</b><br>{l.detalle}</td><td><input class="lk-url lk-url--fila" readonly data-ruta={l.ruta} value={`https://www.ajlnutricion.com${l.ruta}`} aria-label={`Link de ${l.detalle}`}></td>
-              <td><button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta>Copiar</button>{l.rutaMensual && <button type="button" class="lk-btn lk-btn--borde" data-copiar-ruta data-mensual={l.rutaMensual}>Copiar (mensual)</button>}</td></tr>
-          ))}
-        </tbody></table></div>
+        <summary><h2>Generar link de reserva</h2><span class="lk-nota">pago en la web · toca para abrir</span></summary>
+        <p class="lk-nota">Elige el plan y la forma de pago. El paciente entra directo a elegir nutri y hora, y paga en la web. El link sirve siempre, para cualquier paciente, y generarlo no crea nada en Mercado Pago.</p>
+        <div class="lk-tarjeta lk-gen" id="gen-link" data-planes={JSON.stringify(generador)}>
+          <div class="lk-gen-campos">
+            <label class="lk-campo">Plan
+              <select id="gen-plan">{generador.map((p) => <option value={p.id} selected={p.id === 'constancia'}>{p.nombre}</option>)}</select>
+            </label>
+            <label class="lk-campo">Duración
+              <select id="gen-meses"></select>
+            </label>
+            <div class="lk-campo" role="radiogroup" aria-labelledby="gen-forma-t"><span id="gen-forma-t">Forma de pago</span>
+              <div class="lk-dos">
+                <label class="lk-op"><input type="radio" name="gen-forma" value="completo" checked> Un solo pago</label>
+                <label class="lk-op"><input type="radio" name="gen-forma" value="mensual"> Mensual automático</label>
+              </div>
+            </div>
+          </div>
+          <p class="lk-gen-resumen" id="gen-resumen"></p>
+          <button type="button" class="lk-btn" id="gen-crear">Generar link</button>
+          <div id="gen-creado" hidden>
+            <input class="lk-url" id="gen-url" readonly aria-label="Link de reserva">
+            <div class="lk-dos"><button type="button" class="lk-btn lk-btn--borde" id="gen-copiar">Copiar</button><a class="lk-btn lk-btn--wa" id="gen-wa" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+          </div>
+        </div>
         </details>
       </section>
 
@@ -187,7 +218,7 @@ import '../../styles/panel.css';
 
         <div id="tabla-nopago" hidden>
           <div class="lk-scroll" id="n-scroll"><table><thead><tr>
-            <th>Venció</th><th>Paciente</th><th>Documento</th><th>Contacto</th><th>Plan</th><th>Cita</th><th>Seguimiento</th>
+            <th>Venció</th><th>Paciente</th><th>Documento</th><th>Contacto</th><th>Plan</th><th>Cita</th><th>Intento de pago</th><th>Seguimiento</th>
           </tr></thead><tbody id="n-filas"></tbody></table></div>
           <div class="lk-pie"><span>Dejaron sus datos en la página web y no terminaron de pagar en los últimos 30 días.</span></div>
         </div>

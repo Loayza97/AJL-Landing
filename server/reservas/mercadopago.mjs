@@ -11,12 +11,34 @@ export function isoLima(fecha) {
 // Todo plan que crea la web empieza así: la cuenta también tiene planes hechos a mano, que no son de la web.
 export const PREFIJO_PLAN = 'AJL Nutrición · ';
 
+// Datos del pagador para el antifraude de Mercado Pago (recomendación de su soporte, 10-nov-2026). Solo lo
+// que tiene el formato que acepta en Perú: DNI de 8 dígitos, CE solo con números (pasaporte no: lleva letras),
+// teléfono peruano partido en código y número. El correo ya no obliga a entrar con la cuenta: se probó el
+// 10-nov-2026 con un correo con cuenta y Mercado Pago dejó pagar con tarjeta sin iniciar sesión.
+export function pagadorMp({ nombres, apellidos, email, tipoDocumento, documento, whatsapp } = {}) {
+  const p = {};
+  if (nombres) p.name = nombres;
+  if (apellidos) p.surname = apellidos;
+  if (email) p.email = email;
+  const tel = String(whatsapp ?? '').replace(/[^\d+]/g, '').match(/^(?:\+?51)?(9\d{8})$/);
+  if (tel) p.phone = { area_code: '51', number: tel[1] };
+  const doc = String(documento ?? '');
+  if (tipoDocumento === 'dni' && /^\d{8}$/.test(doc)) p.identification = { type: 'DNI', number: doc };
+  else if (tipoDocumento === 'ce' && /^\d{8,12}$/.test(doc)) p.identification = { type: 'C.E', number: doc };
+  return Object.keys(p).length ? p : null;
+}
+
+async function huellaCorta(texto) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(h)].slice(0, 6).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function crearMp(env, fetchImpl = fetch) {
   const auth = { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` };
 
-  async function crearPreferencia({ reservaId, titulo, montoCentimos, venceEn, ahora, urlRetorno, urlNotificacion }) {
+  async function crearPreferencia({ reservaId, titulo, montoCentimos, venceEn, ahora, urlRetorno, urlNotificacion, pagador = null, dispositivo = null }) {
     const cuerpo = {
-      items: [{ id: reservaId, title: titulo, quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
+      items: [{ id: reservaId, title: titulo, description: `AJL Nutrición · ${titulo}`, quantity: 1, unit_price: montoCentimos / 100, currency_id: 'PEN' }],
       external_reference: reservaId,
       back_urls: { success: urlRetorno, pending: urlRetorno, failure: urlRetorno },
       auto_return: 'approved',
@@ -27,11 +49,22 @@ export function crearMp(env, fetchImpl = fetch) {
       statement_descriptor: 'AJLNUTRICION',
       notification_url: urlNotificacion,
     };
-    const r = await fetchImpl(`${API}/checkout/preferences`, {
+    const pedir = (body, key) => fetchImpl(`${API}/checkout/preferences`, {
       method: 'POST',
-      headers: { ...auth, 'Content-Type': 'application/json', 'X-Idempotency-Key': `${reservaId}-${venceEn.getTime()}` },
-      body: JSON.stringify(cuerpo),
+      // Device ID (recomendación de soporte, 10-nov-2026): el script security.js de /reservar lo genera.
+      headers: { ...auth, 'Content-Type': 'application/json', 'X-Idempotency-Key': key, ...(dispositivo ? { 'X-meli-session-id': dispositivo } : {}) },
+      body: JSON.stringify(body),
     });
+    const key = `${reservaId}-${venceEn.getTime()}`;
+    // Con pagador, la clave lleva una huella de sus datos y del Device ID: si el paciente los corrige y vuelve a
+    // pagar, Mercado Pago crea otra preferencia en vez de devolver la de los datos viejos.
+    const huella = pagador ? await huellaCorta(JSON.stringify([pagador, dispositivo])) : null;
+    let r = await pedir(pagador ? { ...cuerpo, payer: pagador } : cuerpo, pagador ? `${key}-p${huella}` : key);
+    // Si Mercado Pago rechaza los datos del pagador, se paga sin ellos, como antes: nunca peor que sin datos.
+    if (!r.ok && pagador && r.status >= 400 && r.status < 500) {
+      console.error('preferencia con pagador', r.status, await r.text());
+      r = await pedir(cuerpo, key);
+    }
     if (!r.ok) throw new Error(`Mercado Pago ${r.status}: ${await r.text()}`);
     const d = await r.json();
     return { id: d.id, init_point: d.init_point };

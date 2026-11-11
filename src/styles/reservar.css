@@ -182,3 +182,17 @@ button.sel-d[aria-pressed=true] { background: var(--ink); color: #fff; }
   .sel-dia { border-left: 0; padding-left: 0; }
   .sel-horas { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Paso 4 «Datos de pago» (spec 2026-11-10): quien paga, el paciente si es otra persona y las advertencias. */
+.rs-nota--arriba { margin: 0 0 4px; }
+.rs .rs-para-mi { background: var(--gold-pale); border-radius: 12px; padding: 12px 14px; margin-top: 16px; }
+.rs .rs-para-mi span { display: flex; flex-direction: column; gap: 2px; }
+.rs .rs-para-mi small { color: var(--muted); font-size: .8rem; }
+.rs-paciente { border: 1.5px solid var(--gold); border-radius: 12px; padding: 4px 14px 14px; margin: 14px 0 0; }
+.rs-paciente[hidden], #f-yo[hidden] { display: none; }
+.rs-paciente legend { font-weight: 700; padding: 0 6px; }
+.rs-consejos { background: #E9F1EB; color: #173C2C; border-radius: 12px; padding: 12px 14px; font-size: .85rem; line-height: 1.5; margin-top: 14px; }
+.rs-consejos ol { margin: 6px 0 0; padding-left: 20px; }
+.rs-consejos li + li { margin-top: 4px; }
+.rs-consejos p { margin: 8px 0 0; padding-top: 8px; border-top: 1px solid #c9dccf; font-size: .8rem; }
+.rs-consejos p[hidden], .rs-consejos span[hidden] { display: none; }

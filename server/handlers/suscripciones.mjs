@@ -9,6 +9,7 @@ import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '.
 import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA, sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
+import { pagadorMp } from '../reservas/mercadopago.mjs';
 import { CONDICIONES_VERSION } from '../../src/data/condiciones.js';
 
 const bad = (status, error, extra = {}) => json(status, { ok: false, error, ...extra });
@@ -26,7 +27,8 @@ async function cobrarPenalidad(env, deps, s) {
   const monto = modo(s) === 'deuda' ? s.penalidad_centimos : penalidadAlCancelar(s);
   if (modo(s) === 'activa') await sus.cotizarPenalidad(deps.db, s.id, monto, ahora);
   const pref = await deps.mp.crearPreferencia({
-    reservaId: `pen-${s.id}`, titulo: `Penalidad por cancelar · ${titulo(s)}`, montoCentimos: monto, email: s.email, nombre: s.nombre,
+    reservaId: `pen-${s.id}`, titulo: `Penalidad por cancelar · ${titulo(s)}`, montoCentimos: monto,
+    pagador: pagadorMp({ nombres: s.nombre, email: s.email, whatsapp: s.whatsapp }),
     venceEn: new Date(ahora.getTime() + 24 * 3600000), ahora, urlRetorno: `${siteUrl(env)}/suscripcion/cancelar/?s=${s.token}&pago=1`,
     urlNotificacion: `${siteUrl(env)}/api/reservas/webhook-mp`,
   });

@@ -173,6 +173,9 @@ function abrirP4(reserva) {
   $('#p4-yape').hidden = reserva.monto_centimos <= 50000;
   $('.rs-cuotas').hidden = mensual;
   $('#l-acepto-sus').hidden = !mensual;
+  // Pago mensual: solo tarjeta (Yape no permite cobros automáticos).
+  $('#p4-consejo-yape').hidden = mensual;
+  $('#p4-solo-tarjeta').hidden = !mensual;
   $('#f-acepto-sus').checked = false;
   if (mensual) {
     $('#t-acepto-sus').textContent = reserva.cobros
@@ -204,16 +207,30 @@ $('#f-pais').addEventListener('change', () => {
 
 // AAAA-MM-DD a partir de las tres listas; vacío si falta alguna (el validador
 // lo rechaza, y también un 31 de febrero).
-function fechaNacimiento() {
-  const [d, m, a] = ['#f-nac-dia', '#f-nac-mes', '#f-nac-anio'].map((s) => $(s).value);
+function fechaNacimiento(pre = '#f-nac') {
+  const [d, m, a] = ['dia', 'mes', 'anio'].map((s) => $(`${pre}-${s}`).value);
   return d && m && a ? `${a}-${m}-${d}` : '';
 }
 
-$('#f-tipo-doc').addEventListener('change', () => {
-  const dni = $('#f-tipo-doc').value === 'dni';
-  $('#f-doc').inputMode = dni ? 'numeric' : 'text';
-  $('#f-doc').maxLength = dni ? 8 : 12;
-});
+for (const [tipo, doc] of [['#f-tipo-doc', '#f-doc'], ['#f-pac-tipo-doc', '#f-pac-doc']]) {
+  $(tipo).addEventListener('change', () => {
+    const dni = $(tipo).value === 'dni';
+    $(doc).inputMode = dni ? 'numeric' : 'text';
+    $(doc).maxLength = dni ? 8 : 12;
+  });
+}
+
+// «La sesión es para mí»: desmarcada, se despliegan los datos del paciente (spec 2026-11-10).
+function sincronizarParaMi() {
+  const paraMi = $('#f-para-mi').checked;
+  $('#f-yo').hidden = !paraMi;
+  $('#f-otro').hidden = paraMi;
+  return paraMi;
+}
+$('#f-para-mi').addEventListener('change', () => { if (!sincronizarParaMi()) $('#f-pac-nombres').focus(); });
+// El navegador puede restaurar la casilla al recargar o volver: los campos visibles la siguen.
+sincronizarParaMi();
+window.addEventListener('pageshow', sincronizarParaMi);
 
 async function pagar(e) {
   e.preventDefault();
@@ -224,8 +241,14 @@ async function pagar(e) {
     token: estado.reserva.token, nombres: $('#f-nombres').value, apellido_paterno: $('#f-paterno').value,
     apellido_materno: $('#f-materno').value, whatsapp: telefonoCompleto($('#f-pais').value, $('#f-whatsapp').value), email: $('#f-email').value,
     fecha_nacimiento: fechaNacimiento(), tipo_documento: $('#f-tipo-doc').value, documento: $('#f-doc').value,
+    para_mi: $('#f-para-mi').checked,
+    paciente_nombres: $('#f-pac-nombres').value, paciente_apellido_paterno: $('#f-pac-paterno').value,
+    paciente_apellido_materno: $('#f-pac-materno').value, paciente_fecha_nacimiento: fechaNacimiento('#f-pac-nac'),
+    paciente_tipo_documento: $('#f-pac-tipo-doc').value, paciente_documento: $('#f-pac-doc').value, paciente_email: $('#f-pac-email').value,
     acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
     acepto_suscripcion: $('#f-acepto-sus').checked,
+    // Device ID del script de seguridad de Mercado Pago (si cargó).
+    dispositivo: typeof window.MP_DEVICE_SESSION_ID === 'string' ? window.MP_DEVICE_SESSION_ID : null,
   };
   const previa = validarDatos(datos, hoyEnLima(new Date()));
   if (!previa.ok) { $('#p4-error').textContent = previa.error; boton.disabled = false; return; }

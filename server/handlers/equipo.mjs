@@ -7,9 +7,17 @@ import { json, readJson } from '../http.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 
-const CAMPOS = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.inicio_utc, r.modalidad, r.nutricionista_id,
+const CAMPOS = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.inicio_utc, r.modalidad, r.nutricionista_id, r.forma_pago,
   r.creado_en, r.retencion_hasta, r.contactado_en, r.contactado_por,
-  c.nombre, c.nombres, c.apellido_paterno, c.apellido_materno, c.tipo_documento, c.dni, c.fecha_nacimiento, c.whatsapp, c.email`;
+  c.nombre, c.nombres, c.apellido_paterno, c.apellido_materno, c.tipo_documento, c.dni, c.fecha_nacimiento, c.whatsapp, c.email,
+  c.paciente_es_pagador, c.pagador_nombres, c.pagador_apellido_paterno, c.pagador_apellido_materno, c.pagador_tipo_documento, c.pagador_documento`;
+
+// Intentos de pago de una reserva: pago único (pagos) y cobros de su suscripción (pago mensual).
+const INTENTOS = `(SELECT reserva_id, estado, detalle, mp_payment_id, creado_en FROM pagos
+  UNION ALL SELECT s.reserva_id, sc.estado, sc.detalle, sc.mp_payment_id, sc.creado_en
+  FROM suscripcion_cobros sc JOIN suscripciones s ON s.id = sc.suscripcion_id)`;
+const ULTIMO_INTENTO = ['estado', 'detalle', 'mp_payment_id'].map((k) =>
+  `(SELECT i.${k} FROM ${INTENTOS} i WHERE i.reserva_id = r.id ORDER BY i.creado_en DESC LIMIT 1) AS intento_${k === 'mp_payment_id' ? 'id' : k}`).join(', ');
 
 async function listar(db, ahora) {
   const ahoraIso = ahora.toISOString();
@@ -22,7 +30,7 @@ async function listar(db, ahora) {
      ORDER BY p.creado_en DESC`,
   ).all();
   const { results: noPagadas } = await db.prepare(
-    `SELECT ${CAMPOS}
+    `SELECT ${CAMPOS}, ${ULTIMO_INTENTO}
      FROM reservas r JOIN clientes c ON c.id = r.cliente_id
      WHERE c.nombre IS NOT NULL AND r.estado IN ('apartada', 'pagando', 'expirada')
        AND r.retencion_hasta < ?1 AND r.retencion_hasta >= ?2
