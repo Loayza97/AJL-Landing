@@ -111,14 +111,22 @@ const VENTANAS = [
     <section class="rs-paso" data-paso="p4" hidden>
       <button type="button" class="rs-volver" data-volver="p3">‹ Cambiar hora</button>
       <div class="rs-progreso"><span>Paso 4 de 4</span><span>Guardamos tu horario · <span class="rs-reloj" id="p4-reloj"></span></span></div>
-      <h1>¿A nombre de quién?</h1>
+      <h1>Datos de pago</h1>
       <div class="rs-resumen" id="p4-resumen"></div>
       <form id="p4-form" novalidate>
+        <p class="rs-nota rs-nota--arriba">Los datos de quien hace el pago. Así Mercado Pago lo reconoce y lo aprueba más fácil.</p>
         <label for="f-nombres">Nombres</label>
         <input type="text" id="f-nombres" autocomplete="given-name" maxlength="60" required>
         <div class="rs-dos">
           <div><label for="f-paterno">Apellido paterno</label><input type="text" id="f-paterno" autocomplete="family-name" maxlength="60" required></div>
           <div><label for="f-materno">Apellido materno <small>(si tienes)</small></label><input type="text" id="f-materno" maxlength="60"></div>
+        </div>
+        <label for="f-doc">Documento · para tu comprobante</label>
+        <div class="rs-doc">
+          <select id="f-tipo-doc" aria-label="Tipo de documento">
+            <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+          </select>
+          <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
         </div>
         <label for="f-whatsapp">WhatsApp · aquí te escribimos si hace falta</label>
         <div class="rs-tel">
@@ -127,9 +135,13 @@ const VENTANAS = [
           </select>
           <input type="tel" id="f-whatsapp" autocomplete="tel-national" inputmode="tel" placeholder="9__ ___ ___" required>
         </div>
-        <label for="f-email">Correo · aquí llega tu invitación</label>
+        <label for="f-email">Correo · aquí llega tu comprobante</label>
         <input type="email" id="f-email" autocomplete="email" required>
-        <label for="f-nac-dia" id="l-nacimiento">Fecha de nacimiento</label>
+
+        <label class="rs-check rs-para-mi"><input type="checkbox" id="f-para-mi" checked> <span><b>La sesión es para mí</b><small>Desmárcala si pagas por tu hijo, tu mamá u otra persona.</small></span></label>
+
+        <div id="f-yo">
+        <label for="f-nac-dia" id="l-nacimiento">Tu fecha de nacimiento</label>
         <div class="rs-fecha" role="group" aria-labelledby="l-nacimiento">
           <select id="f-nac-dia" aria-label="Día" autocomplete="bday-day" required>
             <option value="">Día</option>
@@ -144,17 +156,56 @@ const VENTANAS = [
             {ANIOS.map((a) => <option value={String(a)}>{a}</option>)}
           </select>
         </div>
-        <label for="f-doc">Documento · para tu comprobante</label>
-        <div class="rs-doc">
-          <select id="f-tipo-doc" aria-label="Tipo de documento">
-            <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
-          </select>
-          <input type="text" id="f-doc" inputmode="numeric" maxlength="8" required>
         </div>
+
+        <fieldset class="rs-paciente" id="f-otro" hidden>
+          <legend>¿Para quién es la sesión?</legend>
+          <label for="f-pac-nombres">Nombres del paciente</label>
+          <input type="text" id="f-pac-nombres" maxlength="60">
+          <div class="rs-dos">
+            <div><label for="f-pac-paterno">Apellido paterno</label><input type="text" id="f-pac-paterno" maxlength="60"></div>
+            <div><label for="f-pac-materno">Apellido materno <small>(si tiene)</small></label><input type="text" id="f-pac-materno" maxlength="60"></div>
+          </div>
+        <label for="f-pac-nac-dia" id="l-pac-nacimiento">Fecha de nacimiento del paciente</label>
+        <div class="rs-fecha" role="group" aria-labelledby="l-pac-nacimiento">
+          <select id="f-pac-nac-dia" aria-label="Día" required>
+            <option value="">Día</option>
+            {DIAS.map((d) => <option value={String(d).padStart(2, '0')}>{d}</option>)}
+          </select>
+          <select id="f-pac-nac-mes" aria-label="Mes" required>
+            <option value="">Mes</option>
+            {MESES.map((m, i) => <option value={String(i + 1).padStart(2, '0')}>{m}</option>)}
+          </select>
+          <select id="f-pac-nac-anio" aria-label="Año" required>
+            <option value="">Año</option>
+            {ANIOS.map((a) => <option value={String(a)}>{a}</option>)}
+          </select>
+        </div>
+          <label for="f-pac-doc">Documento del paciente</label>
+          <div class="rs-doc">
+            <select id="f-pac-tipo-doc" aria-label="Tipo de documento del paciente">
+              <option value="dni">DNI</option><option value="ce">Carné de Extranjería</option><option value="pasaporte">Pasaporte</option>
+            </select>
+            <input type="text" id="f-pac-doc" inputmode="numeric" maxlength="8">
+          </div>
+          <label for="f-pac-email">Correo del paciente <small>(opcional · aquí le llega la invitación; si lo dejas vacío, te llega a ti)</small></label>
+          <input type="email" id="f-pac-email">
+        </fieldset>
+
         <label class="rs-check" id="l-acepto-sus" hidden><input type="checkbox" id="f-acepto-sus"> <span id="t-acepto-sus"></span></label>
         <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
         <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>
         <p class="rs-nota">Mover tu cita es gratis hasta 48 h antes; después cuesta S/40.</p>
+        <div class="rs-consejos">
+          <b>Antes de pagar, para que pase a la primera</b>
+          <ol>
+            <li>Paga desde <b>tu</b> celular o computadora de siempre, con el wifi de tu casa o tus datos móviles. Evita redes ajenas o equipos prestados.</li>
+            <li>Revisa en la app de tu banco que tu tarjeta tenga <b>activas las compras por internet</b> y cupo suficiente.</li>
+            <li>Si tienes cuenta de Mercado Pago, <b>entra con ella</b> al pagar.<span id="p4-consejo-yape"> Si no, puedes pagar como invitado o con <b>Yape</b>.</span></li>
+            <li>Si te sale rechazado, <b>no lo repitas enseguida</b>: te mostramos otras formas de pagar.</li>
+          </ol>
+          <p id="p4-solo-tarjeta" hidden>En pago mensual: solo tarjeta de crédito o débito (Yape no permite cobros automáticos).</p>
+        </div>
         <p class="rs-aviso" id="p4-yape" hidden>¿Pagarás con Yape? Revisa tu límite en la app: este monto puede superarlo. Con tarjeta no hay límite.</p>
         <button type="submit" class="rs-btn" id="p4-pagar">Pagar</button>
         <p class="rs-cuotas">Con tarjeta de crédito, en hasta 12 cuotas</p>
@@ -175,6 +226,8 @@ const VENTANAS = [
         <button type="button" class="rs-btn" data-cerrar>Entendido, volver a mis datos</button>
       </dialog>
     ))}
+    <!-- Device ID de Mercado Pago (recomendación de soporte, 10-nov-2026): crea MP_DEVICE_SESSION_ID para el antifraude. -->
+    <script is:inline src="https://www.mercadopago.com/v2/security.js" view="checkout" async></script>
   </main>
 </Layout>
 

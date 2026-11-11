@@ -92,3 +92,13 @@ test('equipo: la respuesta dice si quien entró es súper usuario', async () => 
   const a = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, { db, ahora, nutricionistas, acceso: admin })).json();
   assert.equal(a.admin, true);
 });
+
+test('equipo: «No pagaron» trae el último intento de pago con su motivo real y n.º de operación', async () => {
+  const db = await base();
+  await db.prepare("INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en, detalle) VALUES ('p1', 'nopago', '111', 'rejected', 108000, 'visa', '2026-10-11T09:00:00Z', 'cc_rejected_insufficient_amount')").run();
+  await db.prepare("INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en, detalle) VALUES ('p2', 'nopago', '222', 'rejected', 108000, 'visa', '2026-10-11T09:30:00Z', 'cc_rejected_high_risk')").run();
+  const deps = { db, ahora, nutricionistas, acceso: dentro };
+  const d = await (await handleEquipoReservas(get('/api/equipo/reservas'), {}, deps)).json();
+  const f = d.no_pagadas[0];
+  assert.deepEqual([f.intento_estado, f.intento_detalle, f.intento_id], ['rejected', 'cc_rejected_high_risk', '222']);
+});

@@ -78,6 +78,35 @@ test('guardar datos extiende la retención a 30 minutos desde que se creó', asy
   assert.equal(despues.novedades_optin, 1);
 });
 
+test('guardar datos con quien paga distinto del paciente: la ficha guarda a los dos', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'pp', token: 'tpp' });
+  const r = await repo.reservaPorToken(db, 'tpp');
+  await repo.guardarDatosYPagar(db, {
+    reserva: r, cliente: { nombre: 'Lucía Rojas', nombres: 'Lucía', apellido_paterno: 'Rojas', whatsapp: '+51987654321', email: 'carmen@x.pe', dni: '81234567', tipo_documento: 'dni' },
+    pagador: { nombres: 'Carmen', apellido_paterno: 'Rojas', apellido_materno: 'Díaz', tipo_documento: 'dni', documento: '40123456', email: 'carmen@x.pe', whatsapp: '+51987654321' },
+    paraMi: false, condicionesVersion: 'v', novedades: false, ahora: mas(5),
+  });
+  const x = await repo.reservaPorToken(db, 'tpp');
+  assert.equal(x.dni, '81234567');
+  assert.equal(x.paciente_es_pagador, 0);
+  assert.equal(x.pagador_nombres, 'Carmen');
+  assert.equal(x.pagador_documento, '40123456');
+  assert.equal(x.pagador_email, 'carmen@x.pe');
+});
+
+test('guardar datos sin pagador (llamada vieja): quien paga es el paciente', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'p1', token: 'tp1' });
+  const r = await repo.reservaPorToken(db, 'tp1');
+  await repo.guardarDatosYPagar(db, { reserva: r, cliente: { nombre: 'Ana', nombres: 'Ana', whatsapp: '+51987654321', email: 'a@x.pe', dni: '12345678', tipo_documento: 'dni' },
+    condicionesVersion: 'v', novedades: false, ahora: mas(5) });
+  const x = await repo.reservaPorToken(db, 'tp1');
+  assert.equal(x.paciente_es_pagador, 1);
+  assert.equal(x.pagador_documento, '12345678');
+  assert.equal(x.pagador_email, 'a@x.pe');
+});
+
 test('guardar datos con la retención vencida: vencida', async () => {
   const db = d1DePrueba();
   await ret(db, { token: 'tv' });
@@ -141,7 +170,17 @@ test('registrarPago es idempotente por mp_payment_id', async () => {
   await repo.registrarPago(db, { ...p, estado: 'approved' });
   const filas = await db.prepare('SELECT estado FROM pagos').all();
   assert.deepEqual(filas.results, [{ estado: 'approved' }]);
-  assert.deepEqual(await repo.ultimoPago(db, 'pg'), { estado: 'approved' });
+  assert.deepEqual(await repo.ultimoPago(db, 'pg'), { estado: 'approved', detalle: null, mp_payment_id: '999' });
+});
+
+test('registrarPago guarda el motivo real (status_detail) y ultimoPago lo devuelve', async () => {
+  const db = d1DePrueba();
+  await ret(db, { id: 'pg2' });
+  const p = { reserva_id: 'pg2', mp_payment_id: '777', estado: 'rejected', detalle: 'cc_rejected_high_risk', monto_centimos: 8000, metodo: 'visa', ahora: t0 };
+  await repo.registrarPago(db, p);
+  // Un aviso repetido sin detalle no borra el que ya estaba.
+  await repo.registrarPago(db, { ...p, detalle: null });
+  assert.deepEqual(await repo.ultimoPago(db, 'pg2'), { estado: 'rejected', detalle: 'cc_rejected_high_risk', mp_payment_id: '777' });
 });
 
 test('reubicar una pagada sin hora la deja confirmada en la nueva hora', async () => {

@@ -122,10 +122,18 @@ npx wrangler d1 execute ajl-reservas --remote --command "SELECT count(*) FROM re
 
 - [ ] **Step 3 (Alejandro):** cargar las credenciales en producción: los mismos dos comandos, sin `--env preview`.
 - [ ] **Step 4 (Claude):** merge de `reservas-pago` a `main` y `git push origin main`, que despliega con los secretos nuevos. Después, `curl -s -o /dev/null -w '%{http_code}' https://www.ajlnutricion.com/` tiene que dar 200.
-- [ ] **Step 5 (Alejandro):**
+- [x] **Step 5 (Alejandro):**
   - en la aplicación nueva, cambiar la URL del webhook a `https://www.ajlnutricion.com/api/reservas/webhook-mp`;
   - en la aplicación de FJ, borrar el webhook. No se tocan planes ni suscripciones de FJ.
-- [ ] **Step 6:** con el primer cobro real en producción, revisar que llegue a la cuenta personal y que el webhook responda 200.
+- [x] **Step 6:** con el primer cobro real en producción, revisar que llegue a la cuenta personal y que el webhook responda 200.
+
+### Resultado de la Task 3 (10-nov-2026)
+
+- **Step 5:** la simulación de webhook («Pagos (legacy)», pago 188870618390) llegó a producción con firma válida. El primer intento dio 500 porque Mercado Pago contestó `429 local_rate_limited` al consultar; Mercado Pago reintentó a los 13 s y dio 200. El webhook de la app de FJ queda por borrar (opcional: la web ya lo rechaza con 401).
+- **Step 6, prueba de S/5 en producción** (fila `prueba` d0bce82c creada directo en `ajl-reservas`, con el OK de Alejandro): `/suscribirse` creó el plan b2515cc0… en la cuenta personal, el cobro 188924813358 se aprobó, llegaron 4 avisos con firma y 200, y la suscripción quedó `activa` con 1 cobro. La cancelación (hecha desde Mercado Pago) llegó por webhook: la web la dejó `cancelada` y el preapproval y el plan quedaron `cancelled`.
+- **No probado en producción:** `/reservar` mensual (reserva + Google Calendar + suscripción) y el pago único con Checkout Pro. El código no cambió; lo cubre el primer lead real.
+- El mismo día entró un cobro aprobado de S/270 de un plan hecho a mano en Mercado Pago («3 meses-1 sesión mes»): la web lo ignora, como corresponde.
+
 - [ ] **Step 7:** actualizar el `Estado` del spec, el `CHANGELOG.md` y la memoria `proyecto-link-suscripcion-unico-pausa-culqi`. La pausa del link único se puede levantar: era por el RUC 20.
 
 **Para volver atrás:** volver a cargar las credenciales de FJ (se generan otra vez en la aplicación de FJ) y hacer rollback del despliegue en Cloudflare.

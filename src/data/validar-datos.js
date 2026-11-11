@@ -33,31 +33,65 @@ export function revisarDocumento(tipo, valor) {
   return { ok: true, documento };
 }
 
+// Nombres, apellidos y documento de una persona. `quien` cambia el texto del error («tus» / «del paciente»).
+function persona(nombresV, paternoV, maternoV, tipoV, docV, deTi) {
+  const nombres = limpio(nombresV);
+  const paterno = limpio(paternoV);
+  const materno = limpio(maternoV);
+  if (!NOMBRE.test(nombres)) return mal(deTi ? 'Escribe tus nombres.' : 'Escribe los nombres del paciente.');
+  if (!NOMBRE.test(paterno)) return mal(deTi ? 'Escribe tu apellido paterno.' : 'Escribe el apellido paterno del paciente.');
+  if (materno && !NOMBRE.test(materno)) return mal(deTi ? 'Revisa tu apellido materno.' : 'Revisa el apellido materno del paciente.');
+  const tipo = String(tipoV ?? '');
+  const doc = revisarDocumento(tipo, docV);
+  if (!doc.ok) return deTi ? doc : mal(doc.error.replace('Elige tu', 'Elige el').replace('Escribe tu DNI', 'Escribe el DNI del paciente').replace('tu documento', 'el documento del paciente'));
+  return { ok: true, nombres, paterno, materno, tipo, documento: doc.documento };
+}
+
+function nacimientoValido(valor, hoyLima, deTi) {
+  const nacimiento = String(valor ?? '').trim();
+  const error = mal(deTi ? 'Revisa tu fecha de nacimiento.' : 'Revisa la fecha de nacimiento del paciente.');
+  if (!fechaReal(nacimiento)) return error;
+  const anios = edad(nacimiento, hoyLima);
+  if (anios < 10 || anios > 100) return error;
+  return { ok: true, nacimiento };
+}
+
+// Paso 4 «Datos de pago» (spec 2026-11-10): primero quien paga (sus datos van a Mercado Pago) y, si la
+// sesión no es para él (para_mi === false), el paciente. cliente = el paciente, como siempre; su correo
+// es el del paciente o, si no lo dio, el de quien paga, y su WhatsApp el de quien paga.
 export function validarDatos(d, hoyLima) {
-  const nombres = limpio(d.nombres);
-  const paterno = limpio(d.apellido_paterno);
-  const materno = limpio(d.apellido_materno);
-  if (!NOMBRE.test(nombres)) return mal('Escribe tus nombres.');
-  if (!NOMBRE.test(paterno)) return mal('Escribe tu apellido paterno.');
-  if (materno && !NOMBRE.test(materno)) return mal('Revisa tu apellido materno.');
+  const p = persona(d.nombres, d.apellido_paterno, d.apellido_materno, d.tipo_documento, d.documento, true);
+  if (!p.ok) return p;
   const whatsapp = String(d.whatsapp ?? '').replace(/[^\d+]/g, '');
   if (!/^\+?\d{9,15}$/.test(whatsapp)) return mal('Revisa tu número de WhatsApp.');
   const email = String(d.email ?? '').trim().toLowerCase();
   if (!EMAIL.test(email)) return mal('Revisa tu correo.');
-  const nacimiento = String(d.fecha_nacimiento ?? '').trim();
-  if (!fechaReal(nacimiento)) return mal('Revisa tu fecha de nacimiento.');
-  const anios = edad(nacimiento, hoyLima);
-  if (anios < 10 || anios > 100) return mal('Revisa tu fecha de nacimiento.');
-  const tipo = String(d.tipo_documento ?? '');
-  const doc = revisarDocumento(tipo, d.documento);
-  if (!doc.ok) return doc;
-  const { documento } = doc;
+  const pagador = { nombres: p.nombres, apellido_paterno: p.paterno, apellido_materno: p.materno || null,
+    tipo_documento: p.tipo, documento: p.documento, whatsapp, email };
+  const paraMi = d.para_mi !== false;
+  let paciente;
+  if (paraMi) {
+    const n = nacimientoValido(d.fecha_nacimiento, hoyLima, true);
+    if (!n.ok) return n;
+    paciente = { ...p, nacimiento: n.nacimiento, email };
+  } else {
+    const q = persona(d.paciente_nombres, d.paciente_apellido_paterno, d.paciente_apellido_materno, d.paciente_tipo_documento, d.paciente_documento, false);
+    if (!q.ok) return q;
+    const n = nacimientoValido(d.paciente_fecha_nacimiento, hoyLima, false);
+    if (!n.ok) return n;
+    const correo = String(d.paciente_email ?? '').trim().toLowerCase();
+    if (correo && !EMAIL.test(correo)) return mal('Revisa el correo del paciente.');
+    paciente = { ...q, nacimiento: n.nacimiento, email: correo || email };
+  }
   if (d.acepto !== true) return mal('Para continuar, acepta las condiciones del servicio.');
   return {
     ok: true,
+    paraMi,
+    pagador,
     cliente: {
-      nombre: [nombres, paterno, materno].filter(Boolean).join(' '), nombres, apellido_paterno: paterno,
-      apellido_materno: materno || null, fecha_nacimiento: nacimiento, tipo_documento: tipo, dni: documento, whatsapp, email,
+      nombre: [paciente.nombres, paciente.paterno, paciente.materno].filter(Boolean).join(' '), nombres: paciente.nombres,
+      apellido_paterno: paciente.paterno, apellido_materno: paciente.materno || null, fecha_nacimiento: paciente.nacimiento,
+      tipo_documento: paciente.tipo, dni: paciente.documento, whatsapp, email: paciente.email,
     },
   };
 }

@@ -79,7 +79,7 @@ export async function usarLink(db, { hash, nombre, email, dni, whatsapp, condici
 // preapprovalId: solo suma si es el preapproval guardado. reclamar: si la suscripción sigue sin ningún cobro
 // aprobado, el primer cobro aprobado de ese preapproval se queda con ella (el paciente pagó con otra tarjeta
 // y Mercado Pago creó otro preapproval del mismo plan). Todo en el mismo UPDATE: si dos cobros compiten, gana uno.
-export async function registrarCobro(db, { suscripcionId, mpPaymentId, preapprovalId = null, reclamar = false, cobroAutorizadoId = null, estado, montoCentimos, netoCentimos = null, metodo = null, ahora, contar = true }) {
+export async function registrarCobro(db, { suscripcionId, mpPaymentId, preapprovalId = null, reclamar = false, cobroAutorizadoId = null, estado, montoCentimos, netoCentimos = null, metodo = null, detalle = null, ahora, contar = true }) {
   const a = ahora.toISOString();
   const aprobado = estado === 'approved';
   // Si el cobro se registró antes de tener pago (fila `ap-<id>`), esa fila pasa a llevar el id real del pago.
@@ -96,13 +96,14 @@ export async function registrarCobro(db, { suscripcionId, mpPaymentId, preapprov
   ).bind(suscripcionId, mpPaymentId, a, aprobado && contar ? 1 : 0, preapprovalId, reclamar ? 1 : 0);
   // numero 0 para el cobro que no cuenta: el de un preapproval que no es (o ya no es) el guardado.
   const guardar = db.prepare(
-    `INSERT INTO suscripcion_cobros (id, suscripcion_id, mp_payment_id, numero, estado, monto_centimos, neto_centimos, metodo, creado_en)
+    `INSERT INTO suscripcion_cobros (id, suscripcion_id, mp_payment_id, numero, estado, monto_centimos, neto_centimos, metodo, creado_en, detalle)
      VALUES (?1, ?2, ?3, CASE WHEN ?10 = 1 AND (?11 IS NULL OR (SELECT COALESCE(mp_preapproval_id, ?11) FROM suscripciones WHERE id = ?2) = ?11)
-       THEN (SELECT cobros_aprobados + ?9 FROM suscripciones WHERE id = ?2) ELSE 0 END, ?4, ?5, ?6, ?7, ?8)
+       THEN (SELECT cobros_aprobados + ?9 FROM suscripciones WHERE id = ?2) ELSE 0 END, ?4, ?5, ?6, ?7, ?8, ?12)
      ON CONFLICT (mp_payment_id) DO UPDATE SET estado = excluded.estado, numero = excluded.numero,
-       neto_centimos = COALESCE(excluded.neto_centimos, suscripcion_cobros.neto_centimos)
+       neto_centimos = COALESCE(excluded.neto_centimos, suscripcion_cobros.neto_centimos),
+       detalle = COALESCE(excluded.detalle, suscripcion_cobros.detalle)
      WHERE suscripcion_cobros.estado <> 'approved'`,
-  ).bind(crypto.randomUUID(), suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos, metodo, a, aprobado ? 0 : 1, contar ? 1 : 0, preapprovalId);
+  ).bind(crypto.randomUUID(), suscripcionId, mpPaymentId, estado, montoCentimos, netoCentimos, metodo, a, aprobado ? 0 : 1, contar ? 1 : 0, preapprovalId, detalle);
   const [res, reg] = await db.batch([sumar, guardar]);
   const { numero } = await db.prepare('SELECT numero FROM suscripcion_cobros WHERE mp_payment_id = ?1').bind(mpPaymentId).first();
   return { nuevoAprobado: res.meta.changes === 1, pagoNuevoAprobado: aprobado && reg.meta.changes === 1, numero };

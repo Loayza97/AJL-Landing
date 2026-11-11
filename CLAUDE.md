@@ -12,6 +12,7 @@ Reglas clave:
 - `npm test` y `npm run build` antes de cada push; `npm run smoke -- https://www.ajlnutricion.com` después de publicar.
 - Cambios visibles en `CHANGELOG.md`.
 - El repo es público: ningún secreto en el código. La versión de prueba usa el Google Calendar real.
+- **Pagos de prueba (Mercado Pago cobra plata real también en la versión de prueba):** nunca con tarjetas de Alejandro (comprador = vendedor y el antifraude lo rechaza), nunca desde su wifi ni su dispositivo (otra persona, con sus datos móviles) y, tras un rechazo de prueba, esperar 30 minutos antes de otro intento. Recomendaciones de soporte de Mercado Pago, caso 494696561 (10-nov-2026). El motivo real de un rechazo está en `GET /v1/payments/{id}` → `status_detail` y en el panel («Intento de pago»); el panel de Mercado Pago dice «el banco rechazó» aunque sea su antifraude.
 
 Todo lo que sigue abajo es del workspace anterior (`ailab`, por rubros), retirado el 2026-09-28, y no aplica a la web. Se dejó por ahora; Alejandro decide si se borra.
 

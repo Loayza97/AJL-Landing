@@ -52,6 +52,8 @@ export const expirar = (db, ahoraIso) => db.prepare(
 
 // link_plan y link_cita: el evento del calendario los muestra (evento-equipo.mjs).
 const CON_CLIENTE = `SELECT r.*, c.nombre, c.whatsapp, c.email, c.dni, c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento,
+  c.paciente_es_pagador, c.pagador_nombres, c.pagador_apellido_paterno, c.pagador_apellido_materno, c.pagador_tipo_documento,
+  c.pagador_documento, c.pagador_email, c.pagador_whatsapp,
   l.plan AS link_plan, l.cita AS link_cita
   FROM reservas r LEFT JOIN clientes c ON c.id = r.cliente_id LEFT JOIN links_agenda l ON l.id = r.link_id`;
 
@@ -103,24 +105,33 @@ export async function reservasActivasEntre(db, desde, hasta, ahora) {
 export const reservaPorToken = (db, token) => db.prepare(`${CON_CLIENTE} WHERE r.token = ?1`).bind(token).first();
 export const reservaPorId = (db, id) => db.prepare(`${CON_CLIENTE} WHERE r.id = ?1`).bind(id).first();
 
-export async function guardarDatosYPagar(db, { reserva, cliente, condicionesVersion, novedades, ahora }) {
+// pagador: quien paga (va a Mercado Pago); paraMi: es el mismo paciente. Sin pagador (llamadas viejas), quien paga es el paciente.
+export async function guardarDatosYPagar(db, { reserva, cliente, pagador = null, paraMi = true, condicionesVersion, novedades, ahora }) {
   const ahoraIso = ahora.toISOString();
   const hasta = new Date(Date.parse(reserva.creado_en) + 30 * MIN).toISOString();
   const clienteId = reserva.cliente_id || crypto.randomUUID();
   const c = cliente;
+  const g = pagador ?? { nombres: c.nombres, apellido_paterno: c.apellido_paterno, apellido_materno: c.apellido_materno,
+    tipo_documento: c.tipo_documento, documento: c.dni, email: c.email, whatsapp: c.whatsapp };
   const campos = [c.nombre ?? null, c.whatsapp ?? null, c.email ?? null, c.dni ?? null, c.nombres ?? null, c.apellido_paterno ?? null, c.apellido_materno ?? null,
     c.fecha_nacimiento ?? null, c.tipo_documento ?? null];
+  const deQuienPaga = [paraMi ? 1 : 0, g.nombres ?? null, g.apellido_paterno ?? null, g.apellido_materno ?? null, g.tipo_documento ?? null,
+    g.documento ?? null, g.email ?? null, g.whatsapp ?? null];
   // La ficha solo se escribe si la reserva todavía se puede pagar (la misma
   // condición que el UPDATE de abajo): con el token de una cita confirmada o
   // vencida no se reescriben los datos del paciente.
   const pagable = `EXISTS (SELECT 1 FROM reservas WHERE id = ?12 AND estado IN ('apartada', 'pagando') AND retencion_hasta >= ?11)`;
   const guardarCliente = reserva.cliente_id
     ? db.prepare(`UPDATE clientes SET nombre = ?2, whatsapp = ?3, email = ?4, dni = ?5, nombres = ?6,
-        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10 WHERE id = ?1 AND ${pagable}`)
-      .bind(clienteId, ...campos, ahoraIso, reserva.id)
+        apellido_paterno = ?7, apellido_materno = ?8, fecha_nacimiento = ?9, tipo_documento = ?10, paciente_es_pagador = ?13,
+        pagador_nombres = ?14, pagador_apellido_paterno = ?15, pagador_apellido_materno = ?16, pagador_tipo_documento = ?17,
+        pagador_documento = ?18, pagador_email = ?19, pagador_whatsapp = ?20 WHERE id = ?1 AND ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id, ...deQuienPaga)
     : db.prepare(`INSERT INTO clientes (id, nombre, whatsapp, email, dni, nombres, apellido_paterno, apellido_materno,
-        fecha_nacimiento, tipo_documento, creado_en) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11 WHERE ${pagable}`)
-      .bind(clienteId, ...campos, ahoraIso, reserva.id);
+        fecha_nacimiento, tipo_documento, creado_en, paciente_es_pagador, pagador_nombres, pagador_apellido_paterno,
+        pagador_apellido_materno, pagador_tipo_documento, pagador_documento, pagador_email, pagador_whatsapp)
+        SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20 WHERE ${pagable}`)
+      .bind(clienteId, ...campos, ahoraIso, reserva.id, ...deQuienPaga);
   const actualizar = db.prepare(
     `UPDATE reservas SET cliente_id = ?1, estado = 'pagando', retencion_hasta = ?2,
        acepto_condiciones_version = ?3, novedades_optin = ?4, actualizado_en = ?5
@@ -136,14 +147,21 @@ export const guardarPreferencia = (db, id, pref, ahora) => db.prepare(
 ).bind(id, pref, ahora.toISOString()).run();
 
 export const registrarPago = (db, p) => db.prepare(
-  `INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en, neto_centimos)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+  `INSERT INTO pagos (id, reserva_id, mp_payment_id, estado, monto_centimos, metodo, creado_en, neto_centimos, detalle)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
    ON CONFLICT (mp_payment_id) DO UPDATE SET estado = excluded.estado,
-     neto_centimos = COALESCE(excluded.neto_centimos, pagos.neto_centimos)`,
-).bind(crypto.randomUUID(), p.reserva_id, p.mp_payment_id, p.estado, p.monto_centimos, p.metodo, p.ahora.toISOString(), p.neto_centimos ?? null).run();
+     neto_centimos = COALESCE(excluded.neto_centimos, pagos.neto_centimos), detalle = COALESCE(excluded.detalle, pagos.detalle)`,
+).bind(crypto.randomUUID(), p.reserva_id, p.mp_payment_id, p.estado, p.monto_centimos, p.metodo, p.ahora.toISOString(), p.neto_centimos ?? null,
+  p.detalle ?? null).run();
 
 export const ultimoPago = (db, reservaId) => db.prepare(
-  'SELECT estado FROM pagos WHERE reserva_id = ?1 ORDER BY creado_en DESC LIMIT 1',
+  // Pago único (pagos) o cobro de la suscripción de la reserva (pago mensual), el más reciente.
+  `SELECT estado, detalle, mp_payment_id FROM (
+     SELECT estado, detalle, mp_payment_id, creado_en FROM pagos WHERE reserva_id = ?1
+     UNION ALL
+     SELECT c.estado, c.detalle, c.mp_payment_id, c.creado_en FROM suscripcion_cobros c JOIN suscripciones s ON s.id = c.suscripcion_id
+     WHERE s.reserva_id = ?1)
+   ORDER BY creado_en DESC LIMIT 1`,
 ).bind(reservaId).first();
 
 export const otroPagoAprobado = (db, reservaId, mpPaymentId) => db.prepare(
@@ -223,7 +241,9 @@ export const purgarNoPagadas = (db, ahora, dias = 30) => {
   ).bind(ahora.toISOString());
   return db.batch([sinHuella, db.prepare(
     `UPDATE clientes SET nombre = NULL, whatsapp = NULL, email = NULL, dni = NULL, nombres = NULL,
-       apellido_paterno = NULL, apellido_materno = NULL, fecha_nacimiento = NULL, tipo_documento = NULL
+       apellido_paterno = NULL, apellido_materno = NULL, fecha_nacimiento = NULL, tipo_documento = NULL,
+       pagador_nombres = NULL, pagador_apellido_paterno = NULL, pagador_apellido_materno = NULL, pagador_tipo_documento = NULL,
+       pagador_documento = NULL, pagador_email = NULL, pagador_whatsapp = NULL
      WHERE nombre IS NOT NULL
        AND id IN (SELECT cliente_id FROM reservas WHERE cliente_id IS NOT NULL AND (
              (estado IN ('expirada', 'cancelada') AND actualizado_en < ?1)

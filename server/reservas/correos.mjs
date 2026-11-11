@@ -53,8 +53,9 @@ export function correoEquipoConfirmada(d) {
       <p>${esc(d.titulo)} · S/${esc(d.monto)}</p>
       <p>${esc(d.etiqueta)} · ${d.modalidad === 'video' ? 'Videollamada' : 'Presencial'} · ${esc(d.nutricionista)}</p>
       ${d.fecha_nacimiento ? `<p>Fecha de nacimiento: ${esc(d.fecha_nacimiento)}</p>` : ''}
+      ${d.pagador ? `<p><strong>Pagó otra persona:</strong> ${esc(d.pagador.nombre)} · ${esc(d.pagador.whatsapp)} · ${esc(d.pagador.email)}${d.pagador.documento ? ` · ${etiquetaDocumento(d.pagador.tipo_documento)} ${esc(d.pagador.documento)}` : ''}</p>` : ''}
       <p>Novedades por correo: ${d.novedades ? 'sí' : 'no'}</p>
-      <p>Emitir el comprobante de pago.</p>`),
+      <p>Emitir el comprobante de pago${d.pagador ? ' a nombre de quien pagó' : ''}.</p>`),
   };
 }
 

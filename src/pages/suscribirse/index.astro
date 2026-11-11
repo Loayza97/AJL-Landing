@@ -21,8 +21,18 @@ import '../../styles/reservar.css';
         <input type="tel" id="s-whatsapp" inputmode="tel" required>
       </div>
       <label class="rs-check"><input type="checkbox" id="s-acepto"> <span id="s-acepto-t"></span></label>
+      <div class="rs-consejos">
+        <b>Antes de pagar, para que pase a la primera</b>
+        <ol>
+          <li>Paga desde <b>tu</b> celular o computadora de siempre, con el wifi de tu casa o tus datos móviles. Evita redes ajenas o equipos prestados.</li>
+          <li>Revisa en la app de tu banco que tu tarjeta tenga <b>activas las compras por internet</b> y cupo suficiente.</li>
+          <li>Si tienes cuenta de Mercado Pago, <b>entra con ella</b> al pagar.</li>
+          <li>Si te sale rechazado, <b>no lo repitas enseguida</b>: espera unos minutos o usa otra tarjeta.</li>
+        </ol>
+        <p>El pago mensual automático solo funciona con tarjeta de crédito o débito (Yape no permite cobros mensuales).</p>
+      </div>
       <button type="submit" class="rs-btn" id="s-pagar">Suscribirme con Mercado Pago</button>
-      <p class="rs-nota" style="text-align:center">Pones tu tarjeta o Yape en Mercado Pago. Nosotros no vemos tus datos.</p>
+      <p class="rs-nota" style="text-align:center">Pones tu tarjeta en Mercado Pago. Nosotros no vemos tus datos.</p>
       <p class="rs-error" id="s-error" role="alert"></p>
     </form>
   </main>

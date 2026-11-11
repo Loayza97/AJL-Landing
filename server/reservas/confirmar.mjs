@@ -53,18 +53,21 @@ export async function finalizarConfirmacion(deps, env, r) {
     pendiente = true;
     await repo.marcarCalendarioPendiente(deps.db, r.id, deps.ahora());
   }
+  // Si pagó otra persona (un familiar), también recibe la confirmación, salvo que sea el mismo correo.
+  const otroPagador = r.paciente_es_pagador === 0 && r.pagador_nombres;
+  const destinos = [r.email, ...(r.pagador_email && r.pagador_email !== r.email ? [r.pagador_email] : [])];
+  const confirmacion = correoConfirmacion({ nombre: r.nombre, titulo, etiqueta, modalidad: r.modalidad, direccion: contacto.direccion, meet,
+    nutricionista: nutricionista.nombre, urlIcs: `${siteUrl(env)}/api/reservas/ics?r=${r.token}` });
   await Promise.all([
-    deps.sendEmail({
-      from: remitente(env), to: r.email,
-      ...correoConfirmacion({ nombre: r.nombre, titulo, etiqueta, modalidad: r.modalidad, direccion: contacto.direccion, meet,
-        nutricionista: nutricionista.nombre, urlIcs: `${siteUrl(env)}/api/reservas/ics?r=${r.token}` }),
-    }),
+    ...destinos.map((to) => deps.sendEmail({ from: remitente(env), to, ...confirmacion })),
     deps.sendEmail({
       from: remitente(env), to: env.NOTIFICATION_EMAIL,
       ...correoEquipoConfirmada({ nombre: r.nombre, whatsapp: r.whatsapp, email: r.email, dni: r.dni,
         tipo_documento: r.tipo_documento, fecha_nacimiento: r.fecha_nacimiento, titulo, etiqueta,
         modalidad: r.modalidad, nutricionista: nutricionista.nombre, monto: r.monto_centimos / 100,
-        calendarioPendiente: pendiente, novedades: Boolean(r.novedades_optin) }),
+        calendarioPendiente: pendiente, novedades: Boolean(r.novedades_optin),
+        pagador: otroPagador ? { nombre: [r.pagador_nombres, r.pagador_apellido_paterno, r.pagador_apellido_materno].filter(Boolean).join(' '),
+          whatsapp: r.pagador_whatsapp, email: r.pagador_email, tipo_documento: r.pagador_tipo_documento, documento: r.pagador_documento } : null }),
     }),
     avisarEquipo(deps, env, { tipo: 'nueva', r }),
   ]);
@@ -79,7 +82,7 @@ export async function confirmarConPago(deps, env, reserva, pago) {
   const neto = Number(pago.transaction_details?.net_received_amount);
   await repo.registrarPago(deps.db, { reserva_id: r.id, mp_payment_id: String(pago.id), estado: pago.status,
     monto_centimos: montoPagado, metodo: pago.payment_method_id || null, neto_centimos: neto > 0 ? Math.round(neto * 100) : null,
-    ahora: deps.ahora() });
+    detalle: pago.status_detail || null, ahora: deps.ahora() });
 
   if (pago.status !== 'approved') return { estado: r.estado, pago: pago.status };
   if (r.estado === 'confirmada' || r.estado === 'pagada_sin_hora') {

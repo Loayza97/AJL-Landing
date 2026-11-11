@@ -6,6 +6,7 @@ import { limitarFilas } from './panel-filas.js';
 import { filaMaestra } from './fila-maestra.js';
 import { mostrarLogin } from './panel-links.js';
 import { nutricionistas } from '../data/nutricionistas.js';
+import { motivoEquipo } from '../data/motivos-pago.js';
 
 const $ = (s) => document.querySelector(s);
 const MAX_CSV = 200; // el mismo tope que /api/equipo/agendados-csv
@@ -204,6 +205,24 @@ async function copiar() {
   }
 }
 
+// Último intento de pago (spec 2026-11-10): el motivo real en palabras y el n.º de operación para
+// escribirle a soporte de Mercado Pago (caso 494696561), con botón para copiarlo.
+function intento(f) {
+  const celda = document.createElement('td');
+  const m = motivoEquipo(f.intento_estado, f.intento_detalle);
+  if (!m) { celda.textContent = 'No llegó a pagar'; return celda; }
+  celda.append(chip(m.titulo, f.intento_estado === 'rejected' ? 'lk-alerta' : 'lk-hecho'));
+  if (m.accion) celda.append(Object.assign(document.createElement('small'), { className: 'lk-sub', textContent: m.accion }));
+  if (f.intento_id && /^\d+$/.test(f.intento_id)) {
+    const b = Object.assign(document.createElement('button'), { type: 'button', className: 'lk-btn lk-btn--borde lk-btn--mini', textContent: `N.º ${f.intento_id} · Copiar` });
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(f.intento_id); b.textContent = 'Copiado'; } catch { b.textContent = f.intento_id; }
+    });
+    celda.append(b);
+  }
+  return celda;
+}
+
 // No pagaron: la lista de /api/equipo/reservas (30 días), igual que antes en /panel/.
 async function cargarNoPago() {
   const r = await pedir('/api/equipo/reservas');
@@ -222,12 +241,15 @@ async function cargarNoPago() {
     const b = Object.assign(document.createElement('button'), { type: 'button', className: 'lk-btn lk-btn--borde', textContent: f.contactado_en ? 'Desmarcar' : 'Marcar contactado' });
     b.addEventListener('click', () => marcar(f, !f.contactado_en, b));
     seg.append(b);
+    const pagador = f.paciente_es_pagador === 0 && f.pagador_nombres
+      ? `Paga: ${[f.pagador_nombres, f.pagador_apellido_paterno].filter(Boolean).join(' ')} · ${DOCS[f.pagador_tipo_documento] ?? ''} ${f.pagador_documento ?? ''}`.trim() : null;
     tr.append(td(lima(f.retencion_hasta)),
-      td([f.nombres || f.nombre, f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '), f.fecha_nacimiento ? `Nació el ${f.fecha_nacimiento.split('-').reverse().join('/')}` : null),
+      td([f.nombres || f.nombre, f.apellido_paterno, f.apellido_materno].filter(Boolean).join(' '),
+        [f.fecha_nacimiento ? `Nació el ${f.fecha_nacimiento.split('-').reverse().join('/')}` : null, pagador].filter(Boolean).join(' · ') || null),
       td(`${DOCS[f.tipo_documento] ?? ''} ${f.dni ?? ''}`.trim()), td(wa, f.email), td(f.titulo, soles(f.monto_centimos)),
-      td(f.etiqueta, `${MOD[f.modalidad]} · ${f.nutricionista}`), seg);
+      td(f.etiqueta, `${MOD[f.modalidad]} · ${f.nutricionista}`), intento(f), seg);
     return tr;
-  }) : [filaVacia(7, 'Nadie dejó datos sin pagar en los últimos 30 días.')]));
+  }) : [filaVacia(8, 'Nadie dejó datos sin pagar en los últimos 30 días.')]));
   limitarFilas($('#n-scroll'));
   return true;
 }

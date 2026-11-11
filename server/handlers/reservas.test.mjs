@@ -103,7 +103,9 @@ test('pagar: valida datos, exige documento y aceptar condiciones; guarda el deta
   assert.equal(ok.status, 200);
   assert.deepEqual(await ok.json(), { ok: true, url: 'https://mp/pagar' });
   assert.equal(pedido.urlNotificacion, 'https://www.ajlnutricion.com/api/reservas/webhook-mp');
-  assert.equal(pedido.nombre, 'Ana Pérez');
+  // Los datos del paciente van a Mercado Pago como pagador, en su formato (sin apellido materno vacío).
+  assert.deepEqual(pedido.pagador, { name: 'Ana', surname: 'Pérez', email: 'ana@x.pe', phone: { area_code: '51', number: '987654321' },
+    identification: { type: 'DNI', number: '12345678' } });
   const c = await d.db.prepare('SELECT * FROM clientes').first();
   assert.deepEqual([c.nombres, c.apellido_paterno, c.apellido_materno, c.fecha_nacimiento, c.tipo_documento, c.dni],
     ['Ana', 'Pérez', null, '1990-05-04', 'dni', '12345678']);
@@ -607,4 +609,21 @@ test('plan de 1 mes: sin cobro automático (400); pago único del mismo plan sí
     assert.match((await r.json()).error, /una sola vez/);
     assert.equal((await apartar(deps(), { producto, duracion: 1 })).status, 200, producto);
   }
+});
+
+test('pagar para otra persona: a Mercado Pago van los datos de quien paga; la ficha guarda al paciente y a quien paga', async () => {
+  let pedido;
+  const d = deps({ mp: { crearPreferencia: async (p) => { pedido = p; return { id: 'pref', init_point: 'https://mp/pagar' }; } } });
+  const { token } = await (await apartar(d)).json();
+  const otro = { ...datos, token, para_mi: false, fecha_nacimiento: '', dispositivo: 'armor.abc12345',
+    paciente_nombres: 'Lucía', paciente_apellido_paterno: 'Rojas', paciente_apellido_materno: '', paciente_fecha_nacimiento: '2011-03-14',
+    paciente_tipo_documento: 'dni', paciente_documento: '81234567', paciente_email: 'lucia@x.pe' };
+  const r = await handlePagar(post('/api/reservas/pagar', otro), env, d);
+  assert.equal(r.status, 200);
+  assert.deepEqual(pedido.pagador, { name: 'Ana', surname: 'Pérez', email: 'ana@x.pe', phone: { area_code: '51', number: '987654321' },
+    identification: { type: 'DNI', number: '12345678' } });
+  assert.equal(pedido.dispositivo, 'armor.abc12345');
+  const ficha = await d.db.prepare('SELECT c.* FROM reservas r JOIN clientes c ON c.id = r.cliente_id WHERE r.token = ?1').bind(token).first();
+  assert.deepEqual([ficha.nombre, ficha.dni, ficha.email, ficha.paciente_es_pagador, ficha.pagador_documento, ficha.pagador_email],
+    ['Lucía Rojas', '81234567', 'lucia@x.pe', 0, '12345678', 'ana@x.pe']);
 });
