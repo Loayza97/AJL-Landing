@@ -95,6 +95,10 @@ function bloqueadasPorEventos(eventos, nutricionistas, ini, fin, modalidad) {
 // Lima) ese día y en esa modalidad? Nada puede pisar la hora del almuerzo.
 function ventanaCubre(nutricionista, fecha, modalidad, m, dur) {
   if (m < (HORA_ALMUERZO + 1) * 60 && m + dur > HORA_ALMUERZO * 60) return false;
+  // Apertura puntual (src/data/nutricionistas.js): esa fecha y esas horas, presencial
+  // o por video, aunque el consultorio abra después (Alejandro, 2026-11-10).
+  if ((nutricionista.aperturas || []).some((a) => a.fecha === fecha
+    && m >= a.desde * 60 && m + dur <= a.hasta * 60)) return true;
   const dow = diaSemana(fecha);
   return nutricionista.ventanas.some((v) => {
     if (v.dia !== DIAS[dow]) return false;

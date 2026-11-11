@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-11-10 · publicado
 
+- Agenda: solo el jueves 12-nov-2026, Jussara atiende también a las 9 a. m., presencial o por video. Es una «apertura» con fecha (campo nuevo `aperturas` en `src/data/nutricionistas.js`): esa hora el consultorio abre para ella, y los demás jueves sigue desde las 10. Lo pidió Alejandro.
 - Agenda: los miércoles Jussara atiende de 9 a. m. a 5 p. m. (antes desde las 10), presencial o por video. Para eso el consultorio abre a las 9 los miércoles en el motor de horas (web, links de agenda y panel). No cambia a nadie más: ese día nadie empieza antes de las 11. El horario público del sitio sigue diciendo 10 a. m. Lo pidió Alejandro.
 - Política de privacidad, versión 1.8: sección 2.7 sobre los mensajes por Facebook Messenger e Instagram (qué recibimos, para qué y dónde se guardan: Chatwoot en nuestro servidor de Contabo en Estados Unidos), su finalidad en la tabla 3, Contabo en la tabla 4, su plazo en la sección 5 y la sección 7.1 «Cómo pedir que borremos tus datos» (ancla `#borrar-datos`, para la URL de instrucciones de borrado del panel de Meta). En 4.1 ya no se afirma cifrado en reposo para ese servidor. Lo pide el App Review de la app AJL para responder desde Chatwoot.
 

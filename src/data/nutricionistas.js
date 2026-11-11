@@ -20,6 +20,11 @@
 //
 // `tema` y `perfil`: lo que ve el paciente al tocar su foto en /reservar/
 // (textos aprobados por Romi, 2026-10-29).
+//
+// `aperturas`: horas sueltas fuera de su horario, solo en esa fecha (AAAA-MM-DD),
+// presencial o por video. El consultorio abre para ella aunque sea antes de su
+// hora de apertura. Las demás reglas siguen: almuerzo, ausencias, cruces y topes.
+// Cuando pasa la fecha ya no hacen nada y se pueden borrar.
 
 export const nutricionistas = [
   {
@@ -66,6 +71,9 @@ export const nutricionistas = [
       { dia: 'jueves', modalidad: null, desde: 10, hasta: 17 },
       { dia: 'viernes', modalidad: null, desde: 10, hasta: 17 },
       { dia: 'sabado', modalidad: null, desde: 9, hasta: 13 },
+    ],
+    aperturas: [
+      { fecha: '2026-11-12', desde: 9, hasta: 10 }, // solo el jueves 12 a las 9 (Alejandro, 2026-11-10)
     ],
   },
   {
