@@ -2,6 +2,11 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-11 · en prueba
+
+- Panel: «Cobrar con suscripción» pasa a ser la tercera forma de pago de «Generar link de reserva»: «Mensual, ya tiene cita (no agenda)». Pide el nombre del paciente y crea el mismo link de un solo uso de antes (`/suscribirse/?l=…`, vence en 7 días, no agenda cita), para quien ya tiene su cita, como una renovación. Mismas cuotas que «Mensual automático» (comprobado en los 6 casos) y el resumen avisa la penalidad. Se apaga igual que el mensual: 1 mes, sueltas o pago mensual cerrado. Lo pidió Alejandro: 3 de las 7 suscripciones activas salieron de ese módulo, así que no se borró, se unificó.
+- Panel: la tabla «Suscripciones» pasa al final del panel, plegada («casi nunca lo usamos», Alejandro). Junto al título dice cuántas están activas o, en rojo, cuántas tienen cobro fallido o penalidad pendiente, para que no se pierdan estando plegada.
+
 ## 2026-11-10 · publicado
 
 - /reservar/, paso 4 «Datos de pago»: arriba los datos de quien paga (son los que recibe Mercado Pago, para que su antifraude reconozca a quien paga) y la casilla «La sesión es para mí», marcada; desmarcada, se despliega «¿Para quién es la sesión?» con los datos del paciente (correo opcional: si no lo pone, la invitación le llega a quien paga). Antes del botón, 4 advertencias de soporte de Mercado Pago (tu dispositivo y tu red, compras por internet y cupo, entrar con tu cuenta o Yape, no repetir enseguida); en pago mensual, «solo tarjeta». Se carga el script de seguridad de Mercado Pago (Device ID). Si pagó otra persona, también recibe la confirmación, y el correo al equipo dice quién pagó. La suscripción (recibos, cancelar, penalidad) es de quien paga, y la deuda previa se revisa por el DNI del paciente y el de quien paga.

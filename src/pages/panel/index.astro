@@ -11,11 +11,7 @@ import { plans } from '../../data/plans.js';
 import { cotizar } from '../../../server/reservas/catalogo.mjs';
 import { monthlyPlans } from '../../data/plans.js';
 import { duracionesDe } from '../../data/duraciones.js';
-import { condicionesSuscripcion } from '../../../server/suscripciones/calculo.mjs';
 const tipos = Object.entries(TIPOS_LINK);
-const paquetes = monthlyPlans.map((p) => ({ id: p.id, nombre: p.internalName,
-  // Sin mes a mes: cobraría sin fin hasta que alguien lo cancele (Alejandro, 2026-11-06).
-  opciones: duracionesDe(p.id).filter((d) => d.meses > 1).map((d) => ({ meses: d.meses, ...condicionesSuscripcion(p.id, d.meses) })) }));
 // «Generar link de reserva» (spec 2026-11-10): plan, duración y forma de pago con selectores. El link es el
 // de siempre (/reservar/?plan=…&meses=…[&forma=mensual]); generarlo no crea nada en Mercado Pago.
 const soles = (c) => `S/${(c / 100).toLocaleString('es-PE').replace(/,/g, ' ')}`;
@@ -88,7 +84,7 @@ import '../../styles/panel.css';
       <section>
         <details class="lk-plegable">
         <summary><h2>Generar link de reserva</h2><span class="lk-nota">pago en la web · toca para abrir</span></summary>
-        <p class="lk-nota">Elige el plan y la forma de pago. El paciente entra directo a elegir nutri y hora, y paga en la web. El link sirve siempre, para cualquier paciente, y generarlo no crea nada en Mercado Pago.</p>
+        <p class="lk-nota">Elige el plan y la forma de pago. Con «Un solo pago» o «Mensual automático» el paciente entra directo a elegir nutri y hora, y paga en la web: el link sirve siempre, para cualquier paciente, y generarlo no crea nada en Mercado Pago. «Mensual, ya tiene cita» es para un paciente que ya tiene su cita (una renovación): no agenda, sirve una sola vez, va a su nombre y vence en 7 días.</p>
         <div class="lk-tarjeta lk-gen" id="gen-link" data-planes={JSON.stringify(generador)}>
           <div class="lk-gen-campos">
             <label class="lk-campo">Plan
@@ -98,12 +94,14 @@ import '../../styles/panel.css';
               <select id="gen-meses"></select>
             </label>
             <div class="lk-campo" role="radiogroup" aria-labelledby="gen-forma-t"><span id="gen-forma-t">Forma de pago</span>
-              <div class="lk-dos">
+              <div class="lk-ops">
                 <label class="lk-op"><input type="radio" name="gen-forma" value="completo" checked> Un solo pago</label>
                 <label class="lk-op"><input type="radio" name="gen-forma" value="mensual"> Mensual automático</label>
+                <label class="lk-op"><input type="radio" name="gen-forma" value="sin-cita"> Mensual, ya tiene cita (no agenda)</label>
               </div>
             </div>
           </div>
+          <label class="lk-campo" id="gen-nombre-campo" hidden>Nombre del paciente<input class="lk-url" id="gen-nombre" maxlength="120" autocomplete="off"></label>
           <p class="lk-gen-resumen" id="gen-resumen"></p>
           <button type="button" class="lk-btn" id="gen-crear">Generar link</button>
           <div id="gen-creado" hidden>
@@ -112,45 +110,6 @@ import '../../styles/panel.css';
           </div>
         </div>
         </details>
-      </section>
-
-      <section id="sus-seccion" hidden>
-        <details class="lk-plegable">
-          <summary><h2>Cobrar con suscripción</h2><span class="lk-nota">link de un solo uso · toca para abrir</span></summary>
-          <p class="lk-nota">Para un paciente con quien ya hablaste por WhatsApp. El link sirve una vez y vence en 7 días. No agenda cita: las sesiones se agendan con los links de siempre.</p>
-          <div class="lk-tarjeta lk-sus" id="sus-crear">
-            <label class="lk-campo">Nombre del paciente<input id="sus-nombre" maxlength="120" autocomplete="off"></label>
-            <label class="lk-campo">Plan y paquete
-              <select id="sus-plan">
-                <option value="">Elige el plan y el paquete</option>
-                {paquetes.map((p) => <optgroup label={p.nombre} data-regular>{p.opciones.map((o) => (
-                  <option value={`${p.id}:${o.meses}`}>{o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`} · S/{o.cuota_centimos / 100} al mes · {o.cobros ? 'penalidad: diferencia con mes a mes' : 'sin penalidad'}</option>
-                ))}</optgroup>)}
-              </select>
-            </label>
-            <button type="button" class="lk-btn" id="sus-crear-btn" disabled>Crear link de suscripción</button>
-            <div id="sus-creado" hidden>
-              <input class="lk-url" id="sus-url" readonly aria-label="Link de suscripción">
-              <div class="lk-dos"><button type="button" class="lk-btn lk-btn--borde" id="sus-copiar">Copiar</button><a class="lk-btn lk-btn--wa" id="sus-wa" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
-            </div>
-          </div>
-        </details>
-      </section>
-
-      <section>
-        <h2>Suscripciones</h2>
-        <div class="lk-barra">
-          <div class="lk-grupo" role="group" aria-label="Filtrar suscripciones" id="sus-filtros">
-            <button type="button" data-filtro="todas" aria-pressed="true">Todas <span></span></button>
-            <button type="button" data-filtro="activas" aria-pressed="false">Activas <span></span></button>
-            <button type="button" data-filtro="terminan" aria-pressed="false">Les falta 1 cobro <span></span></button>
-            <button type="button" data-filtro="fallido" aria-pressed="false">Cobro fallido <span></span></button>
-            <button type="button" data-filtro="penalidad" aria-pressed="false">Penalidad pendiente <span></span></button>
-            <button type="button" data-filtro="canceladas" aria-pressed="false">Canceladas <span></span></button>
-          </div>
-        </div>
-        <p class="lk-error" id="sus-msg" role="alert" hidden></p>
-        <div class="lk-scroll"><table><thead><tr><th>Paciente</th><th>Plan</th><th>Cobros</th><th>Cuota</th><th>Próximo cobro</th><th>Estado</th><th></th></tr></thead><tbody id="sus-filas"></tbody></table></div>
       </section>
 
       <section>
@@ -222,6 +181,24 @@ import '../../styles/panel.css';
           </tr></thead><tbody id="n-filas"></tbody></table></div>
           <div class="lk-pie"><span>Dejaron sus datos en la página web y no terminaron de pagar en los últimos 30 días.</span></div>
         </div>
+      </section>
+
+      <section>
+        <details class="lk-plegable">
+        <summary><h2>Suscripciones</h2><span class="lk-nota" id="sus-resumen">pagos mensuales automáticos · toca para abrir</span></summary>
+        <div class="lk-barra">
+          <div class="lk-grupo" role="group" aria-label="Filtrar suscripciones" id="sus-filtros">
+            <button type="button" data-filtro="todas" aria-pressed="true">Todas <span></span></button>
+            <button type="button" data-filtro="activas" aria-pressed="false">Activas <span></span></button>
+            <button type="button" data-filtro="terminan" aria-pressed="false">Les falta 1 cobro <span></span></button>
+            <button type="button" data-filtro="fallido" aria-pressed="false">Cobro fallido <span></span></button>
+            <button type="button" data-filtro="penalidad" aria-pressed="false">Penalidad pendiente <span></span></button>
+            <button type="button" data-filtro="canceladas" aria-pressed="false">Canceladas <span></span></button>
+          </div>
+        </div>
+        <p class="lk-error" id="sus-msg" role="alert" hidden></p>
+        <div class="lk-scroll"><table><thead><tr><th>Paciente</th><th>Plan</th><th>Cobros</th><th>Cuota</th><th>Próximo cobro</th><th>Estado</th><th></th></tr></thead><tbody id="sus-filas"></tbody></table></div>
+        </details>
       </section>
     </div>
   </main>

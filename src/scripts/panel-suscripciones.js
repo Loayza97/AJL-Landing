@@ -1,4 +1,5 @@
-// Panel /panel/, suscripciones: crear el link de suscripción y la lista con filtros.
+// Panel /panel/, suscripciones: la lista con filtros, plegada al final del panel (Alejandro, 2026-11-11: «casi
+// nunca lo usamos»). El link de un solo uso se crea desde «Generar link de reserva» (panel-links-reserva.js).
 // Todo el texto de la base se pinta con textContent.
 import { formatoSoles } from '../data/duraciones.js';
 
@@ -83,12 +84,13 @@ function filaVacia() {
   return tr;
 }
 
-// «Cobrar con suscripción»: se ve solo con el pago mensual abierto.
-function ofrecer({ abiertas }) {
-  $('#sus-seccion').hidden = !abiertas;
-  document.querySelectorAll('#sus-plan optgroup[data-regular]').forEach((g) => { g.hidden = g.disabled = !abiertas; });
+// Plegada no se ve: si hay algo que atender, lo dice el resumen junto al título.
+function resumen(c) {
+  const avisos = [c.fallido && `${c.fallido} con cobro fallido`, c.penalidad && `${c.penalidad} con penalidad pendiente`].filter(Boolean);
+  const r = $('#sus-resumen');
+  r.textContent = avisos.length ? `${avisos.join(' · ')} · toca para abrir` : `${c.activas ?? 0} activas · toca para abrir`;
+  r.classList.toggle('lk-nota--alerta', avisos.length > 0);
 }
-const opcionesAbiertas = fetch('/api/reservas/opciones', { cache: 'no-store' }).then((r) => r.json()).then((d) => d?.suscripciones === true).catch(() => false);
 
 export async function cargarSuscripciones() {
   const r = await fetch(`/api/equipo/suscripciones?filtro=${filtro}`, { cache: 'no-store' }).catch(() => null);
@@ -97,7 +99,7 @@ export async function cargarSuscripciones() {
   if (!d?.ok) { aviso('No pudimos cargar las suscripciones. Recarga la página.'); return; }
   aviso();
   esAdmin = d.admin === true;
-  ofrecer({ admin: d.admin === true, abiertas: await opcionesAbiertas });
+  resumen(d.conteos ?? {});
   document.querySelectorAll('#sus-filtros [data-filtro]').forEach((b) => { b.querySelector('span').textContent = d.conteos[b.dataset.filtro] ?? 0; });
   $('#sus-filas').replaceChildren(...(d.filas.length ? d.filas.map(filaDe) : [filaVacia()]));
 }
@@ -108,27 +110,4 @@ $('#sus-filtros').addEventListener('click', (e) => {
   filtro = b.dataset.filtro;
   document.querySelectorAll('#sus-filtros [data-filtro]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
   cargarSuscripciones();
-});
-
-const revisar = () => { $('#sus-crear-btn').disabled = !$('#sus-nombre').value.trim() || !$('#sus-plan').value; };
-$('#sus-nombre').addEventListener('input', revisar);
-$('#sus-plan').addEventListener('change', revisar);
-$('#sus-crear-btn').addEventListener('click', async () => {
-  const [producto, meses] = $('#sus-plan').value.split(':');
-  const b = $('#sus-crear-btn');
-  b.disabled = true;
-  const r = await fetch('/api/equipo/suscripciones', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nombre: $('#sus-nombre').value, producto, meses: Number(meses) }) }).catch(() => null);
-  const d = await r?.json().catch(() => null);
-  if (!d?.ok) { alert(d?.error || 'No se pudo crear el link. Intenta de nuevo.'); revisar(); return; }
-  $('#sus-url').value = d.url;
-  $('#sus-copiar').textContent = 'Copiar';
-  $('#sus-wa').href = `https://wa.me/?text=${encodeURIComponent(`Activa tu plan de AJL Nutrición aquí (sirve una sola vez): ${d.url}`)}`;
-  $('#sus-creado').hidden = false;
-  $('#sus-nombre').value = '';
-  $('#sus-plan').value = '';
-  revisar();
-});
-$('#sus-copiar').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText($('#sus-url').value); $('#sus-copiar').textContent = 'Copiado'; } catch { $('#sus-url').select(); }
 });
