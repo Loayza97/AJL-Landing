@@ -221,12 +221,16 @@ for (const [tipo, doc] of [['#f-tipo-doc', '#f-doc'], ['#f-pac-tipo-doc', '#f-pa
 }
 
 // «La sesión es para mí»: desmarcada, se despliegan los datos del paciente (spec 2026-11-10).
-$('#f-para-mi').addEventListener('change', () => {
+function sincronizarParaMi() {
   const paraMi = $('#f-para-mi').checked;
   $('#f-yo').hidden = !paraMi;
   $('#f-otro').hidden = paraMi;
-  if (!paraMi) $('#f-pac-nombres').focus();
-});
+  return paraMi;
+}
+$('#f-para-mi').addEventListener('change', () => { if (!sincronizarParaMi()) $('#f-pac-nombres').focus(); });
+// El navegador puede restaurar la casilla al recargar o volver: los campos visibles la siguen.
+sincronizarParaMi();
+window.addEventListener('pageshow', sincronizarParaMi);
 
 async function pagar(e) {
   e.preventDefault();

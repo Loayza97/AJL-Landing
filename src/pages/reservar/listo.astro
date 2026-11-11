@@ -34,7 +34,8 @@ import '../../styles/reservar.css';
   const boton = (href, texto, clase = '') => `<a class="rs-btn ${clase}" href="${esc(href)}" style="text-align:center;text-decoration:none"${href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${esc(texto)}</a>`;
   function pantallaRechazo(d) {
     const vigente = d.estado !== 'expirada';
-    const mensualR = d.forma_pago === 'mensual';
+    // Solo pago único: en pago mensual el rechazo y el reintento con otra tarjeta los maneja Mercado Pago en su
+    // página (y la web se queda con la tarjeta que cobre); ofrecer otro medio arriesga un cobro doble.
     const op = d.ultimo_pago_id ? ` N.º de operación: ${d.ultimo_pago_id}.` : '';
     const wa = (texto) => `https://wa.me/${d.whatsapp_equipo}?text=${encodeURIComponent(texto)}`;
     const reserva = `${d.titulo}, ${d.etiqueta}, con ${d.nutricionista?.nombre ?? 'el equipo'}`;
@@ -44,18 +45,12 @@ import '../../styles/reservar.css';
     }
     const consejos = `<div class="rs-consejos"><b>Antes de volver a intentar</b><ol>
       <li>Espera un par de minutos: no lo repitas enseguida.</li>
-      <li>${mensualR ? 'Usa otra tarjeta de crédito o débito, o revisa' : 'Revisa'} en la app de tu banco que la tarjeta tenga activas las compras por internet y cupo suficiente.</li>
-      <li>Si tienes cuenta de Mercado Pago, entra con ella al pagar${mensualR ? '' : '; también puedes usar tu saldo'}.</li>
-      <li>Hazlo desde tu celular o computadora de siempre, con tu propio internet.</li></ol>
-      ${mensualR ? '<p>El pago mensual automático solo funciona con tarjeta: Yape no permite cobros mensuales.</p>' : ''}</div>`;
-    const reintento = `/reservar/?r=${encodeURIComponent(token)}`;
-    const botones = mensualR
-      ? boton(reintento, 'Intentar con otra tarjeta')
-        + boton(`/reservar/?plan=${encodeURIComponent(d.producto)}&meses=${encodeURIComponent(d.duracion_meses)}`, 'Pagar todo de una vez (acepta Yape)', 'rs-btn--ghost')
-        + boton(wa(`Hola, mi pago mensual no pasó: ${reserva}.${op}`), 'Escribirnos por WhatsApp', 'rs-btn--wa')
-      : boton(reintento, 'Volver a pagar (Yape u otra tarjeta)')
-        + boton(wa(`Hola, mi pago con tarjeta no pasó y quiero pagar por Yape o transferencia: ${reserva}.${op}`), 'Pagar por WhatsApp (Yape o transferencia)', 'rs-btn--wa');
-    return `<h1>${mensualR ? 'Tu pago mensual no pasó.' : 'Tu pago no pasó.'}</h1>
+      <li>Revisa en la app de tu banco que la tarjeta tenga activas las compras por internet y cupo suficiente.</li>
+      <li>Si tienes cuenta de Mercado Pago, entra con ella al pagar; también puedes usar tu saldo.</li>
+      <li>Hazlo desde tu celular o computadora de siempre, con tu propio internet.</li></ol></div>`;
+    const botones = boton(`/reservar/?r=${encodeURIComponent(token)}`, 'Volver a pagar (Yape u otra tarjeta)')
+      + boton(wa(`Hola, mi pago con tarjeta no pasó y quiero pagar por Yape o transferencia: ${reserva}.${op}`), 'Pagar por WhatsApp (Yape o transferencia)', 'rs-btn--wa');
+    return `<h1>Tu pago no pasó.</h1>
       <p class="rs-lead">${esc(d.ultimo_pago === 'rejected' ? motivoRechazo(d.ultimo_pago_detalle) : 'El pago no se completó.')} <b>Tu horario sigue guardado unos minutos.</b></p>
       ${consejos}${botones}${op ? `<p class="rs-nota">${esc(op.trim())} Guárdalo si nos escribes.</p>` : ''}`;
   }

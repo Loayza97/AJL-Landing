@@ -47,10 +47,7 @@ Los datos que recibe Mercado Pago tienen que ser los de **quien paga** (los que 
 - **Botones en pago completo:**
   - «Volver a pagar (Yape u otra tarjeta)», con el mismo horario;
   - «Pagar por WhatsApp (Yape o transferencia)», que abre el 919 151 237 con el plan, el horario y el número de operación.
-- **Botones en pago mensual:**
-  - «Intentar con otra tarjeta»;
-  - «Pagar todo de una vez (acepta Yape)», que va a /reservar con el mismo plan en pago completo;
-  - WhatsApp.
+- **Pago mensual: sin pantalla de rechazo propia** (corregido el 10-nov-2026 tras la revisión independiente). Mercado Pago sigue reintentando el primer cobro con la misma tarjeta, y nada cancela esa suscripción. Si la web le ofreciera al paciente «pagar todo de una vez» o una transferencia, podría cobrarle dos veces. Además, «otra tarjeta» desde la web chocaba con el preapproval ya autorizado (409). El reintento con otra tarjeta se hace en la página de Mercado Pago, y la web se queda con la tarjeta que cobre (`2859ac9`). En el panel, un rechazo mensual dice «no cobrar por otro medio sin cancelar la suscripción».
 
 ### /suscribirse
 - Las mismas advertencias antes del botón.

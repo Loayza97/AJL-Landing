@@ -51,7 +51,11 @@ test('crearPreferencia con pagador: lo manda en payer, con otra key', async () =
   await mp.crearPreferencia({ reservaId: 'r1', titulo: 't', montoCentimos: 8000, venceEn, ahora: new Date(), urlRetorno: 'u',
     pagador: { name: 'Ana', email: 'a@x.pe' } });
   assert.deepEqual(JSON.parse(pedido.init.body).payer, { name: 'Ana', email: 'a@x.pe' });
-  assert.equal(pedido.init.headers['X-Idempotency-Key'], `r1-${venceEn.getTime()}-p`);
+  assert.match(pedido.init.headers['X-Idempotency-Key'], new RegExp(`^r1-${venceEn.getTime()}-p[0-9a-f]{12}$`));
+  // Otros datos de quien paga (corrigió tras un rechazo): otra clave, para que Mercado Pago no devuelva la preferencia vieja.
+  const antes = pedido.init.headers['X-Idempotency-Key'];
+  await mp.crearPreferencia({ reservaId: 'r1', titulo: 't', montoCentimos: 8000, venceEn, ahora: new Date(), urlRetorno: 'u', pagador: { name: 'Luis' } });
+  assert.notEqual(pedido.init.headers['X-Idempotency-Key'], antes);
 });
 
 test('crearPreferencia: si Mercado Pago rechaza el pagador (4xx), reintenta sin payer', async () => {

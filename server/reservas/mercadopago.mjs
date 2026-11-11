@@ -28,6 +28,11 @@ export function pagadorMp({ nombres, apellidos, email, tipoDocumento, documento,
   return Object.keys(p).length ? p : null;
 }
 
+async function huellaCorta(texto) {
+  const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(texto));
+  return [...new Uint8Array(h)].slice(0, 6).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function crearMp(env, fetchImpl = fetch) {
   const auth = { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` };
 
@@ -51,7 +56,10 @@ export function crearMp(env, fetchImpl = fetch) {
       body: JSON.stringify(body),
     });
     const key = `${reservaId}-${venceEn.getTime()}`;
-    let r = await pedir(pagador ? { ...cuerpo, payer: pagador } : cuerpo, pagador ? `${key}-p` : key);
+    // Con pagador, la clave lleva una huella de sus datos y del Device ID: si el paciente los corrige y vuelve a
+    // pagar, Mercado Pago crea otra preferencia en vez de devolver la de los datos viejos.
+    const huella = pagador ? await huellaCorta(JSON.stringify([pagador, dispositivo])) : null;
+    let r = await pedir(pagador ? { ...cuerpo, payer: pagador } : cuerpo, pagador ? `${key}-p${huella}` : key);
     // Si Mercado Pago rechaza los datos del pagador, se paga sin ellos, como antes: nunca peor que sin datos.
     if (!r.ok && pagador && r.status >= 400 && r.status < 500) {
       console.error('preferencia con pagador', r.status, await r.text());

@@ -212,7 +212,11 @@ function intento(f) {
   const m = motivoEquipo(f.intento_estado, f.intento_detalle);
   if (!m) { celda.textContent = 'No llegó a pagar'; return celda; }
   celda.append(chip(m.titulo, f.intento_estado === 'rejected' ? 'lk-alerta' : 'lk-hecho'));
-  if (m.accion) celda.append(Object.assign(document.createElement('small'), { className: 'lk-sub', textContent: m.accion }));
+  // Pago mensual: Mercado Pago reintenta solo con la misma tarjeta; cobrar por otro medio arriesga un cobro doble.
+  const accion = f.forma_pago === 'mensual' && f.intento_estado === 'rejected'
+    ? 'Pago mensual: Mercado Pago reintenta solo. Que pruebe otra tarjeta en el mismo link; no cobrar por otro medio sin cancelar la suscripción.'
+    : m.accion;
+  if (accion) celda.append(Object.assign(document.createElement('small'), { className: 'lk-sub', textContent: accion }));
   if (f.intento_id && /^\d+$/.test(f.intento_id)) {
     const b = Object.assign(document.createElement('button'), { type: 'button', className: 'lk-btn lk-btn--borde lk-btn--mini', textContent: `N.º ${f.intento_id} · Copiar` });
     b.addEventListener('click', async () => {

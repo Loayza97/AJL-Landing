@@ -155,13 +155,9 @@ export const registrarPago = (db, p) => db.prepare(
   p.detalle ?? null).run();
 
 export const ultimoPago = (db, reservaId) => db.prepare(
-  // Pago único (pagos) o cobro de la suscripción de la reserva (pago mensual), el más reciente.
-  `SELECT estado, detalle, mp_payment_id FROM (
-     SELECT estado, detalle, mp_payment_id, creado_en FROM pagos WHERE reserva_id = ?1
-     UNION ALL
-     SELECT c.estado, c.detalle, c.mp_payment_id, c.creado_en FROM suscripcion_cobros c JOIN suscripciones s ON s.id = c.suscripcion_id
-     WHERE s.reserva_id = ?1)
-   ORDER BY creado_en DESC LIMIT 1`,
+  // Solo el pago único: un primer cobro mensual rechazado no se muestra como rechazo, porque Mercado Pago lo
+  // sigue reintentando con la misma tarjeta; ofrecer otro medio arriesga cobrar dos veces (revisión 10-nov-2026).
+  'SELECT estado, detalle, mp_payment_id FROM pagos WHERE reserva_id = ?1 ORDER BY creado_en DESC LIMIT 1',
 ).bind(reservaId).first();
 
 export const otroPagoAprobado = (db, reservaId, mpPaymentId) => db.prepare(

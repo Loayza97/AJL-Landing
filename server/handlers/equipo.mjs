@@ -7,7 +7,7 @@ import { json, readJson } from '../http.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 
-const CAMPOS = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.inicio_utc, r.modalidad, r.nutricionista_id,
+const CAMPOS = `r.id, r.estado, r.producto, r.duracion_meses, r.monto_centimos, r.inicio_utc, r.modalidad, r.nutricionista_id, r.forma_pago,
   r.creado_en, r.retencion_hasta, r.contactado_en, r.contactado_por,
   c.nombre, c.nombres, c.apellido_paterno, c.apellido_materno, c.tipo_documento, c.dni, c.fecha_nacimiento, c.whatsapp, c.email,
   c.paciente_es_pagador, c.pagador_nombres, c.pagador_apellido_paterno, c.pagador_apellido_materno, c.pagador_tipo_documento, c.pagador_documento`;
