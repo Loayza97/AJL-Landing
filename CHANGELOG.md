@@ -2,10 +2,11 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
-## 2026-11-11 · en prueba
+## 2026-11-11 · publicado
 
 - Panel: «Cobrar con suscripción» pasa a ser la tercera forma de pago de «Generar link de reserva»: «Mensual, ya tiene cita (no agenda)». Pide el nombre del paciente y crea el mismo link de un solo uso de antes (`/suscribirse/?l=…`, vence en 7 días, no agenda cita), para quien ya tiene su cita, como una renovación. Mismas cuotas que «Mensual automático» (comprobado en los 6 casos) y el resumen avisa la penalidad. Se apaga igual que el mensual: 1 mes, sueltas o pago mensual cerrado. Lo pidió Alejandro: 3 de las 7 suscripciones activas salieron de ese módulo, así que no se borró, se unificó.
 - Panel: la tabla «Suscripciones» pasa al final del panel, plegada («casi nunca lo usamos», Alejandro). Junto al título dice cuántas están activas o, en rojo, cuántas tienen cobro fallido o penalidad pendiente, para que no se pierdan estando plegada.
+- Pagos rechazados por `cc_rejected_time_out` (el banco o Mercado Pago no respondieron a tiempo): ahora dicen «reintentar con la misma tarjeta», al paciente en /reservar/listo y al equipo en «Intento de pago», en vez de «otra tarjeta o Yape». El 10-nov-2026 un cobro de S/270 pasó así al segundo intento. En «Intento de pago» también sale el código tal cual lo da Mercado Pago (lo pide su soporte), y un código desconocido ya no dice «Rechazado · Rechazado».
 
 ## 2026-11-10 · publicado
 

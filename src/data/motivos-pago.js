@@ -8,6 +8,7 @@ const MOTIVOS = {
   cc_rejected_card_disabled: 'La tarjeta no está activa para compras por internet.',
   cc_rejected_duplicated_payment: 'Mercado Pago lo tomó como un pago repetido.',
   cc_rejected_max_attempts: 'Llegaste al límite de intentos con esta tarjeta.',
+  cc_rejected_time_out: 'Tu banco tardó en responder. Puedes volver a intentarlo con la misma tarjeta.',
 };
 
 // Para el paciente.
@@ -25,6 +26,8 @@ const EQUIPO = {
   cc_rejected_card_disabled: ['Tarjeta sin compras por internet', 'Que las active en su banco o use otra.'],
   cc_rejected_duplicated_payment: ['Pago repetido', 'Revisar si ya pagó antes.'],
   cc_rejected_max_attempts: ['Límite de intentos', 'Otra tarjeta o Yape.'],
+  // No es el antifraude: el banco o Mercado Pago no respondieron a tiempo. El 10-nov-2026 un S/270 pasó al reintentar con la misma tarjeta.
+  cc_rejected_time_out: ['El banco no respondió a tiempo', 'Que reintente con la misma tarjeta: no es un rechazo del banco ni del antifraude.'],
   cc_rejected_other_reason: ['Rechazado por el banco', 'Otra tarjeta o Yape.'],
 };
 const ESTADOS = { pending: 'Pendiente', in_process: 'En revisión', approved: 'Aprobado', rejected: 'Rechazado', cancelled: 'Cancelado' };
@@ -34,8 +37,8 @@ export function motivoEquipo(estado, detalle) {
   if (!estado) return null;
   if (estado === 'rejected') {
     const [t, a] = EQUIPO[detalle]
-      ?? (String(detalle || '').startsWith('cc_rejected_bad_filled') ? ['Datos de tarjeta mal escritos', 'Que revise número, vencimiento y código.'] : ['Rechazado', 'Otra tarjeta o Yape.']);
-    return { titulo: `Rechazado · ${t}`, accion: a };
+      ?? (String(detalle || '').startsWith('cc_rejected_bad_filled') ? ['Datos de tarjeta mal escritos', 'Que revise número, vencimiento y código.'] : [null, 'Otra tarjeta o Yape.']);
+    return { titulo: t ? `Rechazado · ${t}` : 'Rechazado', accion: a };
   }
   return { titulo: ESTADOS[estado] ?? estado, accion: '' };
 }

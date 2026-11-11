@@ -217,6 +217,8 @@ function intento(f) {
     ? 'Pago mensual: Mercado Pago reintenta solo. Que pruebe otra tarjeta en el mismo link; no cobrar por otro medio sin cancelar la suscripción.'
     : m.accion;
   if (accion) celda.append(Object.assign(document.createElement('small'), { className: 'lk-sub', textContent: accion }));
+  // El código tal cual lo da Mercado Pago (status_detail): es lo que pide su soporte.
+  if (f.intento_detalle) celda.append(Object.assign(document.createElement('small'), { className: 'lk-sub', textContent: `Código de Mercado Pago: ${f.intento_detalle}` }));
   if (f.intento_id && /^\d+$/.test(f.intento_id)) {
     const b = Object.assign(document.createElement('button'), { type: 'button', className: 'lk-btn lk-btn--borde lk-btn--mini', textContent: `N.º ${f.intento_id} · Copiar` });
     b.addEventListener('click', async () => {
