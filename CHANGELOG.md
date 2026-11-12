@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-12 · publicado
+
+- /reservar/ y /reservar/reubicar/: se puede reservar el mismo día. El calendario empieza hoy y ofrece las horas de hoy que aún no empiezan (con los mismos topes y bloqueos de siempre). Antes la primera fecha era mañana. Lo pidió Alejandro.
+
 ## 2026-11-11 · publicado
 
 - Panel: «Cobrar con suscripción» pasa a ser la tercera forma de pago de «Generar link de reserva»: «Mensual, ya tiene cita (no agenda)». Pide el nombre del paciente y crea el mismo link de un solo uso de antes (`/suscribirse/?l=…`, vence en 7 días, no agenda cita), para quien ya tiene su cita, como una renovación. Mismas cuotas que «Mensual automático» (comprobado en los 6 casos) y el resumen avisa la penalidad. Se apaga igual que el mensual: 1 mes, sueltas o pago mensual cerrado. Lo pidió Alejandro: 3 de las 7 suscripciones activas salieron de ese módulo, así que no se borró, se unificó.
