@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { horasLibres, ausenciasDelDia, topeMinutosDia, topeNutriDia } from './disponibilidad.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
+import { DESDE_DIAS } from './constantes.mjs';
 
 // Lunes 5-oct-2026, 10:00 en Lima.
 const ahora = new Date('2026-10-05T15:00:00Z');
@@ -90,6 +91,14 @@ test('ventana: nada para hoy ni más allá de 21 días', () => {
   assert.deepEqual(horasLibres({ ...base, fecha: '2026-10-05', modalidad: 'presencial' }), []);
   assert.deepEqual(horasLibres({ ...base, fecha: '2026-10-27', modalidad: 'presencial' }), []);
   assert.ok(horasLibres({ ...base, fecha: '2026-10-26', modalidad: 'presencial' }).length > 0);
+});
+
+test('mismo día (Alejandro, 2026-11-12): con DESDE_DIAS hoy se ofrece, solo las horas que aún no empiezan', () => {
+  // ahora = lunes 5-oct a las 10:00 de Lima: la de las 10 ya empezó.
+  const r = horas(horasLibres({ ...base, fecha: '2026-10-05', modalidad: 'presencial', desdeDias: DESDE_DIAS }));
+  assert.equal(DESDE_DIAS, 0);
+  assert.ok(!r.includes('10:00'));
+  assert.ok(r.includes('11:00'));
 });
 
 test('asigna a la menos cargada del día, en el orden del equipo si empatan', () => {

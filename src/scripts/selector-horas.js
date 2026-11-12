@@ -23,11 +23,12 @@ function celdasDelMes(mes) {
 }
 
 export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, modalidades = ['presencial', 'video'], onError, nutricionista = '' }) {
-  const manana = sumarDias(hoyLima(), 1);
-  const limite = sumarDias(manana, DIAS_VENTANA - 1);
-  // Todos los meses entre mañana y el límite (seis semanas pueden tocar tres meses).
+  // Desde hoy: se puede reservar el mismo día (Alejandro, 2026-11-12; antes desde mañana).
+  const inicio = hoyLima();
+  const limite = sumarDias(inicio, DIAS_VENTANA);
+  // Todos los meses entre hoy y el límite (seis semanas pueden tocar tres meses).
   const meses = [];
-  for (let f = manana; f <= limite; f = sumarDias(f, 1)) if (!meses.includes(f.slice(0, 7))) meses.push(f.slice(0, 7));
+  for (let f = inicio; f <= limite; f = sumarDias(f, 1)) if (!meses.includes(f.slice(0, 7))) meses.push(f.slice(0, 7));
   const estado = { modalidad: modalidades[0], nutricionista, mes: meses[0], fecha: null, datos: null };
   raiz.innerHTML = `
     <div class="sel-filtros">
@@ -52,7 +53,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
 
   async function cargar() {
     $('.sel-dia').innerHTML = '<p class="sel-msg">Buscando horarios…</p>';
-    const p = new URLSearchParams({ desde: manana, dias: String(DIAS_VENTANA), modalidad: estado.modalidad });
+    const p = new URLSearchParams({ desde: inicio, dias: String(DIAS_VENTANA + 1), modalidad: estado.modalidad });
     if (producto) { p.set('producto', producto); p.set('duracion', String(duracion)); }
     if (estado.nutricionista) p.set('nutricionista', estado.nutricionista);
     let r = null;
