@@ -4,6 +4,8 @@ export const TOPE_MINUTOS = { semana: 300, sabado: 480 };
 // Minutos de citas por nutricionista y día (2026-10-23): 3 horas L-V, 5 el sábado.
 export const TOPE_NUTRI_MINUTOS = { semana: 180, sabado: 300 };
 export const DESDE_DIAS = 0;    // se puede reservar el mismo día; solo horas que aún no empiezan (Alejandro, 2026-11-12; antes 1)
+// Margen mínimo entre la reserva y el inicio de la cita (Alejandro, 2026-11-12): solo horas que empiezan en 1 h o más.
+export const MARGEN_MIN = 60;
 // Días que se pueden pedir de una vez a /horas: la ventana completa y un margen.
 export const MAX_DIAS_CONSULTA = 45;
 export const HASTA_DIAS = 42;   // hasta seis semanas adelante (Romi, 2026-10-23; antes 21)

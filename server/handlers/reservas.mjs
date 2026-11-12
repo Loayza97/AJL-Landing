@@ -15,7 +15,7 @@ import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
-import { DESDE_DIAS, HASTA_DIAS, MAX_RETENCIONES, MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
+import { DESDE_DIAS, MARGEN_MIN, HASTA_DIAS, MAX_RETENCIONES, MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
 import { firmaValida, pagadorMp } from '../reservas/mercadopago.mjs';
@@ -53,7 +53,7 @@ export async function contexto(deps, desde, dias) {
 
 export function libresDelDia(deps, ctx, { fecha, modalidad, filtro, duracionMin = 60, pasoMin = 60 }) {
   return horasLibres({ fecha, modalidad, nutricionistas: deps.nutricionistas, eventos: ctx.eventos, reservas: ctx.reservas,
-    ahora: deps.ahora(), filtroNutricionista: filtro || null, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS, duracionMin, pasoMin });
+    ahora: deps.ahora(), filtroNutricionista: filtro || null, desdeDias: DESDE_DIAS, hastaDias: HASTA_DIAS, duracionMin, pasoMin, margenMin: MARGEN_MIN });
 }
 
 // Datos de la cita para el .ics y para el enlace de Google Calendar.
