@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { horasLibres, ausenciasDelDia, topeMinutosDia, topeNutriDia } from './disponibilidad.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
-import { DESDE_DIAS } from './constantes.mjs';
+import { DESDE_DIAS, MARGEN_MIN } from './constantes.mjs';
 
 // Lunes 5-oct-2026, 10:00 en Lima.
 const ahora = new Date('2026-10-05T15:00:00Z');
@@ -99,6 +99,16 @@ test('mismo día (Alejandro, 2026-11-12): con DESDE_DIAS hoy se ofrece, solo las
   assert.equal(DESDE_DIAS, 0);
   assert.ok(!r.includes('10:00'));
   assert.ok(r.includes('11:00'));
+});
+
+test('margen de 1 h (Alejandro, 2026-11-12): a las 10:00 no se ofrece las 10:30 y sí las 11:00; a las 10:01, las 11:00 tampoco', () => {
+  assert.equal(MARGEN_MIN, 60);
+  const r = horas(horasLibres({ ...base, fecha: '2026-10-05', modalidad: 'presencial', desdeDias: 0, margenMin: MARGEN_MIN, duracionMin: 30, pasoMin: 30 }));
+  assert.ok(!r.includes('10:30'));
+  assert.ok(r.includes('11:00'));
+  const a1059 = horas(horasLibres({ ...base, ahora: new Date('2026-10-05T15:01:00Z'), fecha: '2026-10-05', modalidad: 'presencial', desdeDias: 0, margenMin: MARGEN_MIN }));
+  assert.ok(!a1059.includes('11:00'));
+  assert.ok(a1059.includes('12:00'));
 });
 
 test('asigna a la menos cargada del día, en el orden del equipo si empatan', () => {

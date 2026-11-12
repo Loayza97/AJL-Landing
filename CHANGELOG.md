@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-11-12 · publicado
 
+- /reservar/: el mismo día solo se ofrecen horas que empiezan dentro de 1 hora o más (a las 3:10 p. m., la primera es la de las 5:00). El panel del equipo, al editar una cita, sigue sin margen. Lo pidió Alejandro.
 - /reservar/ y /reservar/reubicar/: se puede reservar el mismo día. El calendario empieza hoy y ofrece las horas de hoy que aún no empiezan (con los mismos topes y bloqueos de siempre). Antes la primera fecha era mañana. Lo pidió Alejandro.
 
 ## 2026-11-11 · publicado
