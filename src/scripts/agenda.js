@@ -80,7 +80,7 @@ async function confirmar(datos, errorSel) {
     const f = d.etiqueta.match(/^(\S+), (.+), (\d.+)$/);
     const cuando = f ? `el ${f[1]} ${f[2]} ${f[3].startsWith('1:') ? 'a la' : 'a las'} ${f[3]}` : d.etiqueta;
     const texto = `Hola, ya agendé mi evaluación nutricional para ${cuando} con ${d.nutricionista} ${donde}.`;
-    $('#a-wa').href = `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(texto)}`;
+    $('#a-wa').href = `https://wa.me/${contacto.whatsappPacientes}?text=${encodeURIComponent(texto)}`;
     $('#a-gcal').href = d.google_calendar;
     $('#a-ics').href = d.ics;
     irA('listo');

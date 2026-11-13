@@ -65,7 +65,7 @@ export function eventoDe(r) {
     inicioUtc: r.inicio_utc,
     finUtc: finDeReserva(r),
     ubicacion: r.modalidad === 'presencial' ? contacto.direccion : (r.meet_url || 'Videollamada (enlace en tu invitación)'),
-    descripcion: 'Si necesitas mover tu cita, escríbenos por WhatsApp: +51 919 151 237.',
+    descripcion: `Si necesitas mover tu cita, escríbenos por WhatsApp: ${contacto.telefonoPacientesTexto}.`,
   };
 }
 

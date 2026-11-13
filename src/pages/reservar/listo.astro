@@ -58,7 +58,7 @@ import '../../styles/reservar.css';
   function enlaceWhatsApp(d) {
     const donde = d.modalidad === 'video' ? 'por videollamada' : 'en Lince';
     const texto = `Hola, acabo de reservar mi primera sesión en la web: ${d.etiqueta}, ${donde}, con ${d.nutricionista?.nombre ?? 'el equipo'}. Plan: ${d.titulo}.`;
-    return `https://wa.me/${contacto.whatsappNumber}?text=${encodeURIComponent(texto)}`;
+    return `https://wa.me/${contacto.whatsappPacientes}?text=${encodeURIComponent(texto)}`;
   }
 
   let mensual = false;
