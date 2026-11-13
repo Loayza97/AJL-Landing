@@ -4,7 +4,7 @@ import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import { nutricionistas } from '../../src/data/nutricionistas.js';
 import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
-import { procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval, sincronizarSuscripcion } from './procesar.mjs';
+import { barrerSuscripciones, procesarCobro, procesarPreapproval, sincronizarDeReserva, sincronizarPreapproval, sincronizarSuscripcion } from './procesar.mjs';
 
 const t0 = new Date('2026-10-05T15:00:00Z');
 const env = { PUBLIC_SITE_URL: 'https://www.ajlnutricion.com', NOTIFICATION_EMAIL: 'eq@x.pe',
@@ -551,4 +551,145 @@ test('cobro programado sin payment.id y luego con pago: la fila ap- pasa al id r
   const filas = (await d.db.prepare('SELECT mp_payment_id, estado, numero FROM suscripcion_cobros').all()).results;
   assert.deepEqual(filas.map((f) => [f.mp_payment_id, f.estado, f.numero]), [['p1', 'approved', 1]]);
   assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
+});
+
+// Caso real del 12-nov-2026: el plan del primer link de Fiorella (que ella no usó) siguió vivo en Mercado Pago
+// y, cinco días después, otro paciente (Juan Carlos) lo pagó con un link mandado a mano. La web le asignó el pago
+// a Fiorella y le mandó el recibo. Los pacientes reales pagan 1 a 3 minutos después de crear el plan.
+const horas = (h) => new Date(t0.getTime() + h * 3600000).toISOString();
+const pagoAjeno = (id) => ({ ...pago(id), payer: { email: 'juan@x.pe' }, card: { cardholder: { name: 'JUAN BAUTISTA' } } });
+const planViejo = (d) => d.correos.filter((c) => /Pago en un link viejo/.test(c.subject));
+
+test('cobro de un plan que se pagó más de 24 h después de crearse: no se asigna, no avisa al paciente y alerta una vez', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pagoAjeno('p9') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  await procesarCobro(d, env, 'a9'); // aviso repetido
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, null);
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(s.estado, 'pendiente');
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal(d.correos.filter((c) => c.to === 'ana@x.pe').length, 0);
+  const a = planViejo(d);
+  assert.equal(a.length, 1);
+  assert.match(a[0].html, /S\/360/);
+  assert.match(a[0].html, /pre9/);
+  assert.match(a[0].html, /JUAN BAUTISTA/);
+  assert.match(a[0].html, /juan@x\.pe/);
+  assert.match(a[0].html, /Ana Pérez/);
+  // No se cancela ni se desactiva nada: puede ser un paciente real que hay que asignar a mano.
+  assert.deepEqual(d.canceladas, []);
+  assert.deepEqual(d.desactivados, []);
+});
+
+test('cobro todavía pendiente de un plan viejo: devuelve el estado del pago (para la revisión de 15 s) y no alerta', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pago('p9', 'pending') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'pending' });
+  assert.equal(planViejo(d).length, 0);
+  d.mp.obtenerPago = async () => pagoAjeno('p9');
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  assert.equal(planViejo(d).length, 1);
+});
+
+test('aviso del preapproval de un plan viejo: no se asocia, no se desactiva el plan ni se cancela', async () => {
+  const d = armar({ pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre9'), { estado: 'plan_viejo' });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, null);
+  assert.deepEqual(d.desactivados, []);
+  assert.deepEqual(d.canceladas, []);
+});
+
+test('un plan viejo tampoco se queda con la suscripción por «otra tarjeta»', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pagoAjeno('p9') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = 'pre1' WHERE id = 's1'").run(); // tarjeta rechazada antes
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(planViejo(d).length, 1);
+});
+
+test('pagado dentro de las 24 h de creado el plan: se asigna como siempre', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(23) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
+  assert.equal(planViejo(d).length, 0);
+});
+
+// Respaldo diario (13-nov-2026): Mercado Pago a veces avisa el cobro mensual cuando todavía está pendiente y no
+// vuelve a avisar al aprobarse. Una vez al día la web revisa los cobros de las suscripciones activas.
+const envRespaldo = { ...env, AVISOS_RESPALDO: 'joaquin@x.pe, ale@x.pe' };
+const respaldo = (d) => d.correos.filter((c) => /Respaldo diario de cobros/.test(c.subject));
+async function activaConUnCobro(d) {
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  d.correos.length = 0;
+}
+
+test('respaldo: recupera el cobro 2 que Mercado Pago aprobó sin avisar, manda el recibo y avisa solo a Joaquín y Alejandro', async () => {
+  const cobros = { a1: cobro('a1', 'p1') };
+  const pagos = { p1: pago('p1') };
+  const d = armar({ cobros, pagos });
+  await activaConUnCobro(d);
+  cobros.a2 = cobro('a2', 'p2');
+  pagos.p2 = pago('p2', 'pending');
+  await procesarCobro(d, env, 'a2'); // el aviso llegó con el cobro pendiente
+  pagos.p2 = pago('p2'); // Mercado Pago lo aprobó después y no avisó
+  const r = await barrerSuscripciones(d, envRespaldo);
+  assert.equal(r.recuperados, 1);
+  assert.equal(r.revisados, 1); // el cobro 1 ya estaba aprobado: no se vuelve a pedir
+  assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 2);
+  assert.equal(d.correos.filter((c) => c.to === 'ana@x.pe' && /cobro 2 de 3/.test(c.subject)).length, 1);
+  const a = respaldo(d);
+  assert.equal(a.length, 1);
+  assert.deepEqual(a[0].to, ['joaquin@x.pe', 'ale@x.pe']);
+  assert.match(a[0].html, /Ana Pérez/);
+  assert.match(a[0].html, /cobro 2/);
+  // Al día siguiente no hay nada nuevo: no se repite.
+  assert.equal((await barrerSuscripciones(d, envRespaldo)).recuperados, 0);
+  assert.equal(respaldo(d).length, 1);
+});
+
+test('respaldo sin novedades: no manda correo', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') } });
+  await activaConUnCobro(d);
+  const r = await barrerSuscripciones(d, envRespaldo);
+  assert.deepEqual(r, { suscripciones: 1, revisados: 0, recuperados: 0, errores: 0 });
+  assert.equal(d.correos.length, 0);
+});
+
+test('respaldo: si Mercado Pago falla con una suscripción, sigue con las demás y avisa del error', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') } });
+  await activaConUnCobro(d);
+  await sus.crear(d.db, { id: 's2', token: 't2', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000,
+    estado: 'activa', cobros_aprobados: 1, nombre: 'Beto Ruiz', email: 'b@x.pe', mp_preapproval_id: 'preX', creado_en: t0.toISOString() });
+  const buscar = d.mp.buscarCobrosSuscripcion;
+  d.mp.buscarCobrosSuscripcion = async (id) => { if (id === 'preX') throw new Error('MP caído'); return buscar(id); };
+  const r = await barrerSuscripciones(d, envRespaldo);
+  assert.equal(r.suscripciones, 2);
+  assert.equal(r.errores, 1);
+  const a = respaldo(d);
+  assert.equal(a.length, 1);
+  assert.match(a[0].html, /Beto Ruiz/);
+  assert.match(a[0].html, /MP caído/);
+});
+
+test('respaldo sin AVISOS_RESPALDO configurado: revisa igual y no manda correo', async () => {
+  const cobros = { a1: cobro('a1', 'p1') };
+  const pagos = { p1: pago('p1') };
+  const d = armar({ cobros, pagos });
+  await activaConUnCobro(d);
+  cobros.a2 = cobro('a2', 'p2');
+  pagos.p2 = pago('p2');
+  assert.equal((await barrerSuscripciones(d, env)).recuperados, 1);
+  assert.equal(respaldo(d).length, 0);
 });

@@ -11,3 +11,4 @@ crons = ["0 13 * * *"] # 13:00 UTC = 8:00 en Lima
 
 [vars]
 RESUMEN_URL = "https://www.ajlnutricion.com/api/reservas/resumen-diario"
+BARRIDO_URL = "https://www.ajlnutricion.com/api/suscripciones/barrido"

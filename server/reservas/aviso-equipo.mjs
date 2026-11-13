@@ -68,6 +68,21 @@ export async function avisarEquipo(deps, env, { tipo, r, antes = null }) {
 }
 
 // Avisos de suscripciones (spec 2026-10-27): solo a las fijas, no hay nutricionista de cita.
+// El respaldo diario de cobros avisa solo a quienes lo revisan (Alejandro, 13-nov-2026: Joaquín y él).
+// AVISOS_RESPALDO es un secreto con los correos separados por comas (el repo es público).
+export async function avisarRespaldo(deps, env, c) {
+  const to = String(env.AVISOS_RESPALDO ?? '').split(',').map((e) => e.trim()).filter((e) => CORREO.test(e));
+  if (!to.length) {
+    console.warn('AVISOS_RESPALDO sin correos: el aviso del respaldo no se envía');
+    return;
+  }
+  try {
+    await deps.sendEmail({ from: remitente(env), to, ...c });
+  } catch (e) {
+    console.error('aviso del respaldo', e);
+  }
+}
+
 export async function avisarFijas(deps, env, c) {
   const to = destinatarios(env, FIJAS);
   if (!to.length) return;

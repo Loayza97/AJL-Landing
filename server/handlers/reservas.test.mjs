@@ -627,3 +627,60 @@ test('pagar para otra persona: a Mercado Pago van los datos de quien paga; la fi
   assert.deepEqual([ficha.nombre, ficha.dni, ficha.email, ficha.paciente_es_pagador, ficha.pagador_documento, ficha.pagador_email],
     ['Lucía Rojas', '81234567', 'lucia@x.pe', 0, '12345678', 'ana@x.pe']);
 });
+
+// Caso Nico (12-nov-2026): el aviso del cobro llegó 1 s antes de que Mercado Pago lo aprobara y no hubo
+// un segundo aviso. La web vuelve a revisar una vez, en segundo plano, después de una espera.
+function avisoFirmado(type, id) {
+  const v1 = createHmac('sha256', 'sec').update(`id:${id};request-id:q;ts:9;`).digest('hex');
+  return post(`/api/reservas/webhook-mp?type=${type}&data.id=${id}`, { type, data: { id } }, { 'x-signature': `ts=9,v1=${v1}`, 'x-request-id': 'q' });
+}
+function depsCobroPendiente() {
+  const programadas = [];
+  const esperas = [];
+  const enviados = [];
+  const cobros = { a1: { id: 'a1', preapproval_id: 'pre1', status: 'processed', transaction_amount: 5, payment: { id: 'p1' } } };
+  const pagos = { p1: { id: 'p1', status: 'pending', external_reference: null, metadata: {}, point_of_interaction: { transaction_data: { subscription_id: 'pre1' } }, payment_method_id: 'visa' } };
+  const d = deps({ enSegundoPlano: (p) => programadas.push(p), esperar: async (ms) => { esperas.push(ms); },
+    sendEmail: async (m) => { enviados.push(m); return true; },
+    mp: { obtenerPago: async (id) => pagos[id], obtenerCobroSuscripcion: async (id) => cobros[id], buscarCobrosSuscripcion: async () => Object.values(cobros) } });
+  return { d, programadas, esperas, enviados, pagos };
+}
+async function filaPrueba(d) {
+  await sus.crear(d.db, { id: 's1', token: 'ts', producto: 'prueba', duracion_meses: 3, cuota_centimos: 500, precio_mes_centimos: 1000, estado: 'pendiente',
+    nombre: 'Nico', email: 'n@x.pe', mp_preapproval_id: 'pre1', creado_en: t0.toISOString() });
+}
+
+for (const [type, id] of [['subscription_authorized_payment', 'a1'], ['payment', 'p1']]) {
+  test(`aviso ${type} de un cobro aún pendiente: revisa de nuevo tras la espera y lo cuenta si ya se aprobó`, async () => {
+    const { d, programadas, esperas, enviados, pagos } = depsCobroPendiente();
+    await filaPrueba(d);
+    assert.equal((await handleWebhookMp(avisoFirmado(type, id), env, d)).status, 200);
+    assert.equal((await sus.porId(d.db, 's1')).cobros_aprobados, 0);
+    assert.equal(programadas.length, 1);
+    pagos.p1 = { ...pagos.p1, status: 'approved' };
+    await Promise.all(programadas);
+    assert.deepEqual(esperas, [15000]);
+    const s = await sus.porId(d.db, 's1');
+    assert.equal(s.cobros_aprobados, 1);
+    assert.equal(s.estado, 'activa');
+    assert.equal(enviados.filter((m) => /Recibimos tu pago/.test(m.subject)).length, 1);
+  });
+}
+
+test('aviso de un cobro ya aprobado o rechazado: no programa otra revisión', async () => {
+  for (const status of ['approved', 'rejected']) {
+    const { d, programadas, pagos } = depsCobroPendiente();
+    pagos.p1 = { ...pagos.p1, status };
+    await filaPrueba(d);
+    assert.equal((await handleWebhookMp(avisoFirmado('subscription_authorized_payment', 'a1'), env, d)).status, 200);
+    assert.equal(programadas.length, 0, status);
+  }
+});
+
+test('la revisión diferida que falla no rompe el aviso: queda registrada en el log', async () => {
+  const { d, programadas } = depsCobroPendiente();
+  await filaPrueba(d);
+  assert.equal((await handleWebhookMp(avisoFirmado('subscription_authorized_payment', 'a1'), env, d)).status, 200);
+  d.mp.obtenerCobroSuscripcion = async () => { throw new Error('MP caído'); };
+  await Promise.all(programadas); // no lanza
+});

@@ -54,6 +54,22 @@ export const suscripcionDePlan = (db, planId) => db.prepare(
   'SELECT s.* FROM suscripcion_planes p JOIN suscripciones s ON s.id = p.suscripcion_id WHERE p.plan_id = ?1',
 ).bind(planId).first();
 
+// Cuándo creó la web un plan (null si es anterior a suscripcion_planes o no es nuestro).
+export async function planCreadoEn(db, planId) {
+  const f = await db.prepare('SELECT creado_en FROM suscripcion_planes WHERE plan_id = ?1').bind(planId).first();
+  return f?.creado_en ?? null;
+}
+
+// Para el respaldo diario: las suscripciones que Mercado Pago sigue cobrando.
+export async function activasConPreapproval(db) {
+  const r = await db.prepare("SELECT * FROM suscripciones WHERE estado = 'activa' AND mp_preapproval_id IS NOT NULL ORDER BY creado_en").all();
+  return r.results ?? [];
+}
+
+export async function cobroAprobado(db, mpPaymentId) {
+  return Boolean(await db.prepare("SELECT 1 FROM suscripcion_cobros WHERE mp_payment_id = ?1 AND estado = 'approved'").bind(mpPaymentId).first());
+}
+
 // Asocia el preapproval que salió del plan solo si la fila todavía no tiene uno: si llegan dos
 // preapprovals del mismo plan a la vez, gana uno y el otro queda como anómalo.
 export async function asociarPreapproval(db, id, mpId, ahora) {

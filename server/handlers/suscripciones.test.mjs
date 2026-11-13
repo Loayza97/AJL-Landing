@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { handleSuscripcionCancelar, handleSuscripcionLink, handleSuscripcionEstado } from './suscripciones.mjs';
+import { handleSuscripcionCancelar, handleSuscripcionLink, handleSuscripcionEstado, handleBarridoSuscripciones } from './suscripciones.mjs';
 import { sha256Hex } from '../tokens.mjs';
 
 const t0 = new Date('2026-11-20T15:00:00Z');
@@ -216,4 +216,18 @@ test('si Mercado Pago falla tras usar el link: 503 y el link queda usado', async
   await conLink(d);
   assert.equal((await handleSuscripcionLink(postLink(formLink), env, d)).status, 503);
   assert.ok((await sus.porId(d.db, 'sl')).link_usado_en);
+});
+
+test('respaldo diario: solo con el token del cron; sin token configurado, 503', async () => {
+  const d = deps();
+  d.mp.buscarCobrosSuscripcion = async () => [];
+  const llamar = (auth, e = { ...env, RESUMEN_TOKEN: 'tok' }) => handleBarridoSuscripciones(new Request('https://x.test/api/suscripciones/barrido',
+    { method: 'POST', headers: auth ? { Authorization: auth } : {} }), e, d);
+  assert.equal((await llamar()).status, 401);
+  assert.equal((await llamar('Bearer otro')).status, 401);
+  assert.equal((await llamar('Bearer tok', env)).status, 503);
+  await sus.crear(d.db, fila());
+  const r = await llamar('Bearer tok');
+  assert.equal(r.status, 200);
+  assert.deepEqual(await r.json(), { ok: true, suscripciones: 1, revisados: 0, recuperados: 0, errores: 0 });
 });

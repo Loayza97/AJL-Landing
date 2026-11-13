@@ -2,6 +2,12 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-13 · publicado
+
+- Suscripciones: si Mercado Pago avisa un cobro cuando todavía está pendiente, la web vuelve a preguntar a los 15 segundos (antes se quedaba como no pagado y el paciente no recibía su recibo; pasó con el cobro de prueba del 12-nov). Vale también para el pago único de reservas.
+- Suscripciones: un plan que se paga más de 24 h después de que la web lo creó, en un link que nadie había pagado, ya no se asigna al paciente de ese link: el equipo recibe «Pago en un link viejo: asignarlo a mano» con titular y correo de quien pagó, y al paciente del link no le llega nada. El 12-nov un paciente pagó con un link a mano el plan del link de otra paciente de 5 días antes, y la web le mandó a ella el recibo. No cancela nada en Mercado Pago.
+- Suscripciones: respaldo diario a las 8:00 (mismo cron que el resumen). Revisa los cobros de las suscripciones activas y registra los que Mercado Pago aprobó sin avisar (manda el recibo como siempre). Si recupera algo o falla, avisa solo a Joaquín y a Alejandro (secreto `AVISOS_RESPALDO`); sin novedades no manda nada. Lo pidió Alejandro.
+
 ## 2026-11-12 · publicado
 
 - /reservar/: el mismo día solo se ofrecen horas que empiezan dentro de 1 hora o más (a las 3:10 p. m., la primera es la de las 5:00). El panel del equipo, al editar una cita, sigue sin margen. Lo pidió Alejandro.
