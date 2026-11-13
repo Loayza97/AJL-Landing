@@ -303,6 +303,33 @@ export async function handleEstado(request, env, deps) {
   return json(200, vista(r, deps, await repo.ultimoPago(deps.db, r.id)));
 }
 
+// Mercado Pago puede avisar un cobro un segundo antes de aprobarlo y no volver a avisar cuando se
+// aprueba (caso Nico, 12-nov-2026; antes, Josué). Si el aviso encuentra el pago sin resolver, la web
+// vuelve a revisarlo una vez, en segundo plano (waitUntil da ~30 s tras responder). Procesar es
+// idempotente: si en el intermedio llegó otro aviso, la segunda revisión no cuenta dos veces.
+const PAGO_SIN_RESOLVER = new Set(['pending', 'in_process', 'authorized']);
+export const ESPERA_REVISION_MS = 15000;
+function revisarDespues(deps, revisar) {
+  if (!deps.enSegundoPlano) return;
+  const esperar = deps.esperar ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  deps.enSegundoPlano(esperar(ESPERA_REVISION_MS).then(revisar).catch((e) => console.error('revisión diferida del aviso', e)));
+}
+
+// Aviso `payment`: penalidad, pago de una reserva o cobro de suscripción. Devuelve el pago consultado.
+async function procesarAvisoPago(deps, env, dataId) {
+  const pago = await deps.mp.obtenerPago(dataId);
+  if (String(pago?.external_reference ?? '').startsWith('pen-')) await procesarPagoPenalidad(deps, env, pago);
+  else {
+    const r = await procesarPago(deps, env, dataId, { pago });
+    // Un cobro de suscripción llega como `payment` y no trae una reserva en su referencia: si el pago
+    // dice de qué preapproval es, se revisan los cobros de esa suscripción (el aviso del cobro
+    // pudo llegar antes, cuando todavía no tenía payment.id).
+    const pre = r?.estado === 'desconocido' ? (pago?.metadata?.preapproval_id ?? pago?.point_of_interaction?.transaction_data?.subscription_id) : null;
+    if (pre) await sincronizarPreapproval(deps, env, String(pre));
+  }
+  return pago;
+}
+
 export async function handleWebhookMp(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   const q = new URL(request.url).searchParams;
@@ -321,18 +348,12 @@ export async function handleWebhookMp(request, env, deps) {
   if (!valida) return bad(401, 'Firma inválida');
   try {
     if (tipo === 'preapproval') await procesarPreapproval(deps, env, dataId);
-    else if (tipo === 'cobro') await procesarCobro(deps, env, dataId);
-    else {
-      const pago = await deps.mp.obtenerPago(dataId);
-      if (String(pago?.external_reference ?? '').startsWith('pen-')) await procesarPagoPenalidad(deps, env, pago);
-      else {
-        const r = await procesarPago(deps, env, dataId, { pago });
-        // Un cobro de suscripción llega como `payment` y no trae una reserva en su referencia: si el pago
-        // dice de qué preapproval es, se revisan los cobros de esa suscripción (el aviso del cobro
-        // pudo llegar antes, cuando todavía no tenía payment.id).
-        const pre = r?.estado === 'desconocido' ? (pago?.metadata?.preapproval_id ?? pago?.point_of_interaction?.transaction_data?.subscription_id) : null;
-        if (pre) await sincronizarPreapproval(deps, env, String(pre));
-      }
+    else if (tipo === 'cobro') {
+      const r = await procesarCobro(deps, env, dataId);
+      if (PAGO_SIN_RESOLVER.has(r?.estado)) revisarDespues(deps, () => procesarCobro(deps, env, dataId));
+    } else {
+      const pago = await procesarAvisoPago(deps, env, dataId);
+      if (PAGO_SIN_RESOLVER.has(pago?.status)) revisarDespues(deps, () => procesarAvisoPago(deps, env, dataId));
     }
     return json(200, { ok: true });
   } catch (e) {
