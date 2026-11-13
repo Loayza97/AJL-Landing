@@ -71,6 +71,9 @@ const consultaMaps = encodeURIComponent(
 export const contacto = {
   whatsappNumber: '51919151237',
   telefono: '+51919151237',
+  // Pacientes (912, desde 13-nov-2026): todo contacto después de pagar va aquí; el 919 queda para ventas.
+  whatsappPacientes: '51912846283',
+  telefonoPacientesTexto: '+51 912 846 283',
 
   direccion: `${direccionPartes.calle}, ${direccionPartes.distrito}, ${direccionPartes.ciudad}`,
   direccionPartes,
