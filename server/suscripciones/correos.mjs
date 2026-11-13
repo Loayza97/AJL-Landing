@@ -68,3 +68,18 @@ export function correoPenalidadPendiente({ nombre, monto, url }) {
       <p style="font-size:13px;color:#5E6B63">Si no fuiste tú, puedes ignorar este correo.</p>`),
   };
 }
+
+// Respaldo diario: qué cobros recuperó (Mercado Pago los aprobó sin avisar) y con qué suscripciones falló.
+export function correoRespaldo({ recuperados, errores }) {
+  const li = (t) => `<li>${esc(t)}</li>`;
+  const partes = [];
+  if (recuperados.length) {
+    partes.push(`<p>Mercado Pago aprobó estos cobros y no avisó a la web. Ya quedaron registrados y el paciente recibió su recibo:</p><ul>${
+      recuperados.map((r) => li(`${r.nombre}: cobro ${r.numero}${r.cobros ? ` de ${r.cobros}` : ''}, ${soles(r.monto)}`)).join('')}</ul>`);
+  }
+  if (errores.length) {
+    partes.push(`<p>No se pudo revisar (se intenta de nuevo mañana):</p><ul>${errores.map((e) => li(`${e.nombre}: ${e.error}`)).join('')}</ul>`);
+  }
+  return { subject: `Reservas web: Respaldo diario de cobros (${recuperados.length} recuperados, ${errores.length} con error)`,
+    html: marco(`<h2>Respaldo diario de cobros</h2>${partes.join('')}`) };
+}

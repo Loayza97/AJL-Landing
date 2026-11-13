@@ -396,7 +396,7 @@ export async function handleReubicar(request, env, deps) {
 }
 
 // Comparación de tokens en tiempo constante.
-async function mismoToken(a, b) {
+export async function mismoToken(a, b) {
   const [x, y] = await Promise.all([a, b].map((s) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))));
   const u = new Uint8Array(x);
   const w = new Uint8Array(y);

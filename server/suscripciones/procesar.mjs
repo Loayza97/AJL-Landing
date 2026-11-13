@@ -6,8 +6,8 @@ import * as sus from './repo.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { confirmarConPago } from '../reservas/confirmar.mjs';
 import { condicionesSuscripcion, esUltimoCobro, penalidadAlCancelar } from './calculo.mjs';
-import { correoRecibo, correoBaja, correoEquipoSuscripcion, correoPenalidadPendiente } from './correos.mjs';
-import { avisarFijas } from '../reservas/aviso-equipo.mjs';
+import { correoRecibo, correoBaja, correoEquipoSuscripcion, correoPenalidadPendiente, correoRespaldo } from './correos.mjs';
+import { avisarFijas, avisarRespaldo } from '../reservas/aviso-equipo.mjs';
 import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
 import { formatoSoles } from '../../src/data/duraciones.js';
@@ -338,4 +338,34 @@ export async function sincronizarSuscripcion(deps, env, s) {
 export async function sincronizarDeReserva(deps, env, reservaId) {
   const s = await sus.porReserva(deps.db, reservaId);
   if (s) await sincronizarSuscripcion(deps, env, s);
+}
+
+// Respaldo diario (lo dispara el cron de las 8:00, workers/resumen-cron). Mercado Pago a veces avisa un cobro
+// mensual cuando todavía está pendiente y no vuelve a avisar al aprobarse (cobro de prueba del 12-nov-2026), y
+// en los cobros mensuales nadie vuelve a la página de regreso. Para cada suscripción activa pide la lista de
+// cobros (una consulta) y procesa solo los que la web no tiene aprobados. Avisa a AVISOS_RESPALDO solo si
+// recuperó algo o falló; un día sin novedades no manda nada.
+export async function barrerSuscripciones(deps, env) {
+  const filas = await sus.activasConPreapproval(deps.db);
+  const recuperados = [];
+  const errores = [];
+  let revisados = 0;
+  for (const s of filas) {
+    try {
+      for (const ap of await deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id)) {
+        if (ap?.payment?.id && await sus.cobroAprobado(deps.db, String(ap.payment.id))) continue;
+        revisados++;
+        const r = await procesarCobro(deps, env, String(ap.id));
+        if (r?.estado === 'aprobado') {
+          recuperados.push({ nombre: s.nombre, numero: r.numero, cobros: s.duracion_meses > 1 ? s.duracion_meses : null,
+            monto: Math.round(Number(ap.transaction_amount) * 100) });
+        }
+      }
+    } catch (e) {
+      console.error('respaldo de cobros', s.id, e);
+      errores.push({ nombre: s.nombre, error: String(e?.message ?? e) });
+    }
+  }
+  if (recuperados.length || errores.length) await avisarRespaldo(deps, env, correoRespaldo({ recuperados, errores }));
+  return { suscripciones: filas.length, revisados, recuperados: recuperados.length, errores: errores.length };
 }

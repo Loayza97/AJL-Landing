@@ -3,10 +3,12 @@
 // POST /api/suscripciones/cancelar      { s, pagar } paga la penalidad o cancela sin pagar
 // GET/POST /api/suscripciones/link      link de un solo uso creado en el panel
 // GET  /api/suscripciones/estado?s=     estado del plan por token (&sync=1: antes le pregunta a Mercado Pago)
+// POST /api/suscripciones/barrido       respaldo diario de cobros (cron, Authorization: Bearer RESUMEN_TOKEN)
 import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
-import { avisarBaja, avisarPenalidadPendiente, MSJ_DEUDA, sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
+import { avisarBaja, avisarPenalidadPendiente, barrerSuscripciones, MSJ_DEUDA, sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
+import { mismoToken } from './reservas.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
 import { pagadorMp } from '../reservas/mercadopago.mjs';
@@ -165,4 +167,12 @@ export async function handleSuscripcionEstado(request, env, deps) {
     }
   }
   return json(200, { ok: true, estado: s.estado, titulo: titulo(s), nombre: s.nombre?.split(' ')[0] ?? null });
+}
+
+// Respaldo diario de cobros: lo llama el cron de las 8:00 con el mismo token que el resumen diario.
+export async function handleBarridoSuscripciones(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Respaldo sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  return json(200, { ok: true, ...(await barrerSuscripciones(deps, env)) });
 }
