@@ -2,12 +2,9 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
-## 2026-11-13 · en prueba (reservas-pago)
-
-- Pago único: si se devuelve el total del pago en Mercado Pago, la cita se cancela sola, igual que con «Cancelar» del panel: la hora queda libre, se borra el evento del calendario y el equipo recibe «Cita cancelada» con el motivo (devolución y número de pago). En el panel queda «Cancelada por devolución», hecha por «Mercado Pago (devolución)». Al paciente no se le escribe. No cancela si la devolución es parcial, si era el pago duplicado (la reserva tiene otro pago aprobado), si la cita ya pasó, ni en pagos mensuales (las suscripciones se ven a mano). El 12-nov se devolvió la evaluación de prueba de Nico Borda y su cita siguió viva hasta que Romina la canceló a mano. Lo pidió Alejandro.
-
 ## 2026-11-13 · publicado
 
+- Pago único: si se devuelve el total del pago en Mercado Pago, la cita se cancela sola, igual que con «Cancelar» del panel: la hora queda libre, se borra el evento del calendario y el equipo recibe «Cita cancelada» con el motivo (devolución y número de pago). En el panel queda «Cancelada por devolución», hecha por «Mercado Pago (devolución)». Al paciente no se le escribe. No cancela si la devolución es parcial, si era el pago duplicado (la reserva tiene otro pago aprobado), si la cita ya pasó, ni en pagos mensuales (las suscripciones se ven a mano). El 12-nov se devolvió la evaluación de prueba de Nico Borda y su cita siguió viva hasta que Romina la canceló a mano. Lo pidió Alejandro.
 - Suscripciones: si Mercado Pago avisa un cobro cuando todavía está pendiente, la web vuelve a preguntar a los 15 segundos (antes se quedaba como no pagado y el paciente no recibía su recibo; pasó con el cobro de prueba del 12-nov). Vale también para el pago único de reservas.
 - Suscripciones: un plan que se paga más de 24 h después de que la web lo creó, en un link que nadie había pagado, ya no se asigna al paciente de ese link: el equipo recibe «Pago en un link viejo: asignarlo a mano» con titular y correo de quien pagó, y al paciente del link no le llega nada. El 12-nov un paciente pagó con un link a mano el plan del link de otra paciente de 5 días antes, y la web le mandó a ella el recibo. No cancela nada en Mercado Pago.
 - Suscripciones: respaldo diario a las 8:00 (mismo cron que el resumen). Revisa los cobros de las suscripciones activas y registra los que Mercado Pago aprobó sin avisar (manda el recibo como siempre). Si recupera algo o falla, avisa solo a Joaquín y a Alejandro (secreto `AVISOS_RESPALDO`); sin novedades no manda nada. Lo pidió Alejandro.
