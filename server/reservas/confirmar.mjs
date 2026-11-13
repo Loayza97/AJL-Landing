@@ -11,6 +11,7 @@ import { siteUrl } from '../http.mjs';
 import { contacto } from '../../src/data/contacto.js';
 import { eventoEquipo } from './evento-equipo.mjs';
 import { avisarEquipo } from './aviso-equipo.mjs';
+import { borrarEventoCancelado } from './editar.mjs';
 
 const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
@@ -138,5 +139,25 @@ export async function procesarPago(deps, env, paymentId, { reservaId = null, pag
   if (!id || (reservaId && id !== reservaId)) return { estado: 'desconocido' };
   const r = await repo.reservaPorId(deps.db, id);
   if (!r) return { estado: 'desconocido' };
-  return confirmarConPago(deps, env, r, pago);
+  const res = await confirmarConPago(deps, env, r, pago);
+  if (pago.status === 'refunded') await cancelarPorDevolucion(deps, env, r, pago);
+  return res;
+}
+
+// Devolución total de un pago único (Alejandro, 13-nov-2026; caso Nico Borda del 12-nov, cuya cita
+// siguió viva tras la devolución): se cancela la cita igual que con el botón del panel. No aplica a
+// pagos mensuales (las suscripciones tienen sus propias reglas y se ven a mano) ni si la reserva tiene
+// otro pago aprobado (era la devolución de un duplicado). Una devolución parcial deja el pago en
+// `approved`, así que no llega aquí. Al paciente no se le escribe. Idempotente: cancelarCita solo
+// cambia una cita confirmada y futura.
+async function cancelarPorDevolucion(deps, env, r, pago) {
+  if (r.forma_pago === 'mensual') return;
+  if (await repo.otroPagoAprobado(deps.db, r.id, String(pago.id))) return;
+  const hecho = await repo.cancelarCita(deps.db, { id: r.id, por: 'Mercado Pago (devolución)', ahora: deps.ahora(),
+    cambios: 'Cancelada por devolución' });
+  if (!hecho) return;
+  const cancelada = await repo.reservaPorId(deps.db, r.id);
+  await borrarEventoCancelado(deps, env, cancelada);
+  await avisarEquipo(deps, env, { tipo: 'cancelada', r: cancelada,
+    motivo: `Motivo: devolución del pago en Mercado Pago (pago ${pago.id}). La cita se canceló sola y la hora quedó libre.` });
 }

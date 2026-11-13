@@ -47,11 +47,13 @@ function correo(tipo, r, n, extra = '') {
   };
 }
 
-export async function avisarEquipo(deps, env, { tipo, r, antes = null }) {
+// `motivo` (texto plano) va arriba del aviso; lo usa la cancelación por devolución.
+export async function avisarEquipo(deps, env, { tipo, r, antes = null, motivo = null }) {
   const nombre = (id) => deps.nutricionistas.find((x) => x.id === id);
   const n = nombre(r.nutricionista_id);
   const envios = [];
-  const cambios = tipo === 'cambiada' && r.edicion_cambios ? `<p>Cambió: <strong>${esc(r.edicion_cambios)}</strong></p>` : '';
+  const cambios = (tipo === 'cambiada' && r.edicion_cambios ? `<p>Cambió: <strong>${esc(r.edicion_cambios)}</strong></p>` : '')
+    + (motivo ? `<p>${esc(motivo)}</p>` : '');
   envios.push([destinatarios(env, [...FIJAS, r.nutricionista_id]), correo(tipo, r, n, cambios)]);
   if (tipo === 'cambiada' && antes && antes.nutricionista_id !== r.nutricionista_id) {
     const aviso = `<p>Esta cita pasó a ${esc(n?.nombre ?? r.nutricionista_id)}. Ya no está en tu agenda.</p>`;

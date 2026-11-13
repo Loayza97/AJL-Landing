@@ -12,6 +12,7 @@ async function preparar({ pagos = {}, eventosCalendario = [], fallaCalendario = 
   const db = d1DePrueba();
   const correos = [];
   const creados = [];
+  const eliminados = [];
   let reloj = t0;
   const deps = {
     db, nutricionistas,
@@ -19,6 +20,7 @@ async function preparar({ pagos = {}, eventosCalendario = [], fallaCalendario = 
     sendEmail: async (m) => { correos.push(m); return true; },
     google: {
       listarEventos: async () => eventosCalendario,
+      eliminarEvento: async (id) => { eliminados.push(id); },
       crearEvento: async (e) => { if (fallaCalendario) throw new Error('google caído'); creados.push(e); return { id: `ev${creados.length}`, meet: e.modalidad === 'video' ? 'https://meet/x' : null }; },
     },
     mp: { obtenerPago: async (id) => pagos[id] },
@@ -28,7 +30,7 @@ async function preparar({ pagos = {}, eventosCalendario = [], fallaCalendario = 
   const r = await repo.reservaPorToken(db, 'tok1');
   await repo.guardarDatosYPagar(db, { reserva: r, cliente: { nombre: 'Ana Pérez', whatsapp: '+51987654321', email: 'ana@x.pe', dni: '12345678' },
     condicionesVersion: 'v', novedades: false, ahora: t0 });
-  return { db, deps, correos, creados, mover: (min) => { reloj = new Date(t0.getTime() + min * 60000); } };
+  return { db, deps, correos, creados, eliminados, mover: (min) => { reloj = new Date(t0.getTime() + min * 60000); } };
 }
 const aprobado = (o = {}) => ({ id: 555, status: 'approved', external_reference: 'r1', transaction_amount: 1080, currency_id: 'PEN', payment_method_id: 'visa', ...o });
 
@@ -174,4 +176,74 @@ test('pago web confirmado: aviso «Nueva cita» a Romina, Irene y la nutri asign
   await procesarPago(deps, conEquipo, '555');
   const aviso = correos.find((c) => /^Nueva cita: /.test(c.subject));
   assert.deepEqual(aviso.to, ['romi@x.pe', 'irene@x.pe', 'nico@x.pe']);
+});
+
+// Devoluciones (Alejandro, 13-nov-2026): una devolución total de un pago único cancela la cita como el
+// botón del panel (hora libre, evento borrado, aviso «Cita cancelada» al equipo) y no escribe al paciente.
+// La devolución del pago duplicado no cancela: la cita sigue pagada con el otro.
+const conEquipo = { ...env, CORREOS_EQUIPO: JSON.stringify({ romina: 'romi@x.pe', irene: 'irene@x.pe', alejandro: 'ale@x.pe', nico: 'nico@x.pe' }) };
+
+test('devolución total de una cita confirmada: se cancela, se borra el evento y avisa al equipo', async () => {
+  const pagos = { 555: aprobado() };
+  const { db, deps, correos, eliminados } = await preparar({ pagos });
+  await procesarPago(deps, conEquipo, '555');
+  const antes = correos.length;
+  pagos[555] = aprobado({ status: 'refunded', status_detail: 'refunded' });
+  await procesarPago(deps, conEquipo, '555');
+  const r = await repo.reservaPorId(db, 'r1');
+  assert.equal(r.estado, 'cancelada');
+  assert.ok(r.cancelada_en_panel);
+  assert.equal(r.edicion_cambios, 'Cancelada por devolución');
+  assert.equal(r.editada_por, 'Mercado Pago (devolución)');
+  assert.deepEqual(eliminados, ['ev1']);
+  const nuevos = correos.slice(antes);
+  assert.equal(nuevos.length, 1);
+  assert.match(nuevos[0].subject, /^Cita cancelada: Ana Pérez/);
+  assert.match(nuevos[0].html, /devolución/);
+  assert.match(nuevos[0].html, /555/);
+  assert.ok(!nuevos.some((c) => [].concat(c.to).includes('ana@x.pe')));
+});
+
+test('aviso de devolución repetido: cancela y avisa una sola vez', async () => {
+  const pagos = { 555: aprobado() };
+  const { deps, correos, eliminados } = await preparar({ pagos });
+  await procesarPago(deps, conEquipo, '555');
+  pagos[555] = aprobado({ status: 'refunded' });
+  await procesarPago(deps, conEquipo, '555');
+  await procesarPago(deps, conEquipo, '555');
+  assert.equal(eliminados.length, 1);
+  assert.equal(correos.filter((c) => /^Cita cancelada/.test(c.subject)).length, 1);
+});
+
+test('devolución del pago duplicado: la cita sigue confirmada', async () => {
+  const pagos = { 555: aprobado(), 556: aprobado({ id: 556 }) };
+  const { db, deps, eliminados } = await preparar({ pagos });
+  await procesarPago(deps, conEquipo, '555');
+  await procesarPago(deps, conEquipo, '556');
+  pagos[556] = aprobado({ id: 556, status: 'refunded' });
+  await procesarPago(deps, conEquipo, '556');
+  assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(eliminados, []);
+});
+
+test('devolución de una cita que ya pasó: no se toca', async () => {
+  const pagos = { 555: aprobado() };
+  const { db, deps, eliminados, mover } = await preparar({ pagos });
+  await procesarPago(deps, conEquipo, '555');
+  mover(60 * 24 * 3);
+  pagos[555] = aprobado({ status: 'refunded' });
+  await procesarPago(deps, conEquipo, '555');
+  assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(eliminados, []);
+});
+
+test('devolución de un pago mensual: no cancela (las suscripciones se ven a mano)', async () => {
+  const pagos = { 555: aprobado() };
+  const { db, deps, eliminados } = await preparar({ pagos });
+  await procesarPago(deps, conEquipo, '555');
+  await db.prepare("UPDATE reservas SET forma_pago = 'mensual' WHERE id = 'r1'").run();
+  pagos[555] = aprobado({ status: 'refunded' });
+  await procesarPago(deps, conEquipo, '555');
+  assert.equal((await repo.reservaPorId(db, 'r1')).estado, 'confirmada');
+  assert.deepEqual(eliminados, []);
 });

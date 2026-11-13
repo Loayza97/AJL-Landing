@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-13 · en prueba (reservas-pago)
+
+- Pago único: si se devuelve el total del pago en Mercado Pago, la cita se cancela sola, igual que con «Cancelar» del panel: la hora queda libre, se borra el evento del calendario y el equipo recibe «Cita cancelada» con el motivo (devolución y número de pago). En el panel queda «Cancelada por devolución», hecha por «Mercado Pago (devolución)». Al paciente no se le escribe. No cancela si la devolución es parcial, si era el pago duplicado (la reserva tiene otro pago aprobado), si la cita ya pasó, ni en pagos mensuales (las suscripciones se ven a mano). El 12-nov se devolvió la evaluación de prueba de Nico Borda y su cita siguió viva hasta que Romina la canceló a mano. Lo pidió Alejandro.
+
 ## 2026-11-13 · publicado
 
 - Suscripciones: si Mercado Pago avisa un cobro cuando todavía está pendiente, la web vuelve a preguntar a los 15 segundos (antes se quedaba como no pagado y el paciente no recibía su recibo; pasó con el cobro de prueba del 12-nov). Vale también para el pago único de reservas.
