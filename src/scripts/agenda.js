@@ -79,7 +79,9 @@ async function confirmar(datos, errorSel) {
     // «viernes, 16 de octubre, 5:00 p. m.» → «el viernes 16 de octubre a las 5:00 p. m.»
     const f = d.etiqueta.match(/^(\S+), (.+), (\d.+)$/);
     const cuando = f ? `el ${f[1]} ${f[2]} ${f[3].startsWith('1:') ? 'a la' : 'a las'} ${f[3]}` : d.etiqueta;
-    const texto = `Hola, ya agendé mi evaluación nutricional para ${cuando} con ${d.nutricionista} ${donde}.`;
+    // Lo que agendó, en minúscula para la frase: «mi control de 30 min», «mi sesión de 1 hora».
+    const que = d.titulo ? d.titulo.charAt(0).toLowerCase() + d.titulo.slice(1) : 'cita';
+    const texto = `Hola, ya agendé mi ${que} para ${cuando} con ${d.nutricionista} ${donde}.`;
     $('#a-wa').href = `https://wa.me/${contacto.whatsappPacientes}?text=${encodeURIComponent(texto)}`;
     $('#a-gcal').href = d.google_calendar;
     $('#a-ics').href = d.ics;
