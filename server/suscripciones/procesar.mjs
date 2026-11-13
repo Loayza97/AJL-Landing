@@ -95,8 +95,23 @@ export async function asociar(deps, s, preapprovalId) {
   return { ...s, mp_preapproval_id: preapprovalId };
 }
 
+// El plan de Mercado Pago sigue vivo después de que el link de la web se usó (y aunque se cancele): cualquiera
+// con su dirección puede pagarlo. Un paciente real paga 1 a 3 minutos después de que se crea el plan; el 12-nov-2026
+// otro paciente pagó, con un link mandado a mano, el plan de un link de 5 días antes, y la web le asignó el pago y le
+// mandó el recibo a la paciente del link. Por eso un preapproval que nace más de 24 h después de su plan, en una
+// suscripción que todavía no tiene cobros, no se asigna a nadie: se avisa al equipo para asignarlo a mano.
+export const HORAS_PLAN_VIGENTE = 24;
+async function esPlanViejo(deps, s, planId, p) {
+  if (s.estado !== 'pendiente' || s.cobros_aprobados > 0) return false;
+  const creado = Date.parse((await sus.planCreadoEn(deps.db, planId)) ?? '');
+  if (!creado) return false;
+  const nacio = Date.parse(p?.date_created ?? '') || deps.ahora().getTime();
+  return nacio - creado > HORAS_PLAN_VIGENTE * 3600000;
+}
+
 // La suscripción de un preapproval: por su id guardado, por su plan vigente, por la referencia externa
 // o, si es de un plan que un reintento de pago reemplazó, la dueña de ese plan (reemplazado: true).
+// planViejo: sale del plan vigente de una suscripción, pero se pagó mucho después (ver esPlanViejo); no se asocia.
 // planDesconocido: el preapproval sale de un plan que no es de ninguna suscripción del sitio.
 // delPlan: se encontró por su plan vigente (puede ser otro preapproval del mismo plan que el guardado).
 async function suscripcionDe(deps, p) {
@@ -105,6 +120,7 @@ async function suscripcionDe(deps, p) {
   if (porPre) return { s: porPre };
   const planId = p?.preapproval_plan_id ? String(p.preapproval_plan_id) : null;
   const porPlan = planId ? await sus.porPlan(deps.db, planId) : null;
+  if (porPlan && await esPlanViejo(deps, porPlan, planId, p)) return { s: porPlan, planViejo: true };
   if (porPlan) return { s: await asociar(deps, porPlan, id), delPlan: true };
   const porRef = p?.external_reference ? await sus.porId(deps.db, p.external_reference) : null;
   if (porRef) return { s: await asociar(deps, porRef, id) };
@@ -124,6 +140,7 @@ const otraTarjeta = (s, preapprovalId, delPlan) => delPlan && s.mp_preapproval_i
 const esPlanDeLaWeb = (reason) => reason == null || String(reason).startsWith(PREFIJO_PLAN);
 
 const ASUNTO_ANOMALO = 'Cobro tras baja o duplicado: devolver y cancelar en Mercado Pago';
+const ASUNTO_PLAN_VIEJO = 'Pago en un link viejo: asignarlo a mano';
 
 // Un cobro aprobado de un plan de la web que no conocemos se avisa (los planes hechos a mano se filtran antes).
 async function avisarPlanDesconocido(deps, env, ap, planId, preapprovalId) {
@@ -131,6 +148,28 @@ async function avisarPlanDesconocido(deps, env, ap, planId, preapprovalId) {
   if (pago?.status !== 'approved') return;
   await avisarFijas(deps, env, correoEquipoAlerta({ asunto: ASUNTO_ANOMALO,
     detalle: `Mercado Pago cobró ${formatoSoles(Number(ap.transaction_amount))} en la suscripción ${preapprovalId} del plan ${planId}, que no es de ninguna suscripción del sitio. Revisa de quién es, devuelve ese pago si no corresponde y cancela la suscripción en Mercado Pago.` }));
+}
+
+// Cobro de un plan viejo: queda registrado en la fila del link (es dinero real) sin sumar ni avisar al paciente,
+// y el equipo recibe una alerta, una sola vez por pago, con los datos de quien pagó. No se cancela nada: puede ser
+// un paciente real que pagó un link mandado a mano. Los cobros siguientes de esa suscripción vuelven a alertar.
+async function cobroDePlanViejo(deps, env, s, ap, preapprovalId) {
+  const pagoId = ap.payment?.id ? String(ap.payment.id) : null;
+  const pago = pagoId ? await deps.mp.obtenerPago(pagoId) : null;
+  const estado = pago?.status ?? 'pending';
+  const neto = Number(pago?.transaction_details?.net_received_amount);
+  const montoCentimos = Math.round(Number(ap.transaction_amount) * 100);
+  const { pagoNuevoAprobado } = await sus.registrarCobro(deps.db, {
+    suscripcionId: s.id, mpPaymentId: pagoId ?? `ap-${ap.id}`, cobroAutorizadoId: String(ap.id), estado, montoCentimos,
+    netoCentimos: neto > 0 ? Math.round(neto * 100) : null, metodo: pago?.payment_method_id ?? null, detalle: pago?.status_detail ?? null, ahora: deps.ahora(), contar: false,
+  });
+  if (estado !== 'approved') return { estado };
+  if (pagoNuevoAprobado) {
+    const quien = [pago?.card?.cardholder?.name, pago?.payer?.email].filter(Boolean).join(', ') || 'sin datos en Mercado Pago';
+    await avisarFijas(deps, env, correoEquipoAlerta({ asunto: ASUNTO_PLAN_VIEJO,
+      detalle: `Mercado Pago cobró ${formatoSoles(montoCentimos / 100)} (pago ${pagoId ?? ap.id}) en la suscripción ${preapprovalId}, que salió del link de ${s.nombre}. Ese link se abrió hace más de ${HORAS_PLAN_VIGENTE} h y nadie lo había pagado, así que no se le asignó a ${s.nombre} ni se le mandó nada. Quién pagó: ${quien}. Revisa de qué paciente es y pide que se le asigne. La suscripción sigue activa en Mercado Pago y volverá a cobrar cada mes.` }));
+  }
+  return { estado: 'plan_viejo' };
 }
 
 export async function procesarCobro(deps, env, authorizedId) {
@@ -144,6 +183,7 @@ export async function procesarCobro(deps, env, authorizedId) {
   let delPlan = false;
   if (!s) {
     const r = await suscripcionDe(deps, { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId });
+    if (r.planViejo) return cobroDePlanViejo(deps, env, r.s, ap, preapprovalId);
     if (!r.s) {
       if (r.planDesconocido && esPlanDeLaWeb(r.reason)) await avisarPlanDesconocido(deps, env, ap, r.planDesconocido, preapprovalId);
       else if (r.planDesconocido) console.log('plan ajeno a la web', r.planDesconocido, r.reason);
@@ -243,8 +283,9 @@ export async function procesarCobro(deps, env, authorizedId) {
 
 export async function procesarPreapproval(deps, env, preapprovalId) {
   const p = await deps.mp.obtenerSuscripcion(preapprovalId);
-  const { s, reemplazado, delPlan } = await suscripcionDe(deps, p);
+  const { s, reemplazado, delPlan, planViejo } = await suscripcionDe(deps, p);
   if (!s) return { estado: 'desconocido' };
+  if (planViejo) return { estado: 'plan_viejo' };
   // Preapproval de un plan reemplazado: no es la suscripción vigente; se cancela para que no cobre
   // (si falla, cancelarEnMp avisa al equipo; si igual cobra, el cobro queda como anómalo).
   if (reemplazado) {

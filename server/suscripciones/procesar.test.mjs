@@ -552,3 +552,75 @@ test('cobro programado sin payment.id y luego con pago: la fila ap- pasa al id r
   assert.deepEqual(filas.map((f) => [f.mp_payment_id, f.estado, f.numero]), [['p1', 'approved', 1]]);
   assert.equal(d.correos.filter((c) => /Recibimos tu pago/.test(c.subject)).length, 1);
 });
+
+// Caso real del 12-nov-2026: el plan del primer link de Fiorella (que ella no usó) siguió vivo en Mercado Pago
+// y, cinco días después, otro paciente (Juan Carlos) lo pagó con un link mandado a mano. La web le asignó el pago
+// a Fiorella y le mandó el recibo. Los pacientes reales pagan 1 a 3 minutos después de crear el plan.
+const horas = (h) => new Date(t0.getTime() + h * 3600000).toISOString();
+const pagoAjeno = (id) => ({ ...pago(id), payer: { email: 'juan@x.pe' }, card: { cardholder: { name: 'JUAN BAUTISTA' } } });
+const planViejo = (d) => d.correos.filter((c) => /Pago en un link viejo/.test(c.subject));
+
+test('cobro de un plan que se pagó más de 24 h después de crearse: no se asigna, no avisa al paciente y alerta una vez', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pagoAjeno('p9') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  await procesarCobro(d, env, 'a9'); // aviso repetido
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, null);
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(s.estado, 'pendiente');
+  assert.notEqual((await repo.reservaPorId(d.db, 'r1')).estado, 'confirmada');
+  assert.equal(d.correos.filter((c) => c.to === 'ana@x.pe').length, 0);
+  const a = planViejo(d);
+  assert.equal(a.length, 1);
+  assert.match(a[0].html, /S\/360/);
+  assert.match(a[0].html, /pre9/);
+  assert.match(a[0].html, /JUAN BAUTISTA/);
+  assert.match(a[0].html, /juan@x\.pe/);
+  assert.match(a[0].html, /Ana Pérez/);
+  // No se cancela ni se desactiva nada: puede ser un paciente real que hay que asignar a mano.
+  assert.deepEqual(d.canceladas, []);
+  assert.deepEqual(d.desactivados, []);
+});
+
+test('cobro todavía pendiente de un plan viejo: devuelve el estado del pago (para la revisión de 15 s) y no alerta', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pago('p9', 'pending') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'pending' });
+  assert.equal(planViejo(d).length, 0);
+  d.mp.obtenerPago = async () => pagoAjeno('p9');
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  assert.equal(planViejo(d).length, 1);
+});
+
+test('aviso del preapproval de un plan viejo: no se asocia, no se desactiva el plan ni se cancela', async () => {
+  const d = armar({ pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarPreapproval(d, env, 'pre9'), { estado: 'plan_viejo' });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, null);
+  assert.deepEqual(d.desactivados, []);
+  assert.deepEqual(d.canceladas, []);
+});
+
+test('un plan viejo tampoco se queda con la suscripción por «otra tarjeta»', async () => {
+  const d = armar({ cobros: { a9: { ...cobro('a9', 'p9'), preapproval_id: 'pre9' } }, pagos: { p9: pagoAjeno('p9') },
+    pre: { pre9: { id: 'pre9', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(120) } } });
+  await conPlan(d);
+  await d.db.prepare("UPDATE suscripciones SET mp_preapproval_id = 'pre1' WHERE id = 's1'").run(); // tarjeta rechazada antes
+  assert.deepEqual(await procesarCobro(d, env, 'a9'), { estado: 'plan_viejo' });
+  const s = await sus.porId(d.db, 's1');
+  assert.equal(s.mp_preapproval_id, 'pre1');
+  assert.equal(s.cobros_aprobados, 0);
+  assert.equal(planViejo(d).length, 1);
+});
+
+test('pagado dentro de las 24 h de creado el plan: se asigna como siempre', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1') }, pagos: { p1: pago('p1') },
+    pre: { pre1: { id: 'pre1', status: 'authorized', preapproval_plan_id: 'plan1', date_created: horas(23) } } });
+  await conPlan(d);
+  assert.deepEqual(await procesarCobro(d, env, 'a1'), { estado: 'aprobado', numero: 1 });
+  assert.equal((await sus.porId(d.db, 's1')).mp_preapproval_id, 'pre1');
+  assert.equal(planViejo(d).length, 0);
+});
