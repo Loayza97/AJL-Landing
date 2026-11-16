@@ -7,8 +7,9 @@ workers_dev = false # solo cron: sin URL pública
 compatibility_date = "2026-10-01"
 
 [triggers]
-crons = ["0 13 * * *"] # 13:00 UTC = 8:00 en Lima
+crons = ["0 13 * * *", "*/15 * * * *"] # 13:00 UTC = 8:00 en Lima; revisión de la agenda cada 15 min
 
 [vars]
 RESUMEN_URL = "https://www.ajlnutricion.com/api/reservas/resumen-diario"
 BARRIDO_URL = "https://www.ajlnutricion.com/api/suscripciones/barrido"
+SALUD_URL = "https://www.ajlnutricion.com/api/reservas/salud-agenda"
