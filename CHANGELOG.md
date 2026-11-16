@@ -2,7 +2,7 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
-## 2026-11-16 · en prueba
+## 2026-11-16 · publicado
 
 - Aviso si la agenda web se cae: cada 15 minutos, el cron revisa lo mismo que usa /reservar/ (Google Calendar y las reservas). Si falla dos veces seguidas (con 20 segundos entre una y otra), les manda un correo a Joaquín y a Alejandro (secreto `AVISOS_RESPALDO`) con el error. Si es `invalid_grant`, el correo agrega cómo reautorizar. Mientras siga caída, el aviso se repite cada 3 horas, y llega otro cuando vuelve. El 14-nov venció el permiso de Google y la agenda estuvo caída casi un día sin que nadie se enterara. Lo pidió Alejandro.
 
