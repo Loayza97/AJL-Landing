@@ -15,6 +15,7 @@ import { cotizar } from '../reservas/catalogo.mjs';
 import { tipoDeReserva } from '../agenda/tipos.mjs';
 import { correoResumenNoPagadas } from '../reservas/correos.mjs';
 import { sincronizarCalendario, alertarFallidos } from '../reservas/sincronizar.mjs';
+import { revisarAgenda } from '../reservas/salud-agenda.mjs';
 import { DESDE_DIAS, MARGEN_MIN, HASTA_DIAS, MAX_RETENCIONES, MAX_DIAS_CONSULTA } from '../reservas/constantes.mjs';
 import * as repo from '../reservas/repo.mjs';
 import { procesarPago, finalizarConfirmacion } from '../reservas/confirmar.mjs';
@@ -449,4 +450,15 @@ export async function handleSincronizarCalendario(request, env, deps) {
   }
   await alertarFallidos(deps, env, res.fallidos);
   return json(200, { ok: true, ...res });
+}
+
+// Lo llama el cron cada 15 min (workers/resumen-cron): prueba lo mismo que la página de
+// reservas (Google + D1) para hoy y avisa si la agenda se cae. Mismo token que el resumen.
+export async function handleSaludAgenda(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Revisión sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  const r = await revisarAgenda(deps, env, () => contexto(deps, fechaLima(deps.ahora()), 1), { esperar: deps.esperar });
+  // 200 aunque la agenda esté caída: el aviso ya salió por correo; el cron solo marca error si esto no responde.
+  return json(200, r);
 }
