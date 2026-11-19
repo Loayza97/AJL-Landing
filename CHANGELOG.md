@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-19 · publicado
+
+- Política de privacidad 1.9: la sección 2.7 pasa a cubrir los mensajes por WhatsApp y TikTok, además de Messenger e Instagram, y dice que el resumen de cada conversación se guarda en Supabase. La tabla 4 suma a OpenRouter (Gemini y DeepSeek resumen las conversaciones y transcriben audios), que ya se usaba y no estaba nombrado; Supabase y Contabo se actualizan. El aviso de respuestas automáticas y la fila de Anthropic quedan para cuando el agente de ventas empiece a responder (borrador en `ajl-crm/docs/app-review/2026-11-19-borrador-politica-respuestas-automaticas.md`). Aprobado por Alejandro.
+
 ## 2026-11-16 · publicado
 
 - Aviso si la agenda web se cae: cada 15 minutos, el cron revisa lo mismo que usa /reservar/ (Google Calendar y las reservas). Si falla dos veces seguidas (con 20 segundos entre una y otra), les manda un correo a Joaquín y a Alejandro (secreto `AVISOS_RESPALDO`) con el error. Si es `invalid_grant`, el correo agrega cómo reautorizar. Mientras siga caída, el aviso se repite cada 3 horas, y llega otro cuando vuelve. El 14-nov venció el permiso de Google y la agenda estuvo caída casi un día sin que nadie se enterara. Lo pidió Alejandro.
