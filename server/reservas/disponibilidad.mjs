@@ -55,8 +55,8 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
 }
 
 // Tope diario en minutos (Alejandro, 2026-10-22): suman las citas de la web y
-// de los links por su duración; de lunes a viernes 300 (5 de una hora, 10 de
-// media o cualquier mezcla) y el sábado 480. Lleno, el día se cierra para los
+// de los links por su duración; de lunes a viernes 360 (6 de una hora, 12 de
+// media o cualquier mezcla; 300 hasta el 2026-11-19) y el sábado 480. Lleno, el día se cierra para los
 // dos. Los eventos puestos a mano en Google no suman.
 export function topeMinutosDia(fecha) {
   return diaSemana(fecha) === 6 ? TOPE_MINUTOS.sabado : TOPE_MINUTOS.semana;

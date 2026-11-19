@@ -190,25 +190,25 @@ test('Paola los miércoles atiende de 14 a 19 (a las 7 p. m. da la clase), prese
 const delMartes = (horasLima, extra = {}) => horasLima.map((h, i) => reserva({
   inicio_utc: `2026-10-06T${String(h + 5).padStart(2, '0')}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: `n${i}`, ...extra }));
 
-test('tope diario (Alejandro, 2026-10-22): 300 minutos de lunes a viernes, 480 el sábado', () => {
-  assert.equal(topeMinutosDia('2026-10-05'), 300);
-  assert.equal(topeMinutosDia('2026-10-09'), 300);
+test('tope diario (Alejandro, 2026-10-22; L-V 360 desde 2026-11-19): 360 minutos de lunes a viernes, 480 el sábado', () => {
+  assert.equal(topeMinutosDia('2026-10-05'), 360);
+  assert.equal(topeMinutosDia('2026-10-09'), 360);
   assert.equal(topeMinutosDia('2026-10-10'), 480);
 });
 
-test('tope: 5 citas de una hora llenan un martes, sean de la web o de links', () => {
-  const llenas = delMartes([10, 11, 12, 14, 15]);
+test('tope: 6 citas de una hora llenan un martes, sean de la web o de links', () => {
+  const llenas = delMartes([10, 11, 12, 14, 15, 16]);
   assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video' }), []);
   assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }), []);
   assert.ok(horasLibres({ ...base, reservas: llenas.slice(1), fecha: '2026-10-06', modalidad: 'video' }).length > 0);
 });
 
 test('tope: se combinan citas de 30 y de 60; con 30 minutos libres entra un link de 30 pero no una cita de una hora', () => {
-  const reservas = [...delMartes([10, 11, 12, 14]), ...delMartes([15], { duracion_min: 30, nutricionista_id: 'n9' })];
+  const reservas = [...delMartes([10, 11, 12, 14, 15]), ...delMartes([16], { duracion_min: 30, nutricionista_id: 'n9' })];
   assert.deepEqual(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'video' }), []);
   assert.ok(horasLibres({ ...base, reservas, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }).length > 0);
-  const diez = delMartes([10, 11, 12, 14, 15, 16, 17, 18, 19, 20], { duracion_min: 30 });
-  assert.deepEqual(horasLibres({ ...base, reservas: diez, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }), []);
+  const doce = delMartes([9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], { duracion_min: 30 });
+  assert.deepEqual(horasLibres({ ...base, reservas: doce, fecha: '2026-10-06', modalidad: 'video', duracionMin: 30, pasoMin: 30 }), []);
 });
 
 test('tope: el sábado caben 8 horas', () => {
@@ -220,7 +220,7 @@ test('tope: el sábado caben 8 horas', () => {
 
 test('tope: los eventos puestos a mano no suman', () => {
   const eventos = ['16', '17', '18'].map((h) => conHora(`Control ${h}`, `2026-10-06T${h}:00:00-05:00`, `2026-10-06T${h}:30:00-05:00`));
-  const r = horasLibres({ ...base, reservas: delMartes([10, 11, 12, 14]), eventos, fecha: '2026-10-06', modalidad: 'video' });
+  const r = horasLibres({ ...base, reservas: delMartes([10, 11, 12, 14, 15]), eventos, fecha: '2026-10-06', modalidad: 'video' });
   assert.ok(r.length > 0);
 });
 
@@ -253,25 +253,25 @@ test('no bloquean: eventos marcados como libres en Google ni los que creó el si
 });
 
 test('sinTope (editar desde el panel): un día lleno sigue ofreciendo horas libres', () => {
-  const llenas = delMartes([10, 11, 12, 14, 15]);
+  const llenas = delMartes([10, 11, 12, 14, 15, 16]);
   assert.deepEqual(horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video' }), []);
   const r = horasLibres({ ...base, reservas: llenas, fecha: '2026-10-06', modalidad: 'video', sinTope: true });
-  assert.ok(horas(r).includes('16:00'));
+  assert.ok(horas(r).includes('17:00'));
 });
 
-test('tope por nutricionista (2026-10-23): 180 minutos de lunes a viernes, 300 el sábado', () => {
-  assert.equal(topeNutriDia('2026-10-06'), 180);
+test('tope por nutricionista (2026-10-23; L-V 240 desde 2026-11-19): 240 minutos de lunes a viernes, 300 el sábado', () => {
+  assert.equal(topeNutriDia('2026-10-06'), 240);
   assert.equal(topeNutriDia('2026-10-10'), 300);
 });
 
-test('tope por nutri: con 3 horas ese día, a Jussara no se le ofrece nada más; las otras siguen', () => {
-  const tres = [10, 11, 12].map((h) => reserva({ inicio_utc: `2026-10-06T${h + 5}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' }));
+test('tope por nutri: con 4 horas ese día, a Jussara no se le ofrece nada más; las otras siguen', () => {
+  const tres = [10, 11, 12, 14].map((h) => reserva({ inicio_utc: `2026-10-06T${h + 5}:00:00Z`, fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video' }));
   assert.deepEqual(horasLibres({ ...base, reservas: tres, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }), []);
   const r = horasLibres({ ...base, reservas: tres, fecha: '2026-10-06', modalidad: 'video' });
   assert.ok(r.length > 0);
   assert.ok(r.every((h) => h.nutricionista_id !== 'jussara'));
-  // Con 2 horas y media le entra una de 30 pero no una de 60.
-  const dosYMedia = [...tres.slice(0, 2), reserva({ inicio_utc: '2026-10-06T17:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video', duracion_min: 30 })];
+  // Con 3 horas y media le entra una de 30 pero no una de 60.
+  const dosYMedia = [...tres.slice(0, 3), reserva({ inicio_utc: '2026-10-06T19:00:00Z', fecha_lima: '2026-10-06', nutricionista_id: 'jussara', modalidad: 'video', duracion_min: 30 })];
   assert.deepEqual(horasLibres({ ...base, reservas: dosYMedia, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara' }), []);
   assert.ok(horasLibres({ ...base, reservas: dosYMedia, fecha: '2026-10-06', modalidad: 'video', filtroNutricionista: 'jussara', duracionMin: 30, pasoMin: 30 }).length > 0);
   // Editar desde el panel (sinTope) lo puede pasar.

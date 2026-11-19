@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-11-19 · publicado
 
+- /reservar/ y /agenda/: topes de lunes a viernes más altos. Cada nutricionista atiende hasta 4 horas por día (antes 3) y el equipo hasta 6 horas por día entre todas (antes 5). El sábado sigue igual: 5 horas por nutricionista y 8 el equipo. Lo pidió Alejandro.
 - Política de privacidad 1.9: la sección 2.7 pasa a cubrir los mensajes por WhatsApp y TikTok, además de Messenger e Instagram, y dice que el resumen de cada conversación se guarda en Supabase. La tabla 4 suma a OpenRouter (Gemini y DeepSeek resumen las conversaciones y transcriben audios), que ya se usaba y no estaba nombrado; Supabase y Contabo se actualizan. El aviso de respuestas automáticas y la fila de Anthropic quedan para cuando el agente de ventas empiece a responder (borrador en `ajl-crm/docs/app-review/2026-11-19-borrador-politica-respuestas-automaticas.md`). Aprobado por Alejandro.
 
 ## 2026-11-16 · publicado

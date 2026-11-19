@@ -71,9 +71,9 @@ test('agendar sobre una hora que se cruza con una reserva web: ocupada, y el lin
 
 test('agendar con el día lleno (tope en minutos, Alejandro 2026-10-22): motivo tope, sin cliente nuevo y el link sigue sin usar', async () => {
   const db = d1DePrueba();
-  for (const h of ['15', '16', '17', '19', '20']) {
+  for (const h of ['15', '16', '17', '19', '20', '21']) {
     await repo.crearRetencion(db, { id: `w${h}`, token: `tw${h}`, producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
-      nutricionista_id: `n${h}`, inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
+      nutricionista_id: `n${h}`, inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', modalidad: 'video', tope: 360, ahora: t0 });
   }
   const id = await link(db);
   assert.deepEqual(await agendar(db, id, { hora: hora({ inicio: '2026-10-06T22:00:00Z', fin: '2026-10-06T22:30:00Z' }) }), { ok: false, motivo: 'tope' });
@@ -135,9 +135,9 @@ test('borrar: solo un link sin usar (vigente o vencido), en una sola sentencia; 
   assert.deepEqual(results.map((l) => l.id), [usado]);
 });
 
-test('agendar con link cuando la nutri ya tiene 3 horas ese día: motivo tope y el link sigue sin usar', async () => {
+test('agendar con link cuando la nutri ya tiene 4 horas ese día: motivo tope y el link sigue sin usar', async () => {
   const db = d1DePrueba();
-  for (const h of ['16', '17', '19']) {
+  for (const h of ['16', '17', '19', '20']) {
     await repo.crearRetencion(db, { id: `w${h}`, token: `tw${h}`, producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,
       nutricionista_id: 'nico', inicio_utc: `2026-10-06T${h}:00:00Z`, fecha_lima: '2026-10-06', modalidad: 'video', tope: 300, ahora: t0 });
   }

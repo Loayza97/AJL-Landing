@@ -468,9 +468,9 @@ test('cancelarCita: una cita pasada no se cancela', async () => {
   assert.equal(await repo.cancelarCita(db, { id: 'p', por: 'romi@x.pe', ahora: new Date('2026-10-06T17:00:00Z') }), false);
 });
 
-test('tope por nutri en la base: con 3 horas de Nico ese martes, una cuarta suya no entra; otra nutri sí', async () => {
+test('tope por nutri en la base: con 4 horas de Nico ese martes, una quinta suya no entra; otra nutri sí', async () => {
   const db = d1DePrueba();
-  for (const h of ['14', '15', '16']) await ret(db, { inicio_utc: `2026-10-06T${h}:00:00Z`, modalidad: 'video' });
+  for (const h of ['14', '15', '16', '17']) await ret(db, { inicio_utc: `2026-10-06T${h}:00:00Z`, modalidad: 'video' });
   assert.deepEqual(await ret(db, { inicio_utc: '2026-10-06T19:00:00Z', modalidad: 'video', duracion_min: 30 }), { ok: false, motivo: 'tope' });
   assert.equal((await ret(db, { inicio_utc: '2026-10-06T19:00:00Z', modalidad: 'video', nutricionista_id: 'paola' })).ok, true);
 });
