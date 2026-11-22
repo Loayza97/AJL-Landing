@@ -53,7 +53,7 @@ Llevar a la web el flujo rediseñado con el equipo (lienzo "Reservas AJL · fluj
 
 - Nombres y apellido paterno: 2 a 60 caracteres, al menos una letra; se aceptan tildes, ñ, apóstrofo, guion y espacios. Apellido materno: vacío o con la misma regla.
 - Documento: siempre. DNI 8 dígitos; Carné de Extranjería 9 a 12 letras o dígitos; Pasaporte 6 a 12 letras o dígitos.
-- Fecha de nacimiento: `AAAA-MM-DD` válida, no futura, edad entre 10 y 100 años en la zona de Lima.
+- Fecha de nacimiento: `AAAA-MM-DD` válida, no futura, edad entre 5 y 100 años en la zona de Lima (antes 10; bajó a 5 el 22-nov-2026, decisión 3 del rediseño web).
 - WhatsApp, correo y aceptación: como hoy.
 - El navegador valida lo mismo para avisar antes, pero el servidor es el que decide.
 
@@ -89,7 +89,7 @@ CREATE TABLE resumenes_enviados (fecha TEXT PRIMARY KEY, enviado_en TEXT NOT NUL
 
 ## Pruebas
 
-- Unitarias (`node --test`): precios y ahorro de cada plan y duración; `cotizar` rechaza duraciones inválidas; validación de cada campo con sus bordes (fecha 29 de febrero, edad 9 y 101 años, DNI de 7 dígitos, pasaporte con letras, apellido con tilde y apóstrofo, materno vacío); migración aplicada sobre la base de prueba; purga de columnas nuevas; resumen: elige bien a quién incluir, excluye a quien pagó después, no repite en el mismo día, rechaza sin token.
+- Unitarias (`node --test`): precios y ahorro de cada plan y duración; `cotizar` rechaza duraciones inválidas; validación de cada campo con sus bordes (fecha 29 de febrero, edad 4 y 101 años, DNI de 7 dígitos, pasaporte con letras, apellido con tilde y apóstrofo, materno vacío); migración aplicada sobre la base de prueba; purga de columnas nuevas; resumen: elige bien a quién incluir, excluye a quien pagó después, no repite en el mismo día, rechaza sin token.
 - Construcción: `npm run build` sin errores.
 - Punta a punta en `https://reservas-pago.ajl-landing.pages.dev`: paquete de 6 meses pagado en 3 cuotas con el comprador de prueba; reserva confirmada, evento en el calendario, 3 correos; una reserva sin pagar aparece en el resumen al llamarlo a mano. Revisión visual en celular y computadora.
 - Producción solo después, con autorización de Joaquín.

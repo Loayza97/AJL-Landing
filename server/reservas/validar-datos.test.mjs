@@ -46,12 +46,11 @@ test('documento: se limpian espacios, puntos y guiones antes de validar', () => 
   assert.equal(v({ tipo_documento: 'pasaporte', documento: 'AB-123456' }).cliente.dni, 'AB123456');
 });
 
-test('fecha de nacimiento: real, entre 10 y 100 años', () => {
+test('fecha de nacimiento: real, entre 5 y 100 años', () => {
   assert.equal(v({ fecha_nacimiento: '1990-02-30' }).ok, false);
   assert.equal(v({ fecha_nacimiento: '04/05/1990' }).ok, false);
   assert.equal(v({ fecha_nacimiento: '2000-02-29' }).ok, true);
-  assert.equal(v({ fecha_nacimiento: '2016-10-10' }).ok, false); // 9 años
-  assert.equal(v({ fecha_nacimiento: '2016-10-09' }).ok, true); // cumple 10 hoy
+  assert.equal(v({ fecha_nacimiento: '2026-10-10' }).ok, false); // nace mañana
   assert.equal(v({ fecha_nacimiento: '1926-10-09' }).ok, true); // 100
   assert.equal(v({ fecha_nacimiento: '1925-10-08' }).ok, false); // 101
   assert.equal(v({ fecha_nacimiento: '2030-01-01' }).ok, false);
@@ -98,4 +97,21 @@ test('la sesión es para otra persona: el paciente con sus datos y, sin correo p
   assert.equal(validarDatos({ ...otro, paciente_nombres: '' }, hoy).error, 'Escribe los nombres del paciente.');
   assert.equal(validarDatos({ ...otro, paciente_fecha_nacimiento: '' }, hoy).error, 'Revisa la fecha de nacimiento del paciente.');
   assert.equal(validarDatos({ ...otro, paciente_documento: '12' }, hoy).error, 'Escribe el DNI del paciente (8 dígitos).');
+});
+
+// Desde los 5 años (decisión 3 del rediseño web, pedido de Alejandro 22-nov-2026): 4 años no, 5 justos y 9 sí,
+// tanto si la sesión es para quien paga como si es para otra persona (un hijo, por ejemplo).
+test('edad mínima 5 años, para mí y para otra persona', () => {
+  const otro = { ...base, para_mi: false, fecha_nacimiento: '', paciente_nombres: 'Lucía', paciente_apellido_paterno: 'Rojas',
+    paciente_tipo_documento: 'dni', paciente_documento: '81234567' };
+  const casos = [['2021-10-10', false, '4 años, cumple 5 mañana'], ['2021-10-09', true, 'cumple 5 hoy'], ['2016-10-10', true, '9 años']];
+  for (const [nacimiento, ok, que] of casos) {
+    const mio = validarDatos({ ...base, fecha_nacimiento: nacimiento }, hoy);
+    assert.equal(mio.ok, ok, `para mí, ${que}`);
+    if (!ok) assert.equal(mio.error, 'Revisa tu fecha de nacimiento.');
+    const suyo = validarDatos({ ...otro, paciente_fecha_nacimiento: nacimiento }, hoy);
+    assert.equal(suyo.ok, ok, `para otra persona, ${que}`);
+    if (ok) assert.equal(suyo.cliente.fecha_nacimiento, nacimiento);
+    else assert.equal(suyo.error, 'Revisa la fecha de nacimiento del paciente.');
+  }
 });

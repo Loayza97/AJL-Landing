@@ -52,7 +52,7 @@ function nacimientoValido(valor, hoyLima, deTi) {
   const error = mal(deTi ? 'Revisa tu fecha de nacimiento.' : 'Revisa la fecha de nacimiento del paciente.');
   if (!fechaReal(nacimiento)) return error;
   const anios = edad(nacimiento, hoyLima);
-  if (anios < 10 || anios > 100) return error;
+  if (anios < 5 || anios > 100) return error; // desde los 5 años, con un adulto (decisión 3 del rediseño web, 22-nov-2026)
   return { ok: true, nacimiento };
 }
 

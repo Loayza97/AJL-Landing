@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-22 · sin publicar
+
+- /reservar/ y /agenda/: se puede reservar para pacientes desde los 5 años (antes, desde los 10). La lista de años de la fecha de nacimiento empieza 5 años atrás y la web y el servidor aceptan de 5 a 100 años, tanto si la sesión es para quien paga como si es para otra persona. Antes un padre no podía pagar en la web la sesión de un hijo de 5 a 9 años. Lo pidió Alejandro (decisión 3 del rediseño web: se atiende desde los 5 años, siempre con un adulto).
+
 ## 2026-11-21 · publicado
 
 - Selector de horas de /reservar/, /reservar/reubicar/ y /agenda/: si la persona mueve el calendario o toca un filtro antes de que carguen los horarios, la página ya no se rompe. Se queda en «Buscando horarios…» (o en el aviso de error) hasta que llegan. Si cambia de filtro dos veces seguidas, la respuesta vieja ya no pisa a la nueva. Y si el servidor devuelve una respuesta incompleta, se muestra «No pudimos cargar los horarios» en vez de un error. El error («e.datos.nutricionistas») se vio en Clarity el 21-nov-2026. Publicado con aprobación de Alejandro.

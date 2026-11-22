@@ -30,11 +30,11 @@ catalogo.basico = { nombre: plans.basico.name, mensual: false, precio: plans.bas
 catalogo.evaluacion = { nombre: plans.evaluacion.name, mensual: false, precio: plans.evaluacion.price };
 
 // Fecha de nacimiento en tres listas: más fácil que un calendario que abre en
-// el año actual. Años de los 10 a los 100 años (lo que acepta validar-datos.js).
+// el año actual. Años de los 5 a los 100 años (lo que acepta validar-datos.js).
 const DIAS = Array.from({ length: 31 }, (_, i) => i + 1);
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const ANIO = new Date().getFullYear();
-const ANIOS = Array.from({ length: 91 }, (_, i) => ANIO - 10 - i);
+const ANIOS = Array.from({ length: 96 }, (_, i) => ANIO - 5 - i);
 
 const VENTANAS = [
   ['condiciones', 'Condiciones del servicio', RESUMEN_CONDICIONES, '/condiciones/'],
