@@ -2,7 +2,7 @@
 // nuevo: datos) → listo. Las horas, el DNI y la cita los decide el servidor.
 import { montarSelector } from './selector-horas.js';
 import { NOMBRE_MODALIDAD as MOD, nodoDonde, nodoRequisitos } from './donde.js';
-import { validarDatos, hoyEnLima, revisarDocumento } from '../data/validar-datos.js';
+import { validarDatos, hoyEnLima, revisarDocumento, pideConsentimientoTutor } from '../data/validar-datos.js';
 import { contacto } from '../data/contacto.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 
@@ -125,16 +125,26 @@ $('#a-confirmar-conocido').addEventListener('click', () => confirmar(undefined, 
 
 $('#a-pais').addEventListener('change', () => { $('#a-whatsapp').placeholder = placeholderTelefono($('#a-pais').value); });
 
+// Paciente menor de 14: casilla del padre, madre o tutor (política de privacidad, sección 10).
+const nacimientoAgenda = () => `${$('#a-nac-anio').value}-${$('#a-nac-mes').value}-${$('#a-nac-dia').value}`;
+function sincronizarTutor() {
+  $('#a-l-tutor').hidden = !pideConsentimientoTutor(nacimientoAgenda(), hoyEnLima(new Date()));
+}
+for (const s of ['dia', 'mes', 'anio']) $(`#a-nac-${s}`).addEventListener('change', sincronizarTutor);
+sincronizarTutor();
+window.addEventListener('pageshow', sincronizarTutor);
+
 $('#a-form-datos').addEventListener('submit', (e) => {
   e.preventDefault();
   const whatsapp = telefonoCompleto($('#a-pais').value, $('#a-whatsapp').value);
   const datos = {
     apellido_paterno: $('#a-paterno').value, apellido_materno: $('#a-materno').value, nombres: $('#a-nombres').value,
     email: $('#a-email').value, whatsapp,
-    fecha_nacimiento: `${$('#a-nac-anio').value}-${$('#a-nac-mes').value}-${$('#a-nac-dia').value}`,
+    fecha_nacimiento: nacimientoAgenda(),
+    consentimiento_tutor: !$('#a-l-tutor').hidden && $('#a-tutor').checked,
     acepto: $('#a-acepto').checked,
   };
-  const v = validarDatos({ ...datos, tipo_documento: estado.tipoDoc, documento: estado.dni }, hoyEnLima(new Date()));
+  const v = validarDatos({ ...datos, tipo_documento: estado.tipoDoc, documento: estado.dni }, hoyEnLima(new Date()), { pago: false });
   if (!v.ok) { $('#a-error-datos').textContent = v.error; return; }
   $('#a-error-datos').textContent = '';
   confirmar(datos, '#a-error-datos');

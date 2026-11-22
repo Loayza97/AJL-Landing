@@ -192,6 +192,8 @@ const VENTANAS = [
           <input type="email" id="f-pac-email">
         </fieldset>
 
+        <!-- Paciente menor de 14 (política de privacidad, sección 10): la muestra reservar.js. -->
+        <label class="rs-check" id="l-tutor" hidden><input type="checkbox" id="f-tutor"> <span>Soy su padre, madre o tutor y doy mi consentimiento para el tratamiento de sus datos.</span></label>
         <label class="rs-check" id="l-acepto-sus" hidden><input type="checkbox" id="f-acepto-sus"> <span id="t-acepto-sus"></span></label>
         <label class="rs-check"><input type="checkbox" id="f-acepto" required> <span>Acepto las <button type="button" class="rs-link" data-ventana="condiciones">condiciones del servicio</button> y he leído la <button type="button" class="rs-link" data-ventana="privacidad">política de privacidad</button>.</span></label>
         <label class="rs-check"><input type="checkbox" id="f-novedades"> <span>{NOVEDADES_TEXTO.replace(/ \(v[\d-]+\)$/, '')} (opcional)</span></label>

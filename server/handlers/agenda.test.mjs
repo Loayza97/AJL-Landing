@@ -140,6 +140,16 @@ test('confirmar con datos inválidos o sin aceptar: 400 y el link sigue sin usar
   assert.equal((await (await handleAgendaLink(get(`/api/agenda/link?l=${l}`), env, d)).json()).estado, 'sin_usar');
 });
 
+test('confirmar con un paciente menor de 14: sin la casilla del padre, madre o tutor 400; con ella se agenda', async () => {
+  const d = deps();
+  const l = await conLink(d);
+  const nino = { ...datos, fecha_nacimiento: '2020-01-01' };
+  const sin = await confirmar(d, l, { datos: nino });
+  assert.equal(sin.status, 400);
+  assert.match((await sin.json()).error, /consentimiento del padre, madre o tutor/);
+  assert.equal((await confirmar(d, l, { datos: { ...nino, consentimiento_tutor: true } })).status, 200);
+});
+
 test('confirmar una hora que ya no se ofrece (reserva web encima): 409 y el link sigue', async () => {
   const d = deps();
   await repo.crearRetencion(d.db, { id: 'web', token: 'tw', producto: 'constancia', duracion_meses: 3, monto_centimos: 108000, peso_tope: 1,

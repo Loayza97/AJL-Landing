@@ -92,6 +92,8 @@ const ANIOS = Array.from({ length: 96 }, (_, i) => ANIO - 5 - i); // de los 5 a 
           <select id="a-nac-mes" aria-label="Mes" required><option value="">Mes</option>{MESES.map((m, i) => <option value={String(i + 1).padStart(2, '0')}>{m}</option>)}</select>
           <select id="a-nac-anio" aria-label="Año" required><option value="">Año</option>{ANIOS.map((a) => <option value={String(a)}>{a}</option>)}</select>
         </div>
+        <!-- Paciente menor de 14 (política de privacidad, sección 10): la muestra agenda.js. -->
+        <label class="rs-check" id="a-l-tutor" hidden><input type="checkbox" id="a-tutor"> <span>Soy su padre, madre o tutor y doy mi consentimiento para el tratamiento de sus datos.</span></label>
         <label class="rs-check"><input type="checkbox" id="a-acepto" required> <span>Acepto las <a href="/condiciones/" target="_blank" rel="noopener">condiciones del servicio</a> y he leído la <a href="/privacidad/" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
         <button type="submit" class="rs-btn">Confirmar cita</button>
         <p class="rs-error" id="a-error-datos" role="alert"></p>

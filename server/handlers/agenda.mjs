@@ -127,7 +127,7 @@ export async function handleAgendaConfirmar(request, env, deps) {
   let cliente = null;
   let clienteId = previo?.id ?? null;
   if (conDatos) {
-    const v = validarDatos({ ...d.datos, tipo_documento: tipoDoc, documento: dni }, hoyEnLima(ahora));
+    const v = validarDatos({ ...d.datos, tipo_documento: tipoDoc, documento: dni }, hoyEnLima(ahora), { pago: false });
     if (!v.ok) return bad(400, v.error);
     cliente = v.cliente;
     clienteId = crypto.randomUUID();

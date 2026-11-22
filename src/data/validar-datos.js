@@ -56,10 +56,18 @@ function nacimientoValido(valor, hoyLima, deTi) {
   return { ok: true, nacimiento };
 }
 
+// Menores de 14: el consentimiento para tratar sus datos lo da el padre, la madre o el tutor (Reglamento de la
+// Ley 29733, DS 016-2024-JUS; política de privacidad, sección 10). El navegador lo usa para mostrar la casilla.
+export const EDAD_CONSENTIMIENTO_PROPIO = 14;
+export const pideConsentimientoTutor = (nacimiento, hoyLima) =>
+  fechaReal(String(nacimiento ?? '')) && edad(nacimiento, hoyLima) < EDAD_CONSENTIMIENTO_PROPIO;
+
 // Paso 4 «Datos de pago» (spec 2026-11-10): primero quien paga (sus datos van a Mercado Pago) y, si la
 // sesión no es para él (para_mi === false), el paciente. cliente = el paciente, como siempre; su correo
 // es el del paciente o, si no lo dio, el de quien paga, y su WhatsApp el de quien paga.
-export function validarDatos(d, hoyLima) {
+// Si el paciente tiene menos de 14 años, hace falta consentimiento_tutor === true. Con pago (/reservar/), un
+// menor de 14 no puede ser quien paga; /agenda/ no cobra y pasa { pago: false }: ahí los datos son del paciente.
+export function validarDatos(d, hoyLima, { pago = true } = {}) {
   const p = persona(d.nombres, d.apellido_paterno, d.apellido_materno, d.tipo_documento, d.documento, true);
   if (!p.ok) return p;
   const whatsapp = String(d.whatsapp ?? '').replace(/[^\d+]/g, '');
@@ -73,6 +81,9 @@ export function validarDatos(d, hoyLima) {
   if (paraMi) {
     const n = nacimientoValido(d.fecha_nacimiento, hoyLima, true);
     if (!n.ok) return n;
+    if (pago && pideConsentimientoTutor(n.nacimiento, hoyLima)) {
+      return mal('Si la sesión es para un menor de 14 años, desmarca «La sesión es para mí» y escribe sus datos.');
+    }
     paciente = { ...p, nacimiento: n.nacimiento, email };
   } else {
     const q = persona(d.paciente_nombres, d.paciente_apellido_paterno, d.paciente_apellido_materno, d.paciente_tipo_documento, d.paciente_documento, false);
@@ -83,10 +94,15 @@ export function validarDatos(d, hoyLima) {
     if (correo && !EMAIL.test(correo)) return mal('Revisa el correo del paciente.');
     paciente = { ...q, nacimiento: n.nacimiento, email: correo || email };
   }
+  const consentimientoTutor = pideConsentimientoTutor(paciente.nacimiento, hoyLima);
+  if (consentimientoTutor && d.consentimiento_tutor !== true) {
+    return mal('Para continuar, marca la casilla de consentimiento del padre, madre o tutor.');
+  }
   if (d.acepto !== true) return mal('Para continuar, acepta las condiciones del servicio.');
   return {
     ok: true,
     paraMi,
+    consentimientoTutor,
     pagador,
     cliente: {
       nombre: [paciente.nombres, paciente.paterno, paciente.materno].filter(Boolean).join(' '), nombres: paciente.nombres,

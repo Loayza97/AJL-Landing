@@ -4,7 +4,7 @@
 import { NOMBRE_MODALIDAD, nodoDonde } from './donde.js';
 import { montarSelector } from './selector-horas.js';
 import { formatoSoles } from '../data/duraciones.js';
-import { validarDatos, hoyEnLima } from '../data/validar-datos.js';
+import { validarDatos, hoyEnLima, pideConsentimientoTutor } from '../data/validar-datos.js';
 import { telefonoCompleto, placeholderTelefono } from '../data/telefono.js';
 import { destinoLink } from '../data/links-reserva.js';
 
@@ -220,11 +220,18 @@ for (const [tipo, doc] of [['#f-tipo-doc', '#f-doc'], ['#f-pac-tipo-doc', '#f-pa
   });
 }
 
+// Paciente menor de 14 (solo como «otra persona»): casilla del padre, madre o tutor.
+function sincronizarTutor() {
+  $('#l-tutor').hidden = $('#f-para-mi').checked || !pideConsentimientoTutor(fechaNacimiento('#f-pac-nac'), hoyEnLima(new Date()));
+}
+for (const s of ['dia', 'mes', 'anio']) $(`#f-pac-nac-${s}`).addEventListener('change', sincronizarTutor);
+
 // «La sesión es para mí»: desmarcada, se despliegan los datos del paciente (spec 2026-11-10).
 function sincronizarParaMi() {
   const paraMi = $('#f-para-mi').checked;
   $('#f-yo').hidden = !paraMi;
   $('#f-otro').hidden = paraMi;
+  sincronizarTutor();
   return paraMi;
 }
 $('#f-para-mi').addEventListener('change', () => { if (!sincronizarParaMi()) $('#f-pac-nombres').focus(); });
@@ -245,6 +252,7 @@ async function pagar(e) {
     paciente_nombres: $('#f-pac-nombres').value, paciente_apellido_paterno: $('#f-pac-paterno').value,
     paciente_apellido_materno: $('#f-pac-materno').value, paciente_fecha_nacimiento: fechaNacimiento('#f-pac-nac'),
     paciente_tipo_documento: $('#f-pac-tipo-doc').value, paciente_documento: $('#f-pac-doc').value, paciente_email: $('#f-pac-email').value,
+    consentimiento_tutor: !$('#l-tutor').hidden && $('#f-tutor').checked,
     acepto: $('#f-acepto').checked, novedades: $('#f-novedades').checked,
     acepto_suscripcion: $('#f-acepto-sus').checked,
     // Device ID del script de seguridad de Mercado Pago (si cargó).

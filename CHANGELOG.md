@@ -5,6 +5,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 ## 2026-11-22 · sin publicar
 
 - /reservar/ y /agenda/: se puede reservar para pacientes desde los 5 años (antes, desde los 10). La lista de años de la fecha de nacimiento empieza 5 años atrás y la web y el servidor aceptan de 5 a 100 años, tanto si la sesión es para quien paga como si es para otra persona. Antes un padre no podía pagar en la web la sesión de un hijo de 5 a 9 años. Lo pidió Alejandro (decisión 3 del rediseño web: se atiende desde los 5 años, siempre con un adulto).
+- /reservar/ y /agenda/: si el paciente tiene menos de 14 años aparece una casilla obligatoria, «Soy su padre, madre o tutor y doy mi consentimiento para el tratamiento de sus datos», que la web y el servidor validan. En /reservar/ un menor de 14 ya no puede ser quien paga: con «La sesión es para mí» marcada, el error pide desmarcarla y escribir sus datos. Política de privacidad 1.10: la sección 10 dice que se atiende desde los 5 años con un adulto presente, que el consentimiento de un menor de 14 lo da su padre, madre o tutor y que, entre 14 y 17, también consiente el adulto que lo acompaña. Borrador legal: lo revisan Alejandro y Joaquín antes de publicar.
 
 ## 2026-11-21 · publicado
 
