@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-21 · publicado
+
+- Selector de horas de /reservar/, /reservar/reubicar/ y /agenda/: si la persona mueve el calendario o toca un filtro antes de que carguen los horarios, la página ya no se rompe. Se queda en «Buscando horarios…» (o en el aviso de error) hasta que llegan. Si cambia de filtro dos veces seguidas, la respuesta vieja ya no pisa a la nueva. Y si el servidor devuelve una respuesta incompleta, se muestra «No pudimos cargar los horarios» en vez de un error. El error («e.datos.nutricionistas») se vio en Clarity el 21-nov-2026. Publicado con aprobación de Alejandro.
+
 ## 2026-11-19 · publicado
 
 - /reservar/ y /agenda/: topes de lunes a viernes más altos. Cada nutricionista atiende hasta 4 horas por día (antes 3) y el equipo hasta 6 horas por día entre todas (antes 5). El sábado sigue igual: 5 horas por nutricionista y 8 el equipo. Lo pidió Alejandro.
