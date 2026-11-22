@@ -50,8 +50,12 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
     </div>`;
   const $ = (s) => raiz.querySelector(s);
   const porFecha = () => new Map((estado.datos?.dias ?? []).map((d) => [d.fecha, d.horas]));
+  // Cada carga lleva un número: si la persona cambia de filtro antes de que llegue
+  // la respuesta anterior, esa respuesta vieja se descarta y no pisa a la nueva.
+  let ultimaCarga = 0;
 
   async function cargar() {
+    const carga = ++ultimaCarga;
     $('.sel-dia').innerHTML = '<p class="sel-msg">Buscando horarios…</p>';
     const p = new URLSearchParams({ desde: inicio, dias: String(DIAS_VENTANA + 1), modalidad: estado.modalidad });
     if (producto) { p.set('producto', producto); p.set('duracion', String(duracion)); }
@@ -60,8 +64,12 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
     try {
       r = await fetch(urlHoras ? urlHoras(p) : `/api/reservas/horas?${p}`);
       if (!r.ok) throw new Error(String(r.status));
-      estado.datos = await r.json();
+      const datos = await r.json();
+      if (carga !== ultimaCarga) return;
+      if (!Array.isArray(datos?.dias) || !Array.isArray(datos?.nutricionistas)) throw new Error('respuesta incompleta');
+      estado.datos = datos;
     } catch {
+      if (carga !== ultimaCarga) return;
       // Quien monta el selector puede encargarse de un status (p. ej. 410 de un link vencido).
       if (r && !r.ok && onError?.(r.status)) return;
       $('.sel-dia').innerHTML = '<p class="sel-msg">No pudimos cargar los horarios. Intenta de nuevo en un momento.</p>';
@@ -82,10 +90,13 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
   function pintar() {
     raiz.querySelectorAll('[data-modalidad]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.modalidad === estado.modalidad)));
     $('.sel-donde').replaceChildren(nodoDonde(estado.modalidad, null, { corto: true }));
-    const equipo = Object.fromEntries(estado.datos.nutricionistas.map((n) => [n.id, n]));
+    // Sin datos todavía (cargando, o la carga falló) el calendario igual se puede
+    // mover de mes; antes eso rompía la página con «e.datos.nutricionistas» (Clarity, nov-2026).
+    const nutris = estado.datos?.nutricionistas ?? [];
+    const equipo = Object.fromEntries(nutris.map((n) => [n.id, n]));
     // Burbujas con la cara de cada una: al tocar, se ve su perfil y solo sus horas.
     $('.sel-nutris').classList.toggle('sel-nutris--elegida', Boolean(estado.nutricionista));
-    $('.sel-nutris').innerHTML = estado.datos.nutricionistas.map((n) => `<button type="button" data-filtro="${esc(n.id)}" aria-pressed="${estado.nutricionista === n.id}" aria-label="Ver perfil y horas de ${esc(n.nombre)}">`
+    $('.sel-nutris').innerHTML = nutris.map((n) => `<button type="button" data-filtro="${esc(n.id)}" aria-pressed="${estado.nutricionista === n.id}" aria-label="Ver perfil y horas de ${esc(n.nombre)}">`
       + `${n.foto ? `<img src="${esc(n.foto)}" alt="">` : ''}<b>${esc(n.nombre)}</b><small>${estado.nutricionista === n.id ? 'Elegido' : 'Ver perfil'}</small></button>`).join('');
     const elegida = equipo[estado.nutricionista];
     $('.sel-perfil').classList.toggle('sel-perfil--abierta', Boolean(elegida?.perfil));
@@ -95,7 +106,7 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       : '';
 
     const horas = porFecha();
-    const primerDia = estado.datos.dias.find((d) => d.horas.length);
+    const primerDia = (estado.datos?.dias ?? []).find((d) => d.horas.length);
 
     // Calendario del mes.
     $('.sel-mes').textContent = nombreMes(estado.mes);
@@ -108,6 +119,9 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       if (!horas.get(f)?.length) return `<span class="sel-d sel-d--off">${n}</span>`;
       return `<button type="button" class="sel-d" data-fecha="${f}" aria-pressed="${f === estado.fecha}" aria-label="${esc(nombreDia(f))}">${n}</button>`;
     }).join('');
+
+    // Mientras no hay datos, el mensaje de abajo («Buscando horarios…» o el de error) se queda.
+    if (!estado.datos) return;
 
     // Horas del día elegido, en mañana y tarde.
     const delDia = horas.get(estado.fecha) ?? [];
