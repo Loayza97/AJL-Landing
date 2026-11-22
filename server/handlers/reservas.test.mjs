@@ -99,12 +99,13 @@ test('pagar: valida datos, exige documento y aceptar condiciones; guarda el deta
   assert.equal((await pagar({ documento: '' })).status, 400);
   assert.equal((await pagar({ fecha_nacimiento: '' })).status, 400);
   assert.equal((await pagar({ acepto: false })).status, 400);
-  // Menor de 14: no puede ser quien paga y, como otra persona, pide la casilla del padre, madre o tutor.
+  // Menor de edad: no puede ser quien paga; menor de 14, como otra persona, pide la casilla del padre, madre o tutor.
   const nino = { para_mi: false, paciente_nombres: 'Lucía', paciente_apellido_paterno: 'Pérez', paciente_fecha_nacimiento: '2020-01-01',
     paciente_tipo_documento: 'dni', paciente_documento: '81234567' };
   const r1 = await pagar({ fecha_nacimiento: '2020-01-01' });
   assert.equal(r1.status, 400);
-  assert.match((await r1.json()).error, /desmarca «La sesión es para mí»/);
+  assert.match((await r1.json()).error, /Quien paga tiene que ser mayor de edad/);
+  assert.equal((await pagar({ fecha_nacimiento: '2010-01-01' })).status, 400); // 16 años
   const r2 = await pagar(nino);
   assert.equal(r2.status, 400);
   assert.match((await r2.json()).error, /consentimiento del padre, madre o tutor/);

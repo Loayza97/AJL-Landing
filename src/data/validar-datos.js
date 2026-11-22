@@ -59,14 +59,16 @@ function nacimientoValido(valor, hoyLima, deTi) {
 // Menores de 14: el consentimiento para tratar sus datos lo da el padre, la madre o el tutor (Reglamento de la
 // Ley 29733, DS 016-2024-JUS; política de privacidad, sección 10). El navegador lo usa para mostrar la casilla.
 export const EDAD_CONSENTIMIENTO_PROPIO = 14;
+const MAYORIA_DE_EDAD = 18; // quien paga en /reservar/ (Alejandro, 22-nov-2026)
 export const pideConsentimientoTutor = (nacimiento, hoyLima) =>
   fechaReal(String(nacimiento ?? '')) && edad(nacimiento, hoyLima) < EDAD_CONSENTIMIENTO_PROPIO;
 
 // Paso 4 «Datos de pago» (spec 2026-11-10): primero quien paga (sus datos van a Mercado Pago) y, si la
 // sesión no es para él (para_mi === false), el paciente. cliente = el paciente, como siempre; su correo
 // es el del paciente o, si no lo dio, el de quien paga, y su WhatsApp el de quien paga.
-// Si el paciente tiene menos de 14 años, hace falta consentimiento_tutor === true. Con pago (/reservar/), un
-// menor de 14 no puede ser quien paga; /agenda/ no cobra y pasa { pago: false }: ahí los datos son del paciente.
+// Si el paciente tiene menos de 14 años, hace falta consentimiento_tutor === true. Con pago (/reservar/), quien
+// paga tiene que ser mayor de edad: con «para mí», el paciente tiene 18 o más. /agenda/ no cobra y pasa
+// { pago: false }: ahí los datos son del paciente.
 export function validarDatos(d, hoyLima, { pago = true } = {}) {
   const p = persona(d.nombres, d.apellido_paterno, d.apellido_materno, d.tipo_documento, d.documento, true);
   if (!p.ok) return p;
@@ -81,8 +83,8 @@ export function validarDatos(d, hoyLima, { pago = true } = {}) {
   if (paraMi) {
     const n = nacimientoValido(d.fecha_nacimiento, hoyLima, true);
     if (!n.ok) return n;
-    if (pago && pideConsentimientoTutor(n.nacimiento, hoyLima)) {
-      return mal('Si la sesión es para un menor de 14 años, desmarca «La sesión es para mí» y escribe sus datos.');
+    if (pago && edad(n.nacimiento, hoyLima) < MAYORIA_DE_EDAD) {
+      return mal('Quien paga tiene que ser mayor de edad. Si la sesión es para un menor, desmarca «La sesión es para mí» y escribe primero los datos de un adulto.');
     }
     paciente = { ...p, nacimiento: n.nacimiento, email };
   } else {

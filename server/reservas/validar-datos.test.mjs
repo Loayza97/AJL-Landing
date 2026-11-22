@@ -100,10 +100,10 @@ test('la sesión es para otra persona: el paciente con sus datos y, sin correo p
 });
 
 // Desde los 5 años (decisión 3 del rediseño web, pedido de Alejandro 22-nov-2026): 4 años no, 5 justos y 9 sí.
-// En /reservar/ un menor de 14 no puede ser quien paga (va como «otra persona»); en /agenda/ no hay pago.
+// En /reservar/ quien paga tiene que ser mayor de edad: un menor va como «otra persona»; en /agenda/ no hay pago.
 const otro = { ...base, para_mi: false, fecha_nacimiento: '', paciente_nombres: 'Lucía', paciente_apellido_paterno: 'Rojas',
   paciente_tipo_documento: 'dni', paciente_documento: '81234567' };
-const ERROR_PARA_MI = 'Si la sesión es para un menor de 14 años, desmarca «La sesión es para mí» y escribe sus datos.';
+const ERROR_PARA_MI = 'Quien paga tiene que ser mayor de edad. Si la sesión es para un menor, desmarca «La sesión es para mí» y escribe primero los datos de un adulto.';
 const ERROR_TUTOR = 'Para continuar, marca la casilla de consentimiento del padre, madre o tutor.';
 
 test('edad mínima 5 años: para otra persona en /reservar/ y en /agenda/', () => {
@@ -133,18 +133,18 @@ test('menor de 14: sin la casilla del padre, madre o tutor rechaza; con ella ace
   }
 });
 
-test('14 años o más: no pide la casilla, para mí ni para otra persona', () => {
-  for (const nacimiento of ['2012-10-09', '2011-03-14', '1990-02-28']) { // cumple 14 hoy; 15; adulto
-    const mio = validarDatos({ ...base, fecha_nacimiento: nacimiento }, hoy);
-    assert.equal(mio.ok, true, `para mí, ${nacimiento}`);
-    assert.equal(mio.consentimientoTutor, false);
-    assert.equal(validarDatos({ ...otro, paciente_fecha_nacimiento: nacimiento }, hoy).ok, true, `otra persona, ${nacimiento}`);
+test('14 años o más: no pide la casilla, como otra persona ni en /agenda/', () => {
+  for (const nacimiento of ['2012-10-09', '2011-03-14', '2008-10-10', '1990-02-28']) { // cumple 14 hoy; 15; 17; adulto
+    const suyo = validarDatos({ ...otro, paciente_fecha_nacimiento: nacimiento }, hoy);
+    assert.equal(suyo.ok, true, `otra persona, ${nacimiento}`);
+    assert.equal(suyo.consentimientoTutor, false);
     assert.equal(validarDatos({ ...base, fecha_nacimiento: nacimiento }, hoy, { pago: false }).ok, true, `agenda, ${nacimiento}`);
   }
 });
 
-test('«para mí» con menos de 14 en /reservar/: rechaza aunque marque la casilla', () => {
-  for (const nacimiento of ['2021-10-09', '2016-10-10', '2012-10-10']) {
+test('«para mí» en /reservar/: desde los 18 años; un menor de 18 rechaza aunque marque la casilla', () => {
+  assert.equal(validarDatos({ ...base, fecha_nacimiento: '2008-10-09' }, hoy).ok, true); // cumple 18 hoy
+  for (const nacimiento of ['2021-10-09', '2016-10-10', '2012-10-10', '2012-10-09', '2008-10-10']) { // 5, 9, 13, 14, 17
     assert.equal(validarDatos({ ...base, fecha_nacimiento: nacimiento }, hoy).error, ERROR_PARA_MI, nacimiento);
     assert.equal(validarDatos({ ...base, fecha_nacimiento: nacimiento, consentimiento_tutor: true }, hoy).error, ERROR_PARA_MI, nacimiento);
   }
