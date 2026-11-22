@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## Pendiente de publicar
+
+- Plan Parejas en la web, como producto de lanzamiento con la etiqueta «Nuevo» (decisión de Alejandro del 22-nov-2026). Portada: un aviso «Nuevo · Plan Parejas» arriba de los planes, que lleva al bloque nuevo, justo debajo de los planes individuales. Los textos son los del banner aprobado (`banner-parejas`): 5 sesiones a S/275 al mes cada uno, 7 sesiones ★ Recomendado a S/325, y 1 mes sin paquete a S/420 cada uno. /reservar/ (paso 1): una tarjeta «Para venir de a dos». Se compra por WhatsApp, con el mensaje «Hola, vengo de la web y quiero el Plan Parejas.» y la conversión registrada como `parejas` / `reservar_parejas`. El checkout no lo vende: todavía no registra a dos personas. Rama `feat/plan-parejas`, sin publicar.
+
 ## 2026-11-21 · publicado
 
 - Selector de horas de /reservar/, /reservar/reubicar/ y /agenda/: si la persona mueve el calendario o toca un filtro antes de que carguen los horarios, la página ya no se rompe. Se queda en «Buscando horarios…» (o en el aviso de error) hasta que llegan. Si cambia de filtro dos veces seguidas, la respuesta vieja ya no pisa a la nueva. Y si el servidor devuelve una respuesta incompleta, se muestra «No pudimos cargar los horarios» en vez de un error. El error («e.datos.nutricionistas») se vio en Clarity el 21-nov-2026. Publicado con aprobación de Alejandro.

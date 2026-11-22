@@ -52,6 +52,9 @@
 .rs-ir { color: var(--gold-ink); font-weight: 700; white-space: nowrap; flex-shrink: 0; display: flex; align-items: center; gap: 14px; }
 .rs-ir b { color: var(--ink); font-size: 1.25rem; }
 .rs-suelta > span:first-child { min-width: 0; }
+/* Plan Parejas: un enlace a WhatsApp con la forma de las opciones sueltas */
+.rs-parejas { text-decoration: none; border: 1.5px solid var(--gold); max-width: calc(50% - 6px); }
+.rs-parejas .rs-badge { margin-left: 6px; vertical-align: 2px; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
 
 /* Pantalla 2 · opción B */
 .rs-duraciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -175,6 +178,7 @@ button.sel-d[aria-pressed=true] { background: var(--ink); color: #fff; }
 /* Celular: tarjetas apiladas; en la pantalla 2, 3 meses primero */
 @media (max-width: 760px) {
   .rs-planes, .rs-duraciones, .rs-sueltas { grid-template-columns: minmax(0, 1fr); }
+  .rs-parejas { max-width: none; }
   .rs-dur--star { order: -1; }
   .rs-incluye-lista { grid-template-columns: minmax(0, 1fr); }
   .rs-dos { grid-template-columns: minmax(0, 1fr); gap: 0; }
