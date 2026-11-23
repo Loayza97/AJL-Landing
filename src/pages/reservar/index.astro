@@ -83,7 +83,7 @@ const VENTANAS = [
       <a class="rs-suelta rs-parejas" href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(planParejas.waMensaje)}`}
         data-wa-section="reservar_parejas" data-wa-pkg={planParejas.name} data-wa-msg={planParejas.waMensaje}
         target="_blank" rel="noopener noreferrer" aria-label="Plan Parejas: escribir por WhatsApp">
-        <span><b>{planParejas.name} <span class="rs-badge">{planParejas.badge}</span></b><small>Desde {formatoSoles(Math.min(...planParejas.paquetes.map((o) => o.cadaUno)))} al mes cada uno · lo coordinamos por WhatsApp</small></span>
+        <span><b>{planParejas.name} <span class="rs-badge">{planParejas.badge}</span></b><small>Lo coordinamos por WhatsApp</small></span>
         <span class="rs-ir">WhatsApp ›</span>
       </a>
     </section>

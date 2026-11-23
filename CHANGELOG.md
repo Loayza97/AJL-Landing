@@ -4,6 +4,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 
 ## 2026-11-22 · sin publicar
 
+- Plan Parejas: el aviso «Nuevo» de la portada y la tarjeta de /reservar/ ya no dicen «desde S/275 al mes cada uno» (justo debajo aparecía el plan individual de 3 meses a S/270 y la pareja parecía más cara). El aviso dice «Plan Parejas · para venir de a dos» y la tarjeta, «Lo coordinamos por WhatsApp». Aviso de cookies en el celular más compacto (márgenes, letra y botones), con el mismo texto y los dos botones iguales, para que tape menos la portada del video. Alejandro, 22-nov-2026.
 - Portada, preguntas frecuentes y /reservar/: ya no se anuncia la evaluación del primer mes de los planes de 2 y 4 sesiones (la etiqueta «+ 1 evaluación el primer mes», la nota «La evaluación: al cierre del primer mes…», la frase de la pregunta «¿En qué se diferencia cada plan?», la línea del detalle del plan y la de «Incluye» y las tarjetas del paso 2 de /reservar/). La evaluación sigue existiendo y la agenda la sigue contando (`firstMonthEval`). Decisión de Alejandro, 22-nov-2026. El banner de WhatsApp y el guion todavía la mencionan.
 
 ## 2026-11-22 · publicado (video y plan parejas)

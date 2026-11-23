@@ -67,15 +67,23 @@
   white-space: nowrap;
 }
 
+/* Celular: más compacto para que tape menos la portada y el video (Alejandro, 22-nov-2026).
+   El texto completo se queda (es lo que informa el consentimiento) y los dos botones
+   siguen iguales entre sí y con 44 px de alto. */
 @media (max-width: 600px) {
   .cookie-banner {
-    left: 1rem;
-    right: 1rem;
-    bottom: 7rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 5.75rem;
     flex-direction: column;
     align-items: stretch;
+    gap: 0.6rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: 12px;
   }
 
-  .cookie-banner__acciones { width: 100%; }
+  .cookie-banner__text { font-size: 0.72rem; line-height: 1.42; }
+  .cookie-banner__acciones { width: 100%; gap: 0.5rem; }
+  .cookie-banner__btn { padding: 0.5rem 1rem; font-size: 0.82rem; }
 }
 </style>

@@ -38,7 +38,7 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
     <!-- Producto de lanzamiento (22-nov-2026): lleva al bloque de PlanParejas.astro, justo debajo de estos planes -->
     <a class="ap-nuevo" href="#section-parejas" data-section="paquetes" data-pkg={planParejas.name}>
       <span class="ap-nuevo-tag">{planParejas.badge}</span>
-      <span class="ap-nuevo-txt"><b>{planParejas.name}</b> · desde S/{Math.min(...planParejas.paquetes.map(o => o.cadaUno))} al mes cada uno</span>
+      <span class="ap-nuevo-txt"><b>{planParejas.name}</b> · para venir de a dos</span>
       <span class="ap-nuevo-ir" aria-hidden="true">Ver ↓</span>
     </a>
 
