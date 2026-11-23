@@ -5,6 +5,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 ## Pendiente de publicar
 
 - /reservar/: si la hora apartada se vencía justo al tocar «Pagar» (el servidor responde que el plazo terminó), la página volvía al calendario pero, al elegir otra hora, el botón «Pagar» del paso 4 quedaba desactivado y no respondía hasta recargar, y al recargar se perdía lo escrito. Ahora el paso 4 siempre abre con «Pagar» activo. Encontrado en la auditoría de la web del 23-nov-2026; arreglo autorizado por Alejandro el 23-nov-2026. Rama `fix/bugs-pago-reservar`, en la versión de prueba.
+- /reservar/ y /reservar/reubicar/: un doble toque en una hora del calendario mandaba dos pedidos de «apartar»; la primera hora quedaba retenida sin que nadie la pagara hasta que vencía su plazo, y otra persona no la podía elegir. Ahora, mientras se aparta (o se guarda) una hora, los demás toques en horas se ignoran; al terminar, con éxito o con error, se puede volver a elegir. Encontrado en la auditoría de la web del 23-nov-2026; arreglo autorizado por Alejandro el 23-nov-2026. Rama `fix/bugs-pago-reservar`, en la versión de prueba.
 
 ## 2026-11-23 · publicado
 

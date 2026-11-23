@@ -1,7 +1,8 @@
 // Pruebas del flujo de /reservar/ en el navegador (src/scripts/reservar.js y
-// selector-horas.js) con un DOM falso mínimo, sin dependencias. Cubren los bugs
-// del pago de la auditoría del 23-nov-2026:
+// selector-horas.js) con un DOM falso mínimo, sin dependencias. Cubren los dos
+// bugs del pago de la auditoría del 23-nov-2026:
 //   1. «Pagar» quedaba desactivado al volver al paso 4 tras una hora vencida (410).
+//   2. Un doble toque en una hora mandaba dos «apartar» y retenía dos horas.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -110,4 +111,71 @@ test('bug 1: tras una hora vencida (410), al elegir otra hora «Pagar» vuelve a
   await esperar();
   assert.ok(llamadas.some((l) => l.url.startsWith('/api/reservas/apartar')), 'se apartó la nueva hora');
   assert.equal(boton.disabled, false, '«Pagar» tiene que responder en el paso 4 sin recargar');
+});
+
+test('bug 2: un doble toque en una hora manda un solo «apartar»; al terminar, se puede volver a elegir', async () => {
+  let soltar;
+  const { tomar, llamadas } = await cargarReservar({
+    search: '?plan=basico',
+    responder: (url) => {
+      if (url.startsWith('/api/reservas/opciones')) return json(200, { suscripciones: false });
+      if (url.startsWith('/api/reservas/horas')) return json(200, { dias: [], nutricionistas: [] });
+      if (url.startsWith('/api/reservas/apartar')) {
+        // El primer apartado queda pendiente hasta que la prueba lo suelte (con error: hora tomada).
+        return new Promise((ok) => { soltar = () => ok(json(409, { error: 'Esa hora ya no está disponible.' })); });
+      }
+      throw new Error(`fetch inesperado: ${url}`);
+    },
+  });
+  const apartados = () => llamadas.filter((l) => l.url.startsWith('/api/reservas/apartar')).length;
+  const raiz = tomar('#p3-selector');
+
+  toqueHora(raiz);
+  toqueHora(raiz);
+  await esperar();
+  assert.equal(apartados(), 1, 'el segundo toque, con el primero en curso, se ignora');
+
+  soltar();
+  await esperar(); await esperar();
+  assert.equal(tomar('#p3-error').textContent, 'Esa hora ya no está disponible.');
+
+  toqueHora(raiz);
+  await esperar();
+  assert.equal(apartados(), 2, 'terminado el primero (con error), otro toque sí aparta');
+});
+
+test('selector de horas (también /reservar/reubicar/): ignora toques mientras onElegir está en curso y se suelta con éxito o con error', async () => {
+  const { doc } = documentoFalso({});
+  Object.assign(globalThis, {
+    document: doc,
+    fetch: async () => json(200, { dias: [], nutricionistas: [] }),
+  });
+  const { montarSelector } = await import('../../src/scripts/selector-horas.js');
+  const pendientes = [];
+  let elegidas = 0;
+  const raiz = elemento('raiz');
+  montarSelector(raiz, {
+    producto: 'basico', duracion: 1,
+    onElegir: () => { elegidas += 1; return new Promise((ok, mal) => pendientes.push({ ok, mal })); },
+  });
+
+  toqueHora(raiz); toqueHora(raiz); toqueHora(raiz);
+  assert.equal(elegidas, 1, 'tres toques seguidos: una sola elección');
+
+  pendientes[0].ok();
+  await esperar();
+  toqueHora(raiz); toqueHora(raiz);
+  assert.equal(elegidas, 2, 'tras terminar con éxito se puede elegir otra vez, de a una');
+
+  // En /reservar/reubicar/ un fallo de red rechaza onElegir: el error sigue saliendo en la consola.
+  const errores = [];
+  const consola = console.error;
+  console.error = (e) => errores.push(e);
+  pendientes[1].mal(new Error('sin conexión'));
+  await esperar();
+  console.error = consola;
+  assert.equal(errores[0]?.message, 'sin conexión', 'el error no se pierde');
+  toqueHora(raiz);
+  assert.equal(elegidas, 3, 'tras un error también se suelta');
+  pendientes[2].ok();
 });

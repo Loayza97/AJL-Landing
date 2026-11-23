@@ -134,11 +134,19 @@ export function montarSelector(raiz, { producto, duracion, onElegir, urlHoras, m
       + grupo('Mañana', delDia.filter((h) => parseInt(h.hora, 10) < 12)) + grupo('Tarde', delDia.filter((h) => parseInt(h.hora, 10) >= 12));
   }
 
+  // Mientras se aparta (o reubica) una hora, los demás toques en horas se ignoran:
+  // un doble toque mandaba dos pedidos y retenía dos horas (auditoría 23-nov-2026).
+  let eligiendo = false;
+
   raiz.addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
     if (b.classList.contains('sel-hora')) {
-      onElegir({ inicio: b.dataset.inicio, nutricionista: b.dataset.nutri, modalidad: estado.modalidad, nutricionistaNombre: b.dataset.nombre });
+      if (eligiendo) return;
+      eligiendo = true;
+      new Promise((ok) => ok(onElegir({ inicio: b.dataset.inicio, nutricionista: b.dataset.nutri, modalidad: estado.modalidad, nutricionistaNombre: b.dataset.nombre })))
+        .catch((err) => console.error(err))
+        .finally(() => { eligiendo = false; });
     } else if (b.dataset.modalidad) {
       estado.modalidad = b.dataset.modalidad; cargar();
     } else if (b.dataset.filtro) {
