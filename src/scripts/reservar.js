@@ -183,6 +183,9 @@ function abrirP4(reserva) {
       : `Acepto el cobro mensual automático de ${soles(reserva.monto_centimos)} hasta que cancele.`;
   }
   $('#p4-pagar').textContent = mensual ? 'Suscribirme con Mercado Pago' : `Pagar ${soles(reserva.monto_centimos)}`;
+  // Al entrar al paso 4, «Pagar» siempre activo: tras un 410 (hora vencida) quedaba
+  // desactivado y no respondía hasta recargar (auditoría 23-nov-2026).
+  $('#p4-pagar').disabled = false;
   $('#p4-error').textContent = '';
   clearInterval(estado.reloj);
   const tick = () => {

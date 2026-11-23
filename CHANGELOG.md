@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## Pendiente de publicar
+
+- /reservar/: si la hora apartada se vencía justo al tocar «Pagar» (el servidor responde que el plazo terminó), la página volvía al calendario pero, al elegir otra hora, el botón «Pagar» del paso 4 quedaba desactivado y no respondía hasta recargar, y al recargar se perdía lo escrito. Ahora el paso 4 siempre abre con «Pagar» activo. Encontrado en la auditoría de la web del 23-nov-2026; arreglo autorizado por Alejandro el 23-nov-2026. Rama `fix/bugs-pago-reservar`, en la versión de prueba.
+
 ## 2026-11-23 · publicado
 
 - La web deja de decir «vida real» hacia afuera (decisión del ADN, 22-nov-2026: es palabra interna; hacia afuera, «sin renunciar a tu vida»). Cambian la descripción para Google (`SITE_DESCRIPTION` y la de `Layout.astro`), el pie de página, la llamada final, la pregunta sobre restaurantes, el título «Estructura sin renunciar a tu vida» y la página de condiciones. Publicado con aprobación de Alejandro.
