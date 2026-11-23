@@ -25,10 +25,9 @@ const h = (tag, cls, texto) => {
 };
 
 function tarjetaDuracion(o, precioMes) {
-  const b = h('button', o.meses === 3 ? 'rs-dur rs-dur--star' : 'rs-dur');
+  const b = h('button', 'rs-dur');
   b.type = 'button';
   b.dataset.duracion = String(o.meses);
-  if (o.meses === 3) b.append(h('span', 'rs-badge', 'Recomendado'));
   b.append(h('b', 'rs-dur-t', o.meses === 1 ? 'Mes a mes' : `${o.meses} meses`));
   const precio = h('span', 'rs-dur-p');
   if (o.ahorro) precio.append(h('s', null, formatoSoles(precioMes)));

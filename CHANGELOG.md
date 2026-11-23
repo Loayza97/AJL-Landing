@@ -5,6 +5,7 @@ Cambios visibles del sitio y de la reserva web, del más reciente al más antigu
 ## Pendiente de publicar
 
 - /reservar/ y condiciones: la web deja de decir que el cobro mensual automático acepta Yape. En el paso 2 de /reservar/, la opción «Pago mensual automático» decía «Se cobra solo con tu tarjeta o Yape» (paquetes de 3 y 6 meses) y «Se cobra solo cada mes con tu tarjeta o Yape»; ahora dice «con tarjeta de crédito o débito». En las condiciones del servicio, el cobro mensual automático pasa a ser «con tarjeta de crédito o débito» (antes «con tarjeta o Yape»), y la versión de las condiciones sube a 2026-11-23. El pago completo sigue aceptando Yape. Decisión de Alejandro del 23-nov-2026 («No se puede Yape en el cobro mensual»); la contradicción salió en la auditoría de la web del 23-nov-2026. Rama `fix/yape-cobro-mensual`, en la versión de prueba.
+- /reservar/ paso 2: ninguna duración queda destacada. La tarjeta de 3 meses ya no lleva la etiqueta «Recomendado» ni el borde dorado, y en el celular ya no sube al primer lugar (las duraciones quedan en orden: mes a mes, 3 y 6 meses). La etiqueta «Recomendado» del plan de 2 sesiones al mes en el paso 1 se queda. Lo pidió Alejandro el 23-nov-2026 («la etiqueta recomendada debe estar en la opción quincenal, más allá de en un mes»). Rama `fix/yape-cobro-mensual`, en la versión de prueba.
 
 ## 2026-11-23 · publicado (bugs del pago en /reservar/)
 

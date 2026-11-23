@@ -59,8 +59,6 @@
 /* Pantalla 2 · opción B */
 .rs-duraciones { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .rs-dur { display: flex; flex-direction: column; gap: 8px; text-align: left; background: var(--paper); border: 1px solid var(--hair); border-radius: 14px; padding: 20px; font: inherit; color: var(--ink); cursor: pointer; }
-.rs-dur--star { border: 1.5px solid var(--gold); box-shadow: 0 12px 32px rgba(17, 17, 17, .08); }
-.rs-dur .rs-badge { align-self: flex-start; }
 .rs-dur-t { font-size: 1.15rem; }
 .rs-dur-p { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .rs-dur-p s { color: #6B6B6B; font-size: 1.05rem; font-weight: 600; }
@@ -70,7 +68,7 @@
 .rs-dur-cuotas { color: var(--gold-ink); font-size: .95rem; font-weight: 700; }
 .rs-ahorro { align-self: flex-start; font-size: .82rem; font-weight: 700; color: var(--gold-ink); background: var(--gold-pale); border-radius: 8px; padding: 4px 9px; }
 .rs-dur-cta { margin-top: auto; }
-.rs-dur:not(.rs-dur--star) .rs-dur-cta { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+.rs-dur .rs-dur-cta { background: var(--paper); color: var(--ink); border-color: var(--ink); }
 .rs-consultas { display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--hair); border-radius: 12px; padding: 16px 18px; margin-top: 16px; font-size: .92rem; }
 .rs-consultas > b { font-size: 1rem; }
 .rs-incluye-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
@@ -175,11 +173,10 @@ button.sel-d[aria-pressed=true] { background: var(--ink); color: #fff; }
 .rs-forma-op ul { list-style: disc; margin: 0; padding-left: 18px; font-size: .9rem; color: #2B2B2B; }
 #p2-seguir { margin-top: 16px; }
 
-/* Celular: tarjetas apiladas; en la pantalla 2, 3 meses primero */
+/* Celular: tarjetas apiladas */
 @media (max-width: 760px) {
   .rs-planes, .rs-duraciones, .rs-sueltas { grid-template-columns: minmax(0, 1fr); }
   .rs-parejas { max-width: none; }
-  .rs-dur--star { order: -1; }
   .rs-incluye-lista { grid-template-columns: minmax(0, 1fr); }
   .rs-dos { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .sel-cuerpo { grid-template-columns: minmax(0, 1fr); gap: 16px; }
