@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-22 · sin publicar
+
+- Portada, preguntas frecuentes y /reservar/: ya no se anuncia la evaluación del primer mes de los planes de 2 y 4 sesiones (la etiqueta «+ 1 evaluación el primer mes», la nota «La evaluación: al cierre del primer mes…», la frase de la pregunta «¿En qué se diferencia cada plan?», la línea del detalle del plan y la de «Incluye» y las tarjetas del paso 2 de /reservar/). La evaluación sigue existiendo y la agenda la sigue contando (`firstMonthEval`). Decisión de Alejandro, 22-nov-2026. El banner de WhatsApp y el guion todavía la mencionan.
+
 ## 2026-11-22 · publicado (video y plan parejas)
 
 - Plan Parejas en la web, como producto de lanzamiento con la etiqueta «Nuevo» (decisión de Alejandro del 22-nov-2026). Portada: un aviso «Nuevo · Plan Parejas» arriba de los planes, que lleva al bloque nuevo, justo debajo de los planes individuales. Los textos son los del banner aprobado (`banner-parejas`): 5 sesiones a S/275 al mes cada uno, 7 sesiones ★ Recomendado a S/325, y 1 mes sin paquete a S/420 cada uno. /reservar/ (paso 1): una tarjeta «Para venir de a dos». Se compra por WhatsApp, con el mensaje «Hola, vengo de la web y quiero el Plan Parejas.» y la conversión registrada como `parejas` / `reservar_parejas`. El checkout no lo vende: todavía no registra a dos personas. Publicado con aprobación de Alejandro (22-nov-2026).

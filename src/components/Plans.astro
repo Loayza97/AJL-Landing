@@ -7,8 +7,8 @@
 // Reglas de contenido que no se deben romper (README del banner):
 //   - Sin nombres de plan: se dicen por sesiones al mes. «Acompañamiento
 //     continuo» no es un plan, es lo que incluyen los tres.
-//   - «+ 1 evaluación el primer mes» solo en 2 y 4 sesiones, con esas palabras.
-//     Nunca «regalo» ni «bono».
+//   - La evaluación del primer mes (2 y 4 sesiones) ya no se anuncia en la web
+//     (Alejandro, 22-nov-2026); sigue existiendo y cuenta en la agenda (`firstMonthEval`).
 //   - «El que recomendamos» aparece una sola vez (2 sesiones).
 //   - Sin tachados, sin porcentajes, sin ahorro (el ahorro se muestra solo en /reservar). Sin recargo por tarjeta.
 //   - Cada duración muestra lo que se paga al mes (banner «Cuánto pagas al mes», Joaquín 2026-10-30).
@@ -73,7 +73,6 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
                 </span>
               </span>
             </span>
-            {p.firstMonthEval && <span class="ap-eval">+ 1 evaluación el primer mes</span>}
           </div>
           <div class="ap-precio" role="cell">
             <span class="ap-lbl">1 mes</span>
@@ -102,8 +101,6 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
         </div>
       ))}
     </div>
-
-    <p class="ap-nota"><b>La evaluación:</b> al cierre del primer mes medimos tu avance y decides cómo sigues.</p>
 
     <div class="ap-sola">
       <div>
@@ -221,19 +218,15 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
 .ap-plan { display: flex; flex-direction: column; gap: 4px; }
 .ap-k { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--gold-ink); }
 .ap-plan b { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
-.ap-eval { align-self: flex-start; margin-top: 4px; font-size: 12.5px; font-weight: 700; color: var(--gold-ink); border: 1px solid var(--gold); border-radius: 99px; padding: 4px 11px; white-space: nowrap; }
 .ap-precio { text-align: center; }
 .ap-fila .ap-precio { padding-top: 22px; }
-/* El botón se centra en la línea de los números, no en la fila (las filas con
-   «+ 1 evaluación» son más altas y lo bajaban). */
+/* El botón se centra en la línea de los números, no en la fila. */
 .ap-fila .ap-cta { align-self: start; margin-top: 12px; }
 .ap-sola .ap-cta { align-self: center; }
 .ap-lbl { display: none; font-size: 12px; color: var(--muted); font-weight: 600; }
 .ap-pr { display: block; font-weight: 800; font-size: 27px; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ap-cu { font-size: .62em; margin-right: 1px; }
 .ap-eq { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
-.ajl-planes .ap-nota { border-left: 3px solid var(--gold); padding: 2px 0 2px 14px; font-size: 14.5px; color: var(--muted); line-height: 1.45; }
-.ap-nota b { color: var(--ink); }
 
 /* Una sola sesión */
 .ap-sola { display: grid; grid-template-columns: 1.7fr 1.95fr 150px; align-items: center; column-gap: 12px; padding: 18px 14px; border: 1px solid var(--hair); border-radius: 10px; }

@@ -95,7 +95,6 @@ export const plans = {
     checkoutSummary: [
       '1 sesión de 60 min al mes, en Lince o por videollamada',
       '1 control virtual de 30 min a mitad de mes',
-      '**+ 1 evaluación el primer mes, sin costo adicional**: un control más para medir tu avance y decidir cómo sigues',
       'Tu plan nutricional en la app',
       'Equipo de nutricionistas por WhatsApp (L–V 9–18 h, S 9–13 h)',
       '2 clases grupales en vivo por semana y comunidad',
@@ -125,7 +124,6 @@ export const plans = {
     checkoutSummary: [
       '2 sesiones de 60 min al mes, en Lince o por videollamada',
       '2 controles virtuales de 30 min al mes',
-      '**+ 1 evaluación el primer mes, sin costo adicional**: un control más para medir tu avance y decidir cómo sigues',
       '2 planes nutricionales en la app',
       'Equipo de nutricionistas por WhatsApp (L–V 9–18 h, S 9–13 h)',
       '2 clases grupales en vivo por semana y comunidad',
