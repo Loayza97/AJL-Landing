@@ -287,7 +287,8 @@ const trust = [
 
 
 /* Pantallas de escritorio bajas (laptops de 720–800 px de alto): se compacta
-   el hero para que asomen las tarjetas de «Así funciona». */
+   el hero para que asome el video «cómo trabajamos» con su botón de play
+   (1280 × 800: el play queda a ~700 px). */
 @media (min-width: 769px) and (max-height: 800px) {
   .hero { padding-block: 4.75rem 1.75rem; }
   .hero__title { font-size: clamp(2.5rem, 6vw, 4rem); margin-block: 1rem 1.25rem; }
@@ -295,7 +296,10 @@ const trust = [
 }
 
 /* Celular: el área visible real ronda los 700 px (iPhone con barras de
-   Safari). Se compacta para que asomen los dibujos de «Así funciona». */
+   Safari). Se compacta para que asome el video «cómo trabajamos»: con
+   390 px de ancho el hero mide ~380 px, el video empieza a ~400 px y su play
+   queda entre ~410 y ~560 px (vertical u horizontal), visible también en
+   390 × 620. Si el hero crece, revisar. */
 @media (max-width: 768px) {
   .hero { padding-block: 3.25rem 1.5rem; }
   .hero__title { margin-block: 0.75rem 1.25rem; }
