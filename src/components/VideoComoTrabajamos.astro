@@ -1,0 +1,265 @@
+---
+// ─── Video «cómo trabajamos» (reemplaza a «Así funciona» en la portada) ──────
+// Pedido de Alejandro, 22-nov-2026: «nadie ve esas 5 viñetas». Es el mismo
+// video que el equipo manda en la F6 del WhatsApp, en dos formatos, comprimidos
+// para la web (H.264, +faststart). Los originales no están en el repo.
+//   - Horizontal 16:9 (como-trabajamos-f6-2026-11-12.mp4): en escritorio, siempre.
+//   - Vertical 9:16 (Asesoramiento Video.mov): en celular, por defecto.
+//   - Para comparar en el celular: ?video=horizontal o ?video=vertical.
+//   - Sin autoplay. preload="none": no baja nada del video hasta el play. El
+//     poster lo pone el script de abajo según el formato, para no bajar los dos.
+//   - Subtítulos en español (.vtt, el mismo para los dos: el audio es igual),
+//     activables desde los controles del video.
+//   - Mide play, 50 % y 100 % en GA4 y en ab_eventos (POST /api/ab, el mismo
+//     camino del botón A/B del hero). ab_eventos necesita la migración 0020.
+//   - El título y la bajada los propuso la IA (22-nov-2026): revisar.
+// Si se vuelve a «Así funciona»: HowItWorks.astro sigue en src/components/.
+const DURACION = '1:24';
+---
+
+<section id="section-video" class="section vct" aria-labelledby="vct-titulo">
+  <div class="container vct__inner">
+    <div class="vct__texto">
+      <p class="label">Cómo trabajamos</p>
+      <h2 class="title vct__titulo" id="vct-titulo">Mira cómo te acompañamos</h2>
+      <p class="vct__bajada">
+        En poco más de un minuto: tu sesión, tu plan y cómo te acompaña el equipo después.
+      </p>
+      <a href="#section-packages" class="btn-primary vct__cta" data-cta="video_primary">Ver los planes →</a>
+    </div>
+
+    <div class="vct__marco" id="vct-marco">
+      <video
+        class="vct__video"
+        id="vct-video"
+        controls
+        playsinline
+        preload="none"
+        width="1280"
+        height="720"
+        aria-label={`Video: cómo trabajamos en AJL Nutrición (${DURACION})`}
+      >
+        <source src="/video/como-trabajamos.mp4" type="video/mp4" />
+        <track kind="captions" src="/video/como-trabajamos.es.vtt" srclang="es" label="Español" />
+      </video>
+      <button type="button" class="vct__play" id="vct-play" hidden aria-label={`Ver el video (${DURACION})`}>
+        <span class="vct__play-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+        </span>
+        <span class="vct__play-texto">Ver video · {DURACION}</span>
+      </button>
+      <noscript><style>.vct__video { background: url('/video/como-trabajamos-poster.jpg') center / cover; }</style></noscript>
+    </div>
+    <script is:inline>
+      // Formato del video, antes de pintar (así no salta el alto ni se bajan los
+      // dos posters). Celular (≤ 768 px): vertical, salvo ?video=horizontal.
+      // Escritorio: horizontal siempre.
+      (function () {
+        var marco = document.getElementById('vct-marco');
+        var video = document.getElementById('vct-video');
+        var pedido = new URLSearchParams(location.search).get('video');
+        var movil = matchMedia('(max-width: 768px)').matches;
+        var vertical = movil && pedido !== 'horizontal';
+        var base = '/video/como-trabajamos' + (vertical ? '-vertical' : '');
+        marco.setAttribute('data-formato', vertical ? 'vertical' : 'horizontal');
+        if (vertical) {
+          video.setAttribute('width', '720');
+          video.setAttribute('height', '1280');
+          // Sin video.load(): en Chrome eso baja el comienzo del mp4 aunque el
+          // preload sea "none". El navegador elige la fuente recién después de
+          // este script, así que basta con cambiarla.
+          video.querySelector('source').setAttribute('src', base + '.mp4');
+        }
+        video.setAttribute('poster', base + '-poster.jpg');
+      })();
+    </script>
+  </div>
+</section>
+
+<script>
+  // Botón de play grande sobre el poster (con JS); sin JS quedan los controles nativos.
+  // Al tocarlo: aparecen los controles nativos y arranca con sonido (lo pidió la persona).
+  const video = document.getElementById('vct-video') as HTMLVideoElement | null;
+  const play = document.getElementById('vct-play') as HTMLButtonElement | null;
+
+  if (video && play) {
+    video.removeAttribute('controls');
+    play.hidden = false;
+
+    const mostrarControles = () => {
+      video.setAttribute('controls', '');
+      play.hidden = true;
+    };
+    play.addEventListener('click', () => {
+      mostrarControles();
+      // Seguro: si el navegador eligió la fuente antes de que el script del
+      // formato la cambiara, se recarga con la correcta antes del play.
+      const fuente = video.querySelector('source')?.src;
+      if (fuente && video.currentSrc && video.currentSrc !== fuente) video.load();
+      // Los subtítulos no se encienden solos: el video ya trae palabras clave
+      // quemadas abajo al centro y se encimarían. Se activan con «CC».
+      video.play().catch(() => {});
+    });
+    // Si arranca por otro lado (teclado, controles del sistema), igual se ven los controles.
+    video.addEventListener('play', mostrarControles);
+
+    // ── Medición: play, 50 % y 100 %, una vez por carga de página ──────────────
+    // GA4 con los nombres estándar de video; ab_eventos por /api/ab, con la
+    // versión del botón del hero que vio esta persona (la deja el script del hero
+    // en data-variante). Con ?version=a|b (revisión del equipo) no se cuenta en
+    // ab_eventos, igual que el botón.
+    const forzada = new URLSearchParams(location.search).get('version');
+    const revision = forzada === 'a' || forzada === 'b';
+    const variante = document.getElementById('hero-cta')?.getAttribute('data-variante');
+    const formato = document.getElementById('vct-marco')?.getAttribute('data-formato') ?? 'horizontal';
+    const enviados = new Set<string>();
+    const GA: Record<string, [string, Record<string, unknown>]> = {
+      play: ['video_start', { video_percent: 0 }],
+      p50: ['video_progress', { video_percent: 50 }],
+      p100: ['video_complete', { video_percent: 100 }],
+    };
+
+    const registrar = (evento: 'play' | 'p50' | 'p100') => {
+      if (enviados.has(evento)) return;
+      enviados.add(evento);
+      const [nombre, extra] = GA[evento];
+      const w = window as unknown as { gtag?: (...a: unknown[]) => void };
+      if (typeof w.gtag === 'function') {
+        w.gtag('event', nombre, { video_title: 'como_trabajamos', video_provider: 'ajl', video_format: formato, ...extra });
+      }
+      if (revision || (variante !== 'a' && variante !== 'b')) return;
+      const cuerpo = JSON.stringify({ experimento: 'video_como_trabajamos', evento, variante });
+      if (navigator.sendBeacon) navigator.sendBeacon('/api/ab', cuerpo);
+      else fetch('/api/ab', { method: 'POST', body: cuerpo, keepalive: true }).catch(() => {});
+    };
+
+    video.addEventListener('play', () => registrar('play'));
+    video.addEventListener('timeupdate', () => {
+      if (video.duration && video.currentTime / video.duration >= 0.5) registrar('p50');
+    });
+    video.addEventListener('ended', () => registrar('p100'));
+  }
+</script>
+
+<style>
+.vct {
+  background: var(--crema);
+  /* Poco aire arriba: el poster con el botón de play tiene que asomar bajo el
+     hero al cargar la página (celular 390 × 844 y 390 × 620). */
+  padding-top: clamp(1.25rem, 4vw, 3.5rem);
+}
+
+.vct__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Celular: el video va primero (visualmente) para que asome en la primera
+   pantalla; en el HTML el título sigue antes, para lectores de pantalla. */
+.vct__marco { order: -1; }
+
+.vct__titulo { margin-bottom: 0.75rem; }
+
+.vct__bajada {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.6;
+  color: var(--ink);
+  max-width: 34rem;
+}
+
+.vct__cta { margin-top: 1.5rem; }
+
+.vct__marco {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--verde-osc);
+  box-shadow: var(--shadow);
+  aspect-ratio: 16 / 9;
+}
+
+/* Vertical (celular): 9:16 a todo el ancho. El play va arriba a la izquierda,
+   sobre la planta: así asoma también en 390 × 620 y no tapa la cara. */
+.vct__marco[data-formato='vertical'] { aspect-ratio: 9 / 16; }
+.vct__marco[data-formato='vertical'] .vct__play {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(23, 60, 44, 0.35) 0%, rgba(23, 60, 44, 0) 30%);
+}
+
+.vct__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--verde-osc);
+}
+
+/* Botón de play: pastilla terracota centrada, con la duración. */
+.vct__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  border: 0;
+  /* Corrido hacia abajo (el % se mide sobre el ancho): queda sobre el pecho,
+     sin tapar la cara del poster ni el rótulo quemado de abajo. */
+  padding: 20% 0 0;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  /* Leve oscurecido para que el botón se lea sobre cualquier cuadro. */
+  background: linear-gradient(180deg, rgba(23, 60, 44, 0) 40%, rgba(23, 60, 44, 0.35) 100%);
+}
+.vct__play[hidden] { display: none; }
+
+.vct__play-icono {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--dorado);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.35), 0 10px 26px rgba(23, 60, 44, 0.35);
+  transition: transform var(--transition), background var(--transition);
+}
+.vct__play-icono svg { margin-left: 3px; }
+
+.vct__play-texto {
+  background: rgba(23, 60, 44, 0.78);
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  letter-spacing: 0.2px;
+}
+
+.vct__play:hover .vct__play-icono { transform: scale(1.06); background: var(--dorado-osc); }
+.vct__play:focus-visible { outline: 3px solid var(--dorado); outline-offset: -3px; }
+
+/* Escritorio: texto a la izquierda (alineado con el del hero) y video a la
+   derecha, donde no lo tapa el aviso de cookies (abajo a la izquierda). */
+@media (min-width: 900px) {
+  .vct__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 3.5rem);
+  }
+  .vct__marco { order: 0; }
+  .vct__play-icono { width: 76px; height: 76px; }
+}
+
+@media (min-width: 769px) and (max-height: 800px) {
+  .vct { padding-top: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vct__play-icono { transition: none; }
+}
+</style>

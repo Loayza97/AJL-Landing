@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## Sin publicar
+
+- Portada: sale «Así funciona» (los 5 pasos con dibujos; `HowItWorks.astro` queda en el repo por si se vuelve) y entra el video «cómo trabajamos» (1:24, el mismo de la F6 del WhatsApp), con el título «Mira cómo te acompañamos» y el botón «Ver los planes →» (título y bajada propuestos por IA, por revisar). En el celular va el video vertical y en escritorio el horizontal. Para comparar en el celular: `?video=horizontal` o `?video=vertical`. Sin autoplay, no baja nada hasta el play (solo el poster), subtítulos en español activables y botón de play que asoma en la primera pantalla del celular (390 × 844 y 390 × 620). Mide play, 50 % y 100 % en GA4 (`video_start`, `video_progress`, `video_complete`, con `video_format`) y en `ab_eventos` (experimento `video_como_trabajamos`, por `/api/ab`, con la versión del botón del hero). **Antes de publicar hay que aplicar la migración `db/d1/0020_ab_video.sql`** en prueba y en producción: sin ella, los eventos del video no se guardan (el resto de la página funciona igual). Lo pidió Alejandro (22-nov-2026).
+
 ## 2026-11-22 · publicado
 
 - /reservar/ y /agenda/: se puede reservar para pacientes desde los 5 años (antes, desde los 10). La lista de años de la fecha de nacimiento empieza 5 años atrás y la web y el servidor aceptan de 5 a 100 años, tanto si la sesión es para quien paga como si es para otra persona. Antes un padre no podía pagar en la web la sesión de un hijo de 5 a 9 años. Lo pidió Alejandro (decisión 3 del rediseño web: se atiende desde los 5 años, siempre con un adulto).
