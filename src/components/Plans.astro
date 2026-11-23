@@ -15,7 +15,7 @@
 //   - La sesión única es «Compra única», nunca «/mes».
 //   - Clases pbtn / data-section / data-pkg / aria-label: las usa la medición.
 //   - Tipografía Montserrat 400–800 (reemplazo web de Gilroy), sin serifas.
-import { monthlyPlans, singlePlan, includedInAll, paymentMethods } from '../data/plans.js';
+import { monthlyPlans, singlePlan, includedInAll, paymentMethods, planParejas } from '../data/plans.js';
 
 // Detalle del ícono «i» (mismo `checkoutSummary` que el checkout).
 const detalle = (items) => items.map(t => t.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'));
@@ -34,6 +34,13 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
   <div class="ap-inner">
     <p class="ap-eyebrow">Planes</p>
     <h2 class="ap-hl">Estamos contigo durante todo el proceso</h2>
+
+    <!-- Producto de lanzamiento (22-nov-2026): lleva al bloque de PlanParejas.astro, justo debajo de estos planes -->
+    <a class="ap-nuevo" href="#section-parejas" data-section="paquetes" data-pkg={planParejas.name}>
+      <span class="ap-nuevo-tag">{planParejas.badge}</span>
+      <span class="ap-nuevo-txt"><b>{planParejas.name}</b> · desde S/{Math.min(...planParejas.paquetes.map(o => o.cadaUno))} al mes cada uno</span>
+      <span class="ap-nuevo-ir" aria-hidden="true">Ver ↓</span>
+    </a>
 
     <h3 class="ap-gt">Te acompañamos todo el mes</h3>
     <ul class="ap-incluye">
@@ -184,6 +191,14 @@ const alMes = (prog) => prog.perMes.replace(/^S\/|\s*al mes$/g, '');
 .ajl-planes .ap-hl { font-size: clamp(28px, 5vw, 40px); font-weight: 800; letter-spacing: -.035em; line-height: 1.06; text-align: center; text-wrap: balance; }
 .ap-hl::after { content: ""; display: block; width: 52px; height: 3px; background: var(--gold); border-radius: 2px; margin: 14px auto 0; }
 .ajl-planes .ap-gt { font-size: clamp(19px, 2.6vw, 22px); font-weight: 800; letter-spacing: -.03em; margin-top: 6px; }
+
+/* Aviso «Nuevo · Plan Parejas» (lleva a #section-parejas) */
+.ap-nuevo { align-self: center; display: inline-flex; align-items: center; gap: 10px; max-width: 100%; padding: 8px 14px 8px 8px; border: 1.5px solid var(--gold); border-radius: 99px; color: var(--ink); text-decoration: none; font-size: 14.5px; line-height: 1.25; transition: background .15s ease; }
+.ap-nuevo:hover { background: #FAF6EC; }
+.ap-nuevo:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.ap-nuevo-tag { flex: none; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #fff; background: var(--gold-ink); border-radius: 99px; padding: 5px 10px; }
+.ap-nuevo-txt b { font-weight: 800; }
+.ap-nuevo-ir { flex: none; font-weight: 700; color: var(--gold-ink); white-space: nowrap; }
 
 /* Lo que incluye: lista grande con íconos dorados */
 /* Una sola columna: con 2 × 2 el ítem de dos líneas desalineaba la grilla */

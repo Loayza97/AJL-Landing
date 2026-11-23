@@ -152,6 +152,42 @@ export const includedInAll = [
   { icon: 'phone', text: 'Tu plan en la app, con todo lo que conversamos en tu sesión' },
 ];
 
+// ─── Plan Parejas (producto de lanzamiento, 22-nov-2026) ─────────────────────
+// A propósito NO está dentro de `plans`: el checkout (server/reservas/catalogo.mjs,
+// suscripciones/calculo.mjs, duraciones.js) vende cualquier clave de `plans`, y
+// registrar a dos personas en /reservar/ todavía no existe. Para el lanzamiento se
+// compra por WhatsApp.
+// Textos: iguales al banner aprobado (02-comercial/banners/banner-precios-v2/
+// banner-parejas.html). Precios y sesiones: decisión del 22-nov-2026
+// («Proceso de gestion de leads/4-decisiones/2026-11-22-plan-parejas-pricing.md»).
+// Reglas: precio por persona en grande, sin tachados ni urgencia, nunca «el más
+// elegido», sin promesas, voz en «nosotros».
+export const planParejas = {
+  id: 'parejas',
+  // Nombres internos (Hoja de Asesorías): «Pareja Acompañamiento» y «Pareja Constancia».
+  name: 'Plan Parejas',
+  badge: 'Nuevo',
+  tagline: 'Un plan pensado para la vida en pareja: comer juntos, salir y seguir disfrutando.',
+  // 3 meses, en cuotas mensuales. `cadaUno` y `losDos` son la cuota de cada mes.
+  paquetes: [
+    { internalName: 'Pareja Acompañamiento', sesiones: 5, frecuencia: ['3 el primer mes,', 'luego 1 al mes'], cadaUno: 275, losDos: 550, totalLosDos: 1650, highlight: false },
+    { internalName: 'Pareja Constancia', sesiones: 7, frecuencia: ['3 el primer mes,', 'luego cada 15 días'], cadaUno: 325, losDos: 650, totalLosDos: 1950, highlight: true },
+  ],
+  badgeRecomendado: '★ Recomendado',
+  // 1 mes, sin paquete.
+  mesSuelto: { sesiones: 3, detalle: 'Un mes de seguimiento', cadaUno: 420, losDos: 840 },
+  entreSesiones: [
+    { icon: 'chat',  text: 'Un chat con nuestro equipo de nutricionistas' },
+    { icon: 'group', text: '2 sesiones grupales en vivo por semana' },
+    { icon: 'phone', text: 'Un plan en la app para cada uno' },
+    { icon: 'cal',   text: 'Sesiones de 1 hora en Lince o virtuales' },
+  ],
+  nota: 'La primera sesión es una para cada uno; las demás, juntos.',
+  // Mensaje del botón: «vengo de la web» es la marca de origen de todos los CTA
+  // (ver WA_DEFAULT_MESSAGE en src/config.js) y nombra el producto porque ya lo eligió.
+  waMensaje: 'Hola, vengo de la web y quiero el Plan Parejas.',
+};
+
 // Formas de pago. Sin recargo por tarjeta en ningún canal (D7.1, 30-sep-2026).
 export const paymentMethods = [
   { id: 'yape',          label: 'Yape',          icon: '📱', note: null },
