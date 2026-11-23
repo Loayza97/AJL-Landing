@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-23 · publicado
+
+- La web deja de decir «vida real» hacia afuera (decisión del ADN, 22-nov-2026: es palabra interna; hacia afuera, «sin renunciar a tu vida»). Cambian la descripción para Google (`SITE_DESCRIPTION` y la de `Layout.astro`), el pie de página, la llamada final, la pregunta sobre restaurantes, el título «Estructura sin renunciar a tu vida» y la página de condiciones. Publicado con aprobación de Alejandro.
+
 ## 2026-11-22 · publicado (evaluación, Plan Parejas sin «desde», cookies)
 
 - Plan Parejas: el aviso «Nuevo» de la portada y la tarjeta de /reservar/ ya no dicen «desde S/275 al mes cada uno» (justo debajo aparecía el plan individual de 3 meses a S/270 y la pareja parecía más cara). El aviso dice «Plan Parejas · para venir de a dos» y la tarjeta, «Lo coordinamos por WhatsApp». Aviso de cookies en el celular más compacto (márgenes, letra y botones), con el mismo texto y los dos botones iguales, para que tape menos la portada del video. Alejandro, 22-nov-2026.

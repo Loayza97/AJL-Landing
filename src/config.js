@@ -45,7 +45,7 @@ export const WA_FALLBACK_URL = `https://wa.me/${WA_NUMBER}?text=${encodeURICompo
 
 export const SITE_TITLE = 'AJL Nutrición · Nutricionista en Lince, Lima · Sin dietas rígidas';
 export const SITE_DESCRIPTION =
-  `Nutricionista en Lince, Lima. Planes personalizados para tu vida real: tus restaurantes, delivery y cenas de trabajo, sin restricciones absurdas ni culpa. Evaluación nutricional desde S/${EVALUACION.price}.`;
+  `Nutricionista en Lince, Lima. Planes personalizados para comer sin renunciar a tu vida: tus restaurantes, delivery y cenas de trabajo, sin restricciones absurdas ni culpa. Evaluación nutricional desde S/${EVALUACION.price}.`;
 export const OG_IMAGE = '/og-image.jpg';
 
 // IDs de pixels. Se cargan SOLO tras el consentimiento del visitante
