@@ -1,18 +1,22 @@
 ---
 // ─── Video «cómo trabajamos» (reemplaza a «Así funciona» en la portada) ──────
 // Pedido de Alejandro, 22-nov-2026: «nadie ve esas 5 viñetas». Es el mismo
-// video que el equipo manda en la F6 del WhatsApp, en dos formatos, comprimidos
-// para la web (H.264, +faststart). Los originales no están en el repo.
-//   - Horizontal 16:9 (como-trabajamos-f6-2026-11-12.mp4): en escritorio, siempre.
-//   - Vertical 9:16 (Asesoramiento Video.mov): en celular, por defecto.
-//   - Para comparar en el celular: ?video=horizontal o ?video=vertical.
-//   - Sin autoplay. preload="none": no baja nada del video hasta el play. El
-//     poster lo pone el script de abajo según el formato, para no bajar los dos.
-//   - Subtítulos en español (.vtt, el mismo para los dos: el audio es igual),
-//     activables desde los controles del video.
+// video que el equipo manda en la F6 del WhatsApp (como-trabajamos-f6-2026-11-12),
+// horizontal 16:9 en todos los tamaños (lo eligió Alejandro el 22-nov-2026),
+// comprimido para la web (720p, H.264, +faststart). El original no está en el repo.
+//   - Portada antes del play: velo oscuro con título, bajada, play y duración,
+//     en HTML/CSS (se lee y se edita aquí). Desaparece al dar play. El fondo es
+//     un cuadro del propio video (0:26, Alejandro y la foto del equipo),
+//     recortado para sacar el rótulo quemado de abajo.
+//   - Sin autoplay. preload="none" + poster: no baja nada del video hasta el play.
+//   - Subtítulos en español (.vtt), activables desde los controles del video.
 //   - Mide play, 50 % y 100 % en GA4 y en ab_eventos (POST /api/ab, el mismo
 //     camino del botón A/B del hero). ab_eventos necesita la migración 0020.
-//   - El título y la bajada los propuso la IA (22-nov-2026): revisar.
+//   - Textos propuestos por la IA (22-nov-2026), por confirmar: el título y la
+//     bajada de la sección y los de la portada.
+// Versión vertical (9:16): public/video/como-trabajamos-vertical.mp4 y su
+// -poster.jpg siguen en el repo sin usarse. Para volver a ella en el celular,
+// ver el commit 67b9c88 (elegía el formato con un script inline y ?video=).
 // Si se vuelve a «Así funciona»: HowItWorks.astro sigue en src/components/.
 const DURACION = '1:24';
 ---
@@ -20,82 +24,57 @@ const DURACION = '1:24';
 <section id="section-video" class="section vct" aria-labelledby="vct-titulo">
   <div class="container vct__inner">
     <div class="vct__texto">
-      <p class="label">Cómo trabajamos</p>
+      <p class="label vct__label">Cómo trabajamos</p>
       <h2 class="title vct__titulo" id="vct-titulo">Mira cómo te acompañamos</h2>
       <p class="vct__bajada">
-        En poco más de un minuto: tu sesión, tu plan y cómo te acompaña el equipo después.
+        En poco más de un minuto, de la primera sesión al acompañamiento de cada semana.
       </p>
       <a href="#section-packages" class="btn-primary vct__cta" data-cta="video_primary">Ver los planes →</a>
     </div>
 
-    <div class="vct__marco" id="vct-marco">
+    <div class="vct__marco">
       <video
         class="vct__video"
         id="vct-video"
         controls
         playsinline
         preload="none"
+        poster="/video/como-trabajamos-poster.jpg"
         width="1280"
         height="720"
-        aria-label={`Video: cómo trabajamos en AJL Nutrición (${DURACION})`}
+        aria-label={`Video: así es nuestro asesoramiento (${DURACION})`}
       >
         <source src="/video/como-trabajamos.mp4" type="video/mp4" />
         <track kind="captions" src="/video/como-trabajamos.es.vtt" srclang="es" label="Español" />
       </video>
-      <button type="button" class="vct__play" id="vct-play" hidden aria-label={`Ver el video (${DURACION})`}>
+      <button type="button" class="vct__portada" id="vct-play" hidden aria-label={`Ver el video: así es nuestro asesoramiento (${DURACION})`}>
+        <span class="vct__portada-titulo">Así es nuestro asesoramiento</span>
         <span class="vct__play-icono" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="28" height="28"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
+          <svg viewBox="0 0 24 24" width="26" height="26"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor" /></svg>
         </span>
-        <span class="vct__play-texto">Ver video · {DURACION}</span>
+        <span class="vct__portada-bajada">Tu sesión, tu plan y cómo te acompañamos</span>
+        <span class="vct__duracion" aria-hidden="true">{DURACION}</span>
       </button>
-      <noscript><style>.vct__video { background: url('/video/como-trabajamos-poster.jpg') center / cover; }</style></noscript>
     </div>
-    <script is:inline>
-      // Formato del video, antes de pintar (así no salta el alto ni se bajan los
-      // dos posters). Celular (≤ 768 px): vertical, salvo ?video=horizontal.
-      // Escritorio: horizontal siempre.
-      (function () {
-        var marco = document.getElementById('vct-marco');
-        var video = document.getElementById('vct-video');
-        var pedido = new URLSearchParams(location.search).get('video');
-        var movil = matchMedia('(max-width: 768px)').matches;
-        var vertical = movil && pedido !== 'horizontal';
-        var base = '/video/como-trabajamos' + (vertical ? '-vertical' : '');
-        marco.setAttribute('data-formato', vertical ? 'vertical' : 'horizontal');
-        if (vertical) {
-          video.setAttribute('width', '720');
-          video.setAttribute('height', '1280');
-          // Sin video.load(): en Chrome eso baja el comienzo del mp4 aunque el
-          // preload sea "none". El navegador elige la fuente recién después de
-          // este script, así que basta con cambiarla.
-          video.querySelector('source').setAttribute('src', base + '.mp4');
-        }
-        video.setAttribute('poster', base + '-poster.jpg');
-      })();
-    </script>
   </div>
 </section>
 
 <script>
-  // Botón de play grande sobre el poster (con JS); sin JS quedan los controles nativos.
-  // Al tocarlo: aparecen los controles nativos y arranca con sonido (lo pidió la persona).
+  // Portada con play (con JS); sin JS quedan el poster y los controles nativos.
+  // Al tocarla: desaparece, aparecen los controles nativos y arranca con sonido.
   const video = document.getElementById('vct-video') as HTMLVideoElement | null;
-  const play = document.getElementById('vct-play') as HTMLButtonElement | null;
+  const portada = document.getElementById('vct-play') as HTMLButtonElement | null;
 
-  if (video && play) {
+  if (video && portada) {
     video.removeAttribute('controls');
-    play.hidden = false;
+    portada.hidden = false;
 
     const mostrarControles = () => {
       video.setAttribute('controls', '');
-      play.hidden = true;
+      portada.hidden = true;
     };
-    play.addEventListener('click', () => {
+    portada.addEventListener('click', () => {
       mostrarControles();
-      // Seguro: si el navegador eligió la fuente antes de que el script del
-      // formato la cambiara, se recarga con la correcta antes del play.
-      const fuente = video.querySelector('source')?.src;
-      if (fuente && video.currentSrc && video.currentSrc !== fuente) video.load();
       // Los subtítulos no se encienden solos: el video ya trae palabras clave
       // quemadas abajo al centro y se encimarían. Se activan con «CC».
       video.play().catch(() => {});
@@ -111,7 +90,6 @@ const DURACION = '1:24';
     const forzada = new URLSearchParams(location.search).get('version');
     const revision = forzada === 'a' || forzada === 'b';
     const variante = document.getElementById('hero-cta')?.getAttribute('data-variante');
-    const formato = document.getElementById('vct-marco')?.getAttribute('data-formato') ?? 'horizontal';
     const enviados = new Set<string>();
     const GA: Record<string, [string, Record<string, unknown>]> = {
       play: ['video_start', { video_percent: 0 }],
@@ -125,7 +103,7 @@ const DURACION = '1:24';
       const [nombre, extra] = GA[evento];
       const w = window as unknown as { gtag?: (...a: unknown[]) => void };
       if (typeof w.gtag === 'function') {
-        w.gtag('event', nombre, { video_title: 'como_trabajamos', video_provider: 'ajl', video_format: formato, ...extra });
+        w.gtag('event', nombre, { video_title: 'como_trabajamos', video_provider: 'ajl', ...extra });
       }
       if (revision || (variante !== 'a' && variante !== 'b')) return;
       const cuerpo = JSON.stringify({ experimento: 'video_como_trabajamos', evento, variante });
@@ -144,22 +122,27 @@ const DURACION = '1:24';
 <style>
 .vct {
   background: var(--crema);
-  /* Poco aire arriba: el poster con el botón de play tiene que asomar bajo el
-     hero al cargar la página (celular 390 × 844 y 390 × 620). */
+  /* Poco aire arriba: la portada del video, con su play, tiene que asomar bajo
+     el hero al cargar la página (celular 390 × 844 y 390 × 620). */
   padding-top: clamp(1.25rem, 4vw, 3.5rem);
 }
 
+/* Celular: etiqueta y título arriba del video (se leen antes del play); la
+   bajada y el botón, debajo. .vct__texto se «disuelve» para poder ordenar sus
+   hijos alrededor del video. */
 .vct__inner {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
 }
-
-/* Celular: el video va primero (visualmente) para que asome en la primera
-   pantalla; en el HTML el título sigue antes, para lectores de pantalla. */
-.vct__marco { order: -1; }
-
-.vct__titulo { margin-bottom: 0.75rem; }
+.vct__texto { display: contents; }
+/* La etiqueta se oculta en el celular: la portada ya dice qué es y así el play
+   queda por encima del botón flotante de WhatsApp en 390 × 620. */
+.vct__label  { order: 1; display: none; }
+/* En una línea a 390 px: con dos, el play de la portada se corta en 390 × 620. */
+.vct__titulo { order: 2; margin-bottom: 0.9rem; font-size: clamp(1.45rem, 6.4vw, 1.75rem); }
+.vct__marco  { order: 3; }
+.vct__bajada { order: 4; margin-top: 1.1rem; }
+.vct__cta    { order: 5; margin-top: 1.25rem; align-self: flex-start; }
 
 .vct__bajada {
   font-size: clamp(1rem, 2vw, 1.15rem);
@@ -167,8 +150,6 @@ const DURACION = '1:24';
   color: var(--ink);
   max-width: 34rem;
 }
-
-.vct__cta { margin-top: 1.5rem; }
 
 .vct__marco {
   position: relative;
@@ -179,17 +160,6 @@ const DURACION = '1:24';
   aspect-ratio: 16 / 9;
 }
 
-/* Vertical (celular): 9:16 a todo el ancho. El play va arriba a la izquierda,
-   sobre la planta: así asoma también en 390 × 620 y no tapa la cara. */
-.vct__marco[data-formato='vertical'] { aspect-ratio: 9 / 16; }
-.vct__marco[data-formato='vertical'] .vct__play {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 1rem;
-  background: linear-gradient(180deg, rgba(23, 60, 44, 0.35) 0%, rgba(23, 60, 44, 0) 30%);
-}
-
 .vct__video {
   display: block;
   width: 100%;
@@ -198,49 +168,73 @@ const DURACION = '1:24';
   background: var(--verde-osc);
 }
 
-/* Botón de play: pastilla terracota centrada, con la duración. */
-.vct__play {
+/* Portada: velo oscuro sobre el poster, texto blanco y play al centro. */
+.vct__portada {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
+  gap: clamp(0.45rem, 1.6vw, 0.9rem);
+  /* Más aire abajo: el grupo sube un poco y el play se aleja del botón
+     flotante de WhatsApp (abajo a la derecha). */
+  padding: 0.75rem 1rem 1.75rem;
   border: 0;
-  /* Corrido hacia abajo (el % se mide sobre el ancho): queda sobre el pecho,
-     sin tapar la cara del poster ni el rótulo quemado de abajo. */
-  padding: 20% 0 0;
   cursor: pointer;
   color: #fff;
-  font-weight: 700;
-  font-size: 1rem;
-  /* Leve oscurecido para que el botón se lea sobre cualquier cuadro. */
-  background: linear-gradient(180deg, rgba(23, 60, 44, 0) 40%, rgba(23, 60, 44, 0.35) 100%);
+  text-align: center;
+  background:
+    radial-gradient(ellipse at center, rgba(12, 32, 24, 0.68) 0%, rgba(12, 32, 24, 0.84) 100%);
 }
-.vct__play[hidden] { display: none; }
+.vct__portada[hidden] { display: none; }
+
+.vct__portada-titulo {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(1.2rem, 3.2vw, 1.9rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.vct__portada-bajada {
+  font-size: clamp(0.85rem, 1.6vw, 1.05rem);
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+}
 
 .vct__play-icono {
   display: grid;
   place-items: center;
-  width: 64px;
-  height: 64px;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--dorado);
-  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.35), 0 10px 26px rgba(23, 60, 44, 0.35);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.28), 0 10px 26px rgba(0, 0, 0, 0.3);
   transition: transform var(--transition), background var(--transition);
 }
 .vct__play-icono svg { margin-left: 3px; }
 
-.vct__play-texto {
-  background: rgba(23, 60, 44, 0.78);
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.9rem;
-  letter-spacing: 0.2px;
+/* Duración, como en los reproductores: abajo a la derecha. */
+.vct__duracion {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  font-variant-numeric: tabular-nums;
 }
 
-.vct__play:hover .vct__play-icono { transform: scale(1.06); background: var(--dorado-osc); }
-.vct__play:focus-visible { outline: 3px solid var(--dorado); outline-offset: -3px; }
+.vct__portada:hover .vct__play-icono { transform: scale(1.06); background: var(--dorado-osc); }
+.vct__portada:focus-visible { outline: 3px solid var(--dorado); outline-offset: -3px; }
 
 /* Escritorio: texto a la izquierda (alineado con el del hero) y video a la
    derecha, donde no lo tapa el aviso de cookies (abajo a la izquierda). */
@@ -251,8 +245,14 @@ const DURACION = '1:24';
     align-items: center;
     gap: clamp(2rem, 4vw, 3.5rem);
   }
-  .vct__marco { order: 0; }
-  .vct__play-icono { width: 76px; height: 76px; }
+  .vct__texto { display: block; }
+  .vct__label { display: block; margin-bottom: 0.75rem; }
+  .vct__titulo { margin-bottom: 0.75rem; font-size: clamp(1.75rem, 4.5vw, 2.875rem); }
+  .vct__bajada { margin-top: 0; }
+  .vct__cta { margin-top: 1.5rem; }
+  .vct__play-icono { width: 72px; height: 72px; }
+  .vct__duracion { font-size: 0.875rem; }
+  .vct__portada { padding: 1rem; }
 }
 
 @media (min-width: 769px) and (max-height: 800px) {
