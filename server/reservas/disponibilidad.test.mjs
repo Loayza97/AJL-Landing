@@ -329,3 +329,10 @@ test('apertura puntual (Alejandro, 2026-11-10): abre esa hora solo a esa nutrici
   // El jueves siguiente ya no hay apertura.
   assert.deepEqual(libres('2026-11-19', 'presencial'), [['10:00', 'x'], ['11:00', 'x']]);
 });
+
+test('SIN_TOPE_FECHAS: el sábado 28-nov-2026 no tiene tope del equipo ni por nutricionista', () => {
+  assert.ok(topeMinutosDia('2026-11-28') > 24 * 60);
+  assert.ok(topeNutriDia('2026-11-28') > 24 * 60);
+  assert.equal(topeMinutosDia('2026-12-05'), 480);
+  assert.equal(topeNutriDia('2026-12-05'), 300);
+});

@@ -2,7 +2,7 @@
 // eventos del calendario ya normalizados y las reservas activas, y devuelve qué
 // horas se pueden vender y a quién se le asignan. Toda regla del spec vive aquí.
 import { inicioUtcMin, fechaLima, diaSemana, diasEntre, finDeReserva } from './tiempo.mjs';
-import { TOPE_MINUTOS, TOPE_NUTRI_MINUTOS } from './constantes.mjs';
+import { TOPE_MINUTOS, TOPE_NUTRI_MINUTOS, SIN_TOPE_FECHAS, TOPE_LIBRE } from './constantes.mjs';
 
 export const DIAS = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
 // Horario del consultorio de Lince (src/data/contacto.js). Domingo cerrado.
@@ -59,12 +59,14 @@ export function ausenciasDelDia(eventos, fecha, nutricionistas) {
 // media o cualquier mezcla; 300 hasta el 2026-11-19) y el sábado 480. Lleno, el día se cierra para los
 // dos. Los eventos puestos a mano en Google no suman.
 export function topeMinutosDia(fecha) {
+  if (SIN_TOPE_FECHAS.includes(fecha)) return TOPE_LIBRE;
   return diaSemana(fecha) === 6 ? TOPE_MINUTOS.sabado : TOPE_MINUTOS.semana;
 }
 
 // Tope por nutricionista (Joaquín y Alejandro, 2026-10-23): suman sus citas de
 // la web y de los links. Llena, ese día ya no se le ofrece; las demás siguen.
 export function topeNutriDia(fecha) {
+  if (SIN_TOPE_FECHAS.includes(fecha)) return TOPE_LIBRE;
   return diaSemana(fecha) === 6 ? TOPE_NUTRI_MINUTOS.sabado : TOPE_NUTRI_MINUTOS.semana;
 }
 

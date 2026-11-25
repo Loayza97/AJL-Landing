@@ -2,7 +2,7 @@
 // propia base: índices únicos parciales (hora del consultorio y de cada
 // nutricionista), el cruce de horarios (CRUCE) y el tope dentro de la misma
 // sentencia que inserta.
-import { TOPE_NUTRI_MINUTOS } from './constantes.mjs';
+import { TOPE_NUTRI_MINUTOS, SIN_TOPE_FECHAS, TOPE_LIBRE } from './constantes.mjs';
 
 const ACTIVOS = "('apartada', 'pagando', 'confirmada')";
 const UNIQUE = /UNIQUE constraint failed/i;
@@ -16,7 +16,9 @@ export const MINUTOS_DIA = (fecha, excluir = null) => `(SELECT COALESCE(SUM(COAL
 // Tope por nutricionista (2026-10-23): sus minutos activos de ese día más la cita
 // nueva no pasan de 180 L-V ni de 300 el sábado. El alias m deja referirse a la
 // fila de afuera (reservas.*) en los UPDATE.
-const TOPE_NUTRI_SQL = (fecha) => `(CASE strftime('%w', ${fecha}) WHEN '6' THEN ${TOPE_NUTRI_MINUTOS.sabado} ELSE ${TOPE_NUTRI_MINUTOS.semana} END)`;
+// Las fechas de SIN_TOPE_FECHAS no tienen tope (fechas fijas AAAA-MM-DD del código, no del usuario).
+const SIN_TOPE_SQL = SIN_TOPE_FECHAS.map((f) => `'${f}'`).join(', ') || "''";
+const TOPE_NUTRI_SQL = (fecha) => `(CASE WHEN ${fecha} IN (${SIN_TOPE_SQL}) THEN ${TOPE_LIBRE} WHEN strftime('%w', ${fecha}) = '6' THEN ${TOPE_NUTRI_MINUTOS.sabado} ELSE ${TOPE_NUTRI_MINUTOS.semana} END)`;
 export const NUTRI_CON_CUPO = ({ fecha, nutri, dur, excluir = null }) => `(SELECT COALESCE(SUM(COALESCE(m.duracion_min, 60)), 0) FROM reservas m
   WHERE m.fecha_lima = ${fecha} AND m.nutricionista_id = ${nutri} AND m.estado IN ${ACTIVOS}${excluir ? ` AND m.id <> ${excluir}` : ''})
   + ${dur} <= ${TOPE_NUTRI_SQL(fecha)}`;

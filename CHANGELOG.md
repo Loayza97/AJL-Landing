@@ -2,6 +2,10 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-25 · publicado (sábado 28-nov sin tope)
+
+- Agenda web y links: el sábado 28-nov-2026 no tiene tope de horas, ni el del equipo (480 min) ni el de cada nutricionista (300 min). Siguen las demás reglas: horario de cada una, consultorio, almuerzo, ausencias y cruces. Nueva lista `SIN_TOPE_FECHAS` en `server/reservas/constantes.mjs`; pasada la fecha se puede borrar. Pedido y aprobado por Alejandro el 25-nov-2026.
+
 ## 2026-11-23 · publicado (bugs del pago en /reservar/)
 
 - /reservar/: si la hora apartada se vencía justo al tocar «Pagar» (el servidor responde que el plazo terminó), la página volvía al calendario pero, al elegir otra hora, el botón «Pagar» del paso 4 quedaba desactivado y no respondía hasta recargar, y al recargar se perdía lo escrito. Ahora el paso 4 siempre abre con «Pagar» activo. Encontrado en la auditoría de la web del 23-nov-2026; arreglo autorizado por Alejandro el 23-nov-2026. Publicado con aprobación de Alejandro.
