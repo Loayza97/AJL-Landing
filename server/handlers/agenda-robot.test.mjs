@@ -176,3 +176,37 @@ test('sesión de 1 hora presencial: tipo s60 y solo horas en punto', async () =>
   assert.equal(v.duracion_min, 60);
   assert.equal((await reservas(d))[0].producto, 'link_s60');
 });
+
+test('modo sombra (simular): dice qué hora tomaría y no escribe nada: sin reserva, sin link, sin paciente, sin evento, sin correos', async () => {
+  const d = deps();
+  const res = await llamar(d, cuerpo({ simular: true }));
+  assert.equal(res.status, 200);
+  const v = await res.json();
+  assert.equal(v.simulada, true);
+  assert.equal(v.inicio, '2026-10-06T15:30:00Z');
+  assert.equal(v.paciente_nuevo, true);
+  assert.deepEqual(await reservas(d), []);
+  assert.equal((await d.db.prepare('SELECT COUNT(*) AS n FROM clientes').first()).n, 0);
+  assert.equal(await agenda.linkPorId(d.db, 'robot:dni:70123456|constancia|5de7'), null);
+  assert.equal(d.eventos.length, 0);
+  assert.equal(d.correos.length, 0);
+});
+
+test('modo sombra: salta la hora ocupada, y si no hay ninguna libre da 409 igual que la real', async () => {
+  const d = deps();
+  await llamar(d, cuerpo({ clave: 'dni:11111111|constancia|2de7', documento: { tipo: 'dni', numero: '11111111' } })); // ocupa 15:30Z
+  const v = await (await llamar(d, cuerpo({ simular: true }))).json();
+  assert.equal(v.inicio, '2026-10-06T16:30:00Z');
+  assert.equal((await reservas(d)).length, 1);
+  const d2 = deps({ google: { listarEventos: async () => [{ titulo: 'Cerrado', todoElDia: true, desde: '2026-10-06', hasta: '2026-10-07', propio: false, bloquea: true }], crearEvento: async () => ({ id: 'e', meet: null }) } });
+  assert.equal((await llamar(d2, cuerpo({ simular: true }))).status, 409);
+});
+
+test('modo sombra: paciente sin datos y fuera de la web da 400; clave ya agendada lo dice', async () => {
+  const d = deps();
+  assert.equal((await llamar(d, cuerpo({ simular: true, paciente: undefined }))).status, 400);
+  await llamar(d);
+  const v = await (await llamar(d, cuerpo({ simular: true }))).json();
+  assert.equal(v.ya_agendada, true);
+  assert.equal((await reservas(d)).length, 1);
+});

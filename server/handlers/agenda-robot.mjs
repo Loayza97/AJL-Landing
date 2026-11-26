@@ -17,6 +17,7 @@
 //   modalidad      'presencial' | 'video'
 //   duracion_min   30 | 60
 //   horas          hasta 6 inicios en UTC, por orden de preferencia: la primera libre gana
+//   simular        true = modo sombra: hace todas las comprobaciones y dice qué hora tomaría, sin escribir nada
 //
 // Fuera de alcance a propósito: Plan Pareja (dos personas) y cualquier cambio de cita.
 import { json, readJson } from '../http.mjs';
@@ -58,7 +59,7 @@ function validar(d, deps) {
   if (!citaValida(plan, n)) return { error: 'La sesión no existe en ese plan', motivo: 'plan' };
   if (!productoDeTipo(tipo, plan)) return { error: 'Ese producto no va con una cita de esa duración y modalidad', motivo: 'tipo' };
   return { clave: d.clave, doc: { tipo: d.documento?.tipo ?? 'dni', documento: doc.documento }, tipo, plan, cita: n, horas,
-    nutricionista: d.nutricionista, modalidad: d.modalidad, duracion: d.duracion_min, paciente: d.paciente };
+    nutricionista: d.nutricionista, modalidad: d.modalidad, duracion: d.duracion_min, paciente: d.paciente, simular: d.simular === true };
 }
 
 // Datos del paciente que aún no está en la web (salen de la Base Maestra). Sin fecha de nacimiento ni
@@ -81,6 +82,36 @@ const respuesta = (deps, r, extra) => ({
   calendario: r.calendario_pendiente ? 'pendiente' : 'ok', ...extra,
 });
 
+// Modo sombra: mismas comprobaciones que la reserva real (paciente, plan, horas libres con el Calendar), sin crear
+// link, paciente, reserva, evento ni correos. Si la clave ya se agendó, lo dice y devuelve esa cita.
+async function simular(deps, v) {
+  const link = await agenda.linkPorId(deps.db, `robot:${v.clave}`);
+  if (link?.usado_en) return json(200, respuesta(deps, { ...link, id: link.reserva_id }, { simulada: true, ya_agendada: true, plan: v.plan, cita: v.cita }));
+  const previo = await agenda.pacientePorDni(deps.db, v.doc.documento, v.doc.tipo);
+  if (!previo) {
+    const n = pacienteNuevo(v.paciente, v.doc);
+    if (n.error) return bad(400, n.error, { motivo: n.motivo });
+  }
+  const contextos = new Map();
+  const intentadas = [];
+  try {
+    for (const inicio of v.horas) {
+      const fecha = fechaLima(new Date(inicio));
+      if (!contextos.has(fecha)) contextos.set(fecha, await contexto(deps, fecha, 1));
+      const libre = libresDelDia(deps, contextos.get(fecha), { fecha, modalidad: v.modalidad, filtro: v.nutricionista,
+        duracionMin: v.duracion, pasoMin: v.duracion }).find((h) => h.inicio === inicio);
+      if (!libre) { intentadas.push({ inicio, motivo: 'no_libre' }); continue; }
+      return json(200, respuesta(deps, { inicio_utc: libre.inicio, fecha_lima: fecha, modalidad: v.modalidad, duracion_min: v.duracion,
+        nutricionista_id: libre.nutricionista_id }, { simulada: true, ya_agendada: false, paciente_nuevo: !previo, plan: v.plan,
+        plan_etiqueta: etiquetaPlan(v.plan), cita: v.cita, intentadas }));
+    }
+  } catch (e) {
+    console.error('agenda/robot/simular', e);
+    return bad(503, 'No pudimos revisar la agenda.', { motivo: 'agenda' });
+  }
+  return bad(409, 'Ninguna de las horas estaba libre', { motivo: 'sin_hora', intentadas });
+}
+
 export async function handleAgendaRobot(request, env, deps) {
   if (request.method !== 'POST') return bad(405, 'Método no permitido');
   if (!env.ROBOT_AGENDA_TOKEN) return bad(503, 'Agenda del robot sin configurar');
@@ -89,6 +120,8 @@ export async function handleAgendaRobot(request, env, deps) {
   if (v.error) return bad(400, v.error, v.motivo ? { motivo: v.motivo } : {});
   const ahora = deps.ahora();
   const linkId = `robot:${v.clave}`;
+
+  if (v.simular) return simular(deps, v);
 
   // Repetir la misma clave no duplica: si ya se agendó, se devuelve esa cita.
   let link = await agenda.linkPorId(deps.db, linkId);
