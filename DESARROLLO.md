@@ -72,7 +72,7 @@ El repo es **público**: nada secreto en el código ni en `wrangler.toml`.
 
 - Variables de texto (no secretas): en `wrangler.toml`, `[vars]` para producción y `[env.preview.vars]` para prueba. No se heredan entre sí.
 - Secretos: solo con `npx wrangler pages secret put NOMBRE --project-name ajl-landing` (agregar `--env preview` para la versión de prueba). **Nunca** editar la tabla de variables en el panel de Cloudflare, porque deja los secretos vacíos.
-- Secretos que usa el código: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `RESEND_API_KEY`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID`, `EQUIPO_EMAILS`, `EQUIPO_ADMINS`, `CORREOS_EQUIPO`, `RESUMEN_TOKEN`.
+- Secretos que usa el código: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `RESEND_API_KEY`, `MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID`, `EQUIPO_EMAILS`, `EQUIPO_ADMINS`, `CORREOS_EQUIPO`, `RESUMEN_TOKEN`, `ROBOT_AGENDA_TOKEN` (clave del robot de la siguiente cita para `/api/agenda/robot`; la misma va en el `.env` del VPS).
 - Los cambios de variables o secretos aplican recién en el siguiente despliegue.
 
 ## Cuidados

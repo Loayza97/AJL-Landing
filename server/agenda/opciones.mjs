@@ -68,6 +68,14 @@ export function citasDePlan(plan) {
   return p ? Array.from({ length: p.total }, (_, i) => ({ id: String(i + 1), etiqueta: `${i + 1} de ${p.total}` })) : [];
 }
 
+// Clave del plan a partir del producto y el total de sesiones del paquete («n de m» de la Base Maestra).
+// El robot de la siguiente cita no conoce las duraciones en meses: manda producto y m. Si ningún plan del
+// producto tiene m citas, o hay más de uno, devuelve null (el robot lo manda a resolver a mano).
+export function planPorSesiones(producto, total) {
+  const claves = [...PLAN].filter(([k, v]) => k.split(':')[0] === producto && v.total === Number(total)).map(([k]) => k);
+  return claves.length === 1 ? claves[0] : null;
+}
+
 export const etiquetaPlan = (id) => PLAN.get(id)?.etiqueta ?? VIEJOS.get(id) ?? null;
 export const planValido = (id) => typeof id === 'string' && PLAN.has(id);
 export const citaValida = (plan, id) => typeof id === 'string' && citasDePlan(plan).some((c) => c.id === id);

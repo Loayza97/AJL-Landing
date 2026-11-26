@@ -34,7 +34,7 @@ export function revisarDocumento(tipo, valor) {
 }
 
 // Nombres, apellidos y documento de una persona. `quien` cambia el texto del error («tus» / «del paciente»).
-function persona(nombresV, paternoV, maternoV, tipoV, docV, deTi) {
+export function persona(nombresV, paternoV, maternoV, tipoV, docV, deTi) {
   const nombres = limpio(nombresV);
   const paterno = limpio(paternoV);
   const materno = limpio(maternoV);

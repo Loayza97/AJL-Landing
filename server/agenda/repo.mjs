@@ -34,6 +34,11 @@ export const linkPorHash = (db, hash) => db.prepare(
    FROM links_agenda l LEFT JOIN reservas r ON r.id = l.reserva_id WHERE l.token_hash = ?1`,
 ).bind(hash).first();
 
+export const linkPorId = (db, id) => db.prepare(
+  `SELECT l.*, r.inicio_utc, r.fin_utc, r.modalidad, r.nutricionista_id, r.meet_url, r.duracion_min, r.fecha_lima, r.calendario_pendiente
+   FROM links_agenda l LEFT JOIN reservas r ON r.id = l.reserva_id WHERE l.id = ?1`,
+).bind(id).first();
+
 export async function reactivarLink(db, id, ahora) {
   const vence = new Date(ahora.getTime() + REACTIVAR_DIAS * DIA).toISOString();
   const r = await db.prepare(

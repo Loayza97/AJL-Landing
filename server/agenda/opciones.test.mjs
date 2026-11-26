@@ -86,3 +86,15 @@ test('Renovación Constancia: pago único con 2 citas, «1 de 2» y «2 de 2»',
   assert.ok(citaValida('renovacion_constancia', '2'));
   assert.ok(!citaValida('renovacion_constancia', '3'));
 });
+
+test('planPorSesiones: producto y total de sesiones → clave del plan; ambiguo o inexistente → null', async () => {
+  const { planPorSesiones } = await import('./opciones.mjs');
+  assert.equal(planPorSesiones('constancia', 7), 'constancia:3');
+  assert.equal(planPorSesiones('constancia', 13), 'constancia:6');
+  assert.equal(planPorSesiones('basico', 1), 'basico');
+  assert.equal(planPorSesiones('evaluacion', 1), 'evaluacion');
+  assert.equal(planPorSesiones('renovacion_constancia', 2), 'renovacion_constancia');
+  assert.equal(planPorSesiones('constancia', 9), null);
+  assert.equal(planPorSesiones('cafe', 1), null);
+  assert.equal(planPorSesiones('constancia', '7'), 'constancia:3');
+});

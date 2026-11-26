@@ -14,7 +14,9 @@ import { avisarEquipo } from '../reservas/aviso-equipo.mjs';
 // unificarlas queda fuera de esta entrega. Se exporta para la alerta de agenda.mjs.
 export const remitente = (env) => env.NEWSLETTER_FROM || 'AJL Nutrición <hola@ajlnutricion.com>';
 
-export async function finalizarAgenda(deps, env, r) {
+// `avisarAlEquipo: false` lo usa el robot de la siguiente cita: sus reservas salen en el correo de la
+// mañana de Romi, no una por una.
+export async function finalizarAgenda(deps, env, r, { avisarAlEquipo = true } = {}) {
   const tipo = tipoDeReserva(r);
   const n = deps.nutricionistas.find((x) => x.id === r.nutricionista_id);
   let meet = null;
@@ -42,6 +44,6 @@ export async function finalizarAgenda(deps, env, r) {
       modalidad: r.modalidad, direccion: contacto.direccion, meet, nutricionista: n.nombre,
       urlIcs: `${siteUrl(env)}/api/reservas/ics?r=${r.token}` }),
   });
-  await avisarEquipo(deps, env, { tipo: 'nueva', r });
+  if (avisarAlEquipo) await avisarEquipo(deps, env, { tipo: 'nueva', r });
   return { meet };
 }
