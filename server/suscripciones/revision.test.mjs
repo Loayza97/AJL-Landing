@@ -16,7 +16,7 @@ function armar(subs = {}) {
     esperar: async (ms) => { d.esperas.push(ms); } };
   d.sendEmail = async (c) => { d.correos.push(c); return true; };
   const pre = (id) => ({ id, status: d.subs[id].status ?? 'authorized', reason: d.subs[id].reason ?? '3 meses - 2 sesiones mes', payer_first_name: `P ${id}`,
-    auto_recurring: { transaction_amount: 360 }, summarized: { charged_quantity: d.subs[id].contador ?? d.subs[id].cobros, last_charged_date: d.subs[id].ultimo } });
+    auto_recurring: { transaction_amount: 360 }, next_payment_date: d.subs[id].proximo, summarized: { charged_quantity: d.subs[id].contador ?? d.subs[id].cobros, last_charged_date: d.subs[id].ultimo } });
   const cobrosDe = (id) => Array.from({ length: d.subs[id].cobros }, (_, i) => ({ id: `${id}.${i + 1}`, preapproval_id: id, status: 'processed', transaction_amount: 360, payment: { id: `${id}.p${i + 1}` } }));
   d.mp = {
     listarSuscripcionesVigentes: async () => { d.pedidos.push('lista'); return Object.keys(d.subs).filter((id) => (d.subs[id].status ?? 'authorized') === 'authorized').map(pre); },
@@ -200,4 +200,46 @@ test('hecha a mano que terminó con el último cobro todavía pendiente: la sigu
   d.pedidos.length = 0;
   await revisarCobros(d, env);
   assert.deepEqual(d.pedidos, ['lista']);
+});
+
+const proximos = async (d) => (await d.db.prepare('SELECT clave, fecha FROM sus_proximo ORDER BY clave').all()).results.map((p) => `${p.clave} ${p.fecha}`);
+
+test('próximo cobro: guarda el de cada suscripción vigente, web y a mano, también las que aún no cobran', async () => {
+  const d = armar({ aa: { cobros: 0, proximo: '2026-12-05T14:00:00.000-05:00' },
+    ww: { cobros: 0, proximo: '2026-12-07T10:00:00.000-05:00', reason: 'AJL Nutrición · Constancia' },
+    zz: { cobros: 0, proximo: '2026-12-09T10:00:00.000-05:00', reason: 'AJL Nutrición · Constancia' } });
+  await sus.crear(d.db, { id: 's-ww', token: 'ww', producto: 'constancia', duracion_meses: 3, cuota_centimos: 36000, precio_mes_centimos: 44000,
+    estado: 'activa', nombre: 'W', mp_preapproval_id: 'ww', creado_en: t0.toISOString() });
+  await revisarCobros(d, env);
+  assert.deepEqual(await proximos(d), ['s:s-ww 2026-12-07T15:00:00.000Z', 'x:aa 2026-12-05T19:00:00.000Z']);
+  const x = await d.db.prepare("SELECT pagador, reason, estado_mp FROM sus_externas WHERE preapproval_id = 'aa'").first();
+  assert.deepEqual({ ...x }, { pagador: 'P aa', reason: '3 meses - 2 sesiones mes', estado_mp: 'authorized' });
+  assert.deepEqual(d.pedidos, ['lista']);
+  assert.equal(d.correos.length, 0);
+});
+
+test('próximo cobro: solo escribe lo que cambió', async () => {
+  const d = armar({ aa: { cobros: 0, proximo: '2026-12-05T19:00:00.000Z' } });
+  await revisarCobros(d, env);
+  const marca = () => d.db.prepare('SELECT actualizado_en AS t FROM sus_proximo').first();
+  d.ahora = () => new Date(t0.getTime() + 15 * 60000);
+  await revisarCobros(d, env);
+  assert.equal((await marca()).t, t0.toISOString());
+  d.subs.aa.proximo = '2027-01-05T19:00:00.000Z';
+  await revisarCobros(d, env);
+  assert.deepEqual(await proximos(d), ['x:aa 2027-01-05T19:00:00.000Z']);
+});
+
+test('próximo cobro: con muchas suscripciones se reparte en varias vueltas sin pasar el tope de consultas', async () => {
+  const ids = Array.from({ length: 35 }, (_, i) => `m${i}`);
+  const d = armar(Object.fromEntries(ids.map((id) => [id, { cobros: 0, proximo: '2026-12-05T19:00:00.000Z' }])));
+  const real = d.db;
+  let consultas = 0;
+  d.db = { prepare: (sql) => { consultas += 1; return real.prepare(sql); }, batch: (s) => real.batch(s) };
+  for (let i = 0; i < 8; i++) {
+    consultas = 0;
+    await revisarCobros(d, env);
+    assert.ok(consultas <= 40, `consultas: ${consultas}`);
+  }
+  assert.equal((await real.prepare('SELECT COUNT(*) AS n FROM sus_proximo').first()).n, 35);
 });

@@ -1,17 +1,20 @@
 // Panel /panel/, «Por agendar» (spec 2026-11-26-citas-por-cobro): cada suscripción con las citas que le
-// faltan agendar. «Agendar» crea el link de siempre, unido a esa suscripción. Todo el texto de la base
-// se pinta con textContent.
+// faltan agendar y cuándo vuelve a pagar. «Agendar» crea el link de siempre, unido a esa suscripción.
+// Todo el texto de la base se pinta con textContent.
 import { limitarFilas } from './panel-filas.js';
 import { cargarLinks, mostrarLogin } from './panel-links.js';
 import { TIPOS_LINK } from '../../server/agenda/tipos.mjs';
 import { productosDeTipo, productoDeTipo, duracionesDeProducto, clavePlan, citasDePlan, etiquetaPlan, etiquetaCita, MAX_CITA } from '../../server/agenda/opciones.mjs';
 import { formatoSoles } from '../data/duraciones.js';
+import { filasDeVista, conteos, ordenDeVista, alOrdenar, diaDeCobro } from '../../server/suscripciones/vista.mjs';
 
 const $ = (s) => document.querySelector(s);
 const soles = (c) => (c == null ? '' : formatoSoles(Math.round(c / 100)));
 const fecha = (iso) => (iso ? new Intl.DateTimeFormat('es-PE', { timeZone: 'America/Lima', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) : '—');
 let esAdmin = false;
 let actual = null; // fila del diálogo abierto
+// Lo que se está viendo; se conserva al recargar los datos.
+const ver = { filas: [], vista: 'pendientes', q: '', orden: ordenDeVista('pendientes') };
 
 function aviso(t = '') { $('#pa-msg').textContent = t; $('#pa-msg').hidden = !t; }
 const nombreDe = (f) => f.nombre ?? f.pagador ?? 'Sin nombre en Mercado Pago';
@@ -38,20 +41,29 @@ function textoPlan(f) {
 }
 
 function textoFaltan(f) {
-  if (f.por_revisar) return 'Por revisar';
+  if (!f.cobros) return '—';
   if (f.sin_asignar) return 'Sin asignar';
   if (f.faltan > 0) return f.faltan === 1 ? '1 cita' : `${f.faltan} citas`;
   return f.faltan < 0 ? `Al día · ${-f.faltan} de más` : 'Al día';
+}
+
+function celdaProximo(f) {
+  if (!f.proximo) return celda('—');
+  const { cuando, atrasado } = diaDeCobro(f.proximo, new Date());
+  return celda(cuando ? `${cuando}, ${fecha(f.proximo)}` : fecha(f.proximo), atrasado ? 'Aún no se registra' : null);
 }
 
 function filaDe(f) {
   const tr = document.createElement('tr');
   const acciones = document.createElement('div');
   acciones.className = 'lk-acciones';
-  if (f.por_revisar) acciones.append(boton('Revisar', () => abrirNumero('revisar', f), 'lk-btn lk-btn--mini'));
-  else {
+  if (f.nuevo) {
+    tr.classList.add('lk-fila--nueva');
+    acciones.append(boton('Visto', () => visto(f), 'lk-btn lk-btn--mini'));
+  }
+  if (f.cobros) {
     acciones.append(boton('Agendar', () => abrirAgendar(f), 'lk-btn lk-btn--mini'));
-    if (!f.sin_asignar) acciones.append(boton('Ajustar', () => abrirNumero('ajuste', f)));
+    if (!f.sin_asignar) acciones.append(boton('Ajustar', () => abrirAjuste(f)));
   }
   if (esAdmin && f.origen === 'mano' && !f.sin_asignar) acciones.append(boton('Quitar paciente', () => quitar(f)));
   if (f.whatsapp) {
@@ -60,45 +72,81 @@ function filaDe(f) {
     acciones.append(a);
   }
   const quien = f.origen === 'web' ? 'Pagó en la web' : f.sin_asignar ? 'Nombre de quien paga en Mercado Pago' : 'Link hecho en Mercado Pago';
+  const nombre = celda(nombreDe(f), quien);
+  if (f.nuevo) {
+    const chip = document.createElement('span');
+    chip.className = 'lk-nueva lk-bloque'; chip.textContent = 'Nuevo pago';
+    nombre.prepend(chip);
+  }
   tr.append(
-    celda(nombreDe(f), quien),
+    nombre,
     // Sin asignar, también el nombre del plan tal cual está en Mercado Pago.
     celda(textoPlan(f), f.sin_asignar && f.reason ? `En Mercado Pago: «${f.reason}»` : null),
-    celda(`${fecha(f.cobrado_en)} · ${soles(f.monto_centimos)}`, `Cobro ${f.cobros}${f.cobros_total ? ` de ${f.cobros_total}` : ''}`),
+    f.cobros ? celda(`${fecha(f.cobrado_en)} · ${soles(f.monto_centimos)}`, `Cobro ${f.cobros}${f.cobros_total ? ` de ${f.cobros_total}` : ''}`)
+      : celda('Aún sin cobro', soles(f.monto_centimos)),
+    celdaProximo(f),
     celda(textoFaltan(f), f.links_sin_usar ? (f.links_sin_usar === 1 ? '1 link enviado sin usar' : `${f.links_sin_usar} links enviados sin usar`) : null),
     celda(acciones),
   );
   return tr;
 }
 
+const VACIO = { pendientes: 'No hay citas por agendar.', pronto: 'Nadie tiene un cobro en los próximos 30 días.', todas: 'No hay suscripciones.' };
+
+// Con la sección cerrada las filas no miden nada: se ajusta el alto al abrirla.
+const ajustarAlto = () => { if ($('#pa-plegable').open) limitarFilas($('#pa-scroll'), 6); };
+
+function pintar() {
+  const ahora = new Date();
+  const n = conteos(ver.filas, ahora);
+  $('#pa-nuevos').textContent = n.nuevos ? `🔔 ${n.nuevos === 1 ? '1 pago nuevo' : `${n.nuevos} pagos nuevos`}` : '';
+  $('#pa-nuevos').hidden = !n.nuevos;
+  $('#pa-cuenta').textContent = `${n.pendientes ? `${n.pendientes} por agendar` : 'todo al día'} · toca para abrir`;
+  document.querySelectorAll('#pa-vistas [data-vista]').forEach((b) => {
+    b.querySelector('span').textContent = n[b.dataset.vista];
+    b.setAttribute('aria-pressed', String(b.dataset.vista === ver.vista));
+  });
+  document.querySelectorAll('#pa-plegable th[data-col]').forEach((th) => {
+    if (ver.orden?.campo === th.dataset.col) th.setAttribute('aria-sort', ver.orden.asc ? 'ascending' : 'descending');
+    else th.removeAttribute('aria-sort');
+  });
+  const filas = filasDeVista(ver.filas, { vista: ver.vista, q: ver.q, orden: ver.orden, ahora });
+  $('#pa-filas').replaceChildren(...(filas.length ? filas.map(filaDe) : [filaVacia(ver.q ? 'Nadie con ese nombre en esta vista.' : VACIO[ver.vista])]));
+  $('#pa-scroll').scrollTop = 0;
+  ajustarAlto();
+}
+
+function filaVacia(texto) {
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 6; td.textContent = texto;
+  tr.append(td);
+  return tr;
+}
+
 export async function cargarPorAgendar() {
-  const r = await fetch(`/api/equipo/por-agendar${$('#pa-todas').checked ? '?todas=1' : ''}`, { cache: 'no-store' }).catch(() => null);
+  const r = await fetch('/api/equipo/por-agendar', { cache: 'no-store' }).catch(() => null);
   if (r?.status === 401) return false;
   const d = await r?.json().catch(() => null);
   if (!d?.ok) { aviso('No pudimos cargar «Por agendar». Recarga la página.'); return; }
   aviso();
   esAdmin = d.admin === true;
-  const pendientes = d.filas.filter((f) => f.por_revisar || f.sin_asignar || f.faltan > 0).length;
-  $('#pa-cuenta').textContent = pendientes ? `${pendientes} por atender` : '';
-  $('#pa-filas').replaceChildren(...(d.filas.length ? d.filas.map(filaDe)
-    : [Object.assign(document.createElement('tr'), { innerHTML: '<td colspan="5">No hay citas por agendar.</td>' })]));
-  limitarFilas($('#pa-scroll'), 6);
+  ver.filas = d.filas;
+  pintar();
 }
 
-// ── Revisar y ajustar ────────────────────────────────────────────────────────
-let accionNumero = null;
-function abrirNumero(accion, f) {
-  actual = f; accionNumero = accion;
-  const revisar = accion === 'revisar';
-  $('#pn-titulo').textContent = revisar ? 'Revisar citas' : 'Ajustar citas';
+// ── Visto y ajustar ──────────────────────────────────────────────────────────
+async function visto(f) {
+  const { error } = await enviar({ accion: 'visto', clave: f.clave, cobros: f.cobros });
+  if (error) { aviso(error); return; }
+  cargarPorAgendar();
+}
+
+function abrirAjuste(f) {
+  actual = f;
   $('#pn-paciente').textContent = nombreDe(f);
-  $('#pn-ayuda').textContent = revisar
-    ? `Lleva ${f.cobros} cobro(s). Escribe cuántas citas ya usó o tiene agendadas hasta hoy, contando la primera. Míralo en la base maestra.`
-    : 'Suma (1) o resta (-1) citas a «Faltan». Úsalo para citas agendadas por fuera o dadas por usadas.';
-  $('#pn-etiqueta').textContent = revisar ? 'Citas usadas o agendadas' : 'Cuántas sumar o restar';
   const n = $('#pn-numero');
-  n.value = ''; n.min = String(revisar ? 0 : -MAX_CITA); n.max = String(MAX_CITA);
-  $('#pn-motivo-campo').hidden = revisar;
+  n.value = ''; n.min = String(-MAX_CITA); n.max = String(MAX_CITA);
   $('#pn-motivo').value = '';
   $('#pn-msg').hidden = true;
   $('#pn-dialogo').showModal();
@@ -111,14 +159,12 @@ async function enviar(cuerpo) {
   return d?.ok ? {} : { error: d?.error || 'No se pudo guardar. Intenta de nuevo.' };
 }
 
-async function guardarNumero(e) {
+async function guardarAjuste(e) {
   e.preventDefault();
   const valor = $('#pn-numero').value.trim();
-  const numero = /^-?\d+$/.test(valor) ? Number(valor) : null;
-  const cuerpo = accionNumero === 'revisar' ? { accion: 'revisar', clave: actual.clave, usadas: numero }
-    : { accion: 'ajuste', clave: actual.clave, cantidad: numero, motivo: $('#pn-motivo').value };
+  const cantidad = /^-?\d+$/.test(valor) ? Number(valor) : null;
   $('#pn-guardar').disabled = true;
-  const { error } = await enviar(cuerpo);
+  const { error } = await enviar({ accion: 'ajuste', clave: actual.clave, cantidad, motivo: $('#pn-motivo').value });
   $('#pn-guardar').disabled = false;
   if (error) { $('#pn-msg').textContent = error; $('#pn-msg').hidden = false; return; }
   $('#pn-dialogo').close();
@@ -218,8 +264,21 @@ async function crearLink(e) {
   cargarPorAgendar(); cargarLinks();
 }
 
-$('#pa-todas').addEventListener('change', cargarPorAgendar);
-$('#pn-form').addEventListener('submit', guardarNumero);
+$('#pa-vistas').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-vista]');
+  if (!b) return;
+  ver.vista = b.dataset.vista; ver.orden = ordenDeVista(ver.vista);
+  pintar();
+});
+$('#pa-plegable').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-orden]');
+  if (!b) return;
+  ver.orden = alOrdenar(ver.orden, b.dataset.orden);
+  pintar();
+});
+$('#pa-q').addEventListener('input', () => { ver.q = $('#pa-q').value; pintar(); });
+$('#pa-plegable').addEventListener('toggle', ajustarAlto);
+$('#pn-form').addEventListener('submit', guardarAjuste);
 $('#pn-cerrar').addEventListener('click', () => $('#pn-dialogo').close());
 $('#pg-form').addEventListener('submit', crearLink);
 $('#pg-tipo').addEventListener('change', alCambiarTipo);

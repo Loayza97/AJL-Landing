@@ -2,6 +2,13 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-27 · sin publicar («Por agendar»: conteo solo, aviso de pago nuevo y vistas)
+
+- Panel, «Por agendar»: ya no pide «Revisar». Las citas usadas se cuentan solas a partir de las agendadas en la web para ese paciente y plan; «Ajustar» queda para lo que no se reconozca.
+- La sección es plegable y su título avisa «pagos nuevos» hasta que se agendan las citas o alguien pulsa «Visto».
+- Vistas «Por agendar», «Cobran pronto» y «Todas», buscador por nombre, columna «Próximo cobro» y orden por fecha en ambos sentidos. Salen también las hechas a mano que aún no cobran.
+- Lo pidió Alejandro (27-nov-2026). Requiere la migración 0022.
+
 ## 2026-11-26 · publicado (citas por agendar con cada cobro)
 
 - Panel: nueva sección «Por agendar», arriba de todo. Dice a quién le faltan citas de sus cobros mensuales (de la web y de los planes hechos a mano en Mercado Pago), permite agendar desde la fila con el link de un solo uso (queda unido a esa suscripción) y ajustar la cuenta a mano. Las suscripciones que ya habían cobrado salen «por revisar» hasta que el equipo anota una vez cuántas citas llevan. Lo pidió Alejandro (26-nov-2026).

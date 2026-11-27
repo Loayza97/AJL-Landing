@@ -112,3 +112,14 @@ tr.lk-fila--nueva:not([data-sel=true]) td { background: #EAF5EE; }
 #n-filas .lk-alerta { display: block; font-size: .8rem; }
 #n-filas .lk-sub { display: block; color: #5C5C5C; font-size: .75rem; margin-top: 2px; }
 .lk-nota--alerta { color: #B42318; font-weight: 700; }
+
+/* «Por agendar»: aviso de pago nuevo y orden por columna (2026-11-27) */
+.lk-plegable > summary { flex-wrap: wrap; }
+.lk-aviso-pago { font-size: .8rem; font-weight: 700; color: #fff; background: #B42318; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.lk-aviso-pago[hidden] { display: none; }
+.lk-orden { background: none; border: 0; padding: 4px 0; min-height: 24px; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; white-space: nowrap; }
+.lk-orden::after { content: ' ↕'; opacity: .4; }
+th[aria-sort=ascending] .lk-orden::after { content: ' ↑'; opacity: 1; }
+th[aria-sort=descending] .lk-orden::after { content: ' ↓'; opacity: 1; }
+#pa-filas .lk-nueva { display: block; margin-bottom: 4px; }
+#pa-filas td:nth-child(5) { white-space: nowrap; }

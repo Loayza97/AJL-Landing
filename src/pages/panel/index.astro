@@ -48,11 +48,22 @@ import '../../styles/panel.css';
 
     <div id="app" hidden>
       <section>
-        <h2>Por agendar <span class="lk-nota lk-nota--alerta" id="pa-cuenta"></span></h2>
-        <p class="lk-nota">Cada cobro mensual trae citas. Aquí sale a quién le faltan, de la web y de los links hechos en Mercado Pago.</p>
-        <div class="lk-barra"><label class="lk-check"><input type="checkbox" id="pa-todas"> Ver también las que están al día</label></div>
         <p class="lk-error" id="pa-msg" role="alert" hidden></p>
-        <div class="lk-scroll" id="pa-scroll"><table><thead><tr><th>Paciente</th><th>Plan</th><th>Último cobro</th><th>Faltan</th><th></th></tr></thead><tbody id="pa-filas"></tbody></table></div>
+        <details class="lk-plegable" id="pa-plegable">
+        <summary><h2>Por agendar</h2><span class="lk-aviso-pago" id="pa-nuevos" role="status" hidden></span><span class="lk-nota" id="pa-cuenta"></span></summary>
+        <p class="lk-nota">Cada cobro mensual trae citas. Aquí sale a quién le faltan y quién está por pagar, de la web y de los links hechos en Mercado Pago.</p>
+        <div class="lk-barra">
+          <div class="lk-grupo" role="group" aria-label="Qué suscripciones ver" id="pa-vistas">
+            <button type="button" data-vista="pendientes" aria-pressed="true">Por agendar <span></span></button>
+            <button type="button" data-vista="pronto" aria-pressed="false">Cobran pronto <span></span></button>
+            <button type="button" data-vista="todas" aria-pressed="false">Todas <span></span></button>
+          </div>
+          <input type="search" id="pa-q" placeholder="Buscar por nombre" aria-label="Buscar en «Por agendar»">
+        </div>
+        <div class="lk-scroll" id="pa-scroll"><table><thead><tr><th>Paciente</th><th>Plan</th>
+          <th data-col="cobrado_en"><button type="button" class="lk-orden" data-orden="cobrado_en">Último cobro</button></th>
+          <th data-col="proximo"><button type="button" class="lk-orden" data-orden="proximo">Próximo cobro</button></th>
+          <th>Faltan</th><th></th></tr></thead><tbody id="pa-filas"></tbody></table></div>
 
         <dialog id="pg-dialogo" class="lk-dialogo" aria-labelledby="pg-titulo">
           <form id="pg-form">
@@ -79,11 +90,11 @@ import '../../styles/panel.css';
 
         <dialog id="pn-dialogo" class="lk-dialogo" aria-labelledby="pn-titulo">
           <form id="pn-form">
-            <h3 id="pn-titulo">Revisar citas</h3>
+            <h3 id="pn-titulo">Ajustar citas</h3>
             <p id="pn-paciente" class="lk-sub"></p>
-            <p id="pn-ayuda" class="lk-sub"></p>
-            <label><span id="pn-etiqueta"></span> <input type="number" id="pn-numero" class="lk-url" required step="1" inputmode="numeric"></label>
-            <label id="pn-motivo-campo" hidden>Motivo <input id="pn-motivo" class="lk-url" maxlength="200" autocomplete="off"></label>
+            <p class="lk-sub">Suma (1) o resta (-1) citas a «Faltan». Úsalo para citas dadas por usadas o que el panel no reconoció.</p>
+            <label><span>Cuántas sumar o restar</span> <input type="number" id="pn-numero" class="lk-url" required step="1" inputmode="numeric"></label>
+            <label>Motivo <input id="pn-motivo" class="lk-url" maxlength="200" autocomplete="off"></label>
             <p id="pn-msg" class="lk-error" role="alert" hidden></p>
             <div class="lk-acciones">
               <button type="button" id="pn-cerrar" class="lk-btn lk-btn--borde">Cerrar</button>
@@ -91,6 +102,7 @@ import '../../styles/panel.css';
             </div>
           </form>
         </dialog>
+        </details>
       </section>
 
       <section>

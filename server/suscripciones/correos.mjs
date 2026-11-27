@@ -62,7 +62,7 @@ export function correoEquipoSuscripcion(tipo, s, extra = {}) {
 export function correoCobroEquipo({ quien, titulo, monto, numero, cobros, faltan, sinAsignar = false }) {
   const asunto = `Pago de ${quien}${sinAsignar ? ' (sin asignar)' : ''}: agendar sus citas`;
   const citas = sinAsignar ? 'Sin asignar: al agendar desde su fila queda unida a la paciente o el paciente.'
-    : faltan == null ? 'Falta revisar cuántas citas lleva: hazlo en su fila del panel.'
+    : faltan == null ? 'Mira cuántas citas faltan en su fila del panel.'
       : faltan > 0 ? `Faltan agendar: <strong>${faltan}</strong>` : 'Las citas de este cobro ya están agendadas.';
   return {
     subject: asunto,

@@ -2,6 +2,7 @@
 // suscripciones vigentes; solo pregunta por los cobros de las que llevan más de los que la web tiene.
 import { procesarCobro } from './procesar.mjs';
 import { esHechaAMano, guardarExterna, registrarCobroExterno } from './externas.mjs';
+import { guardarProximo } from './citas.mjs';
 import { conReintento, dormir, PAUSA_MS } from './reintento.mjs';
 import { correoRevisionFallida } from './correos.mjs';
 import { avisarRespaldo } from '../reservas/aviso-equipo.mjs';
@@ -55,16 +56,39 @@ async function revisarWeb(deps, env, id, pedir, quedaCupo) {
 // Por si el contador no sube: la fecha del último cobro en Mercado Pago es posterior a todo lo guardado.
 const fechaAvanzo = (pre, guardada) => Date.parse(pre?.summarized?.last_charged_date) > (Date.parse(guardada) || 0) + UN_DIA;
 
+// El próximo cobro de cada vigente, tal como viene en la lista (sin pedir nada más a Mercado Pago). Solo escribe lo
+// que cambió y mientras quede cupo: lo demás sale en las vueltas siguientes. Las hechas a mano que aún no cobraron
+// entran aquí, para que se vea que están por pagar.
+async function guardarFechas(deps, lista, { deMano, deWeb }, quedaCupo) {
+  const { results } = await deps.db.prepare('SELECT clave, fecha FROM sus_proximo').all();
+  const guardadas = new Map(results.map((p) => [p.clave, p.fecha]));
+  for (const pre of lista) {
+    const ms = Date.parse(pre.next_payment_date);
+    if (!ms) continue;
+    const id = String(pre.id);
+    const mano = esHechaAMano(pre.reason);
+    const web = deWeb.get(id);
+    if (!mano && !web) continue;
+    const clave = mano ? `x:${id}` : `s:${web.sus}`;
+    const fecha = new Date(ms).toISOString();
+    const falta = mano && !deMano.has(id);
+    if (!falta && guardadas.get(clave) === fecha) continue;
+    if (!quedaCupo()) return;
+    if (falta) await guardarExterna(deps.db, pre, deps.ahora());
+    await guardarProximo(deps.db, { clave, fecha, ahora: deps.ahora() }).run();
+  }
+}
+
 // Qué suscripciones hay que consultar: las de la lista con cobros que faltan, y las hechas a mano que ya
 // no salen en ella (el último cobro suele llegar cuando Mercado Pago ya la dio por terminada).
 async function pendientes(deps, env, lista, pedir, quedaCupo) {
   const [mano, web] = await Promise.all([
     deps.db.prepare(`SELECT x.preapproval_id AS id, x.estado_mp, COUNT(c.mp_payment_id) AS n, MAX(c.cobrado_en) AS ultimo FROM sus_externas x
       LEFT JOIN sus_externa_cobros c ON c.preapproval_id = x.preapproval_id GROUP BY x.preapproval_id`).all(),
-    deps.db.prepare('SELECT mp_preapproval_id AS id, cobros_aprobados AS n FROM suscripciones WHERE mp_preapproval_id IS NOT NULL').all(),
+    deps.db.prepare('SELECT mp_preapproval_id AS id, id AS sus, cobros_aprobados AS n FROM suscripciones WHERE mp_preapproval_id IS NOT NULL').all(),
   ]);
   const deMano = new Map(mano.results.map((x) => [x.id, x]));
-  const deWeb = new Map(web.results.map((s) => [s.id, s.n]));
+  const deWeb = new Map(web.results.map((s) => [s.id, s]));
   const tareas = [];
   for (const pre of lista) {
     const id = String(pre.id);
@@ -72,7 +96,7 @@ async function pendientes(deps, env, lista, pedir, quedaCupo) {
       if (cobrosEnMp(pre) > (deMano.get(id)?.n ?? 0) || fechaAvanzo(pre, deMano.get(id)?.ultimo)) {
         tareas.push({ clave: id, hacer: () => revisarExterna(deps, env, pre, pedir, quedaCupo) });
       }
-    } else if (deWeb.has(id) && cobrosEnMp(pre) > deWeb.get(id)) {
+    } else if (deWeb.has(id) && cobrosEnMp(pre) > deWeb.get(id).n) {
       tareas.push({ clave: id, hacer: () => revisarWeb(deps, env, id, pedir, quedaCupo) });
     }
   }
@@ -85,7 +109,7 @@ async function pendientes(deps, env, lista, pedir, quedaCupo) {
       if (await revisarExterna(deps, env, { ...pre, status: undefined }, pedir, quedaCupo)) await guardarExterna(deps.db, pre, deps.ahora());
     } });
   }
-  return tareas;
+  return { tareas, deMano, deWeb };
 }
 
 export async function revisarCobros(original, env) {
@@ -117,7 +141,7 @@ export async function revisarCobros(original, env) {
   if (lista) {
     // Si no caben todas, cada vuelta empieza una más adelante: una que siempre queda pendiente o
     // fallando no deja sin turno a las demás.
-    const tareas = await pendientes(deps, env, lista, pedir, quedaCupo);
+    const { tareas, ...conocidas } = await pendientes(deps, env, lista, pedir, quedaCupo);
     const inicio = tareas.length > MAX_POR_VUELTA ? Math.floor(deps.ahora().getTime() / VUELTA_MS) % tareas.length : 0;
     for (const t of [...tareas.slice(inicio), ...tareas.slice(0, inicio)].slice(0, MAX_POR_VUELTA)) {
       if (!quedaCupo()) break;
@@ -130,6 +154,14 @@ export async function revisarCobros(original, env) {
         errores += 1;
         fallo(t.clave, e);
       }
+    }
+    // Después de los cobros, que tienen prioridad sobre el cupo de la vuelta.
+    try {
+      await guardarFechas(deps, lista, conocidas, quedaCupo);
+      delete fallos.fechas;
+    } catch (e) {
+      errores += 1;
+      fallo('fechas', e);
     }
   }
   const despues = JSON.stringify(fallos);

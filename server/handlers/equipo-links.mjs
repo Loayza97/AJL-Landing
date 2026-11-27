@@ -79,7 +79,7 @@ async function crearLink(request, env, deps, email) {
   // «Agendar» desde una fila de «Por agendar»: el link queda unido a esa suscripción.
   const sus = d.sus == null ? null : await filaPorClave(deps.db, String(d.sus), deps.ahora());
   if (d.sus != null && !sus) return bad(404, 'No encontramos esa suscripción. Recarga la página.');
-  if (sus?.por_revisar) return bad(409, 'Primero anota cuántas citas lleva (botón «Revisar»).');
+  if (sus && sus.cobros === 0) return bad(409, 'Todavía no tiene ningún cobro: no hay citas por agendar.');
   let citasPorCobro = null;
   // «otro» es para lo que la web no vende: solo en una suscripción hecha a mano, diciendo cuántas citas da cada cobro.
   if (d.plan === 'otro' && sus?.origen === 'mano') {
