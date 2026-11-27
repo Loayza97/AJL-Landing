@@ -11,7 +11,9 @@
 Citas usadas de una suscripción de la web:
 1. su primera cita, si está confirmada;
 2. más las citas confirmadas creadas con link de agenda para el **mismo paciente** (ficha o documento) y el
-   **mismo producto** (`renovacion_` y `control_` cuentan como el producto base) reservadas desde que se creó la suscripción;
+   **mismo producto** (`control_acompanamiento` cuenta como Acompañamiento; `renovacion_constancia` es un pago
+   aparte y no cuenta) reservadas desde que se creó la suscripción. Si el mismo documento es paciente de una
+   suscripción y quien paga otra, la cita solo va a la segunda cuando la ficha lleva su primer nombre;
 3. si la suscripción no tiene primera cita («ya tiene cita»), también las de ese producto con fecha desde el día
    anterior a su creación, aunque se reservaran antes;
 4. más las de links creados desde su fila.

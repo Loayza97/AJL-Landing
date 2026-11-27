@@ -74,10 +74,38 @@ test('web: cuentan las citas con link del mismo producto reservadas desde que se
   const db = d1DePrueba();
   await web(db, { cobros: 2 });
   await agendar(db, { plan: 'constancia:3', ahora: despues(1) });
-  await agendar(db, { plan: 'renovacion_constancia', ahora: despues(2) });
-  await agendar(db, { plan: 'control_constancia:1', ahora: despues(3) });
+  await agendar(db, { plan: 'constancia:6', ahora: despues(2) });
   const f = await de(db, 's:s1');
-  assert.deepEqual([f.dadas, f.usadas, f.faltan], [5, 4, 1]);
+  assert.deepEqual([f.dadas, f.usadas, f.faltan], [5, 3, 2]);
+});
+
+test('web: «Control Acompañamiento» cuenta como Acompañamiento; «Renovación Constancia» es pago aparte y no cuenta', async () => {
+  const db = d1DePrueba();
+  await web(db, { id: 's1', producto: 'acompanamiento', conReserva: false });
+  await web(db, { id: 's2', producto: 'constancia', creada: despues(1) });
+  await agendar(db, { plan: 'control_acompanamiento:3', ahora: despues(2) });
+  await agendar(db, { plan: 'renovacion_constancia', ahora: despues(2) });
+  assert.deepEqual([(await de(db, 's:s1')).faltan, (await de(db, 's:s2')).faltan], [0, 2]);
+});
+
+test('si nadie más tiene ese documento, cuenta aunque el nombre de la suscripción no se parezca a la ficha', async () => {
+  const db = d1DePrueba();
+  await web(db, { conReserva: false });
+  await db.prepare("UPDATE suscripciones SET nombre = 'Anita' WHERE id = 's1'").run();
+  await agendar(db, { ahora: despues(2) });
+  assert.equal((await de(db, 's:s1')).faltan, 2);
+});
+
+test('quien paga también es paciente: sus citas no se van a la suscripción que paga para otra persona', async () => {
+  const db = d1DePrueba();
+  await web(db, { id: 's1' });
+  await db.prepare("INSERT INTO clientes (id, nombre, dni, creado_en) VALUES ('mama', 'Ana Pérez', '12345678', ?1)").bind(t0.toISOString()).run();
+  await db.prepare("UPDATE reservas SET cliente_id = 'mama' WHERE id = 'r-s1'").run();
+  await web(db, { id: 's2', conReserva: false, creada: despues(1) });
+  await db.prepare("UPDATE suscripciones SET nombre = 'Lucía Pérez' WHERE id = 's2'").run();
+  await agendar(db, { ahora: despues(2) });
+  await agendar(db, { ahora: despues(3) });
+  assert.deepEqual([(await de(db, 's:s1')).faltan, (await de(db, 's:s2')).faltan], [0, 3]);
 });
 
 test('web: no cuentan las de otro producto, las de otro paciente, las canceladas ni las reservadas antes', async () => {
@@ -106,7 +134,7 @@ test('web sin primera cita («ya tiene cita»): cuenta sus links, y la reservada
   const db = d1DePrueba();
   await web(db, { conReserva: false });
   assert.equal((await de(db, 's:s1')).faltan, 3);
-  await agendar(db, { plan: 'control_constancia:1', ahora: despues(-24 * 30), fecha: '2026-10-04' });
+  await agendar(db, { ahora: despues(-24 * 30), fecha: '2026-10-04' });
   await agendar(db, { ahora: despues(-24 * 20), fecha: '2026-10-03' });
   await agendar(db, { ahora: despues(1), fecha: '2026-10-12' });
   assert.equal((await de(db, 's:s1')).faltan, 1);
@@ -138,6 +166,16 @@ test('hecha a mano asignada: cuentan además las citas del paciente reservadas d
   await agendar(db, { plan: 'acompanamiento:3', ahora: despues(5) });
   const f = await de(db, 'x:abc');
   assert.deepEqual([f.dadas, f.usadas, f.faltan], [5, 3, 2]);
+});
+
+test('hecha a mano: una cita suelta anterior a asignarla ya va en «qué cita es» y no se cuenta dos veces', async () => {
+  const db = d1DePrueba();
+  await externa(db);
+  await agenda.crearLink(db, { id: 'SIN', tokenHash: 'h-sin', tipo: 's60', creadoPor: 'r@x.pe', ahora: t0, plan: 'constancia:3', cita: '1', susClave: 'x:abc' });
+  await agendar(db, { ahora: despues(24) });
+  await agendar(db, { clave: 'x:abc', cita: '2', ahora: despues(24 * 7) });
+  const f = await de(db, 'x:abc');
+  assert.deepEqual([f.dadas, f.usadas, f.faltan], [5, 2, 3]);
 });
 
 test('aviso de pago nuevo: se enciende con un cobro posterior al arranque y se apaga con «Visto» hasta el siguiente', async () => {

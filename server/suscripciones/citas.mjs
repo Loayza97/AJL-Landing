@@ -9,8 +9,16 @@ import { PRODUCTO_PRUEBA } from './calculo.mjs';
 const esWeb = (clave) => String(clave).startsWith('s:');
 const MES = 30 * 86400000;
 const UN_DIA = 86400000;
-// «renovacion_constancia» y «control_constancia» son citas de Constancia.
-const familia = (plan) => String(plan ?? '').split(':')[0].replace(/^(renovacion|control)_/, '');
+// «Control Acompañamiento» funciona igual que Acompañamiento. «Renovación Constancia» es un pago aparte: no entra.
+const familia = (plan) => String(plan ?? '').split(':')[0].replace(/^control_/, '');
+const palabras = (t) => String(t ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().split(/\s+/).filter(Boolean);
+// Cuando el mismo documento es paciente de una suscripción y quien paga otra: para la segunda, la ficha tiene que
+// llevar el primer nombre de esa suscripción.
+const mismoNombre = (suscripcion, ficha) => {
+  const a = palabras(suscripcion);
+  const b = palabras(ficha);
+  return !a.length || !b.length || b.includes(a[0]);
+};
 const documento = (d) => { const x = String(d ?? '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return x.length >= 6 ? x : null; };
 const diaLima = (ms) => new Date(ms - 5 * 3600000).toISOString().slice(0, 10);
 const DESDE = "(SELECT valor FROM sync_estado WHERE clave = 'citas_por_cobro_desde') AS desde";
@@ -34,7 +42,8 @@ async function filasWeb(db) {
       proximo: s.estado !== 'activa' ? null : s.proximo ?? (s.ultimo_cobro_en ? new Date(Date.parse(s.ultimo_cobro_en) + MES).toISOString() : null),
     },
     // Sus citas se reconocen por la ficha de la primera cita; sin ella, por el documento de quien se suscribió.
-    paciente: { cliente: s.cliente_id, doc: documento(s.cliente_dni) ?? documento(s.dni), familia: s.producto, inicio: Date.parse(s.creado_en), sinPrimera: !s.reserva_id },
+    paciente: { cliente: s.cliente_id, doc: documento(s.cliente_dni) ?? documento(s.dni), nombre: documento(s.cliente_dni) ? null : s.nombre,
+      familia: familia(s.producto), inicio: Date.parse(s.creado_en), sinPrimera: !s.reserva_id },
     previas: 0, primera: s.primera_estado === 'confirmada' ? 1 : 0, registrado: s.cobrado_en, desde: s.desde, vistos: s.vistos,
   }));
 }
@@ -42,7 +51,7 @@ async function filasWeb(db) {
 async function filasMano(db) {
   const { results } = await db.prepare(
     `SELECT x.preapproval_id, x.pagador, x.reason, x.estado_mp, x.monto_centimos AS monto_plan, cs.cliente_id, cs.plan, cs.citas_por_cobro, cs.citas_previas,
-       cl.nombre, cl.whatsapp, cl.dni, p.fecha AS proximo, v.cobros AS vistos, ${DESDE},
+       cs.actualizado_en AS asignada_en, cl.nombre, cl.whatsapp, cl.dni, p.fecha AS proximo, v.cobros AS vistos, ${DESDE},
        COUNT(c.mp_payment_id) AS cobros, MAX(c.cobrado_en) AS cobrado_en, MAX(c.creado_en) AS registrado,
        (SELECT u.monto_centimos FROM sus_externa_cobros u WHERE u.preapproval_id = x.preapproval_id ORDER BY u.cobrado_en DESC LIMIT 1) AS monto_centimos
      FROM sus_externas x LEFT JOIN sus_externa_cobros c ON c.preapproval_id = x.preapproval_id
@@ -63,7 +72,8 @@ async function filasMano(db) {
         proximo: x.estado_mp === 'authorized' ? x.proximo : null,
       },
       // «otro» no dice qué producto es: solo cuentan los links de su fila.
-      paciente: asignada && x.plan !== 'otro' ? { cliente: x.cliente_id, doc: documento(x.dni), familia: familia(x.plan), inicio: null, sinPrimera: false } : null,
+      paciente: asignada && x.plan !== 'otro'
+        ? { cliente: x.cliente_id, doc: documento(x.dni), nombre: null, familia: familia(x.plan), inicio: Date.parse(x.asignada_en), sinPrimera: false } : null,
       previas: x.citas_previas ?? 0, primera: 0, registrado: x.registrado, desde: x.desde, vistos: x.vistos,
     };
   });
@@ -79,13 +89,8 @@ function repartir(filas, links, ahora) {
     c.agendadas += 1;
     c.ultima = Math.max(c.ultima, creada);
   };
-  // Una hecha a mano empieza a reconocer citas desde que se asignó: su primer link.
-  for (const f of filas) {
-    if (f.fila.origen !== 'mano' || !f.paciente) continue;
-    const suyos = links.filter((l) => l.clave === f.fila.clave).map((l) => Date.parse(l.link_creado));
-    f.paciente.inicio = suyos.length ? Math.min(...suyos) : null;
-  }
-  const candidatas = filas.filter((f) => f.paciente?.inicio != null);
+  // Una hecha a mano reconoce citas desde que se asignó: las anteriores ya van en «qué cita es».
+  const candidatas = filas.filter((f) => f.paciente);
   for (const l of links) {
     if (l.clave) {
       const c = cuenta.get(l.clave);
@@ -95,8 +100,11 @@ function repartir(filas, links, ahora) {
     const creada = Date.parse(l.creada);
     if (l.clave) { sumar(l.clave, creada); continue; }
     const doc = documento(l.dni);
-    const suyas = candidatas.filter(({ paciente: p }) => p.familia === familia(l.plan)
+    const delPaciente = candidatas.filter(({ paciente: p }) => p.familia === familia(l.plan)
       && ((p.cliente && p.cliente === l.cliente_id) || (p.doc && p.doc === doc)));
+    // `nombre` solo lo llevan las reconocidas por el documento de quien paga.
+    const firme = delPaciente.some((f) => f.paciente.nombre == null);
+    const suyas = delPaciente.filter((f) => f.paciente.nombre == null || !firme || mismoNombre(f.paciente.nombre, l.paciente));
     const antes = suyas.filter((f) => creada >= f.paciente.inicio).sort((a, b) => b.paciente.inicio - a.paciente.inicio);
     // «Ya tiene cita»: la que reservó antes de suscribirse, si es desde el día anterior.
     const yaTenia = suyas.filter((f) => f.paciente.sinPrimera && l.fecha_lima >= diaLima(f.paciente.inicio - UN_DIA))
@@ -110,9 +118,14 @@ function repartir(filas, links, ahora) {
 async function todasLasFilas(db, ahora) {
   const [web, mano, links, ajustes] = await Promise.all([
     filasWeb(db), filasMano(db),
-    db.prepare(`SELECT l.sus_clave AS clave, l.plan, l.usado_en, l.vence_en, l.creado_en AS link_creado,
-        r.estado, r.cliente_id, r.creado_en AS creada, r.fecha_lima, cl.dni
-      FROM links_agenda l LEFT JOIN reservas r ON r.id = l.reserva_id LEFT JOIN clientes cl ON cl.id = r.cliente_id`).all(),
+    // Solo lo que puede contar: los links de una fila y las citas confirmadas desde la suscripción más antigua. Este
+    // cálculo corre dentro de cada cobro y no puede crecer con toda la historia de links.
+    db.prepare(`SELECT l.sus_clave AS clave, l.plan, l.usado_en, l.vence_en,
+        r.estado, r.cliente_id, r.creado_en AS creada, r.fecha_lima, cl.dni, cl.nombre AS paciente
+      FROM links_agenda l LEFT JOIN reservas r ON r.id = l.reserva_id LEFT JOIN clientes cl ON cl.id = r.cliente_id
+      WHERE l.sus_clave IS NOT NULL OR (r.estado = 'confirmada' AND r.fecha_lima >= COALESCE(
+        (SELECT date(MIN(x.t), '-2 day') FROM (SELECT MIN(creado_en) AS t FROM suscripciones
+          UNION ALL SELECT MIN(actualizado_en) FROM citas_suscripcion WHERE cliente_id IS NOT NULL) x), ''))`).all(),
     db.prepare('SELECT clave, SUM(cantidad) AS n FROM citas_ajustes GROUP BY clave').all(),
   ]);
   const todas = [...web, ...mano];
