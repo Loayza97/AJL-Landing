@@ -55,6 +55,29 @@ const citasTotales = (producto, duracion) => (duracion === PAGO_UNICO ? CITAS_UN
 const PLAN = new Map(PRODUCTOS.flatMap((p) => duracionesDeProducto(p.id).map((d) => [clavePlan(p.id, d.id),
   { etiqueta: d.id === PAGO_UNICO ? p.etiqueta : `${p.etiqueta}, ${d.etiqueta}`, total: citasTotales(p.id, d.id) }])));
 
+// Citas que dan los primeros `cobros` cobros mensuales de un plan (Alejandro, 26-nov-2026): las sesiones
+// de cada mes, más la evaluación en el primero. «otro» (lo que la web no vende) lleva las que diga el equipo.
+// null: no se puede saber.
+export function citasDeCobros(plan, cobros, citasPorCobro = null) {
+  if (plan === 'otro') return citasPorCobro > 0 ? cobros * citasPorCobro : null;
+  const [producto, duracion] = String(plan).split(':');
+  if (!PLAN.has(plan) || !duracion) return null;
+  const p = plans[base(producto)];
+  return cobros * p.sessionsPerMonth + (cobros > 0 && p.firstMonthEval ? 1 : 0);
+}
+
+// Plan que sugiere el nombre de un plan hecho a mano en Mercado Pago («3 meses - 2 sesiones mes»).
+// Si la web no vende esa duración, «otro» con sus sesiones al mes. null: el nombre no lo dice.
+const POR_SESIONES = { 1: 'acompanamiento', 2: 'constancia', 4: 'transformacion' };
+export function sugerirPlan(reason) {
+  const m = String(reason ?? '').match(/(\d+)\s*mes(?:es)?\b\D*?(\d+)\s*sesi/i);
+  if (!m) return null;
+  const [, duracion, sesiones] = m;
+  const producto = POR_SESIONES[sesiones];
+  if (producto && PLAN.has(clavePlan(producto, duracion))) return { producto, duracion, citasPorCobro: null };
+  return { producto: 'otro', duracion: null, citasPorCobro: Number(sesiones) };
+}
+
 // Links creados antes del 2026-10-14 pudieron guardar «Otro»: se sigue mostrando, ya no se ofrece.
 const VIEJOS = new Map([['otro', 'Otro']]);
 

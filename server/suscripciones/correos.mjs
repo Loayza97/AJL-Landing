@@ -58,6 +58,25 @@ export function correoEquipoSuscripcion(tipo, s, extra = {}) {
   };
 }
 
+// Cada cobro mensual que hay que agendar (spec 2026-11-26-citas-por-cobro). `faltan` null: todavía no se sabe.
+export function correoCobroEquipo({ quien, titulo, monto, numero, cobros, faltan, sinAsignar = false }) {
+  const asunto = `Pago de ${quien}${sinAsignar ? ' (sin asignar)' : ''}: agendar sus citas`;
+  const citas = sinAsignar ? 'Sin asignar: al agendar desde su fila queda unida a la paciente o el paciente.'
+    : faltan == null ? 'Falta revisar cuántas citas lleva: hazlo en su fila del panel.'
+      : faltan > 0 ? `Faltan agendar: <strong>${faltan}</strong>` : 'Las citas de este cobro ya están agendadas.';
+  return {
+    subject: asunto,
+    html: marco(`
+      <h2 style="color:#173C2C">${esc(asunto)}</h2>
+      <ul style="padding-left:18px">
+        ${titulo ? `<li>Plan: ${esc(titulo)}</li>` : ''}
+        <li>Pagó ${soles(monto)}${numero ? ` · cobro ${numero}${cobros ? ` de ${cobros}` : ''}` : ''}</li>
+        <li>${citas}</li>
+      </ul>
+      <p>Agéndalas en el panel, sección «Por agendar».</p>`),
+  };
+}
+
 export function correoPenalidadPendiente({ nombre, monto, url }) {
   return {
     subject: 'Tu penalidad pendiente · AJL Nutrición',
@@ -82,4 +101,12 @@ export function correoRespaldo({ recuperados, errores }) {
   }
   return { subject: `Reservas web: Respaldo diario de cobros (${recuperados.length} recuperados, ${errores.length} con error)`,
     html: marco(`<h2>Respaldo diario de cobros</h2>${partes.join('')}`) };
+}
+
+// La revisión de cada 15 min lleva varias vueltas seguidas sin poder con algo.
+export function correoRevisionFallida(fallos) {
+  return { subject: 'Reservas web: la revisión de cobros está fallando',
+    html: marco(`<h2>La revisión de cobros está fallando</h2><p>Lleva 4 vueltas seguidas (cerca de una hora) sin poder revisar:</p><ul>${
+      fallos.map((f) => `<li>${esc(f.clave === 'lista' ? 'La lista de suscripciones' : `Suscripción ${f.clave}`)}: ${esc(f.error)}</li>`).join('')
+    }</ul><p>Se sigue intentando. Los cobros pueden tardar en salir en el panel.</p>`) };
 }

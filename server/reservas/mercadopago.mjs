@@ -101,12 +101,21 @@ export function crearMp(env, fetchImpl = fetch) {
   const buscarSuscripcionesDePlan = async (planId) => (await pedirSus(`/preapproval/search?preapproval_plan_id=${encodeURIComponent(planId)}`)).results ?? [];
   const buscarSuscripcionDePlan = async (planId) => (await buscarSuscripcionesDePlan(planId))[0] ?? null;
   const desactivarPlan = (planId) => pedirSus(`/preapproval_plan/${encodeURIComponent(planId)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
+  // Todas las vigentes de la cuenta, con cuántos cobros lleva cada una (`summarized.charged_quantity`).
+  async function listarSuscripcionesVigentes() {
+    const todas = [];
+    for (let offset = 0; ; offset += 50) {
+      const d = await pedirSus(`/preapproval/search?status=authorized&limit=50&offset=${offset}`);
+      todas.push(...(d.results ?? []));
+      if (!d.results?.length || todas.length >= (d.paging?.total ?? 0)) return todas;
+    }
+  }
   const obtenerSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`);
   const cancelarSuscripcion = (id) => pedirSus(`/preapproval/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
   const obtenerCobroSuscripcion = (id) => pedirSus(`/authorized_payments/${encodeURIComponent(id)}`);
   const buscarCobrosSuscripcion = async (id) => (await pedirSus(`/authorized_payments/search?preapproval_id=${encodeURIComponent(id)}`)).results ?? [];
 
-  return { crearPreferencia, obtenerPago, crearSuscripcion, buscarSuscripcionDePlan, buscarSuscripcionesDePlan, desactivarPlan, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
+  return { crearPreferencia, obtenerPago, crearSuscripcion, buscarSuscripcionDePlan, buscarSuscripcionesDePlan, desactivarPlan, listarSuscripcionesVigentes, obtenerSuscripcion, cancelarSuscripcion, obtenerCobroSuscripcion, buscarCobrosSuscripcion };
 }
 
 function iguales(a, b) {

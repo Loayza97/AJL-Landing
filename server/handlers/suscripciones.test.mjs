@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { d1DePrueba } from '../reservas/d1-prueba.mjs';
 import * as sus from '../suscripciones/repo.mjs';
-import { handleSuscripcionCancelar, handleSuscripcionLink, handleSuscripcionEstado, handleBarridoSuscripciones } from './suscripciones.mjs';
+import { handleSuscripcionCancelar, handleSuscripcionLink, handleSuscripcionEstado, handleBarridoSuscripciones, handleRevisionCobros } from './suscripciones.mjs';
 import { sha256Hex } from '../tokens.mjs';
 
 const t0 = new Date('2026-11-20T15:00:00Z');
@@ -230,4 +230,14 @@ test('respaldo diario: solo con el token del cron; sin token configurado, 503', 
   const r = await llamar('Bearer tok');
   assert.equal(r.status, 200);
   assert.deepEqual(await r.json(), { ok: true, suscripciones: 1, revisados: 0, recuperados: 0, errores: 0 });
+});
+
+test('revisión de cobros: solo POST con el token del cron', async () => {
+  const d = { ...deps(), correos: [] };
+  d.mp.listarSuscripcionesVigentes = async () => [];
+  const llamar = (auth, metodo = 'POST') => handleRevisionCobros(new Request('https://x.test/api/suscripciones/revision',
+    { method: metodo, headers: auth ? { Authorization: auth } : {} }), { ...env, RESUMEN_TOKEN: 'tok' }, d);
+  assert.equal((await llamar()).status, 401);
+  assert.equal((await llamar('Bearer tok', 'GET')).status, 405);
+  assert.deepEqual(await (await llamar('Bearer tok')).json(), { ok: true, vigentes: 0, consultadas: 0, errores: 0 });
 });

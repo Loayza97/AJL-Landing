@@ -12,6 +12,8 @@ import { correoEquipoAlerta } from '../reservas/correos.mjs';
 import { siteUrl } from '../http.mjs';
 import { formatoSoles } from '../../src/data/duraciones.js';
 import { PREFIJO_PLAN } from '../reservas/mercadopago.mjs';
+import { esHechaAMano, registrarCobroExterno, avisarCobro } from './externas.mjs';
+import { conReintento, dormir, PAUSA_MS } from './reintento.mjs';
 
 // authorized payment que Mercado Pago ya no reintentará.
 export const ESTADO_COBRO_FALLIDO = 'cancelled';
@@ -182,11 +184,17 @@ export async function procesarCobro(deps, env, authorizedId) {
   let reemplazado = false;
   let delPlan = false;
   if (!s) {
-    const r = await suscripcionDe(deps, { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId });
+    const pre = { ...(await deps.mp.obtenerSuscripcion(preapprovalId)), id: preapprovalId };
+    const r = await suscripcionDe(deps, pre);
     if (r.planViejo) return cobroDePlanViejo(deps, env, r.s, ap, preapprovalId);
+    // Hecha a mano en Mercado Pago: se anota aparte para contar sus citas; la web no toca su dinero.
+    if (!r.s && esHechaAMano(pre.reason)) {
+      const p = ap.payment?.id ? await deps.mp.obtenerPago(String(ap.payment.id)) : null;
+      await registrarCobroExterno(deps, env, pre, ap, p);
+      return { estado: 'externa' };
+    }
     if (!r.s) {
       if (r.planDesconocido && esPlanDeLaWeb(r.reason)) await avisarPlanDesconocido(deps, env, ap, r.planDesconocido, preapprovalId);
-      else if (r.planDesconocido) console.log('plan ajeno a la web', r.planDesconocido, r.reason);
       return { estado: 'desconocido' };
     }
     s = r.s;
@@ -249,6 +257,11 @@ export async function procesarCobro(deps, env, authorizedId) {
     if (esUltimoCobro(actual, numero) && await sus.marcarTerminada(deps.db, s.id, deps.ahora())) {
       await cancelarEnMp(deps, env, actual);
       await avisarFijas(deps, env, correoEquipoSuscripcion('ultimo', actual));
+    }
+    // El primero y el último ya avisan; los del medio traen citas que hay que agendar.
+    if (numero > 1 && !esUltimoCobro(actual, numero)) {
+      await avisarCobro(deps, env, `s:${actual.id}`, { monto: montoCentimos, nombre: actual.nombre, titulo: titulo(actual), numero,
+        cobros: actual.duracion_meses > 1 ? actual.duracion_meses : null });
     }
     return { estado: 'aprobado', numero };
   }
@@ -350,9 +363,11 @@ export async function barrerSuscripciones(deps, env) {
   const recuperados = [];
   const errores = [];
   let revisados = 0;
-  for (const s of filas) {
+  const esperar = deps.esperar ?? dormir;
+  for (const [i, s] of filas.entries()) {
+    if (i) await esperar(PAUSA_MS);
     try {
-      for (const ap of await deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id)) {
+      for (const ap of await conReintento(() => deps.mp.buscarCobrosSuscripcion(s.mp_preapproval_id), esperar)) {
         if (ap?.payment?.id && await sus.cobroAprobado(deps.db, String(ap.payment.id))) continue;
         revisados++;
         const r = await procesarCobro(deps, env, String(ap.id));

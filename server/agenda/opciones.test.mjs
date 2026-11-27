@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PRODUCTOS, productosDeTipo, duracionesDeProducto, clavePlan, citasDePlan, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida } from './opciones.mjs';
+import { PRODUCTOS, productosDeTipo, duracionesDeProducto, clavePlan, citasDePlan, ordinal, etiquetaPlan, etiquetaCita, planValido, citaValida, citasDeCobros, sugerirPlan } from './opciones.mjs';
 
 test('ordinal: abreviaturas femeninas como se escriben en Perú', () => {
   const esperado = ['1ra', '2da', '3ra', '4ta', '5ta', '6ta', '7ma', '8va', '9na', '10ma', '11va', '12va',
@@ -85,4 +85,31 @@ test('Renovación Constancia: pago único con 2 citas, «1 de 2» y «2 de 2»',
   assert.equal(etiquetaPlan('renovacion_constancia'), 'Renovación Constancia');
   assert.ok(citaValida('renovacion_constancia', '2'));
   assert.ok(!citaValida('renovacion_constancia', '3'));
+});
+
+test('citas que dan los cobros: sesiones al mes, más la evaluación en el primero (Constancia 3 y luego 2; Transformación 5 y luego 4)', () => {
+  assert.equal(citasDeCobros('acompanamiento:3', 2), 2);
+  assert.equal(citasDeCobros('constancia:3', 0), 0);
+  assert.equal(citasDeCobros('constancia:3', 1), 3);
+  assert.equal(citasDeCobros('constancia:3', 3), 7);
+  assert.equal(citasDeCobros('transformacion:6', 2), 9);
+});
+
+test('citas de los cobros fuera de catálogo: las que diga el equipo; sin ese dato o con plan desconocido, no se sabe', () => {
+  assert.equal(citasDeCobros('otro', 2, 4), 8);
+  assert.equal(citasDeCobros('otro', 2), null);
+  assert.equal(citasDeCobros('zzz', 1), null);
+  assert.equal(citasDeCobros(null, 1), null);
+});
+
+test('plan sugerido a partir del nombre del plan hecho a mano en Mercado Pago', () => {
+  const casos = [['3 meses- 1 sesión mes', 'acompanamiento', '3'], ['3 meses-1 sesión mes', 'acompanamiento', '3'],
+    ['6 meses- 1 sesión mes', 'acompanamiento', '6'], ['3 meses - 2 sesiones mes', 'constancia', '3'],
+    ['6 meses - 2 sesiones mes', 'constancia', '6'], ['6 meses 2 sesiones mes', 'constancia', '6']];
+  for (const [reason, producto, duracion] of casos) {
+    assert.deepEqual(sugerirPlan(reason), { producto, duracion, citasPorCobro: null }, reason);
+  }
+  assert.deepEqual(sugerirPlan('2 meses-4 sesiones mes'), { producto: 'otro', duracion: null, citasPorCobro: 4 });
+  assert.equal(sugerirPlan('cualquier cosa'), null);
+  assert.equal(sugerirPlan(null), null);
 });

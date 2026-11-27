@@ -409,10 +409,11 @@ test('cobro aprobado de un plan que no es de ninguna suscripción: avisa al equi
 const conPlanAjeno = (reason) => armar({ cobros: { z: { ...cobro('z', 'pz'), preapproval_id: 'pre-x' } }, pagos: { pz: pago('pz') },
   pre: { 'pre-x': { id: 'pre-x', status: 'authorized', preapproval_plan_id: 'plan-x', reason } } });
 
-test('cobro aprobado de un plan propio de Alejandro (reason sin el prefijo): no avisa', async () => {
+test('cobro aprobado de un plan hecho a mano (reason sin el prefijo): se registra aparte, sin alerta ni cancelar', async () => {
   const d = conPlanAjeno('Prueba S/5');
-  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
+  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'externa' });
   assert.equal(alertas(d).length, 0);
+  assert.deepEqual([d.canceladas, d.desactivados], [[], []]);
 });
 
 test('cobro aprobado de un plan de la web que no está en la base: avisa', async () => {
@@ -692,4 +693,70 @@ test('respaldo sin AVISOS_RESPALDO configurado: revisa igual y no manda correo',
   pagos.p2 = pago('p2');
   assert.equal((await barrerSuscripciones(d, env)).recuperados, 1);
   assert.equal(respaldo(d).length, 0);
+});
+
+// ─── Citas por cobro (spec 2026-11-26) ───────────────────────────────────────
+const avisos = (d) => d.correos.filter((c) => /agendar sus citas/.test(c.subject));
+const externos = async (d) => (await d.db.prepare('SELECT * FROM sus_externa_cobros ORDER BY numero').all()).results;
+// Desde cuándo se avisan los cobros hechos a mano (en producción lo escribe la migración).
+const desde = (d, iso) => d.db.prepare("UPDATE sync_estado SET valor = ?1 WHERE clave = 'citas_por_cobro_desde'").bind(iso).run();
+function aMano({ reason = '3 meses - 2 sesiones mes', estado = 'approved', fecha = '2026-10-05T14:00:00.000-04:00' } = {}) {
+  return armar({ cobros: { z: { ...cobro('z', 'pz'), preapproval_id: 'pre-x' } },
+    pagos: { pz: { ...pago('pz', estado), date_approved: fecha } },
+    pre: { 'pre-x': { id: 'pre-x', status: 'authorized', preapproval_plan_id: 'plan-x', reason, payer_first_name: 'Marta', payer_last_name: '<Prueba>',
+      auto_recurring: { transaction_amount: 360 } } } });
+}
+
+test('cobro intermedio de la web: avisa al equipo una vez; el primero y el último ya tienen su aviso', async () => {
+  const d = armar({ cobros: { a1: cobro('a1', 'p1'), a2: cobro('a2', 'p2'), a3: cobro('a3', 'p3') }, pagos: { p1: pago('p1'), p2: pago('p2'), p3: pago('p3') } });
+  await reservaMensual(d);
+  await procesarCobro(d, env, 'a1');
+  assert.equal(avisos(d).length, 0);
+  await Promise.all([procesarCobro(d, env, 'a2'), procesarCobro(d, env, 'a2')]);
+  await procesarCobro(d, env, 'a2');
+  assert.equal(avisos(d).length, 1);
+  assert.equal(avisos(d)[0].subject, 'Pago de Ana Pérez: agendar sus citas');
+  assert.deepEqual(avisos(d)[0].to, ['r@x.pe', 'i@x.pe', 'a@x.pe']);
+  assert.match(avisos(d)[0].html, /cobro 2 de 3/);
+  assert.match(avisos(d)[0].html, /Faltan agendar: <strong>4<\/strong>/);
+  await procesarCobro(d, env, 'a3');
+  assert.equal(avisos(d).length, 1);
+});
+
+test('cobro hecho a mano: se registra una vez aunque llegue dos veces, avisa al equipo y no le escribe al paciente', async () => {
+  const d = aMano();
+  await desde(d, '2026-10-01T00:00:00.000Z');
+  await Promise.all([procesarCobro(d, env, 'z'), procesarCobro(d, env, 'z')]);
+  await procesarCobro(d, env, 'z');
+  assert.deepEqual((await externos(d)).map((c) => [c.mp_payment_id, c.numero, c.monto_centimos, c.cobrado_en]), [['pz', 1, 36000, '2026-10-05T18:00:00.000Z']]);
+  assert.equal(d.correos.length, 1);
+  assert.equal(avisos(d)[0].subject, 'Pago de Marta <Prueba> (sin asignar): agendar sus citas');
+  assert.match(avisos(d)[0].html, /Marta &lt;Prueba&gt;/);
+  assert.deepEqual([d.canceladas, d.desactivados], [[], []]);
+});
+
+test('hecha a mano pendiente: no cuenta; cuando se aprueba, sí', async () => {
+  const d = aMano({ estado: 'pending' });
+  await desde(d, '2026-10-01T00:00:00.000Z');
+  await procesarCobro(d, env, 'z');
+  assert.equal((await externos(d)).length, 0);
+  assert.equal(d.correos.length, 0);
+  d.mp.obtenerPago = async () => ({ ...pago('pz'), date_approved: '2026-10-05T14:00:00.000-04:00' });
+  await procesarCobro(d, env, 'z');
+  assert.equal((await externos(d)).length, 1);
+  assert.equal(avisos(d).length, 1);
+});
+
+test('hecha a mano cobrada antes de publicar: se registra sin correo', async () => {
+  const d = aMano({ fecha: '2026-09-20T10:00:00.000-04:00' });
+  await desde(d, '2026-10-01T00:00:00.000Z');
+  await procesarCobro(d, env, 'z');
+  assert.equal((await externos(d)).length, 1);
+  assert.equal(d.correos.length, 0);
+});
+
+test('preapproval sin reason ni suscripción: se trata como de la web y no se registra aparte', async () => {
+  const d = aMano({ reason: null });
+  assert.deepEqual(await procesarCobro(d, env, 'z'), { estado: 'desconocido' });
+  assert.equal((await externos(d)).length, 0);
 });

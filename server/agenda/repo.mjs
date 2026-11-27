@@ -14,11 +14,12 @@ export function estadoLink(l, ahora) {
 }
 
 // Plan y cita ya vienen validados por el handler (server/agenda/opciones.mjs).
-export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora, plan = null, cita = null, nutri = null }) {
+// susClave: la suscripción cuyo cobro se está agendando (panel «Por agendar»); susCpc: citas por cobro si el plan es «otro».
+export async function crearLink(db, { id, tokenHash, tipo, creadoPor, ahora, plan = null, cita = null, nutri = null, susClave = null, susCpc = null }) {
   const vence = new Date(ahora.getTime() + VENCE_DIAS * DIA).toISOString();
-  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en, plan, cita, nutri_sugerida)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`)
-    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence, plan, cita, nutri).run();
+  await db.prepare(`INSERT INTO links_agenda (id, token_hash, tipo, creado_en, creado_por, vence_en, plan, cita, nutri_sugerida, sus_clave, sus_cpc)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`)
+    .bind(id, tokenHash, tipo, ahora.toISOString(), creadoPor, vence, plan, cita, nutri, susClave, susCpc).run();
   return { vence_en: vence };
 }
 
@@ -97,13 +98,23 @@ export async function agendarConLink(db, a) {
        AND ${NUTRI_CON_CUPO({ fecha: '?9', nutri: '?5', dur: '?8' })}`,
   ).bind(a.reservaId, a.token, a.clienteId, `link_${a.tipoId}`, h.nutricionista_id, h.inicio, h.fin, h.duracion_min, h.fecha_lima, h.modalidad,
     a.condicionesVersion ?? null, a.link, ahoraIso, tope));
-  sentencias.push(db.prepare(
+  const usar = sentencias.push(db.prepare(
     `UPDATE links_agenda SET usado_en = ?2, reserva_id = ?3, paciente_nuevo = ?4
      WHERE id = ?1 AND usado_en IS NULL AND EXISTS (SELECT 1 FROM reservas WHERE id = ?3)`,
-  ).bind(a.link, ahoraIso, a.reservaId, a.pacienteNuevo ? 1 : 0));
+  ).bind(a.link, ahoraIso, a.reservaId, a.pacienteNuevo ? 1 : 0)) - 1;
+  // Primer link usado de una suscripción hecha a mano: la une al paciente, con su plan y las citas que
+  // ya llevaba según «qué cita». Solo si este link quedó usado y la suscripción no tenía paciente.
+  sentencias.push(db.prepare(
+    `INSERT INTO citas_suscripcion (clave, cliente_id, plan, citas_por_cobro, citas_previas, actualizado_en)
+     SELECT sus_clave, ?3, plan, sus_cpc, MAX(CAST(cita AS INTEGER) - 1, 0), ?2 FROM links_agenda
+     WHERE id = ?1 AND reserva_id = ?4 AND sus_clave LIKE 'x:%'
+     ON CONFLICT (clave) DO UPDATE SET cliente_id = excluded.cliente_id, plan = excluded.plan,
+       citas_por_cobro = excluded.citas_por_cobro, citas_previas = excluded.citas_previas, actualizado_en = excluded.actualizado_en
+     WHERE citas_suscripcion.cliente_id IS NULL`,
+  ).bind(a.link, ahoraIso, a.clienteId, a.reservaId));
   try {
     const res = await db.batch(sentencias);
-    if (res.at(-1).meta.changes === 1) return { ok: true };
+    if (res[usar].meta.changes === 1) return { ok: true };
   } catch (e) {
     if (!/UNIQUE constraint failed/i.test(String(e?.message))) throw e;
     return { ok: false, motivo: 'ocupada' };

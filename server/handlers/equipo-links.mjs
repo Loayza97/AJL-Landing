@@ -11,7 +11,8 @@ import { randomToken, sha256Hex } from '../tokens.mjs';
 import { TIPOS_LINK, tipoDeReserva } from '../agenda/tipos.mjs';
 import * as agenda from '../agenda/repo.mjs';
 import { rangoPeriodo } from '../agenda/periodo.mjs';
-import { etiquetaPlan, etiquetaCita, planValido, citaValida, productoDeTipo, citasDePlan, PRODUCTOS } from '../agenda/opciones.mjs';
+import { etiquetaPlan, etiquetaCita, planValido, citaValida, productoDeTipo, citasDePlan, PRODUCTOS, MAX_CITA } from '../agenda/opciones.mjs';
+import { filaPorClave } from '../suscripciones/citas.mjs';
 import { etiquetaLima, fechaLima } from '../reservas/tiempo.mjs';
 import { celda, lima } from './equipo.mjs';
 import { cotizar } from '../reservas/catalogo.mjs';
@@ -75,14 +76,27 @@ async function listarLinks(request, deps, { email, admin }) {
 async function crearLink(request, env, deps, email) {
   const d = await readJson(request);
   if (!Object.hasOwn(TIPOS_LINK, d.tipo)) return bad(400, 'Tipo de evento inválido');
-  if (!planValido(d.plan)) return bad(400, 'Elige el producto y la duración.');
-  if (!productoDeTipo(d.tipo, d.plan)) return bad(400, 'Ese producto no va con este tipo de cita.');
-  if (!citaValida(d.plan, d.cita)) return bad(400, 'Elige qué cita es.');
+  // «Agendar» desde una fila de «Por agendar»: el link queda unido a esa suscripción.
+  const sus = d.sus == null ? null : await filaPorClave(deps.db, String(d.sus), deps.ahora());
+  if (d.sus != null && !sus) return bad(404, 'No encontramos esa suscripción. Recarga la página.');
+  if (sus?.por_revisar) return bad(409, 'Primero anota cuántas citas lleva (botón «Revisar»).');
+  let citasPorCobro = null;
+  // «otro» es para lo que la web no vende: solo en una suscripción hecha a mano, diciendo cuántas citas da cada cobro.
+  if (d.plan === 'otro' && sus?.origen === 'mano') {
+    citasPorCobro = sus.citas_por_cobro ?? d.citas_por_cobro;
+    if (!Number.isInteger(citasPorCobro) || citasPorCobro < 1 || citasPorCobro > MAX_CITA) return bad(400, 'Escribe cuántas citas da cada cobro.');
+    if (typeof d.cita !== 'string' || !/^[1-9]\d?$/.test(d.cita) || Number(d.cita) > MAX_CITA) return bad(400, 'Elige qué cita es.');
+  } else {
+    if (!planValido(d.plan)) return bad(400, 'Elige el producto y la duración.');
+    if (!productoDeTipo(d.tipo, d.plan)) return bad(400, 'Ese producto no va con este tipo de cita.');
+    if (!citaValida(d.plan, d.cita)) return bad(400, 'Elige qué cita es.');
+  }
+  if (sus?.plan && d.plan !== sus.plan) return bad(400, 'Esa suscripción es de otro plan.');
   const token = randomToken();
   const id = crypto.randomUUID();
   const nutri = await agenda.siguienteNutri(deps.db, deps.nutricionistas.map((n) => n.id));
   const { vence_en } = await agenda.crearLink(deps.db, { id, tokenHash: await sha256Hex(token), tipo: d.tipo, creadoPor: email, ahora: deps.ahora(),
-    plan: d.plan, cita: d.cita, nutri });
+    plan: d.plan, cita: d.cita, nutri, susClave: sus?.clave ?? null, susCpc: citasPorCobro });
   return json(200, { ok: true, id, tipo: d.tipo, vence_en, url: `${siteUrl(env)}/agenda/?l=${token}` });
 }
 

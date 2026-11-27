@@ -2,6 +2,13 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
+## 2026-11-26 · publicado (citas por agendar con cada cobro)
+
+- Panel: nueva sección «Por agendar», arriba de todo. Dice a quién le faltan citas de sus cobros mensuales (de la web y de los planes hechos a mano en Mercado Pago), permite agendar desde la fila con el link de un solo uso (queda unido a esa suscripción) y ajustar la cuenta a mano. Las suscripciones que ya habían cobrado salen «por revisar» hasta que el equipo anota una vez cuántas citas llevan. Lo pidió Alejandro (26-nov-2026).
+- Correo a Romina, Irene y Alejandro en cada cobro mensual: los intermedios de la web (el primero y el último ya avisaban) y los de planes hechos a mano. Los planes hechos a mano no reciben recibo, baja ni penalidad de la web.
+- Revisión de cobros cada 15 minutos (respaldo del aviso de Mercado Pago). El respaldo diario ahora espera entre consultas y reintenta, para evitar los errores 429 del 13 al 24-nov.
+- Publicado con aprobación de Alejandro (26-nov-2026), directo a producción. Requirió la migración 0021 y volver a desplegar el worker de tareas programadas.
+
 ## 2026-11-25 · publicado (sábado 28-nov sin tope)
 
 - Agenda web y links: el sábado 28-nov-2026 no tiene tope de horas, ni el del equipo (480 min) ni el de cada nutricionista (300 min). Siguen las demás reglas: horario de cada una, consultorio, almuerzo, ausencias y cruces. Nueva lista `SIN_TOPE_FECHAS` en `server/reservas/constantes.mjs`; pasada la fecha se puede borrar. Pedido y aprobado por Alejandro el 25-nov-2026.

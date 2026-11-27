@@ -174,3 +174,15 @@ test('las llamadas de suscripción lanzan si Mercado Pago responde error', async
   await assert.rejects(mp.crearSuscripcion({ suscripcionId: 's', titulo: 't', cuotaCentimos: 1, cobros: null, urlRetorno: 'u' }), /400/);
   await assert.rejects(mp.desactivarPlan('p'), /400/);
 });
+
+test('listar suscripciones vigentes recorre todas las páginas de 50', async () => {
+  const urls = [];
+  const mp = crearMp({ MP_ACCESS_TOKEN: 'T' }, async (url) => {
+    urls.push(url);
+    const offset = Number(new URL(url).searchParams.get('offset'));
+    return new Response(JSON.stringify({ paging: { total: 60 }, results: Array.from({ length: offset ? 10 : 50 }, (_, i) => ({ id: offset + i })) }));
+  });
+  assert.equal((await mp.listarSuscripcionesVigentes()).length, 60);
+  assert.deepEqual(urls, ['https://api.mercadopago.com/preapproval/search?status=authorized&limit=50&offset=0',
+    'https://api.mercadopago.com/preapproval/search?status=authorized&limit=50&offset=50']);
+});

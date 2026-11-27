@@ -48,6 +48,52 @@ import '../../styles/panel.css';
 
     <div id="app" hidden>
       <section>
+        <h2>Por agendar <span class="lk-nota lk-nota--alerta" id="pa-cuenta"></span></h2>
+        <p class="lk-nota">Cada cobro mensual trae citas. Aquí sale a quién le faltan, de la web y de los links hechos en Mercado Pago.</p>
+        <div class="lk-barra"><label class="lk-check"><input type="checkbox" id="pa-todas"> Ver también las que están al día</label></div>
+        <p class="lk-error" id="pa-msg" role="alert" hidden></p>
+        <div class="lk-scroll" id="pa-scroll"><table><thead><tr><th>Paciente</th><th>Plan</th><th>Último cobro</th><th>Faltan</th><th></th></tr></thead><tbody id="pa-filas"></tbody></table></div>
+
+        <dialog id="pg-dialogo" class="lk-dialogo" aria-labelledby="pg-titulo">
+          <form id="pg-form">
+            <h3 id="pg-titulo">Agendar cita</h3>
+            <p id="pg-paciente" class="lk-sub"></p>
+            <p id="pg-ayuda" class="lk-sub"></p>
+            <label>Tipo de cita <select id="pg-tipo" required></select></label>
+            <label>Producto <select id="pg-producto" required></select></label>
+            <label id="pg-duracion-campo">Duración <select id="pg-duracion"></select></label>
+            <label id="pg-cpc-campo" hidden>Citas por cada cobro <input type="number" id="pg-cpc" class="lk-url" min="1" max="25" inputmode="numeric"></label>
+            <label>Qué cita es <select id="pg-cita" required></select></label>
+            <p id="pg-msg" class="lk-error" role="alert" hidden></p>
+            <div class="lk-acciones">
+              <button type="button" id="pg-cerrar" class="lk-btn lk-btn--borde">Cerrar</button>
+              <button type="submit" id="pg-crear" class="lk-btn" disabled>Crear link de un solo uso</button>
+            </div>
+          </form>
+          <div id="pg-creado" hidden>
+            <label class="lk-nota">Link nuevo · sirve una vez · vence en 7 días<input class="lk-url" id="pg-url" readonly></label>
+            <div class="lk-dos"><button type="button" class="lk-btn lk-btn--borde" id="pg-copiar">Copiar</button><a class="lk-btn lk-btn--wa" id="pg-wa" target="_blank" rel="noopener">Enviar por WhatsApp</a></div>
+            <button type="button" class="lk-enlace" id="pg-listo">Listo</button>
+          </div>
+        </dialog>
+
+        <dialog id="pn-dialogo" class="lk-dialogo" aria-labelledby="pn-titulo">
+          <form id="pn-form">
+            <h3 id="pn-titulo">Revisar citas</h3>
+            <p id="pn-paciente" class="lk-sub"></p>
+            <p id="pn-ayuda" class="lk-sub"></p>
+            <label><span id="pn-etiqueta"></span> <input type="number" id="pn-numero" class="lk-url" required step="1" inputmode="numeric"></label>
+            <label id="pn-motivo-campo" hidden>Motivo <input id="pn-motivo" class="lk-url" maxlength="200" autocomplete="off"></label>
+            <p id="pn-msg" class="lk-error" role="alert" hidden></p>
+            <div class="lk-acciones">
+              <button type="button" id="pn-cerrar" class="lk-btn lk-btn--borde">Cerrar</button>
+              <button type="submit" id="pn-guardar" class="lk-btn">Guardar</button>
+            </div>
+          </form>
+        </dialog>
+      </section>
+
+      <section>
         <h2>Agendar a un paciente que ya pagó</h2>
         <p class="lk-nota">Crea un link, mándalo por WhatsApp y el paciente elige su hora. Sirve una sola vez y vence a los 7 días si no se usa.</p>
         <div class="lk-tarjetas">

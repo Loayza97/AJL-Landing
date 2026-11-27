@@ -8,6 +8,7 @@ import { json, readJson, siteUrl } from '../http.mjs';
 import * as sus from '../suscripciones/repo.mjs';
 import { penalidadAlCancelar, detallePenalidad, condicionesSuscripcion } from '../suscripciones/calculo.mjs';
 import { avisarBaja, avisarPenalidadPendiente, barrerSuscripciones, MSJ_DEUDA, sincronizarSuscripcion } from '../suscripciones/procesar.mjs';
+import { revisarCobros } from '../suscripciones/revision.mjs';
 import { mismoToken } from './reservas.mjs';
 import { procesarPagoPenalidad } from '../suscripciones/penalidad.mjs';
 import { sha256Hex } from '../tokens.mjs';
@@ -175,4 +176,12 @@ export async function handleBarridoSuscripciones(request, env, deps) {
   if (!env.RESUMEN_TOKEN) return bad(503, 'Respaldo sin configurar');
   if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
   return json(200, { ok: true, ...(await barrerSuscripciones(deps, env)) });
+}
+
+// Revisión de cobros cada 15 min (spec 2026-11-26-citas-por-cobro): mismo cron y token.
+export async function handleRevisionCobros(request, env, deps) {
+  if (request.method !== 'POST') return bad(405, 'Método no permitido');
+  if (!env.RESUMEN_TOKEN) return bad(503, 'Revisión sin configurar');
+  if (!(await mismoToken(request.headers.get('Authorization') || '', `Bearer ${env.RESUMEN_TOKEN}`))) return bad(401, 'No autorizado');
+  return json(200, { ok: true, ...(await revisarCobros(deps, env)) });
 }

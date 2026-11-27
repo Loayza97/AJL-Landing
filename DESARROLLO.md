@@ -15,7 +15,7 @@ Web de AJL Nutrición: **https://www.ajlnutricion.com**, con reserva y pago en l
 | Calendario | Google Calendar API (OAuth) | `server/reservas/google.mjs`, `scripts/google-oauth.mjs` |
 | Pagos | Mercado Pago (pagos y suscripciones) | `server/reservas/mercadopago.mjs` |
 | Correos | Resend | `server/correo.mjs` |
-| Resumen diario | Worker con cron | `workers/resumen-cron/` |
+| Tareas programadas (resumen, respaldo, revisión de agenda y de cobros) | Worker con cron; se despliega aparte: `npx wrangler deploy --config workers/resumen-cron/wrangler.toml` | `workers/resumen-cron/` |
 
 Datos del negocio que la web muestra (precios, nutricionistas, condiciones, contacto): `src/data/`.
 
