@@ -2,12 +2,13 @@
 
 Cambios visibles del sitio y de la reserva web, del más reciente al más antiguo. Detalle técnico en `docs/superpowers/specs/` y `docs/superpowers/plans/`.
 
-## 2026-11-27 · sin publicar («Por agendar»: conteo solo, aviso de pago nuevo y vistas)
+## 2026-11-27 · publicado («Por agendar»: conteo solo, aviso de pago nuevo y vistas)
 
 - Panel, «Por agendar»: ya no pide «Revisar». Las citas usadas se cuentan solas a partir de las agendadas en la web para ese paciente y plan; «Ajustar» queda para lo que no se reconozca.
 - La sección es plegable y su título avisa «pagos nuevos» hasta que se agendan las citas o alguien pulsa «Visto».
 - Vistas «Por agendar», «Cobran pronto» y «Todas», buscador por nombre, columna «Próximo cobro» y orden por fecha en ambos sentidos. Salen también las hechas a mano que aún no cobran.
-- Lo pidió Alejandro (27-nov-2026). Requiere la migración 0022.
+- «Renovación Constancia» es un pago aparte: sus citas no cuentan contra una suscripción.
+- Pedido y aprobado por Alejandro (27-nov-2026), directo a producción. Requirió la migración 0022; el worker de tareas programadas no cambia.
 
 ## 2026-11-26 · publicado (citas por agendar con cada cobro)
 
